@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+backend/venv/
+**/.venv/
+**/venv/
+**/env/
+**/ENV/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+backend/media/
+backend/staticfiles/
+
+# Environment variables
+.env
+backend/.env
+**/.env
+
+# Testing and coverage
+.pytest_cache/
+**/.pytest_cache/
+**/__pycache__/
+.coverage
+htmlcov/
+backend/.pytest_cache/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# Generated submission archives
+*.zip
