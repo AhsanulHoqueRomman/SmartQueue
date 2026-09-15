@@ -111,11 +111,11 @@ export const CustomerDashboard = () => {
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(230, 225, 217, 0.15)', color: '#E6E1D9', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.75rem' }}>
               👤 Customer Portal
             </div>
-            <h1 style={{ fontSize: '1.85rem', fontWeight: 700, margin: '0 0 0.4rem 0', fontFamily: 'Cinzel, serif' }}>
+            <h1 style={{ fontSize: '1.85rem', fontWeight: 700, margin: '0 0 0.4rem 0', fontFamily: 'Cinzel, serif', color: '#FAF8F3' }}>
               Welcome back, {user?.first_name || user?.email?.split('@')[0]}!
             </h1>
             <p style={{ color: '#E6E1D9', margin: 0, fontSize: '0.95rem', opacity: 0.9 }}>
-              Managing your service schedule at <strong>{currentOrg?.name || 'SmartQueue Network'}</strong>.
+              Manage your appointments, live queue sessions, and saved clinics across SmartQueue.
             </p>
           </div>
 

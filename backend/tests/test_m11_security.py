@@ -205,7 +205,7 @@ class TestRoleAuthorizationBoundaries:
             reverse('appointments:appointment_list_create', kwargs={'organization_id': s['org_a'].id}),
         ]
         for url in urls:
-            res = client.get(url)
+            res = client.post(url, {}) if 'services' in url else client.get(url)
             assert res.status_code == 401
 
 

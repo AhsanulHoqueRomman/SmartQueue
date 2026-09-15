@@ -3,14 +3,15 @@ import { useTenant } from '../../contexts/TenantContext';
 import managerService from '../../services/managerService';
 import { LoadingState } from '../../components/LoadingState';
 import { EmptyState } from '../../components/EmptyState';
+import { useToast } from '../../contexts/ToastContext';
 
 export function ManagerServicesPage() {
   const { currentOrg } = useTenant();
+  const { showSuccess, showError } = useToast();
 
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [feedback, setFeedback] = useState(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingService, setEditingService] = useState(null);
@@ -21,6 +22,16 @@ export function ManagerServicesPage() {
     price: '',
     is_active: true,
   });
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && modalOpen) {
+        setModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalOpen]);
 
   const fetchServices = async () => {
     if (!currentOrg?.id) return;
@@ -67,7 +78,6 @@ export function ManagerServicesPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setFeedback(null);
     setError(null);
 
     const payload = {
@@ -83,10 +93,10 @@ export function ManagerServicesPage() {
     try {
       if (editingService) {
         await managerService.updateService(currentOrg.id, editingService.id, payload);
-        setFeedback({ type: 'success', message: 'Service updated successfully!' });
+        showSuccess(`Service "${formData.name}" updated successfully!`);
       } else {
         await managerService.createService(currentOrg.id, payload);
-        setFeedback({ type: 'success', message: 'New service created!' });
+        showSuccess(`Service "${formData.name}" created successfully!`);
       }
       setModalOpen(false);
       fetchServices();
@@ -96,22 +106,19 @@ export function ManagerServicesPage() {
         err.response?.data?.name?.[0] ||
         err.response?.data?.duration_minutes?.[0] ||
         'Failed to save service.';
+      showError(msg);
       setError(msg);
     }
   };
 
   const handleDelete = async (serviceId) => {
     if (!window.confirm('Are you sure you want to delete this service?')) return;
-    setFeedback(null);
     try {
       await managerService.deleteService(currentOrg.id, serviceId);
-      setFeedback({ type: 'success', message: 'Service deleted.' });
+      showSuccess('Service deleted successfully.');
       fetchServices();
     } catch (err) {
-      setFeedback({
-        type: 'error',
-        message: err.response?.data?.detail || 'Failed to delete service.',
-      });
+      showError(err.response?.data?.detail || 'Failed to delete service.');
     }
   };
 

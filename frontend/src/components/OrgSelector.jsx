@@ -13,13 +13,8 @@ export const OrgSelector = () => {
     );
   }
 
-  if (memberships.length === 0) {
-    return (
-      <div className="org-selector-pill">
-        <span>🏢</span>
-        <span>{currentOrg?.name || 'Customer Workspace'}</span>
-      </div>
-    );
+  if (effectiveRole === 'CUSTOMER' || memberships.length === 0) {
+    return null;
   }
 
   return (

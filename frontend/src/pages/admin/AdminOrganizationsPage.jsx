@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import organizationService from '../../services/organizationService';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
+import { useToast } from '../../contexts/ToastContext';
 
 export function AdminOrganizationsPage() {
+  const { showSuccess } = useToast();
   const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -19,6 +21,16 @@ export function AdminOrganizationsPage() {
   });
   const [creating, setCreating] = useState(false);
   const [modalError, setModalError] = useState('');
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showCreateModal) {
+        setShowCreateModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showCreateModal]);
 
   const fetchOrgs = async () => {
     setLoading(true);
@@ -45,6 +57,7 @@ export function AdminOrganizationsPage() {
 
     try {
       await organizationService.createOrganization(newOrgForm);
+      showSuccess(`Organization "${newOrgForm.name}" created successfully!`);
       setShowCreateModal(false);
       setNewOrgForm({ name: '', slug: '', contact_email: '', phone_number: '', address: '' });
       fetchOrgs();
@@ -147,8 +160,8 @@ export function AdminOrganizationsPage() {
 
       {/* Create Organization Modal */}
       {showCreateModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(33, 28, 25, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 1000 }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E6E1D9', padding: '1.75rem', width: '100%', maxWidth: '500px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+        <div onClick={() => setShowCreateModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(33, 28, 25, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 1000, backdropFilter: 'blur(3px)' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E6E1D9', padding: '1.75rem', width: '100%', maxWidth: '500px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#211C19' }}>Register New Organization Tenant</h3>
               <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>

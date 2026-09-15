@@ -3,20 +3,31 @@ import { useTenant } from '../../contexts/TenantContext';
 import managerService from '../../services/managerService';
 import { LoadingState } from '../../components/LoadingState';
 import { EmptyState } from '../../components/EmptyState';
+import { useToast } from '../../contexts/ToastContext';
 
 export function ManagerMembersPage() {
   const { currentOrg, refreshTenant } = useTenant();
+  const { showSuccess, showError } = useToast();
 
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [feedback, setFeedback] = useState(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [addForm, setAddForm] = useState({
     user_email: '',
     role: 'PROVIDER',
   });
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && modalOpen) {
+        setModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalOpen]);
 
   const fetchMembers = async () => {
     if (!currentOrg?.id) return;
@@ -39,7 +50,6 @@ export function ManagerMembersPage() {
 
   const handleAddMember = async (e) => {
     e.preventDefault();
-    setFeedback(null);
     setError(null);
 
     try {
@@ -47,7 +57,7 @@ export function ManagerMembersPage() {
         user_email: addForm.user_email,
         role: addForm.role,
       });
-      setFeedback({ type: 'success', message: 'Member added to organization!' });
+      showSuccess(`Member ${addForm.user_email} added to organization!`);
       setModalOpen(false);
       setAddForm({ user_email: '', role: 'PROVIDER' });
       fetchMembers();
@@ -57,19 +67,19 @@ export function ManagerMembersPage() {
         err.response?.data?.detail ||
         err.response?.data?.user_email?.[0] ||
         'Failed to add member.';
+      showError(msg);
       setError(msg);
     }
   };
 
   const handleRoleChange = async (membershipId, newRole) => {
-    setFeedback(null);
     setError(null);
 
     try {
       await managerService.updateMember(currentOrg.id, membershipId, {
         role: newRole,
       });
-      setFeedback({ type: 'success', message: 'Member role updated.' });
+      showSuccess('Member role updated successfully.');
       fetchMembers();
       refreshTenant();
     } catch (err) {
@@ -77,31 +87,21 @@ export function ManagerMembersPage() {
       const detail = err.response?.data?.detail;
 
       if (status === 409 || detail?.includes('manager') || detail?.includes('last')) {
-        setFeedback({
-          type: 'error',
-          message: 'Cannot demote the sole active manager of this organization.',
-        });
+        showError('Cannot demote the sole active manager of this organization.');
       } else {
-        setFeedback({
-          type: 'error',
-          message: detail || 'Failed to update member role.',
-        });
+        showError(detail || 'Failed to update member role.');
       }
     }
   };
 
   const handleToggleActive = async (membership, currentActive) => {
-    setFeedback(null);
     setError(null);
 
     try {
       await managerService.updateMember(currentOrg.id, membership.id, {
         is_active: !currentActive,
       });
-      setFeedback({
-        type: 'success',
-        message: `Member ${!currentActive ? 'activated' : 'deactivated'}.`,
-      });
+      showSuccess(`Member ${!currentActive ? 'activated' : 'deactivated'}.`);
       fetchMembers();
       refreshTenant();
     } catch (err) {
@@ -109,15 +109,9 @@ export function ManagerMembersPage() {
       const detail = err.response?.data?.detail;
 
       if (status === 409 || detail?.includes('manager') || detail?.includes('last')) {
-        setFeedback({
-          type: 'error',
-          message: 'Cannot deactivate the sole active manager of this organization.',
-        });
+        showError('Cannot deactivate the sole active manager of this organization.');
       } else {
-        setFeedback({
-          type: 'error',
-          message: detail || 'Failed to update member active status.',
-        });
+        showError(detail || 'Failed to update member active status.');
       }
     }
   };

@@ -558,17 +558,18 @@ const TestimonialsSection = () => {
 
 /* ─── Recently Viewed Clinics Section ────────────────────────────────────── */
 const LocalStorageDiscoveryWidgets = () => {
+  const { user } = useAuth();
   const [ref, inView] = useInView({ threshold: 0.1 });
   const [recentlyViewed, setRecentlyViewed] = useState([]);
 
   useEffect(() => {
+    if (!user) return;
     let isMounted = true;
     const localViewed = getRecentlyViewedOrgs();
 
     if (localViewed && localViewed.length > 0) {
       setRecentlyViewed(localViewed);
     } else {
-      // Fetch fallback organizations so section is ALWAYS populated gracefully!
       organizationService.getOrganizations({ page_size: 4 })
         .then(res => {
           if (!isMounted) return;
@@ -586,7 +587,10 @@ const LocalStorageDiscoveryWidgets = () => {
     }
 
     return () => { isMounted = false; };
-  }, []);
+  }, [user]);
+
+  // Hide section entirely if user is NOT logged in!
+  if (!user) return null;
 
   const recentItems = recentlyViewed.slice(0, 4);
 
@@ -613,16 +617,16 @@ const LocalStorageDiscoveryWidgets = () => {
           transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <div>
-            <span style={{ color: '#5F7A70', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.2rem' }}>
-              Instant Quick Access
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div style={{ textAlign: 'left' }}>
+            <span style={{ color: '#5F7A70', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.25rem' }}>
+              ⚡ Instant Quick Access
             </span>
-            <h3 style={{ margin: 0, fontSize: '1.35rem', color: '#211C19', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
-              🕒 Recently Viewed Clinics & Organizations
+            <h3 style={{ margin: 0, fontSize: '1.4rem', color: '#211C19', fontWeight: 700, fontFamily: 'Cinzel, serif', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span>🕒</span> Recently Viewed Clinics & Organizations
             </h3>
           </div>
-          <span style={{ fontSize: '0.8rem', color: '#78716C', background: '#FFFFFF', padding: '0.25rem 0.75rem', borderRadius: '999px', border: '1px solid #E6E1D9', fontWeight: 600 }}>
+          <span style={{ fontSize: '0.8rem', color: '#78716C', background: '#FFFFFF', padding: '0.3rem 0.85rem', borderRadius: '999px', border: '1px solid #E6E1D9', fontWeight: 600 }}>
             {recentItems.length} Clinic{recentItems.length > 1 ? 's' : ''} Listed
           </span>
         </div>

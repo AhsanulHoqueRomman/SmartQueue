@@ -5,16 +5,17 @@ import providerManagementService from '../../services/providerManagementService'
 import { StatusBadge } from '../../components/StatusBadge';
 import { LoadingState } from '../../components/LoadingState';
 import { EmptyState } from '../../components/EmptyState';
+import { useToast } from '../../contexts/ToastContext';
 
 export function ManagerProvidersPage() {
   const { currentOrg } = useTenant();
+  const { showSuccess, showError } = useToast();
 
   const [providers, setProviders] = useState([]);
   const [members, setMembers] = useState([]);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [feedback, setFeedback] = useState(null);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [profileForm, setProfileForm] = useState({
@@ -30,6 +31,17 @@ export function ManagerProvidersPage() {
     custom_duration_minutes: '',
     custom_price: '',
   });
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (createModalOpen) setCreateModalOpen(false);
+        if (assignModalOpen) setAssignModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [createModalOpen, assignModalOpen]);
 
   const fetchData = async () => {
     if (!currentOrg?.id) return;
