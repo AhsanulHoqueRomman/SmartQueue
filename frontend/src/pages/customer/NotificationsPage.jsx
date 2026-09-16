@@ -56,13 +56,14 @@ export function NotificationsPage() {
 
   const handleMarkAllRead = async () => {
     if (!currentOrg?.id) return;
-    const unread = notifications.filter((n) => !n.read_at);
-    for (const n of unread) {
-      try {
-        await notificationService.markRead(currentOrg.id, n.id);
-      } catch (e) {}
+    try {
+      await notificationService.markAllRead(currentOrg.id);
+      setNotifications((prev) =>
+        prev.map((n) => ({ ...n, read_at: n.read_at || new Date().toISOString() }))
+      );
+    } catch (e) {
+      console.error('Failed to mark all as read:', e);
     }
-    fetchNotifications();
   };
 
   const unreadCount = notifications.filter((n) => !n.read_at).length;

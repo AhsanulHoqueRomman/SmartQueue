@@ -11,7 +11,11 @@ class Notification(models.Model):
         APPOINTMENT_CANCELLED = 'APPOINTMENT_CANCELLED', _('Appointment cancelled')
         APPOINTMENT_CHECKED_IN = 'APPOINTMENT_CHECKED_IN', _('Appointment checked in')
         QUEUE_CALLED = 'QUEUE_CALLED', _('Queue called')
+        QUEUE_SKIPPED = 'QUEUE_SKIPPED', _('Queue skipped')
         SERVICE_COMPLETED = 'SERVICE_COMPLETED', _('Service completed')
+        PROVIDER_NEW_APPOINTMENT = 'PROVIDER_NEW_APPOINTMENT', _('New appointment assigned')
+        PROVIDER_APPOINTMENT_CANCELLED = 'PROVIDER_APPOINTMENT_CANCELLED', _('Appointment cancelled')
+        PROVIDER_CHECKED_IN = 'PROVIDER_CHECKED_IN', _('Customer checked in')
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')

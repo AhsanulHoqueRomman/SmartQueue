@@ -75,7 +75,11 @@ def current_business_date() -> date:
 
 def _load_org(organization_id) -> Organization:
     try:
-        return Organization.objects.get(id=organization_id, is_active=True)
+        return Organization.objects.get(
+            id=organization_id,
+            is_active=True,
+            verification_status=Organization.VerificationStatus.APPROVED
+        )
     except Organization.DoesNotExist:
         raise ApplicationError(
             message='Organization not found.',
@@ -100,13 +104,14 @@ def _load_provider(*, organization: Organization, provider_id) -> ProviderProfil
             code='PROVIDER_NOT_FOUND',
             status_code=404,
         )
-    if not provider.is_active:
+    if not provider.is_operationally_active:
         raise ApplicationError(
-            message='Provider is not active.',
+            message='Provider is not operationally active.',
             code='PROVIDER_INACTIVE',
             status_code=400,
         )
     return provider
+
 
 
 class QueueService:
@@ -148,10 +153,15 @@ class QueueService:
                 raise InvalidCheckInException(
                     message='Appointment provider is not an active provider.'
                 )
-            if not provider.is_active:
+            if not (appointment.organization.is_active and appointment.organization.verification_status == Organization.VerificationStatus.APPROVED):
                 raise InvalidCheckInException(
-                    message='Appointment provider is not active.'
+                    message='Organization is not operational.'
                 )
+            if not provider.is_operationally_active:
+                raise InvalidCheckInException(
+                    message='Appointment provider is not operationally active.'
+                )
+
 
             # Re-fetch appointment under the same transaction after provider lock.
             appointment = Appointment.objects.select_for_update().get(pk=appointment.pk)
@@ -208,6 +218,16 @@ class QueueService:
                 appointment=appointment,
                 queue_entry=entry,
             )
+            if provider.membership and provider.membership.user:
+                NotificationService.create(
+                    recipient=provider.membership.user,
+                    organization=appointment.organization,
+                    kind='PROVIDER_CHECKED_IN',
+                    title='Customer checked in',
+                    message=f'{appointment.customer.get_full_name() or appointment.customer.email} checked in for token #{entry.token_number}.',
+                    appointment=appointment,
+                    queue_entry=entry,
+                )
             AuditService.record(
                 action='APPOINTMENT_CHECKED_IN', entity_type='QueueEntry', entity_id=entry.id,
                 organization_id=entry.organization_id, actor=actor or appointment.customer,
@@ -424,6 +444,15 @@ class QueueService:
             appointment.save(update_fields=['status', 'updated_at'])
             entry.appointment = appointment
 
+            NotificationService.create(
+                recipient=appointment.customer,
+                organization=organization,
+                kind='QUEUE_SKIPPED',
+                title='Queue token skipped',
+                message=f'Your queue token {entry.token_number} was skipped.',
+                appointment=appointment,
+                queue_entry=entry,
+            )
             AuditService.record(
                 action='QUEUE_SKIPPED', entity_type='QueueEntry', entity_id=entry.id,
                 organization_id=organization.id, actor=actor or provider.membership.user,

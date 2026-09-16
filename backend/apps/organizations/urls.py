@@ -15,6 +15,11 @@ from .views import (
     AdminOrganizationUnsuspendView,
     OrganizationInvitationListCreateView,
     OrganizationInvitationCancelView,
+    OrganizationStaffListView,
+    OrganizationStaffInvitationListCreateView,
+    OrganizationStaffInvitationCancelView,
+    OrganizationStaffActivateView,
+    OrganizationStaffDeactivateView,
 )
 
 app_name = 'organizations'
@@ -29,11 +34,18 @@ urlpatterns = [
     path('<uuid:organization_id>/members/', OrganizationMemberListAddView.as_view(), name='member_list_add'),
     path('<uuid:organization_id>/members/<int:membership_id>/', OrganizationMemberDetailUpdateView.as_view(), name='member_detail_update'),
     path('<uuid:organization_id>/invitations/', OrganizationInvitationListCreateView.as_view(), name='invitation_list_create'),
-    path('<uuid:organization_id>/invitations/<int:invitation_id>/cancel/', OrganizationInvitationCancelView.as_view(), name='invitation_cancel'),
+    path('<uuid:organization_id>/invitations/<uuid:invitation_id>/cancel/', OrganizationInvitationCancelView.as_view(), name='invitation_cancel'),
+    path('<uuid:organization_id>/staff/', OrganizationStaffListView.as_view(), name='staff_list'),
+    path('<uuid:organization_id>/staff/invitations/', OrganizationStaffInvitationListCreateView.as_view(), name='staff_invitation_list_create'),
+    path('<uuid:organization_id>/staff/invitations/<uuid:invitation_id>/cancel/', OrganizationStaffInvitationCancelView.as_view(), name='staff_invitation_cancel'),
+
+    path('<uuid:organization_id>/staff/<int:membership_id>/activate/', OrganizationStaffActivateView.as_view(), name='staff_activate'),
+    path('<uuid:organization_id>/staff/<int:membership_id>/deactivate/', OrganizationStaffDeactivateView.as_view(), name='staff_deactivate'),
     path('<uuid:organization_id>/admin/start-review/', AdminOrganizationStartReviewView.as_view(), name='admin_start_review'),
     path('<uuid:organization_id>/admin/approve/', AdminOrganizationApproveView.as_view(), name='admin_approve'),
     path('<uuid:organization_id>/admin/reject/', AdminOrganizationRejectView.as_view(), name='admin_reject'),
     path('<uuid:organization_id>/admin/suspend/', AdminOrganizationSuspendView.as_view(), name='admin_suspend'),
     path('<uuid:organization_id>/admin/unsuspend/', AdminOrganizationUnsuspendView.as_view(), name='admin_unsuspend'),
 ]
+
 

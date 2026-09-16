@@ -263,8 +263,8 @@ export function OrganizationProfilePage() {
   if (error || !org) {
     return (
       <EmptyState
-        title="Organization Not Found"
-        message={error || 'Unable to load the requested organization.'}
+        title="Organization Unavailable"
+        message={error?.includes('404') || error?.includes('Not Found') ? 'This organization is currently unavailable for booking.' : (error || 'This organization is currently unavailable for booking.')}
         actionText="Back to Organizations"
         onAction={() => navigate('/organizations')}
       />

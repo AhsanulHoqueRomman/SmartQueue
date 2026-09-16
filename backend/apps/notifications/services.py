@@ -24,3 +24,9 @@ class NotificationService:
             notification.read_at = timezone.now()
             notification.save(update_fields=['read_at'])
         return notification
+
+    @staticmethod
+    def mark_all_read(*, recipient, organization):
+        return Notification.objects.filter(
+            recipient=recipient, organization=organization, read_at__isnull=True
+        ).update(read_at=timezone.now())

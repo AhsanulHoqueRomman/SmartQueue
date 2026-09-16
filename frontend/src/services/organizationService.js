@@ -125,7 +125,74 @@ export const organizationService = {
     const response = await apiClient.post(`/invitations/provider/${token}/accept/`, data);
     return response.data;
   },
+
+  /**
+   * Get staff members for organization (Manager).
+   * @param {string} orgId
+   * @param {Object} params - optional { is_active: true/false }
+   */
+  async getStaffMembers(orgId, params = {}) {
+    const response = await apiClient.get(`/organizations/${orgId}/staff/`, { params });
+    return response.data;
+  },
+
+  /**
+   * Get staff invitations for organization (Manager).
+   */
+  async getStaffInvitations(orgId) {
+    const response = await apiClient.get(`/organizations/${orgId}/staff/invitations/`);
+    return response.data;
+  },
+
+  /**
+   * Create staff invitation (Manager).
+   */
+  async createStaffInvitation(orgId, data) {
+    const response = await apiClient.post(`/organizations/${orgId}/staff/invitations/`, data);
+    return response.data;
+  },
+
+  /**
+   * Cancel pending staff invitation (Manager).
+   */
+  async cancelStaffInvitation(orgId, invitationId) {
+    const response = await apiClient.post(`/organizations/${orgId}/staff/invitations/${invitationId}/cancel/`);
+    return response.data;
+  },
+
+  /**
+   * Activate an inactive staff member (Manager).
+   */
+  async activateStaffMember(orgId, membershipId) {
+    const response = await apiClient.post(`/organizations/${orgId}/staff/${membershipId}/activate/`);
+    return response.data;
+  },
+
+  /**
+   * Deactivate an active staff member (Manager).
+   */
+  async deactivateStaffMember(orgId, membershipId) {
+    const response = await apiClient.post(`/organizations/${orgId}/staff/${membershipId}/deactivate/`);
+    return response.data;
+  },
+
+  /**
+   * Get public staff invitation details by token.
+   */
+  async getStaffInvitationDetails(token) {
+    const response = await apiClient.get(`/invitations/staff/${token}/`);
+    return response.data;
+  },
+
+  /**
+   * Accept public staff invitation by token.
+   */
+  async acceptStaffInvitation(token, data) {
+    const response = await apiClient.post(`/invitations/staff/${token}/accept/`, data);
+    return response.data;
+  },
 };
+
 
 export default organizationService;
 

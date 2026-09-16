@@ -3,12 +3,19 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTenant } from '../contexts/TenantContext';
 import { OrgSelector } from './OrgSelector';
+import { NotificationBell } from './NotificationBell';
+import { useToast } from '../contexts/ToastContext';
 
 export const AppShell = ({ children }) => {
   const { user, logout } = useAuth();
   const { effectiveRole, currentOrg } = useTenant();
+  const { showInfo } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+
+  const handleNewNotification = (n) => {
+    showInfo(`${n.title}: ${n.message}`);
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -117,6 +124,7 @@ export const AppShell = ({ children }) => {
 
         <div className="flex items-center gap-md nav-actions-group">
           <OrgSelector />
+          <NotificationBell onNewNotification={handleNewNotification} />
 
           <div className="flex items-center gap-sm user-meta-group">
             <span

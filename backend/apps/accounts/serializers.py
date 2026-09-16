@@ -52,7 +52,11 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError({"password_confirm": "Password fields do not match."})
+        role = self.initial_data.get('role')
+        if role and str(role).upper() == 'STAFF':
+            raise serializers.ValidationError({"role": "Staff members cannot self-register. Registration is invitation-only."})
         return attrs
+
 
     def create(self, validated_data):
         validated_data.pop('password_confirm')

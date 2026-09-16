@@ -21,7 +21,9 @@ from .serializers import (
     OrganizationInvitationSerializer,
     OrganizationInvitationCreateSerializer,
     AcceptInvitationSerializer,
+    StaffMemberSerializer,
 )
+
 
 
 User = get_user_model()
@@ -29,7 +31,7 @@ User = get_user_model()
 
 class OrganizationListCreateView(APIView):
     """
-    GET: List active public organizations (Customer discovery).
+    GET: List active public operational organizations (Customer discovery).
     POST: Bootstrap a new organization with current user as MANAGER.
     """
     def get_permissions(self):
@@ -39,10 +41,13 @@ class OrganizationListCreateView(APIView):
 
     @extend_schema(
         responses={200: OrganizationSerializer(many=True)},
-        summary="List active public organizations"
+        summary="List active public operational organizations"
     )
     def get(self, request):
-        orgs = Organization.objects.filter(is_active=True)
+        orgs = Organization.objects.filter(
+            is_active=True,
+            verification_status=Organization.VerificationStatus.APPROVED
+        )
         orgs = apply_list_query(
             orgs, request,
             filter_fields=('is_active',),
@@ -75,8 +80,9 @@ class OrganizationListCreateView(APIView):
 
 class OrganizationDetailView(APIView):
     """
-    GET: View details of a specific active organization.
-    Includes current user's membership role if user is an internal member.
+    GET: View details of a specific organization.
+    Public/customer users only see operational organizations (is_active=True & APPROVED).
+    Managers/admins may access non-operational organizations for management purposes.
     """
     def get_permissions(self):
         if self.request.method == 'GET':
@@ -88,7 +94,24 @@ class OrganizationDetailView(APIView):
         summary="Retrieve organization details"
     )
     def get(self, request, organization_id):
-        org = get_object_or_404(Organization, id=organization_id, is_active=True)
+        org = get_object_or_404(Organization, id=organization_id)
+        
+        is_manager_or_admin = False
+        if request.user.is_authenticated:
+            if request.user.is_staff or request.user.is_superuser:
+                is_manager_or_admin = True
+            else:
+                is_manager_or_admin = OrganizationMembership.objects.filter(
+                    user=request.user,
+                    organization=org,
+                    role=OrganizationMembership.Role.MANAGER,
+                    is_active=True
+                ).exists()
+
+        if not is_manager_or_admin:
+            if not (org.is_active and org.verification_status == Organization.VerificationStatus.APPROVED):
+                return Response({'detail': 'Organization not found.'}, status=status.HTTP_404_NOT_FOUND)
+
         data = OrganizationSerializer(org).data
         
         # Optionally attach current user's membership info if they are a member
@@ -106,6 +129,7 @@ class OrganizationDetailView(APIView):
                 }
             
         return Response(data, status=status.HTTP_200_OK)
+
 
 
 class OrganizationMemberListAddView(APIView):
@@ -505,5 +529,192 @@ class PublicAcceptInvitationView(APIView):
                 'application_status': profile.application_status
             }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ---------------------------------------------------------------------------
+# Phase D: Staff Invitation & Team Management Views
+# ---------------------------------------------------------------------------
+
+class OrganizationStaffInvitationListCreateView(APIView):
+    """
+    GET: List all pending/completed staff invitations for an organization (Manager only).
+    POST: Create a new staff invitation for an email (Manager only).
+    """
+    permission_classes = [IsAuthenticated, IsOrganizationManager]
+
+    @extend_schema(
+        responses={200: OrganizationInvitationSerializer(many=True)},
+        summary="List staff invitations for organization (Manager only)"
+    )
+    def get(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id)
+        invitations = OrganizationInvitation.objects.filter(
+            organization=org,
+            role=OrganizationMembership.Role.STAFF
+        ).order_by('-created_at')
+        serializer = OrganizationInvitationSerializer(invitations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        request=OrganizationInvitationCreateSerializer,
+        responses={201: OrganizationInvitationSerializer, 400: OpenApiResponse(description="Validation error")},
+        summary="Create staff invitation (Manager only)"
+    )
+    def post(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id)
+        serializer = OrganizationInvitationCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            invitation = OrganizationService.create_staff_invitation(
+                organization=org,
+                email=serializer.validated_data['email'],
+                actor=request.user
+            )
+            return Response(OrganizationInvitationSerializer(invitation).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OrganizationStaffInvitationCancelView(APIView):
+    """
+    POST: Cancel a pending staff invitation (Manager only).
+    """
+    permission_classes = [IsAuthenticated, IsOrganizationManager]
+
+    @extend_schema(
+        responses={200: OrganizationInvitationSerializer, 400: OpenApiResponse(description="Invalid action")},
+        summary="Cancel staff invitation (Manager only)"
+    )
+    def post(self, request, organization_id, invitation_id):
+        invitation = get_object_or_404(
+            OrganizationInvitation,
+            id=invitation_id,
+            organization_id=organization_id,
+            role=OrganizationMembership.Role.STAFF
+        )
+        cancelled = OrganizationService.cancel_invitation(invitation=invitation, actor=request.user)
+        return Response(OrganizationInvitationSerializer(cancelled).data, status=status.HTTP_200_OK)
+
+
+class PublicStaffInvitationDetailsView(APIView):
+    """
+    GET: Retrieve staff invitation details by token for public staff acceptance page.
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        responses={200: OrganizationInvitationSerializer, 404: OpenApiResponse(description="Invitation not found or expired")},
+        summary="Retrieve staff invitation details (Public)"
+    )
+    def get(self, request, token):
+        invitation = OrganizationService.get_invitation_details(token=token)
+        if invitation.role != OrganizationMembership.Role.STAFF:
+            return Response({'detail': 'Invitation is not for a Staff role.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(OrganizationInvitationSerializer(invitation).data, status=status.HTTP_200_OK)
+
+
+class PublicAcceptStaffInvitationView(APIView):
+    """
+    POST: Accept a staff invitation by token.
+    Creates user account (if new) and links active staff OrganizationMembership.
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        request=AcceptInvitationSerializer,
+        responses={200: OpenApiResponse(description="Staff invitation accepted successfully"), 400: OpenApiResponse(description="Validation error")},
+        summary="Accept staff invitation (Public)"
+    )
+    def post(self, request, token):
+        serializer = AcceptInvitationSerializer(data=request.data)
+        if serializer.is_valid():
+            user, membership = OrganizationService.accept_staff_invitation(
+                token=token,
+                first_name=serializer.validated_data['first_name'],
+                last_name=serializer.validated_data['last_name'],
+                password=serializer.validated_data['password']
+            )
+            return Response({
+                'message': 'Staff invitation accepted successfully.',
+                'user_id': user.id,
+                'email': user.email,
+                'organization_id': str(membership.organization_id),
+                'membership_id': membership.id,
+                'role': membership.role,
+                'is_active': membership.is_active
+            }, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OrganizationStaffListView(APIView):
+    """
+    GET: List staff members of an organization (Manager only).
+    Supports optional filtering by is_active query param (e.g. ?is_active=true / ?is_active=false).
+    """
+    permission_classes = [IsAuthenticated, IsOrganizationManager]
+
+    @extend_schema(
+        responses={200: StaffMemberSerializer(many=True)},
+        summary="List staff members for organization (Manager only)"
+    )
+    def get(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id)
+        memberships = OrganizationMembership.objects.filter(
+            organization=org,
+            role=OrganizationMembership.Role.STAFF
+        ).select_related('user', 'organization').order_by('-created_at')
+
+        is_active_param = request.query_params.get('is_active')
+        if is_active_param is not None:
+            is_active_bool = is_active_param.lower() == 'true'
+            memberships = memberships.filter(is_active=is_active_bool)
+
+        serializer = StaffMemberSerializer(memberships, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class OrganizationStaffActivateView(APIView):
+    """
+    POST: Activate an inactive staff member (Manager only).
+    """
+    permission_classes = [IsAuthenticated, IsOrganizationManager]
+
+    @extend_schema(
+        responses={200: StaffMemberSerializer, 400: OpenApiResponse(description="Invalid state or role")},
+        summary="Activate staff member (Manager only)"
+    )
+    def post(self, request, organization_id, membership_id):
+        membership = get_object_or_404(
+            OrganizationMembership,
+            id=membership_id,
+            organization_id=organization_id
+        )
+        updated_membership = OrganizationService.activate_staff_member(
+            membership=membership,
+            actor=request.user
+        )
+        return Response(StaffMemberSerializer(updated_membership).data, status=status.HTTP_200_OK)
+
+
+class OrganizationStaffDeactivateView(APIView):
+    """
+    POST: Deactivate an active staff member (Manager only).
+    """
+    permission_classes = [IsAuthenticated, IsOrganizationManager]
+
+    @extend_schema(
+        responses={200: StaffMemberSerializer, 400: OpenApiResponse(description="Invalid state or role")},
+        summary="Deactivate staff member (Manager only)"
+    )
+    def post(self, request, organization_id, membership_id):
+        membership = get_object_or_404(
+            OrganizationMembership,
+            id=membership_id,
+            organization_id=organization_id
+        )
+        updated_membership = OrganizationService.deactivate_staff_member(
+            membership=membership,
+            actor=request.user
+        )
+        return Response(StaffMemberSerializer(updated_membership).data, status=status.HTTP_200_OK)
+
 
 

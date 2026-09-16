@@ -93,7 +93,11 @@ def _combine_date_time(d: date, t: time) -> datetime:
 
 def _load_active_organization(organization_id) -> Organization:
     try:
-        return Organization.objects.get(id=organization_id, is_active=True)
+        return Organization.objects.get(
+            id=organization_id,
+            is_active=True,
+            verification_status=Organization.VerificationStatus.APPROVED
+        )
     except Organization.DoesNotExist:
         raise ApplicationError(
             message='Organization not found.',
@@ -118,12 +122,13 @@ def _load_active_provider(*, organization: Organization, provider_id) -> Provide
             code='PROVIDER_NOT_FOUND',
             status_code=404,
         )
-    if not provider.is_active:
+    if not provider.is_operationally_active:
         raise AppointmentValidationException(
-            message='Provider is not active.',
+            message='Provider is not operationally active.',
             code='PROVIDER_INACTIVE',
         )
     return provider
+
 
 
 def _load_active_service(*, organization: Organization, service_id) -> Service:
@@ -396,11 +401,12 @@ class AppointmentService:
                     code='PROVIDER_NOT_FOUND',
                     status_code=404,
                 )
-            if not provider.is_active:
+            if not provider.is_operationally_active:
                 raise AppointmentValidationException(
-                    message='Provider is not active.',
+                    message='Provider is not operationally active.',
                     code='PROVIDER_INACTIVE',
                 )
+
 
             service = _load_active_service(organization=organization, service_id=service_id)
             _ensure_provider_offers_service(provider=provider, service=service)
@@ -432,6 +438,15 @@ class AppointmentService:
                 message=f'Your appointment is booked for {appointment.start_datetime}.',
                 appointment=appointment,
             )
+            if provider.membership and provider.membership.user and provider.membership.user != customer:
+                NotificationService.create(
+                    recipient=provider.membership.user,
+                    organization=organization,
+                    kind='PROVIDER_NEW_APPOINTMENT',
+                    title='New appointment assigned',
+                    message=f'New appointment booked with {customer.get_full_name() or customer.email} for {appointment.start_datetime}.',
+                    appointment=appointment,
+                )
             AuditService.record(
                 action='APPOINTMENT_BOOKED', entity_type='Appointment', entity_id=appointment.id,
                 organization_id=organization.id, actor=customer,
@@ -514,6 +529,20 @@ class AppointmentService:
             message='Your appointment has been cancelled.',
             appointment=appointment,
         )
+        if (
+            appointment.provider
+            and appointment.provider.membership
+            and appointment.provider.membership.user
+            and appointment.provider.membership.user != (actor or appointment.customer)
+        ):
+            NotificationService.create(
+                recipient=appointment.provider.membership.user,
+                organization=organization,
+                kind='PROVIDER_APPOINTMENT_CANCELLED',
+                title='Appointment cancelled',
+                message=f'Appointment with {appointment.customer.get_full_name() or appointment.customer.email} has been cancelled.',
+                appointment=appointment,
+            )
         AuditService.record(
             action='APPOINTMENT_CANCELLED', entity_type='Appointment', entity_id=appointment.id,
             organization_id=organization.id, actor=actor or appointment.customer,

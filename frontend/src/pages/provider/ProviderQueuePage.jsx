@@ -76,8 +76,10 @@ export function ProviderQueuePage() {
   useEffect(() => {
     if (!autoRefresh || !providerProfile?.id) return;
     const interval = setInterval(() => {
-      fetchQueue();
-    }, 10000);
+      if (document.visibilityState === 'visible') {
+        fetchQueue();
+      }
+    }, 15000);
     return () => clearInterval(interval);
   }, [autoRefresh, currentOrg?.id, providerProfile?.id]);
 

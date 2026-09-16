@@ -526,13 +526,172 @@ class OrganizationService:
         invitation.cancelled_at = timezone.now()
         invitation.save()
 
+        action_name = 'STAFF_INVITATION_CANCELLED' if invitation.role == OrganizationMembership.Role.STAFF else 'PROVIDER_INVITATION_CANCELLED'
         AuditService.record(
-            action='PROVIDER_INVITATION_CANCELLED',
+            action=action_name,
             entity_type='OrganizationInvitation',
             entity_id=invitation.id,
             organization_id=invitation.organization_id,
             actor=actor,
         )
         return invitation
+
+    @staticmethod
+    def create_staff_invitation(*, organization, email, actor):
+        """
+        Manager creates a tokenized staff invitation for an email.
+        """
+        email_clean = (email or '').strip().lower()
+        if not email_clean:
+            raise ApplicationError(message="Email address is required.", code="EMAIL_REQUIRED")
+
+        User = get_user_model()
+        existing_member = OrganizationMembership.objects.filter(
+            organization=organization,
+            user__email__iexact=email_clean,
+            role=OrganizationMembership.Role.STAFF,
+            is_active=True
+        ).exists()
+        if existing_member:
+            raise ApplicationError(
+                message="A staff member with this email already belongs to the organization.",
+                code="ALREADY_MEMBER"
+            )
+
+        existing_invitation = OrganizationInvitation.objects.filter(
+            organization=organization,
+            email__iexact=email_clean,
+            role=OrganizationMembership.Role.STAFF,
+            used_at__isnull=True,
+            cancelled_at__isnull=True,
+            expires_at__gt=timezone.now()
+        ).first()
+
+        if existing_invitation:
+            return existing_invitation
+
+        invitation = OrganizationInvitation.objects.create(
+            organization=organization,
+            email=email_clean,
+            role=OrganizationMembership.Role.STAFF,
+            created_by=actor
+        )
+
+        AuditService.record(
+            action='STAFF_INVITATION_CREATED',
+            entity_type='OrganizationInvitation',
+            entity_id=invitation.id,
+            organization_id=organization.id,
+            actor=actor,
+            metadata={'email': email_clean, 'invitation_token': invitation.token}
+        )
+        return invitation
+
+    @staticmethod
+    def accept_staff_invitation(*, token, first_name, last_name, password):
+        """
+        Accepts a staff invitation. Creates user (if new), binds active STAFF membership,
+        and marks invitation as used.
+        """
+        with transaction.atomic():
+            invitation = OrganizationService.get_invitation_details(token=token)
+            if invitation.role != OrganizationMembership.Role.STAFF:
+                raise ApplicationError(message="Invalid invitation role type.", code="INVALID_ROLE_INVITATION")
+
+            organization = invitation.organization
+            email_clean = invitation.email.strip().lower()
+
+            User = get_user_model()
+            user = User.objects.filter(email__iexact=email_clean).first()
+
+            if user is None:
+                user = User.objects.create_user(
+                    email=email_clean,
+                    first_name=first_name.strip(),
+                    last_name=last_name.strip(),
+                    password=password,
+                    is_active=True
+                )
+            else:
+                if first_name.strip():
+                    user.first_name = first_name.strip()
+                if last_name.strip():
+                    user.last_name = last_name.strip()
+                user.save()
+
+            membership, _ = OrganizationMembership.objects.get_or_create(
+                user=user,
+                organization=organization,
+                defaults={
+                    'role': OrganizationMembership.Role.STAFF,
+                    'is_active': True
+                }
+            )
+            if not membership.is_active or membership.role != OrganizationMembership.Role.STAFF:
+                membership.role = OrganizationMembership.Role.STAFF
+                membership.is_active = True
+                membership.save()
+
+            invitation.used_at = timezone.now()
+            invitation.accepted_by = user
+            invitation.save()
+
+            AuditService.record(
+                action='STAFF_INVITATION_ACCEPTED',
+                entity_type='OrganizationInvitation',
+                entity_id=invitation.id,
+                organization_id=organization.id,
+                actor=user,
+                metadata={'user_id': user.id}
+            )
+
+            return user, membership
+
+    @staticmethod
+    def activate_staff_member(*, membership, actor):
+        """
+        Manager activates a staff membership.
+        """
+        if membership.role != OrganizationMembership.Role.STAFF:
+            raise ApplicationError(message="Only staff memberships can be managed via staff activation.", code="INVALID_ROLE")
+
+        if membership.is_active:
+            return membership
+
+        membership.is_active = True
+        membership.save()
+
+        AuditService.record(
+            action='STAFF_ACTIVATED',
+            entity_type='OrganizationMembership',
+            entity_id=membership.id,
+            organization_id=membership.organization_id,
+            actor=actor,
+        )
+        return membership
+
+    @staticmethod
+    def deactivate_staff_member(*, membership, actor):
+        """
+        Manager deactivates a staff membership.
+        """
+        if membership.role != OrganizationMembership.Role.STAFF:
+            raise ApplicationError(message="Only staff memberships can be managed via staff deactivation.", code="INVALID_ROLE")
+
+        if not membership.is_active:
+            return membership
+
+        membership.is_active = False
+        membership.save()
+
+        AuditService.record(
+            action='STAFF_DEACTIVATED',
+            entity_type='OrganizationMembership',
+            entity_id=membership.id,
+            organization_id=membership.organization_id,
+            actor=actor,
+        )
+        return membership
+
 
 

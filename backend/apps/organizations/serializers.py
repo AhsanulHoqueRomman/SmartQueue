@@ -207,9 +207,29 @@ class OrganizationInvitationCreateSerializer(serializers.Serializer):
 
 class AcceptInvitationSerializer(serializers.Serializer):
     """
-    Serializer for accepting a provider invitation.
+    Serializer for accepting a provider or staff invitation.
     """
     first_name = serializers.CharField(required=True, allow_blank=False)
     last_name = serializers.CharField(required=True, allow_blank=False)
     password = serializers.CharField(required=True, min_length=6, write_only=True)
+
+
+class StaffMemberSerializer(serializers.ModelSerializer):
+    """
+    Serializer for displaying Staff members in an organization.
+    """
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_first_name = serializers.CharField(source='user.first_name', read_only=True)
+    user_last_name = serializers.CharField(source='user.last_name', read_only=True)
+    organization_name = serializers.CharField(source='organization.name', read_only=True)
+
+    class Meta:
+        model = OrganizationMembership
+        fields = (
+            'id', 'user_id', 'user_email', 'user_first_name', 'user_last_name',
+            'organization', 'organization_name', 'role', 'is_active', 'created_at', 'updated_at'
+        )
+        read_only_fields = fields
+
 

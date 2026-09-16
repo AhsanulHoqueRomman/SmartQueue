@@ -25,6 +25,17 @@ export const notificationService = {
     );
     return response.data;
   },
+
+  /**
+   * Mark all unread notifications as read.
+   * @param {string} orgId
+   */
+  async markAllRead(orgId) {
+    const response = await apiClient.post(
+      `/organizations/${orgId}/notifications/read-all/`
+    );
+    return response.data;
+  },
 };
 
 export default notificationService;

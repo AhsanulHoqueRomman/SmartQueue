@@ -1,3 +1,4 @@
+from datetime import datetime
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -5,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 
+# pyrefly: ignore [missing-import]
 from apps.organizations.models import Organization
 from .models import Appointment
 from .permissions import (
@@ -28,6 +30,7 @@ from .serializers import (
     AvailabilityResponseSerializer,
 )
 from .services import AppointmentService, AppointmentAvailabilityService
+# pyrefly: ignore [missing-import]
 from apps.queue.services import QueueService
 from config.api import apply_list_query, list_response
 
@@ -111,6 +114,15 @@ class AppointmentListCreateView(APIView):
             'customer', 'provider', 'service', 'organization'
         )
         qs = filter_appointments_for_user(qs, request.user, organization_id)
+
+        date_param = request.query_params.get('date')
+        if date_param:
+            try:
+                on_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+                qs = qs.filter(start_datetime__date=on_date)
+            except ValueError:
+                pass
+
         qs = apply_list_query(
             qs, request,
             filter_fields=('status', 'provider_id', 'customer_id'),

@@ -12,6 +12,7 @@ import { CustomerRegisterPage } from '../pages/customer/CustomerRegisterPage';
 import { ManagerRegisterPage } from '../pages/manager/ManagerRegisterPage';
 import { ProviderRegisterPage } from '../pages/provider/ProviderRegisterPage';
 import { AcceptInvitationPage } from '../pages/AcceptInvitationPage';
+import { AcceptStaffInvitationPage } from '../pages/AcceptStaffInvitationPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 
 // Customer Portal Pages
@@ -32,6 +33,8 @@ import { ManagerDashboard } from '../pages/portals/ManagerDashboard';
 import { ManagerServicesPage } from '../pages/manager/ManagerServicesPage';
 import { ManagerProvidersPage } from '../pages/manager/ManagerProvidersPage';
 import { ManagerMembersPage } from '../pages/manager/ManagerMembersPage';
+import { ManagerStaffPage } from '../pages/manager/ManagerStaffPage';
+
 import { ManagerAnalyticsPage } from '../pages/manager/ManagerAnalyticsPage';
 import { ManagerAuditPage } from '../pages/manager/ManagerAuditPage';
 import { ManagerSettingsPage } from '../pages/manager/ManagerSettingsPage';
@@ -117,6 +120,11 @@ export const AppRoutes = () => {
         path="/invitations/provider/:token"
         element={<AcceptInvitationPage />}
       />
+      <Route
+        path="/invitations/staff/:token"
+        element={<AcceptStaffInvitationPage />}
+      />
+
 
       {/* Role Root Redirects & Aliases */}
       <Route path="/customer" element={<Navigate to="/customer/dashboard" replace />} />
@@ -477,7 +485,7 @@ export const AppRoutes = () => {
           <ProtectedRoute>
             <RoleRoute allowedRoles={['MANAGER']}>
               <AppShell>
-                <ManagerMembersPage />
+                <ManagerStaffPage />
               </AppShell>
             </RoleRoute>
           </ProtectedRoute>

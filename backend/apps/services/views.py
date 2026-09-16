@@ -48,10 +48,14 @@ class ServiceListCreateView(APIView):
         summary="List services for an organization"
     )
     def get(self, request, organization_id):
-        org = get_object_or_404(Organization, id=organization_id, is_active=True)
-        services = Service.objects.filter(organization=org)
-        if not _is_org_manager_or_admin(request.user, organization_id):
-            services = services.filter(is_active=True)
+        org = get_object_or_404(Organization, id=organization_id)
+        is_manager_or_admin = _is_org_manager_or_admin(request.user, organization_id)
+        if not is_manager_or_admin:
+            if not (org.is_active and org.verification_status == Organization.VerificationStatus.APPROVED):
+                return Response({'detail': 'Organization not found.'}, status=status.HTTP_404_NOT_FOUND)
+            services = Service.objects.filter(organization=org, is_active=True)
+        else:
+            services = Service.objects.filter(organization=org)
         services = apply_list_query(
             services, request,
             filter_fields=('is_active',),
@@ -74,7 +78,7 @@ class ServiceListCreateView(APIView):
         summary="Create a service (Manager only)"
     )
     def post(self, request, organization_id):
-        org = get_object_or_404(Organization, id=organization_id, is_active=True)
+        org = get_object_or_404(Organization, id=organization_id)
         serializer = ServiceCreateUpdateSerializer(data=request.data)
         if serializer.is_valid():
             service = ServiceService.create_service(
@@ -100,7 +104,7 @@ class ServiceDetailView(APIView):
         return [IsAuthenticated(), IsOrganizationManager()]
 
     def _get_service(self, organization_id, service_id):
-        org = get_object_or_404(Organization, id=organization_id, is_active=True)
+        org = get_object_or_404(Organization, id=organization_id)
         service = get_object_or_404(Service, id=service_id, organization=org)
         return service
 
@@ -110,10 +114,12 @@ class ServiceDetailView(APIView):
     )
     def get(self, request, organization_id, service_id):
         service = self._get_service(organization_id, service_id)
-        # Non-managers may only retrieve active services
-        if not service.is_active and not _is_org_manager_or_admin(request.user, organization_id):
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        is_manager_or_admin = _is_org_manager_or_admin(request.user, organization_id)
+        if not is_manager_or_admin:
+            if not (service.organization.is_active and service.organization.verification_status == Organization.VerificationStatus.APPROVED and service.is_active):
+                return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(ServiceSerializer(service).data, status=status.HTTP_200_OK)
+
 
     @extend_schema(
         request=ServiceCreateUpdateSerializer,

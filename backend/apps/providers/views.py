@@ -32,7 +32,7 @@ from config.api import apply_list_query, list_response
 # ---------------------------------------------------------------------------
 
 def _get_org(organization_id):
-    return get_object_or_404(Organization, id=organization_id, is_active=True)
+    return get_object_or_404(Organization, id=organization_id)
 
 
 def _get_provider(organization_id, provider_id, require_active_membership=True):
@@ -69,8 +69,8 @@ def _is_org_manager_or_admin(user, organization_id):
 class ProviderProfileListCreateView(APIView):
     """
     GET  — List provider profiles.
-          Managers/admins see all; everyone else sees active profiles only.
-          Authenticated customers/non-members/guests may discover active providers.
+          Managers/admins see all; everyone else sees operationally active profiles only.
+          Authenticated customers/non-members/guests may discover operational providers.
     POST — Create a provider profile from an existing PROVIDER membership (Manager only).
     """
 
@@ -91,8 +91,13 @@ class ProviderProfileListCreateView(APIView):
                 membership__role=OrganizationMembership.Role.PROVIDER,
             ).select_related('membership__user', 'membership__organization')
         else:
+            if not (org.is_active and org.verification_status == Organization.VerificationStatus.APPROVED):
+                return Response({'detail': 'Organization not found.'}, status=status.HTTP_404_NOT_FOUND)
+
             profiles = ProviderProfile.objects.filter(
                 membership__organization=org,
+                membership__organization__is_active=True,
+                membership__organization__verification_status=Organization.VerificationStatus.APPROVED,
                 membership__is_active=True,
                 membership__role=OrganizationMembership.Role.PROVIDER,
                 is_active=True,
@@ -134,7 +139,7 @@ class ProviderProfileListCreateView(APIView):
 
 class ProviderProfileDetailView(APIView):
     """
-    GET   — Retrieve a provider profile (authenticated/guest; inactive hidden from non-managers).
+    GET   — Retrieve a provider profile (authenticated/guest; non-operational hidden from non-managers).
     PATCH — Update bio, title, is_active (Manager, or the owning Provider).
     DELETE — Remove provider profile (Manager only).
     """
@@ -152,9 +157,11 @@ class ProviderProfileDetailView(APIView):
     )
     def get(self, request, organization_id, provider_id):
         profile = _get_provider(organization_id, provider_id)
-        if not profile.is_active and not _is_org_manager_or_admin(request.user, organization_id):
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        if not _is_org_manager_or_admin(request.user, organization_id):
+            if not profile.is_operationally_active:
+                return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(ProviderProfileSerializer(profile).data)
+
 
     @extend_schema(
         request=ProviderProfileUpdateSerializer,
