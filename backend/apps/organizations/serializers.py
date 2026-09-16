@@ -38,12 +38,17 @@ class OrganizationDocumentSerializer(serializers.ModelSerializer):
             'id', 'organization', 'document_type', 'file', 'original_filename',
             'uploaded_at', 'status', 'reviewed_by', 'reviewed_at', 'rejection_reason'
         )
-        read_only_fields = ('id', 'uploaded_at', 'status', 'reviewed_by', 'reviewed_at')
+        read_only_fields = ('id', 'organization', 'uploaded_at', 'status', 'reviewed_by', 'reviewed_at')
+        extra_kwargs = {
+            'original_filename': {'required': False, 'allow_blank': True},
+            'title': {'required': False, 'allow_blank': True},
+        }
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
     """
-    Serializer for public Organization information.
+    Serializer for public & management Organization information.
+    Exposes read-only verification status and timestamps.
     """
     category = serializers.SerializerMethodField()
     services_count = serializers.SerializerMethodField()
@@ -55,10 +60,18 @@ class OrganizationSerializer(serializers.ModelSerializer):
         model = Organization
         fields = (
             'id', 'name', 'slug', 'address', 'phone_number',
-            'email', 'is_active', 'verification_status', 'created_at', 'updated_at',
+            'email', 'is_active', 'verification_status',
+            'verification_submitted_at', 'verification_reviewed_at',
+            'verification_rejection_reason', 'verification_suspension_reason',
+            'created_at', 'updated_at',
             'category', 'services_count', 'providers_count', 'rating', 'reviews_count'
         )
-        read_only_fields = ('id', 'is_active', 'verification_status', 'created_at', 'updated_at')
+        read_only_fields = (
+            'id', 'is_active', 'verification_status',
+            'verification_submitted_at', 'verification_reviewed_at',
+            'verification_rejection_reason', 'verification_suspension_reason',
+            'created_at', 'updated_at'
+        )
 
     def get_category(self, obj):
         name_lower = obj.name.lower()
@@ -90,6 +103,19 @@ class OrganizationSerializer(serializers.ModelSerializer):
             return 0.0
         avg = sum(r.rating for r in reviews) / len(reviews)
         return round(float(avg), 1)
+
+    def get_reviews_count(self, obj):
+        if hasattr(obj, 'reviews_count'):
+            return obj.reviews_count
+        return obj.reviews.count()
+
+
+class AdminActionReasonSerializer(serializers.Serializer):
+    """
+    Serializer for payload requiring a reason (e.g. Reject, Suspend).
+    """
+    reason = serializers.CharField(required=True, allow_blank=False)
+
 
     def get_reviews_count(self, obj):
         if hasattr(obj, 'reviews_count'):

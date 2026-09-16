@@ -48,7 +48,44 @@ export const organizationService = {
   async createOrganization(data) {
     const response = await apiClient.post('/organizations/', data);
     return response.data;
+  },
+
+  /**
+   * Submit organization for admin verification review.
+   */
+  async submitVerification(orgId) {
+    const response = await apiClient.post(`/organizations/${orgId}/verification/submit/`);
+    return response.data;
+  },
+
+  /**
+   * Get uploaded verification documents for an organization.
+   */
+  async getDocuments(orgId) {
+    const response = await apiClient.get(`/organizations/${orgId}/documents/`);
+    return response.data;
+  },
+
+  /**
+   * Upload a verification document (FormData containing document_type, title, file).
+   */
+  async uploadDocument(orgId, formData) {
+    const response = await apiClient.post(`/organizations/${orgId}/documents/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  /**
+   * Delete a verification document.
+   */
+  async deleteDocument(orgId, docId) {
+    const response = await apiClient.delete(`/organizations/${orgId}/documents/${docId}/`);
+    return response.data;
   }
 };
 
 export default organizationService;
+

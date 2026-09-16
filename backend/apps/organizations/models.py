@@ -30,6 +30,17 @@ class Organization(models.Model):
         choices=VerificationStatus.choices,
         default=VerificationStatus.SETUP_INCOMPLETE
     )
+    verification_submitted_at = models.DateTimeField(_('verification submitted at'), null=True, blank=True)
+    verification_reviewed_at = models.DateTimeField(_('verification reviewed at'), null=True, blank=True)
+    verification_reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='reviewed_organizations'
+    )
+    verification_rejection_reason = models.TextField(_('verification rejection reason'), blank=True)
+    verification_suspension_reason = models.TextField(_('verification suspension reason'), blank=True)
     created_at = models.DateTimeField(_('created at'), auto_now_add=True)
     updated_at = models.DateTimeField(_('updated at'), auto_now=True)
 

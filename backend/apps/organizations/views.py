@@ -7,16 +7,19 @@ from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from config.api import apply_list_query, list_response
-from .models import Organization, OrganizationMembership
-from .permissions import IsOrganizationManager, IsOrganizationMember
+from .models import Organization, OrganizationMembership, OrganizationDocument
+from .permissions import IsOrganizationManager, IsOrganizationMember, IsSystemAdmin
 from .services import OrganizationService
 from .serializers import (
     OrganizationSerializer,
     OrganizationCreateSerializer,
     OrganizationMembershipSerializer,
+    OrganizationDocumentSerializer,
     MemberAddSerializer,
     MemberUpdateSerializer,
+    AdminActionReasonSerializer,
 )
+
 
 User = get_user_model()
 
@@ -185,3 +188,211 @@ class OrganizationMemberDetailUpdateView(APIView):
             )
             return Response(OrganizationMembershipSerializer(updated_membership).data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ---------------------------------------------------------------------------
+# Phase B: Organization Verification & Document Endpoints
+# ---------------------------------------------------------------------------
+
+class ManagerVerificationSubmitView(APIView):
+    """
+    POST: Manager submits organization for Admin verification review.
+    Validates profile completeness and document attachment.
+    """
+    permission_classes = [IsAuthenticated, IsOrganizationManager]
+
+    @extend_schema(
+        responses={200: OrganizationSerializer, 400: OpenApiResponse(description="Validation or State Error")},
+        summary="Submit organization for Admin verification review (Manager only)"
+    )
+    def post(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id)
+        updated_org = OrganizationService.submit_verification(organization=org, actor=request.user)
+        return Response(OrganizationSerializer(updated_org).data, status=status.HTTP_200_OK)
+
+
+class OrganizationDocumentListUploadView(APIView):
+    """
+    GET: List verification documents for organization (Manager or System Admin).
+    POST: Upload a verification document (Manager only, when SETUP_INCOMPLETE or REJECTED).
+    """
+    permission_classes = [IsAuthenticated, IsOrganizationMember]
+
+    @extend_schema(
+        responses={200: OrganizationDocumentSerializer(many=True)},
+        summary="List organization verification documents"
+    )
+    def get(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id)
+        docs = OrganizationDocument.objects.filter(organization=org)
+        serializer = OrganizationDocumentSerializer(docs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        request=OrganizationDocumentSerializer,
+        responses={201: OrganizationDocumentSerializer, 400: OpenApiResponse(description="Validation Error")},
+        summary="Upload organization verification document (Manager only)"
+    )
+    def post(self, request, organization_id):
+        # Strict Manager permission check
+        perm = IsOrganizationManager()
+        if not perm.has_permission(request, self):
+            return Response({'detail': 'Only organization managers may upload documents.'}, status=status.HTTP_403_FORBIDDEN)
+
+        org = get_object_or_404(Organization, id=organization_id)
+        serializer = OrganizationDocumentSerializer(data=request.data)
+        if serializer.is_valid():
+            doc = OrganizationService.upload_document(
+                organization=org,
+                document_type=serializer.validated_data['document_type'],
+                file=serializer.validated_data['file'],
+                original_filename=serializer.validated_data.get('original_filename', ''),
+                actor=request.user
+            )
+            return Response(OrganizationDocumentSerializer(doc).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OrganizationDocumentDetailDeleteView(APIView):
+    """
+    DELETE: Delete a verification document (Manager only, when SETUP_INCOMPLETE or REJECTED).
+    Safely scoped by organization_id in URL.
+    """
+    permission_classes = [IsAuthenticated, IsOrganizationManager]
+
+    @extend_schema(
+        responses={204: OpenApiResponse(description="Document Deleted"), 400: OpenApiResponse(description="Document locked")},
+        summary="Delete organization verification document (Manager only)"
+    )
+    def delete(self, request, organization_id, document_id):
+        doc = get_object_or_404(
+            OrganizationDocument,
+            id=document_id,
+            organization_id=organization_id
+        )
+        OrganizationService.delete_document(document=doc, actor=request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AdminOrganizationVerificationQueueView(APIView):
+    """
+    GET: List system organizations for Admin verification queue.
+    Supports filtering by verification_status query parameter.
+    """
+    permission_classes = [IsAuthenticated, IsSystemAdmin]
+
+    @extend_schema(
+        responses={200: OrganizationSerializer(many=True)},
+        summary="List system organizations for Admin verification queue (Admin only)"
+    )
+    def get(self, request):
+        status_param = request.query_params.get('status') or request.query_params.get('verification_status')
+        orgs = Organization.objects.all()
+        if status_param:
+            orgs = orgs.filter(verification_status=status_param.upper())
+
+        orgs = apply_list_query(
+            orgs, request,
+            filter_fields=('verification_status', 'is_active'),
+            search_fields=('name', 'address', 'email', 'slug'),
+            ordering_fields=('created_at', 'verification_submitted_at'),
+            default_ordering=('-created_at',),
+        )
+        return list_response(orgs, OrganizationSerializer, request)
+
+
+class AdminOrganizationStartReviewView(APIView):
+    """
+    POST: Admin marks a SUBMITTED organization as UNDER_REVIEW.
+    """
+    permission_classes = [IsAuthenticated, IsSystemAdmin]
+
+    @extend_schema(
+        responses={200: OrganizationSerializer, 400: OpenApiResponse(description="Invalid transition")},
+        summary="Start reviewing an organization (Admin only)"
+    )
+    def post(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id)
+        updated_org = OrganizationService.start_review(organization=org, admin_user=request.user)
+        return Response(OrganizationSerializer(updated_org).data, status=status.HTTP_200_OK)
+
+
+class AdminOrganizationApproveView(APIView):
+    """
+    POST: Admin approves an UNDER_REVIEW organization.
+    """
+    permission_classes = [IsAuthenticated, IsSystemAdmin]
+
+    @extend_schema(
+        responses={200: OrganizationSerializer, 400: OpenApiResponse(description="Invalid transition")},
+        summary="Approve an organization (Admin only)"
+    )
+    def post(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id)
+        updated_org = OrganizationService.approve_organization(organization=org, admin_user=request.user)
+        return Response(OrganizationSerializer(updated_org).data, status=status.HTTP_200_OK)
+
+
+class AdminOrganizationRejectView(APIView):
+    """
+    POST: Admin rejects an UNDER_REVIEW organization. Requires mandatory rejection reason.
+    """
+    permission_classes = [IsAuthenticated, IsSystemAdmin]
+
+    @extend_schema(
+        request=AdminActionReasonSerializer,
+        responses={200: OrganizationSerializer, 400: OpenApiResponse(description="Reason required or invalid transition")},
+        summary="Reject an organization (Admin only)"
+    )
+    def post(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id)
+        serializer = AdminActionReasonSerializer(data=request.data)
+        if serializer.is_valid():
+            updated_org = OrganizationService.reject_organization(
+                organization=org,
+                admin_user=request.user,
+                reason=serializer.validated_data['reason']
+            )
+            return Response(OrganizationSerializer(updated_org).data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminOrganizationSuspendView(APIView):
+    """
+    POST: Admin suspends an APPROVED organization. Requires mandatory suspension reason.
+    """
+    permission_classes = [IsAuthenticated, IsSystemAdmin]
+
+    @extend_schema(
+        request=AdminActionReasonSerializer,
+        responses={200: OrganizationSerializer, 400: OpenApiResponse(description="Reason required or invalid transition")},
+        summary="Suspend an organization (Admin only)"
+    )
+    def post(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id)
+        serializer = AdminActionReasonSerializer(data=request.data)
+        if serializer.is_valid():
+            updated_org = OrganizationService.suspend_organization(
+                organization=org,
+                admin_user=request.user,
+                reason=serializer.validated_data['reason']
+            )
+            return Response(OrganizationSerializer(updated_org).data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminOrganizationUnsuspendView(APIView):
+    """
+    POST: Admin unsuspends a SUSPENDED organization back to APPROVED.
+    """
+    permission_classes = [IsAuthenticated, IsSystemAdmin]
+
+    @extend_schema(
+        responses={200: OrganizationSerializer, 400: OpenApiResponse(description="Invalid transition")},
+        summary="Unsuspend an organization (Admin only)"
+    )
+    def post(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id)
+        updated_org = OrganizationService.unsuspend_organization(organization=org, admin_user=request.user)
+        return Response(OrganizationSerializer(updated_org).data, status=status.HTTP_200_OK)
+

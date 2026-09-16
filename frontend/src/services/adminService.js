@@ -32,6 +32,56 @@ export const adminService = {
     const response = await apiClient.patch(`/organizations/${orgId}/`, data);
     return response.data;
   },
+
+  /**
+   * Fetch verification queue with optional status filter.
+   */
+  async getVerificationQueue(status = '') {
+    const params = status ? { verification_status: status } : {};
+    const response = await apiClient.get('/organizations/admin/verification/', { params });
+    return response.data;
+  },
+
+  /**
+   * Start reviewing an organization.
+   */
+  async startReview(orgId) {
+    const response = await apiClient.post(`/organizations/${orgId}/admin/start-review/`);
+    return response.data;
+  },
+
+  /**
+   * Approve an organization.
+   */
+  async approveOrg(orgId) {
+    const response = await apiClient.post(`/organizations/${orgId}/admin/approve/`);
+    return response.data;
+  },
+
+  /**
+   * Reject an organization with reason.
+   */
+  async rejectOrg(orgId, reason) {
+    const response = await apiClient.post(`/organizations/${orgId}/admin/reject/`, { reason });
+    return response.data;
+  },
+
+  /**
+   * Suspend an organization with reason.
+   */
+  async suspendOrg(orgId, reason) {
+    const response = await apiClient.post(`/organizations/${orgId}/admin/suspend/`, { reason });
+    return response.data;
+  },
+
+  /**
+   * Unsuspend an organization.
+   */
+  async unsuspendOrg(orgId) {
+    const response = await apiClient.post(`/organizations/${orgId}/admin/unsuspend/`);
+    return response.data;
+  },
 };
 
 export default adminService;
+
