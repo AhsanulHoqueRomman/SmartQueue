@@ -15,22 +15,58 @@ class ProviderDocumentSerializer(serializers.ModelSerializer):
 
 
 class ProviderProfileSerializer(serializers.ModelSerializer):
-    """Read serializer — exposes derived user/organization info, application status, and operational state."""
+    """Read serializer — exposes derived user/organization info, application status, review fields, and operational state."""
     user_email = serializers.EmailField(source='membership.user.email', read_only=True)
+    user_first_name = serializers.CharField(source='membership.user.first_name', read_only=True)
+    user_last_name = serializers.CharField(source='membership.user.last_name', read_only=True)
     user_id = serializers.IntegerField(source='membership.user.id', read_only=True)
     organization_id = serializers.UUIDField(source='membership.organization.id', read_only=True)
+    organization_name = serializers.CharField(source='membership.organization.name', read_only=True)
     membership_id = serializers.IntegerField(source='membership.id', read_only=True)
+    membership_is_active = serializers.BooleanField(source='membership.is_active', read_only=True)
     is_operationally_active = serializers.BooleanField(read_only=True)
+    documents = ProviderDocumentSerializer(many=True, read_only=True)
+    application_reviewed_by_email = serializers.EmailField(source='application_reviewed_by.email', read_only=True)
 
     class Meta:
         model = ProviderProfile
         fields = [
-            'id', 'membership_id', 'user_id', 'user_email',
-            'organization_id', 'bio', 'title', 'is_active',
-            'application_status', 'is_operationally_active',
+            'id', 'membership_id', 'membership_is_active', 'user_id', 'user_email',
+            'user_first_name', 'user_last_name', 'organization_id', 'organization_name',
+            'bio', 'title', 'is_active',
+            'application_status', 'application_rejection_reason',
+            'application_reviewed_at', 'application_reviewed_by', 'application_reviewed_by_email',
+            'is_operationally_active', 'documents',
             'created_at', 'updated_at',
         ]
         read_only_fields = fields
+
+
+class ProviderApplicationReviewSerializer(serializers.Serializer):
+    """
+    Serializer for Manager review (approve or reject) of a provider application.
+    """
+    action = serializers.ChoiceField(choices=['APPROVE', 'REJECT'], required=True)
+    reason = serializers.CharField(required=False, allow_blank=True, default='')
+
+    def validate(self, data):
+        if data.get('action') == 'REJECT' and not data.get('reason', '').strip():
+            raise serializers.ValidationError({'reason': "Rejection reason is mandatory when rejecting an application."})
+        return data
+
+
+class ProviderDocumentReviewSerializer(serializers.Serializer):
+    """
+    Serializer for Manager review of a provider document.
+    """
+    status = serializers.ChoiceField(choices=[ProviderDocument.Status.APPROVED, ProviderDocument.Status.REJECTED], required=True)
+    rejection_reason = serializers.CharField(required=False, allow_blank=True, default='')
+
+    def validate(self, data):
+        if data.get('status') == ProviderDocument.Status.REJECTED and not data.get('rejection_reason', '').strip():
+            raise serializers.ValidationError({'rejection_reason': "Rejection reason is mandatory when rejecting a document."})
+        return data
+
 
 
 

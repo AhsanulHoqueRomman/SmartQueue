@@ -175,3 +175,41 @@ class MemberUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrganizationMembership
         fields = ('role', 'is_active')
+
+
+class OrganizationInvitationSerializer(serializers.ModelSerializer):
+    """
+    Serializer for displaying OrganizationInvitation records.
+    """
+    organization_name = serializers.CharField(source='organization.name', read_only=True)
+    created_by_email = serializers.EmailField(source='created_by.email', read_only=True)
+
+    class Meta:
+        from .models import OrganizationInvitation
+        model = OrganizationInvitation
+        fields = (
+            'id', 'organization', 'organization_name', 'email', 'role',
+            'token', 'created_by', 'created_by_email', 'created_at',
+            'expires_at', 'used_at', 'cancelled_at', 'is_valid'
+        )
+        read_only_fields = (
+            'id', 'organization', 'token', 'created_by', 'created_at',
+            'expires_at', 'used_at', 'cancelled_at', 'is_valid'
+        )
+
+
+class OrganizationInvitationCreateSerializer(serializers.Serializer):
+    """
+    Serializer for creating a provider invitation by manager.
+    """
+    email = serializers.EmailField(required=True)
+
+
+class AcceptInvitationSerializer(serializers.Serializer):
+    """
+    Serializer for accepting a provider invitation.
+    """
+    first_name = serializers.CharField(required=True, allow_blank=False)
+    last_name = serializers.CharField(required=True, allow_blank=False)
+    password = serializers.CharField(required=True, min_length=6, write_only=True)
+

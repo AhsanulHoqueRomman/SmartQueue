@@ -6,7 +6,8 @@ from config.exceptions import (
     DuplicateMembershipException,
     InvalidRoleAssignmentException,
 )
-from .models import Organization, OrganizationMembership, OrganizationDocument
+from django.contrib.auth import get_user_model
+from .models import Organization, OrganizationMembership, OrganizationDocument, OrganizationInvitation
 from apps.audit.services import AuditService
 
 
@@ -369,4 +370,169 @@ class OrganizationService:
             actor=actor,
             metadata={'document_type': doc_type}
         )
+
+    # ------------------------------------------------------------------
+    # OrganizationInvitation Lifecycle
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def create_provider_invitation(*, organization, email, actor):
+        """
+        Manager creates a tokenized provider invitation for an email.
+        """
+        email_clean = (email or '').strip().lower()
+        if not email_clean:
+            raise ApplicationError(message="Email address is required.", code="EMAIL_REQUIRED")
+
+        User = get_user_model()
+        existing_member = OrganizationMembership.objects.filter(
+            organization=organization,
+            user__email__iexact=email_clean,
+            role=OrganizationMembership.Role.PROVIDER
+        ).exists()
+        if existing_member:
+            raise ApplicationError(
+                message="A provider with this email already belongs to the organization.",
+                code="ALREADY_MEMBER"
+            )
+
+        existing_invitation = OrganizationInvitation.objects.filter(
+            organization=organization,
+            email__iexact=email_clean,
+            used_at__isnull=True,
+            cancelled_at__isnull=True,
+            expires_at__gt=timezone.now()
+        ).first()
+
+        if existing_invitation:
+            return existing_invitation
+
+        invitation = OrganizationInvitation.objects.create(
+            organization=organization,
+            email=email_clean,
+            role=OrganizationMembership.Role.PROVIDER,
+            created_by=actor
+        )
+
+        AuditService.record(
+            action='PROVIDER_INVITATION_CREATED',
+            entity_type='OrganizationInvitation',
+            entity_id=invitation.id,
+            organization_id=organization.id,
+            actor=actor,
+            metadata={'email': email_clean, 'invitation_token': invitation.token}
+        )
+        return invitation
+
+    @staticmethod
+    def get_invitation_details(*, token):
+        """
+        Retrieves valid invitation details by token for public accept page.
+        """
+        try:
+            invitation = OrganizationInvitation.objects.select_related('organization', 'created_by').get(token=token)
+        except OrganizationInvitation.DoesNotExist:
+            raise ApplicationError(message="Invitation token is invalid or expired.", code="INVALID_INVITATION", status_code=404)
+
+        if not invitation.is_valid:
+            raise ApplicationError(message="Invitation token is invalid or expired.", code="INVALID_INVITATION", status_code=400)
+
+        return invitation
+
+    @staticmethod
+    def accept_provider_invitation(*, token, first_name, last_name, password):
+        """
+        Accepts a provider invitation. Creates user (if new), creates active membership (is_active=True),
+        creates APPROVED provider profile, and marks invitation as used.
+        """
+        from apps.providers.models import ProviderProfile
+
+        with transaction.atomic():
+            invitation = OrganizationService.get_invitation_details(token=token)
+            organization = invitation.organization
+            email_clean = invitation.email.strip().lower()
+
+            User = get_user_model()
+            user = User.objects.filter(email__iexact=email_clean).first()
+
+            if user is None:
+                user = User.objects.create_user(
+                    email=email_clean,
+                    first_name=first_name.strip(),
+                    last_name=last_name.strip(),
+                    password=password,
+                    is_active=True
+                )
+            else:
+                if first_name.strip():
+                    user.first_name = first_name.strip()
+                if last_name.strip():
+                    user.last_name = last_name.strip()
+                user.save()
+
+            membership, _ = OrganizationMembership.objects.get_or_create(
+                user=user,
+                organization=organization,
+                defaults={
+                    'role': OrganizationMembership.Role.PROVIDER,
+                    'is_active': True
+                }
+            )
+            if not membership.is_active or membership.role != OrganizationMembership.Role.PROVIDER:
+                membership.role = OrganizationMembership.Role.PROVIDER
+                membership.is_active = True
+                membership.save()
+
+            profile, _ = ProviderProfile.objects.get_or_create(
+                membership=membership,
+                defaults={
+                    'application_status': ProviderProfile.ApplicationStatus.APPROVED,
+                    'application_reviewed_at': timezone.now(),
+                    'application_reviewed_by': invitation.created_by,
+                    'is_active': True
+                }
+            )
+
+            if profile.application_status != ProviderProfile.ApplicationStatus.APPROVED:
+                profile.application_status = ProviderProfile.ApplicationStatus.APPROVED
+                profile.application_reviewed_at = timezone.now()
+                profile.application_reviewed_by = invitation.created_by
+                profile.application_rejection_reason = ''
+                profile.save()
+
+            invitation.used_at = timezone.now()
+            invitation.accepted_by = user
+            invitation.save()
+
+            AuditService.record(
+                action='PROVIDER_INVITATION_ACCEPTED',
+                entity_type='OrganizationInvitation',
+                entity_id=invitation.id,
+                organization_id=organization.id,
+                actor=user,
+                metadata={'user_id': user.id}
+            )
+
+            return user, membership, profile
+
+    @staticmethod
+    def cancel_invitation(*, invitation, actor):
+        """
+        Manager cancels a pending provider invitation.
+        """
+        if invitation.used_at or invitation.cancelled_at:
+            raise ApplicationError(message="Invitation is no longer active.", code="INVITATION_INACTIVE")
+
+        invitation.cancelled_at = timezone.now()
+        invitation.save()
+
+        AuditService.record(
+            action='PROVIDER_INVITATION_CANCELLED',
+            entity_type='OrganizationInvitation',
+            entity_id=invitation.id,
+            organization_id=invitation.organization_id,
+            actor=actor,
+        )
+        return invitation
+
 

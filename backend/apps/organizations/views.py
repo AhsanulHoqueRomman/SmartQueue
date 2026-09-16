@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from config.api import apply_list_query, list_response
-from .models import Organization, OrganizationMembership, OrganizationDocument
+from .models import Organization, OrganizationMembership, OrganizationDocument, OrganizationInvitation
 from .permissions import IsOrganizationManager, IsOrganizationMember, IsSystemAdmin
 from .services import OrganizationService
 from .serializers import (
@@ -18,6 +18,9 @@ from .serializers import (
     MemberAddSerializer,
     MemberUpdateSerializer,
     AdminActionReasonSerializer,
+    OrganizationInvitationSerializer,
+    OrganizationInvitationCreateSerializer,
+    AcceptInvitationSerializer,
 )
 
 
@@ -395,4 +398,112 @@ class AdminOrganizationUnsuspendView(APIView):
         org = get_object_or_404(Organization, id=organization_id)
         updated_org = OrganizationService.unsuspend_organization(organization=org, admin_user=request.user)
         return Response(OrganizationSerializer(updated_org).data, status=status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------------------------
+# Phase C: OrganizationInvitation Views
+# ---------------------------------------------------------------------------
+
+class OrganizationInvitationListCreateView(APIView):
+    """
+    GET: List all invitations for an organization (Manager only).
+    POST: Create a new provider invitation for an email (Manager only).
+    """
+    permission_classes = [IsAuthenticated, IsOrganizationManager]
+
+    @extend_schema(
+        responses={200: OrganizationInvitationSerializer(many=True)},
+        summary="List organization invitations (Manager only)"
+    )
+    def get(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id)
+        invitations = OrganizationInvitation.objects.filter(organization=org).order_by('-created_at')
+        serializer = OrganizationInvitationSerializer(invitations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        request=OrganizationInvitationCreateSerializer,
+        responses={201: OrganizationInvitationSerializer, 400: OpenApiResponse(description="Validation error")},
+        summary="Create provider invitation (Manager only)"
+    )
+    def post(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id)
+        serializer = OrganizationInvitationCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            invitation = OrganizationService.create_provider_invitation(
+                organization=org,
+                email=serializer.validated_data['email'],
+                actor=request.user
+            )
+            return Response(OrganizationInvitationSerializer(invitation).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OrganizationInvitationCancelView(APIView):
+    """
+    POST: Cancel a pending provider invitation (Manager only).
+    """
+    permission_classes = [IsAuthenticated, IsOrganizationManager]
+
+    @extend_schema(
+        responses={200: OrganizationInvitationSerializer, 400: OpenApiResponse(description="Invalid action")},
+        summary="Cancel provider invitation (Manager only)"
+    )
+    def post(self, request, organization_id, invitation_id):
+        invitation = get_object_or_404(
+            OrganizationInvitation,
+            id=invitation_id,
+            organization_id=organization_id
+        )
+        cancelled = OrganizationService.cancel_invitation(invitation=invitation, actor=request.user)
+        return Response(OrganizationInvitationSerializer(cancelled).data, status=status.HTTP_200_OK)
+
+
+class PublicInvitationDetailsView(APIView):
+    """
+    GET: Retrieve invitation details by token for public acceptance page.
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        responses={200: OrganizationInvitationSerializer, 404: OpenApiResponse(description="Invitation not found or expired")},
+        summary="Retrieve provider invitation details (Public)"
+    )
+    def get(self, request, token):
+        invitation = OrganizationService.get_invitation_details(token=token)
+        return Response(OrganizationInvitationSerializer(invitation).data, status=status.HTTP_200_OK)
+
+
+class PublicAcceptInvitationView(APIView):
+    """
+    POST: Accept a provider invitation by token.
+    Creates user account (if new), sets membership and provider profile as APPROVED.
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        request=AcceptInvitationSerializer,
+        responses={200: OpenApiResponse(description="Invitation accepted successfully"), 400: OpenApiResponse(description="Validation error")},
+        summary="Accept provider invitation (Public)"
+    )
+    def post(self, request, token):
+        serializer = AcceptInvitationSerializer(data=request.data)
+        if serializer.is_valid():
+            user, membership, profile = OrganizationService.accept_provider_invitation(
+                token=token,
+                first_name=serializer.validated_data['first_name'],
+                last_name=serializer.validated_data['last_name'],
+                password=serializer.validated_data['password']
+            )
+            return Response({
+                'message': 'Invitation accepted successfully.',
+                'user_id': user.id,
+                'email': user.email,
+                'organization_id': str(membership.organization_id),
+                'membership_id': membership.id,
+                'provider_profile_id': str(profile.id),
+                'application_status': profile.application_status
+            }, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 

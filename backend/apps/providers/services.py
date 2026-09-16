@@ -1,7 +1,10 @@
+from django.db import transaction
+from django.utils import timezone
 from apps.organizations.models import OrganizationMembership
 from apps.services.models import Service
+from apps.audit.services import AuditService
 from config.exceptions import ApplicationError
-from .models import ProviderProfile, ProviderService, WeeklySchedule, ScheduleBreak, ProviderLeave
+from .models import ProviderProfile, ProviderDocument, ProviderService, WeeklySchedule, ScheduleBreak, ProviderLeave
 
 
 class ProviderNotProviderRoleException(ApplicationError):
@@ -107,6 +110,118 @@ class ProviderService_:
             profile.is_active = is_active
         profile.save()
         return profile
+
+    @staticmethod
+    def submit_application(*, provider_profile, actor=None):
+        """
+        Provider submits their completed profile and documents for manager review.
+        Transitions application_status to PENDING_REVIEW and clears rejection reason.
+        """
+        with transaction.atomic():
+            if provider_profile.application_status == ProviderProfile.ApplicationStatus.APPROVED:
+                raise ApplicationError(message="Provider application is already approved.", code="ALREADY_APPROVED")
+
+            provider_profile.application_status = ProviderProfile.ApplicationStatus.PENDING_REVIEW
+            provider_profile.application_rejection_reason = ''
+            provider_profile.save()
+
+            AuditService.record(
+                action='PROVIDER_APPLICATION_SUBMITTED',
+                entity_type='ProviderProfile',
+                entity_id=provider_profile.id,
+                organization_id=provider_profile.organization.id,
+                actor=actor or provider_profile.user,
+            )
+            return provider_profile
+
+    @staticmethod
+    def approve_application(*, provider_profile, manager_user):
+        """
+        Manager approves a pending provider application.
+        Sets profile application_status=APPROVED and membership is_active=True.
+        """
+        with transaction.atomic():
+            provider_profile.application_status = ProviderProfile.ApplicationStatus.APPROVED
+            provider_profile.application_reviewed_by = manager_user
+            provider_profile.application_reviewed_at = timezone.now()
+            provider_profile.application_rejection_reason = ''
+            provider_profile.save()
+
+            membership = provider_profile.membership
+            if not membership.is_active:
+                membership.is_active = True
+                membership.save()
+
+            AuditService.record(
+                action='PROVIDER_APPLICATION_APPROVED',
+                entity_type='ProviderProfile',
+                entity_id=provider_profile.id,
+                organization_id=provider_profile.organization.id,
+                actor=manager_user,
+            )
+            return provider_profile
+
+    @staticmethod
+    def reject_application(*, provider_profile, manager_user, reason):
+        """
+        Manager rejects a provider application. Mandatory rejection reason required.
+        Sets profile application_status=REJECTED and membership is_active=False.
+        """
+        reason_clean = (reason or '').strip()
+        if not reason_clean:
+            raise ApplicationError(message="Rejection reason is mandatory.", code="REASON_REQUIRED")
+
+        with transaction.atomic():
+            provider_profile.application_status = ProviderProfile.ApplicationStatus.REJECTED
+            provider_profile.application_rejection_reason = reason_clean
+            provider_profile.application_reviewed_by = manager_user
+            provider_profile.application_reviewed_at = timezone.now()
+            provider_profile.save()
+
+            membership = provider_profile.membership
+            if membership.is_active:
+                membership.is_active = False
+                membership.save()
+
+            AuditService.record(
+                action='PROVIDER_APPLICATION_REJECTED',
+                entity_type='ProviderProfile',
+                entity_id=provider_profile.id,
+                organization_id=provider_profile.organization.id,
+                actor=manager_user,
+                metadata={'reason': reason_clean}
+            )
+            return provider_profile
+
+    @staticmethod
+    def review_provider_document(*, document, status, reviewer_user, rejection_reason=''):
+        """
+        Manager reviews a provider document (APPROVED or REJECTED).
+        """
+        if status not in [ProviderDocument.Status.APPROVED, ProviderDocument.Status.REJECTED]:
+            raise ApplicationError(message="Invalid document status.", code="INVALID_STATUS")
+
+        reason_clean = (rejection_reason or '').strip()
+        if status == ProviderDocument.Status.REJECTED and not reason_clean:
+            raise ApplicationError(message="Rejection reason is mandatory when rejecting a document.", code="REASON_REQUIRED")
+
+        with transaction.atomic():
+            document.status = status
+            document.reviewed_by = reviewer_user
+            document.reviewed_at = timezone.now()
+            document.rejection_reason = reason_clean if status == ProviderDocument.Status.REJECTED else ''
+            document.save()
+
+            AuditService.record(
+                action='PROVIDER_DOCUMENT_REVIEWED',
+                entity_type='ProviderDocument',
+                entity_id=document.id,
+                organization_id=document.provider.organization.id,
+                actor=reviewer_user,
+                metadata={'status': status, 'rejection_reason': document.rejection_reason}
+            )
+            return document
+
 
     # ------------------------------------------------------------------
     # ProviderService (Service Assignments)

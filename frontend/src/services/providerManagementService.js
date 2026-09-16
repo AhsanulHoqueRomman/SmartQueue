@@ -122,6 +122,63 @@ export const providerManagementService = {
       `/organizations/${orgId}/providers/${providerId}/services/${providerServiceId}/`
     );
   },
+
+  /**
+   * Submit provider profile application for manager review.
+   */
+  async submitApplication(orgId, providerId) {
+    const response = await apiClient.post(
+      `/organizations/${orgId}/providers/${providerId}/submit-application/`
+    );
+    return response.data;
+  },
+
+  /**
+   * Manager approves or rejects provider application.
+   */
+  async reviewApplication(orgId, providerId, data) {
+    const response = await apiClient.post(
+      `/organizations/${orgId}/providers/${providerId}/review-application/`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Fetch verification documents for provider.
+   */
+  async getProviderDocuments(orgId, providerId) {
+    const response = await apiClient.get(
+      `/organizations/${orgId}/providers/${providerId}/documents/`
+    );
+    return response.data;
+  },
+
+  /**
+   * Upload verification document for provider.
+   */
+  async uploadProviderDocument(orgId, providerId, formData) {
+    const response = await apiClient.post(
+      `/organizations/${orgId}/providers/${providerId}/documents/`,
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }
+    );
+    return response.data;
+  },
+
+  /**
+   * Manager reviews provider document.
+   */
+  async reviewProviderDocument(orgId, providerId, docId, data) {
+    const response = await apiClient.post(
+      `/organizations/${orgId}/providers/${providerId}/documents/${docId}/review/`,
+      data
+    );
+    return response.data;
+  },
 };
 
 export default providerManagementService;
+

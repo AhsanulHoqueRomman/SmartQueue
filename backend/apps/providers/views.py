@@ -7,12 +7,15 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from apps.organizations.models import Organization, OrganizationMembership
 from apps.organizations.permissions import IsOrganizationManager
-from .models import ProviderProfile, WeeklySchedule, ScheduleBreak, ProviderLeave
+from .models import ProviderProfile, ProviderDocument, WeeklySchedule, ScheduleBreak, ProviderLeave
 from .permissions import IsOrganizationManagerOrOwnProvider
 from .serializers import (
     ProviderProfileSerializer,
     ProviderProfileCreateSerializer,
     ProviderProfileUpdateSerializer,
+    ProviderDocumentSerializer,
+    ProviderApplicationReviewSerializer,
+    ProviderDocumentReviewSerializer,
     ProviderServiceSerializer,
     ProviderServiceCreateSerializer,
     WeeklyScheduleSerializer,
@@ -32,15 +35,16 @@ def _get_org(organization_id):
     return get_object_or_404(Organization, id=organization_id, is_active=True)
 
 
-def _get_provider(organization_id, provider_id):
+def _get_provider(organization_id, provider_id, require_active_membership=True):
     org = _get_org(organization_id)
-    return get_object_or_404(
-        ProviderProfile,
-        id=provider_id,
-        membership__organization=org,
-        membership__is_active=True,
-        membership__role=OrganizationMembership.Role.PROVIDER,
-    )
+    kwargs = {
+        'id': provider_id,
+        'membership__organization': org,
+        'membership__role': OrganizationMembership.Role.PROVIDER,
+    }
+    if require_active_membership:
+        kwargs['membership__is_active'] = True
+    return get_object_or_404(ProviderProfile, **kwargs)
 
 
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -81,13 +85,19 @@ class ProviderProfileListCreateView(APIView):
     )
     def get(self, request, organization_id):
         org = _get_org(organization_id)
-        profiles = ProviderProfile.objects.filter(
-            membership__organization=org,
-            membership__is_active=True,
-            membership__role=OrganizationMembership.Role.PROVIDER,
-        ).select_related('membership__user', 'membership__organization')
-        if not _is_org_manager_or_admin(request.user, organization_id):
-            profiles = profiles.filter(is_active=True)
+        if _is_org_manager_or_admin(request.user, organization_id):
+            profiles = ProviderProfile.objects.filter(
+                membership__organization=org,
+                membership__role=OrganizationMembership.Role.PROVIDER,
+            ).select_related('membership__user', 'membership__organization')
+        else:
+            profiles = ProviderProfile.objects.filter(
+                membership__organization=org,
+                membership__is_active=True,
+                membership__role=OrganizationMembership.Role.PROVIDER,
+                is_active=True,
+                application_status=ProviderProfile.ApplicationStatus.APPROVED
+            ).select_related('membership__user', 'membership__organization')
         profiles = apply_list_query(
             profiles, request,
             filter_fields=('is_active',),
@@ -417,3 +427,117 @@ class ProviderLeaveDetailView(APIView):
         leave = get_object_or_404(ProviderLeave, id=leave_id, provider=profile)
         leave.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ---------------------------------------------------------------------------
+# Phase C: Provider Application & Document Review Views
+# ---------------------------------------------------------------------------
+
+class ProviderApplicationSubmitView(APIView):
+    """
+    POST: Provider submits their application for Manager review.
+    """
+    permission_classes = [IsAuthenticated, IsOrganizationManagerOrOwnProvider]
+
+    @extend_schema(
+        responses={200: ProviderProfileSerializer, 400: OpenApiResponse(description="Invalid transition")},
+        summary="Submit provider application for Manager review"
+    )
+    def post(self, request, organization_id, provider_id):
+        profile = _get_provider(organization_id, provider_id, require_active_membership=False)
+        submitted = ProviderBizService.submit_application(provider_profile=profile, actor=request.user)
+        return Response(ProviderProfileSerializer(submitted).data, status=status.HTTP_200_OK)
+
+
+class ManagerProviderApplicationReviewView(APIView):
+    """
+    POST: Manager approves or rejects a provider application.
+    Action: APPROVE or REJECT (with mandatory reason if REJECT).
+    """
+    permission_classes = [IsAuthenticated, IsOrganizationManager]
+
+    @extend_schema(
+        request=ProviderApplicationReviewSerializer,
+        responses={200: ProviderProfileSerializer, 400: OpenApiResponse(description="Validation or State error")},
+        summary="Approve or Reject provider application (Manager only)"
+    )
+    def post(self, request, organization_id, provider_id):
+        profile = _get_provider(organization_id, provider_id, require_active_membership=False)
+        serializer = ProviderApplicationReviewSerializer(data=request.data)
+        if serializer.is_valid():
+            action = serializer.validated_data['action']
+            if action == 'APPROVE':
+                updated = ProviderBizService.approve_application(provider_profile=profile, manager_user=request.user)
+            else:
+                updated = ProviderBizService.reject_application(
+                    provider_profile=profile,
+                    manager_user=request.user,
+                    reason=serializer.validated_data['reason']
+                )
+            return Response(ProviderProfileSerializer(updated).data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProviderDocumentUploadView(APIView):
+    """
+    GET: List verification documents uploaded by provider.
+    POST: Upload a verification document (Provider or Manager).
+    """
+    permission_classes = [IsAuthenticated, IsOrganizationManagerOrOwnProvider]
+
+    @extend_schema(
+        responses={200: ProviderDocumentSerializer(many=True)},
+        summary="List provider verification documents"
+    )
+    def get(self, request, organization_id, provider_id):
+        profile = _get_provider(organization_id, provider_id, require_active_membership=False)
+        docs = ProviderDocument.objects.filter(provider=profile)
+        serializer = ProviderDocumentSerializer(docs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        request=ProviderDocumentSerializer,
+        responses={201: ProviderDocumentSerializer, 400: OpenApiResponse(description="Validation error")},
+        summary="Upload provider verification document"
+    )
+    def post(self, request, organization_id, provider_id):
+        profile = _get_provider(organization_id, provider_id, require_active_membership=False)
+        serializer = ProviderDocumentSerializer(data=request.data)
+        if serializer.is_valid():
+            doc = ProviderDocument.objects.create(
+                provider=profile,
+                document_type=serializer.validated_data['document_type'],
+                file=serializer.validated_data['file'],
+                original_filename=serializer.validated_data.get('original_filename', ''),
+                status=ProviderDocument.Status.PENDING
+            )
+            return Response(ProviderDocumentSerializer(doc).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ManagerProviderDocumentReviewView(APIView):
+    """
+    POST: Manager reviews a provider document (APPROVE or REJECT with mandatory reason).
+    """
+    permission_classes = [IsAuthenticated, IsOrganizationManager]
+
+    @extend_schema(
+        request=ProviderDocumentReviewSerializer,
+        responses={200: ProviderDocumentSerializer, 400: OpenApiResponse(description="Validation error")},
+        summary="Review provider document (Manager only)"
+    )
+    def post(self, request, organization_id, provider_id, document_id):
+        profile = _get_provider(organization_id, provider_id, require_active_membership=False)
+        doc = get_object_or_404(ProviderDocument, id=document_id, provider=profile)
+        serializer = ProviderDocumentReviewSerializer(data=request.data)
+        if serializer.is_valid():
+            reviewed = ProviderBizService.review_provider_document(
+                document=doc,
+                status=serializer.validated_data['status'],
+                reviewer_user=request.user,
+                rejection_reason=serializer.validated_data.get('rejection_reason', '')
+            )
+            return Response(ProviderDocumentSerializer(reviewed).data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+

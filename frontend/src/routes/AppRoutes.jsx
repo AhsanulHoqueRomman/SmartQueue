@@ -11,6 +11,7 @@ import { RegisterPage } from '../pages/RegisterPage';
 import { CustomerRegisterPage } from '../pages/customer/CustomerRegisterPage';
 import { ManagerRegisterPage } from '../pages/manager/ManagerRegisterPage';
 import { ProviderRegisterPage } from '../pages/provider/ProviderRegisterPage';
+import { AcceptInvitationPage } from '../pages/AcceptInvitationPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 
 // Customer Portal Pages
@@ -111,6 +112,10 @@ export const AppRoutes = () => {
       <Route
         path="/register/provider"
         element={isAuthenticated ? <Navigate to={rolePath} replace /> : <ProviderRegisterPage />}
+      />
+      <Route
+        path="/invitations/provider/:token"
+        element={<AcceptInvitationPage />}
       />
 
       {/* Role Root Redirects & Aliases */}

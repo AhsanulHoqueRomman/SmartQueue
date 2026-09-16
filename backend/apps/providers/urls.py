@@ -10,6 +10,10 @@ from .views import (
     ScheduleBreakDetailView,
     ProviderLeaveListCreateView,
     ProviderLeaveDetailView,
+    ProviderApplicationSubmitView,
+    ManagerProviderApplicationReviewView,
+    ProviderDocumentUploadView,
+    ManagerProviderDocumentReviewView,
 )
 
 app_name = 'providers'
@@ -18,6 +22,10 @@ urlpatterns = [
     # Provider Profiles
     path('', ProviderProfileListCreateView.as_view(), name='provider_list_create'),
     path('<uuid:provider_id>/', ProviderProfileDetailView.as_view(), name='provider_detail'),
+    path('<uuid:provider_id>/submit-application/', ProviderApplicationSubmitView.as_view(), name='provider_submit_application'),
+    path('<uuid:provider_id>/review-application/', ManagerProviderApplicationReviewView.as_view(), name='provider_review_application'),
+    path('<uuid:provider_id>/documents/', ProviderDocumentUploadView.as_view(), name='provider_document_list_upload'),
+    path('<uuid:provider_id>/documents/<uuid:document_id>/review/', ManagerProviderDocumentReviewView.as_view(), name='provider_document_review'),
 
     # Dynamic availability (Milestone 4)
     path(

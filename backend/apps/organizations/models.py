@@ -154,3 +154,73 @@ class OrganizationMembership(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.organization.name} ({self.role})"
+
+
+class OrganizationInvitation(models.Model):
+    """
+    Secure tokenized invitation sent by an Organization Manager to invite a Provider.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='invitations'
+    )
+    email = models.EmailField(_('invited email'))
+    role = models.CharField(
+        max_length=20,
+        choices=OrganizationMembership.Role.choices,
+        default=OrganizationMembership.Role.PROVIDER
+    )
+    token = models.CharField(max_length=100, unique=True, db_index=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='created_organization_invitations'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+    accepted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='accepted_organization_invitations'
+    )
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = _('organization invitation')
+        verbose_name_plural = _('organization invitations')
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['organization', 'email'], name='org_inv_org_email_idx'),
+            models.Index(fields=['token'], name='org_inv_token_idx'),
+        ]
+
+    def __str__(self):
+        return f"Invitation for {self.email} -> {self.organization.name} ({self.role})"
+
+    def save(self, *args, **kwargs):
+        if not self.token:
+            import secrets
+            self.token = secrets.token_urlsafe(32)
+        if not self.expires_at:
+            from django.utils import timezone
+            import datetime
+            self.expires_at = timezone.now() + datetime.timedelta(days=7)
+        super().save(*args, **kwargs)
+
+    @property
+    def is_valid(self):
+        from django.utils import timezone
+        return (
+            self.used_at is None and
+            self.cancelled_at is None and
+            self.expires_at > timezone.now()
+        )
+
+

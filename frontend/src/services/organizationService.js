@@ -84,8 +84,49 @@ export const organizationService = {
   async deleteDocument(orgId, docId) {
     const response = await apiClient.delete(`/organizations/${orgId}/documents/${docId}/`);
     return response.data;
-  }
+  },
+
+  /**
+   * Get provider invitations for organization (Manager).
+   */
+  async getInvitations(orgId) {
+    const response = await apiClient.get(`/organizations/${orgId}/invitations/`);
+    return response.data;
+  },
+
+  /**
+   * Create provider invitation (Manager).
+   */
+  async createInvitation(orgId, data) {
+    const response = await apiClient.post(`/organizations/${orgId}/invitations/`, data);
+    return response.data;
+  },
+
+  /**
+   * Cancel provider invitation (Manager).
+   */
+  async cancelInvitation(orgId, invitationId) {
+    const response = await apiClient.post(`/organizations/${orgId}/invitations/${invitationId}/cancel/`);
+    return response.data;
+  },
+
+  /**
+   * Get public invitation details by token.
+   */
+  async getInvitationDetails(token) {
+    const response = await apiClient.get(`/invitations/provider/${token}/`);
+    return response.data;
+  },
+
+  /**
+   * Accept public provider invitation by token.
+   */
+  async acceptInvitation(token, data) {
+    const response = await apiClient.post(`/invitations/provider/${token}/accept/`, data);
+    return response.data;
+  },
 };
 
 export default organizationService;
+
 

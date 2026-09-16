@@ -13,6 +13,8 @@ from .views import (
     AdminOrganizationRejectView,
     AdminOrganizationSuspendView,
     AdminOrganizationUnsuspendView,
+    OrganizationInvitationListCreateView,
+    OrganizationInvitationCancelView,
 )
 
 app_name = 'organizations'
@@ -26,6 +28,8 @@ urlpatterns = [
     path('<uuid:organization_id>/documents/<uuid:document_id>/', OrganizationDocumentDetailDeleteView.as_view(), name='document_detail_delete'),
     path('<uuid:organization_id>/members/', OrganizationMemberListAddView.as_view(), name='member_list_add'),
     path('<uuid:organization_id>/members/<int:membership_id>/', OrganizationMemberDetailUpdateView.as_view(), name='member_detail_update'),
+    path('<uuid:organization_id>/invitations/', OrganizationInvitationListCreateView.as_view(), name='invitation_list_create'),
+    path('<uuid:organization_id>/invitations/<int:invitation_id>/cancel/', OrganizationInvitationCancelView.as_view(), name='invitation_cancel'),
     path('<uuid:organization_id>/admin/start-review/', AdminOrganizationStartReviewView.as_view(), name='admin_start_review'),
     path('<uuid:organization_id>/admin/approve/', AdminOrganizationApproveView.as_view(), name='admin_approve'),
     path('<uuid:organization_id>/admin/reject/', AdminOrganizationRejectView.as_view(), name='admin_reject'),

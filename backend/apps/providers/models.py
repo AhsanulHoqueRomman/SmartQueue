@@ -34,6 +34,15 @@ class ProviderProfile(models.Model):
         choices=ApplicationStatus.choices,
         default=ApplicationStatus.INCOMPLETE
     )
+    application_rejection_reason = models.TextField(_('application rejection reason'), blank=True)
+    application_reviewed_at = models.DateTimeField(_('application reviewed at'), null=True, blank=True)
+    application_reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='reviewed_provider_applications'
+    )
     is_active = models.BooleanField(_('active'), default=True)
     created_at = models.DateTimeField(_('created at'), auto_now_add=True)
     updated_at = models.DateTimeField(_('updated at'), auto_now=True)
