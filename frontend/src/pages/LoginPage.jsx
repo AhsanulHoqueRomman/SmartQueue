@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { PublicNavbar } from '../components/PublicNavbar';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -50,16 +51,27 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="animate-page-entrance" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-bg)', padding: '2rem 1rem' }}>
-      <div className="card" style={{ width: '100%', maxWidth: '440px', padding: '2.5rem', boxShadow: 'var(--shadow-xl)' }}>
-        <div style={{ textCenter: 'center', marginBottom: '2rem', textAlign: 'center' }}>
-          <Link to="/" className="navbar-brand" style={{ justifyContent: 'center', marginBottom: '1.25rem' }}>
-            <span className="brand-icon">⚡</span>
-            <span>SmartQueue</span>
-          </Link>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.35rem' }}>Welcome back</h2>
-          <p className="subtitle">Sign in to your SmartQueue account</p>
-        </div>
+    <div style={{ backgroundColor: '#FAF8F3', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <PublicNavbar activePage="login" />
+      <div
+        className="animate-page-entrance"
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2.5rem 1rem',
+        }}
+      >
+        <div className="card" style={{ width: '100%', maxWidth: '440px', padding: '2.5rem', boxShadow: '0 12px 40px rgba(47, 37, 32, 0.06)', borderRadius: '24px', border: '1px solid #E6E1D9', backgroundColor: '#FFFFFF' }}>
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <Link to="/" className="navbar-brand" style={{ justifyContent: 'center', marginBottom: '1.25rem', textDecoration: 'none' }}>
+              <span className="brand-icon">⚡</span>
+              <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: '#211C19' }}>SmartQueue</span>
+            </Link>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.35rem', fontFamily: 'Cinzel, serif', color: '#211C19', fontWeight: 700 }}>Welcome back</h2>
+            <p className="subtitle" style={{ color: '#78716C', fontSize: '0.9rem', margin: 0 }}>Sign in to your SmartQueue account</p>
+          </div>
 
         {error && (
           <div className="banner banner-danger">
@@ -125,6 +137,7 @@ export const LoginPage = () => {
           <div style={{ marginTop: '0.875rem' }}>
             <Link to="/" style={{ color: 'var(--color-text-tertiary)', fontSize: '0.8125rem', textDecoration: 'none' }}>← Back to Landing Page</Link>
           </div>
+        </div>
         </div>
       </div>
     </div>

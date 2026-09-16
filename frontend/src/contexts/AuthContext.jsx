@@ -49,6 +49,24 @@ export const AuthProvider = ({ children }) => {
     return userData;
   };
 
+  const registerCustomer = async (userDataInput) => {
+    const { user: userData } = await authService.registerCustomer(userDataInput);
+    setUser(userData);
+    return userData;
+  };
+
+  const registerManager = async (managerDataInput) => {
+    const res = await authService.registerManager(managerDataInput);
+    setUser(res.user);
+    return res;
+  };
+
+  const registerProvider = async (providerDataInput) => {
+    const res = await authService.registerProvider(providerDataInput);
+    setUser(res.user);
+    return res;
+  };
+
   const logout = async () => {
     await authService.logout();
     setUser(null);
@@ -72,6 +90,9 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
     login,
     register,
+    registerCustomer,
+    registerManager,
+    registerProvider,
     logout,
     refreshUser,
   };

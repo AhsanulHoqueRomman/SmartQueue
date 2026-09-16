@@ -8,6 +8,9 @@ import { AppShell } from '../components/AppShell';
 
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
+import { CustomerRegisterPage } from '../pages/customer/CustomerRegisterPage';
+import { ManagerRegisterPage } from '../pages/manager/ManagerRegisterPage';
+import { ProviderRegisterPage } from '../pages/provider/ProviderRegisterPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 
 // Customer Portal Pages
@@ -96,6 +99,18 @@ export const AppRoutes = () => {
       <Route
         path="/register"
         element={isAuthenticated ? <Navigate to={rolePath} replace /> : <RegisterPage />}
+      />
+      <Route
+        path="/register/customer"
+        element={isAuthenticated ? <Navigate to={rolePath} replace /> : <CustomerRegisterPage />}
+      />
+      <Route
+        path="/register/manager"
+        element={isAuthenticated ? <Navigate to={rolePath} replace /> : <ManagerRegisterPage />}
+      />
+      <Route
+        path="/register/provider"
+        element={isAuthenticated ? <Navigate to={rolePath} replace /> : <ProviderRegisterPage />}
       />
 
       {/* Role Root Redirects & Aliases */}

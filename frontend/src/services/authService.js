@@ -16,6 +16,27 @@ export const authService = {
     return { user, access, refresh };
   },
 
+  async registerCustomer(userData) {
+    const response = await apiClient.post('/auth/register/customer/', userData);
+    const { access, refresh, user } = response.data;
+    tokenService.setTokens(access, refresh);
+    return { user, access, refresh };
+  },
+
+  async registerManager(managerData) {
+    const response = await apiClient.post('/auth/register/manager/', managerData);
+    const { access, refresh, user, organization } = response.data;
+    tokenService.setTokens(access, refresh);
+    return { user, organization, access, refresh };
+  },
+
+  async registerProvider(providerData) {
+    const response = await apiClient.post('/auth/register/provider/', providerData);
+    const { access, refresh, user, is_pending_approval } = response.data;
+    tokenService.setTokens(access, refresh);
+    return { user, is_pending_approval, access, refresh };
+  },
+
   async logout() {
     const refreshToken = tokenService.getRefreshToken();
     if (refreshToken) {

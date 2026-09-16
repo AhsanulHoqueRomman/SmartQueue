@@ -1,216 +1,206 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { PublicNavbar } from '../components/PublicNavbar';
 
 export const RegisterPage = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    first_name: '',
-    last_name: '',
-    phone_number: '',
-    password: '',
-    password_confirm: '',
-  });
-
-  const [error, setError] = useState(null);
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-
-  const { register } = useAuth();
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setFieldErrors({});
-
-    if (formData.password !== formData.password_confirm) {
-      setFieldErrors({ password_confirm: ['Passwords do not match.'] });
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      await register(formData);
-      navigate('/dashboard', { replace: true });
-    } catch (err) {
-      const data = err.response?.data;
-      if (data) {
-        if (data.error) {
-          setError(data.error.message || 'Registration failed.');
-          if (data.error.details && typeof data.error.details === 'object') {
-            setFieldErrors(data.error.details);
-          }
-        } else if (typeof data === 'object') {
-          setFieldErrors(data);
-          setError('Please resolve the validation errors below.');
-        } else {
-          setError('Registration failed. Please check your details.');
-        }
-      } else {
-        setError('Network error. Is the backend server running?');
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const roleOptions = [
+    {
+      id: 'customer',
+      title: 'Customer',
+      icon: '👤',
+      badge: 'Public Account',
+      description: 'Find services, book appointments and manage your visits.',
+      cta: 'Continue as Customer',
+      path: '/register/customer',
+      accentColor: '#5F7A70',
+    },
+    {
+      id: 'provider',
+      title: 'Provider',
+      icon: '🩺',
+      badge: 'Professional',
+      description: 'Manage your appointments, services, schedule and queue.',
+      cta: 'Continue as Provider',
+      path: '/register/provider',
+      accentColor: '#B06D2E',
+    },
+    {
+      id: 'manager',
+      title: 'Manager',
+      icon: '🏢',
+      badge: 'Organization Admin',
+      description: 'Create and manage your organization, team and services.',
+      cta: 'Continue as Manager',
+      path: '/register/manager',
+      accentColor: '#2F2520',
+    },
+  ];
 
   return (
-    <div className="animate-page-entrance" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-bg)', padding: '2rem 1rem' }}>
-      <div className="card" style={{ width: '100%', maxWidth: '520px', padding: '2.5rem', boxShadow: 'var(--shadow-xl)' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <Link to="/" className="navbar-brand" style={{ justifyContent: 'center', marginBottom: '1.25rem' }}>
-            <span className="brand-icon">⚡</span>
-            <span>SmartQueue</span>
+    <div style={{ backgroundColor: '#FAF8F3', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <PublicNavbar activePage="register" />
+      <div
+        className="animate-page-entrance"
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2.5rem 1.5rem',
+        }}
+      >
+      <div style={{ maxWidth: '960px', width: '100%' }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+          <Link
+            to="/"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              textDecoration: 'none',
+              marginBottom: '1.25rem',
+            }}
+          >
+            <span style={{ fontSize: '1.75rem' }}>⚡</span>
+            <span
+              style={{
+                fontFamily: 'Cinzel, serif',
+                fontSize: '1.75rem',
+                fontWeight: 700,
+                color: '#211C19',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              SmartQueue
+            </span>
           </Link>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.35rem' }}>Create your account</h2>
-          <p className="subtitle">Join SmartQueue appointment & queue SaaS platform</p>
+
+          <h1
+            style={{
+              fontSize: '2.25rem',
+              fontWeight: 800,
+              color: '#211C19',
+              margin: '0 0 0.5rem 0',
+              fontFamily: 'Cinzel, serif',
+            }}
+          >
+            Create your SmartQueue account
+          </h1>
+          <p style={{ fontSize: '1.1rem', color: '#78716C', margin: 0, fontWeight: 500 }}>
+            Choose how you'll use SmartQueue.
+          </p>
         </div>
 
-        {error && (
-          <div className="banner banner-danger">
-            {error}
-          </div>
-        )}
+        {/* 3 Role Cards Grid */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
+            gap: '1.75rem',
+            marginBottom: '3rem',
+          }}
+        >
+          {roleOptions.map((opt) => (
+            <div
+              key={opt.id}
+              onClick={() => navigate(opt.path)}
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: '20px',
+                border: '1px solid #E6E1D9',
+                padding: '2.25rem 1.75rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                boxShadow: '0 10px 30px rgba(47, 37, 32, 0.04)',
+                cursor: 'pointer',
+                transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+              className="role-card-hover"
+            >
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                  <div
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '14px',
+                      backgroundColor: '#FAF8F3',
+                      border: '1px solid #E6E1D9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.4rem',
+                    }}
+                  >
+                    {opt.icon}
+                  </div>
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      color: opt.accentColor,
+                      backgroundColor: '#FAF8F3',
+                      padding: '0.25rem 0.65rem',
+                      borderRadius: '9999px',
+                      border: '1px solid #E6E1D9',
+                    }}
+                  >
+                    {opt.badge}
+                  </span>
+                </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label" htmlFor="reg-email">Email Address *</label>
-            <input
-              id="reg-email"
-              name="email"
-              type="email"
-              className="form-control"
-              placeholder="you@example.com"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              disabled={submitting}
-            />
-            {fieldErrors.email && (
-              <div style={{ color: 'var(--color-error)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                {fieldErrors.email.join(' ')}
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#211C19', margin: '0 0 0.65rem 0' }}>
+                  {opt.title}
+                </h3>
+                <p style={{ fontSize: '0.95rem', color: '#78716C', lineHeight: 1.5, margin: 0 }}>
+                  {opt.description}
+                </p>
               </div>
-            )}
-          </div>
 
-          <div className="grid-responsive grid-cols-2 gap-sm">
-            <div className="form-group">
-              <label className="form-label" htmlFor="reg-fname">First Name</label>
-              <input
-                id="reg-fname"
-                name="first_name"
-                type="text"
-                className="form-control"
-                placeholder="Jane"
-                value={formData.first_name}
-                onChange={handleChange}
-                disabled={submitting}
-              />
-              {fieldErrors.first_name && (
-                <div style={{ color: 'var(--color-error)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                  {fieldErrors.first_name.join(' ')}
-                </div>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="reg-lname">Last Name</label>
-              <input
-                id="reg-lname"
-                name="last_name"
-                type="text"
-                className="form-control"
-                placeholder="Doe"
-                value={formData.last_name}
-                onChange={handleChange}
-                disabled={submitting}
-              />
-              {fieldErrors.last_name && (
-                <div style={{ color: 'var(--color-error)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                  {fieldErrors.last_name.join(' ')}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="reg-phone">Phone Number</label>
-            <input
-              id="reg-phone"
-              name="phone_number"
-              type="tel"
-              className="form-control"
-              placeholder="+1 555-0192"
-              value={formData.phone_number}
-              onChange={handleChange}
-              disabled={submitting}
-            />
-            {fieldErrors.phone_number && (
-              <div style={{ color: 'var(--color-error)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                {fieldErrors.phone_number.join(' ')}
+              <div style={{ marginTop: '2rem' }}>
+                <button
+                  style={{
+                    width: '100%',
+                    padding: '0.85rem 1rem',
+                    backgroundColor: opt.accentColor,
+                    color: '#FAF8F3',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(47, 37, 32, 0.08)',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {opt.cta} →
+                </button>
               </div>
-            )}
-          </div>
-
-          <div className="grid-responsive grid-cols-2 gap-sm">
-            <div className="form-group">
-              <label className="form-label" htmlFor="reg-password">Password *</label>
-              <input
-                id="reg-password"
-                name="password"
-                type="password"
-                className="form-control"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                disabled={submitting}
-              />
-              {fieldErrors.password && (
-                <div style={{ color: 'var(--color-error)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                  {fieldErrors.password.join(' ')}
-                </div>
-              )}
             </div>
+          ))}
+        </div>
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="reg-password-confirm">Confirm Password *</label>
-              <input
-                id="reg-password-confirm"
-                name="password_confirm"
-                type="password"
-                className="form-control"
-                placeholder="••••••••"
-                value={formData.password_confirm}
-                onChange={handleChange}
-                required
-                disabled={submitting}
-              />
-              {fieldErrors.password_confirm && (
-                <div style={{ color: 'var(--color-error)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                  {fieldErrors.password_confirm.join(' ')}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', marginTop: '1rem' }} disabled={submitting}>
-            {submitting ? 'Creating Account...' : 'Create Account'}
-          </button>
-        </form>
-
-        <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.875rem', color: 'var(--color-text-muted)', paddingTop: '1.5rem', borderTop: '1px solid var(--color-border)' }}>
-          Already have an account? <Link to="/login" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>Sign In</Link>
-          <div style={{ marginTop: '0.875rem' }}>
-            <Link to="/" style={{ color: 'var(--color-text-tertiary)', fontSize: '0.8125rem', textDecoration: 'none' }}>← Back to Landing Page</Link>
-          </div>
+        {/* Footer Link */}
+        <div style={{ textAlign: 'center', borderTop: '1px solid #E6E1D9', paddingTop: '2rem' }}>
+          <p style={{ fontSize: '0.95rem', color: '#78716C', margin: '0 0 0.75rem 0' }}>
+            Already have an account?{' '}
+            <Link to="/login" style={{ color: '#2F2520', fontWeight: 700, textDecoration: 'none' }}>
+              Sign in
+            </Link>
+          </p>
+          <Link to="/" style={{ color: '#A8A29E', fontSize: '0.85rem', textDecoration: 'none' }}>
+            ← Back to Landing Page
+          </Link>
+        </div>
         </div>
       </div>
     </div>

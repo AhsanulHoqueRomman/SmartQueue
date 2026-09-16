@@ -81,6 +81,56 @@ class TestRegistration:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert 'password' in response.data
 
+    def test_manager_registration_atomic_organization(self, api_client):
+        url = reverse('accounts:register_manager')
+        payload = {
+            'email': 'newmanager@example.com',
+            'first_name': 'Manager',
+            'last_name': 'Boss',
+            'phone_number': '01811111111',
+            'password': 'ManagerPassword123!',
+            'password_confirm': 'ManagerPassword123!',
+            'organization_name': 'Apex Dental Care',
+            'address': '123 Main St',
+            'organization_phone': '01822222222'
+        }
+        response = api_client.post(url, payload, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        assert 'access' in response.data
+        assert 'organization' in response.data
+        assert response.data['organization']['name'] == 'Apex Dental Care'
+        assert response.data['user']['memberships'][0]['role'] == 'MANAGER'
+
+    def test_provider_registration_pending_approval(self, api_client):
+        # First create a manager and organization
+        mgr_url = reverse('accounts:register_manager')
+        mgr_payload = {
+            'email': 'prov_mgr@example.com',
+            'password': 'Password123!',
+            'password_confirm': 'Password123!',
+            'organization_name': 'Care Clinic'
+        }
+        mgr_res = api_client.post(mgr_url, mgr_payload, format='json')
+        org_id = mgr_res.data['organization']['id']
+
+        # Now register provider choosing this organization
+        prov_url = reverse('accounts:register_provider')
+        prov_payload = {
+            'email': 'newprovider@example.com',
+            'first_name': 'Dr. John',
+            'last_name': 'Doe',
+            'password': 'ProviderPassword123!',
+            'password_confirm': 'ProviderPassword123!',
+            'title': 'Senior Specialist',
+            'bio': 'Experienced practitioner',
+            'organization_id': org_id
+        }
+        response = api_client.post(prov_url, prov_payload, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['is_pending_approval'] is True
+        assert response.data['user']['memberships'][0]['is_active'] is False
+        assert response.data['user']['memberships'][0]['role'] == 'PROVIDER'
+
 
 @pytest.mark.django_db
 class TestLogin:

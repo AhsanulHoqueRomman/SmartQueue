@@ -66,6 +66,74 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return user
 
 
+class ManagerRegisterSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Manager registration + Organization creation in an atomic operation.
+    """
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        validators=[validate_password],
+        style={'input_type': 'password'}
+    )
+    password_confirm = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'}
+    )
+    organization_name = serializers.CharField(required=True, max_length=255)
+    organization_slug = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    organization_type = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    address = serializers.CharField(required=False, allow_blank=True)
+    organization_phone = serializers.CharField(required=False, allow_blank=True, max_length=30)
+    organization_email = serializers.EmailField(required=False, allow_blank=True)
+
+    class Meta:
+        model = User
+        fields = (
+            'email', 'first_name', 'last_name', 'phone_number', 'password', 'password_confirm',
+            'organization_name', 'organization_slug', 'organization_type', 'address',
+            'organization_phone', 'organization_email'
+        )
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError({"password_confirm": "Password fields do not match."})
+        return attrs
+
+
+class ProviderRegisterSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Provider registration + ProviderProfile creation + optional Org selection.
+    """
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        validators=[validate_password],
+        style={'input_type': 'password'}
+    )
+    password_confirm = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'}
+    )
+    title = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    bio = serializers.CharField(required=False, allow_blank=True)
+    organization_id = serializers.UUIDField(required=False, allow_null=True)
+
+    class Meta:
+        model = User
+        fields = (
+            'email', 'first_name', 'last_name', 'phone_number', 'password', 'password_confirm',
+            'title', 'bio', 'organization_id'
+        )
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError({"password_confirm": "Password fields do not match."})
+        return attrs
+
+
 class UserLoginSerializer(serializers.Serializer):
     """
     Serializer for user login and token generation.
