@@ -80,8 +80,29 @@ export const TenantProvider = ({ children }) => {
     return memberships.find((m) => String(m.organization_id) === String(selectedOrgId)) || null;
   }, [memberships, selectedOrgId]);
 
+  // Resolve effective role
+  const effectiveRole = useMemo(() => {
+    if (!user) return null;
+
+    // 1. System Admin takes precedence
+    if (user.is_staff || user.is_superuser) {
+      return 'ADMIN';
+    }
+
+    // 2. Organization-scoped role if organization is selected and user is a member
+    if (selectedOrg && selectedOrg.role) {
+      return selectedOrg.role; // 'MANAGER' | 'STAFF' | 'PROVIDER'
+    }
+
+    // 3. Fallback to Customer
+    return 'CUSTOMER';
+  }, [user, selectedOrg]);
+
   // Convenient currentOrg object with standard keys (id, name, slug, role)
   const currentOrg = useMemo(() => {
+    if (effectiveRole === 'ADMIN') {
+      return null;
+    }
     if (selectedOrg) {
       return {
         id: selectedOrg.organization_id,
@@ -112,25 +133,7 @@ export const TenantProvider = ({ children }) => {
       };
     }
     return null;
-  }, [selectedOrg, selectedOrgId, publicOrgs]);
-
-  // Resolve effective role
-  const effectiveRole = useMemo(() => {
-    if (!user) return null;
-
-    // 1. System Admin takes precedence
-    if (user.is_staff || user.is_superuser) {
-      return 'ADMIN';
-    }
-
-    // 2. Organization-scoped role if organization is selected and user is a member
-    if (selectedOrg && selectedOrg.role) {
-      return selectedOrg.role; // 'MANAGER' | 'STAFF' | 'PROVIDER'
-    }
-
-    // 3. Fallback to Customer
-    return 'CUSTOMER';
-  }, [user, selectedOrg]);
+  }, [effectiveRole, selectedOrg, selectedOrgId, publicOrgs]);
 
   const refreshTenant = useCallback(async () => {
     if (refreshUser) await refreshUser();

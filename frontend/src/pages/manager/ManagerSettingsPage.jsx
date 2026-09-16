@@ -3,6 +3,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import organizationService from '../../services/organizationService';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
+import { formatApiError } from '../../utils/errorUtils';
 
 const DOC_TYPE_LABELS = {
   BUSINESS_LICENSE: 'Business License',
@@ -80,7 +81,7 @@ export function ManagerSettingsPage() {
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
-    contact_email: '',
+    email: '',
     phone_number: '',
     address: '',
     is_active: true,
@@ -115,13 +116,13 @@ export function ManagerSettingsPage() {
       setFormData({
         name: data.name || '',
         slug: data.slug || '',
-        contact_email: data.contact_email || '',
+        email: data.email || data.contact_email || '',
         phone_number: data.phone_number || '',
         address: data.address || '',
         is_active: data.is_active ?? true,
       });
     } catch (err) {
-      setError('Failed to load organization settings or verification documents.');
+      setError(formatApiError(err, 'Failed to load organization settings or verification documents.'));
     } finally {
       setLoading(false);
     }
@@ -140,20 +141,20 @@ export function ManagerSettingsPage() {
     setError('');
 
     try {
-      const updated = await organizationService.updateOrganization(currentOrg.id, formData);
+      const payload = {
+        name: formData.name,
+        slug: formData.slug,
+        email: formData.email,
+        phone_number: formData.phone_number,
+        address: formData.address,
+        is_active: formData.is_active,
+      };
+      const updated = await organizationService.updateOrganization(currentOrg.id, payload);
       setOrgDetails(updated);
       setSuccessMsg('Organization profile updated successfully!');
       if (refreshOrganizations) refreshOrganizations();
     } catch (err) {
-      const respErr = err.response?.data;
-      if (respErr && typeof respErr === 'object') {
-        const msg = Object.entries(respErr)
-          .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(' ') : v}`)
-          .join(' | ');
-        setError(msg || 'Failed to update organization profile.');
-      } else {
-        setError('Failed to update organization profile.');
-      }
+      setError(formatApiError(err, 'Failed to update organization profile.'));
     } finally {
       setSaving(false);
     }
@@ -186,15 +187,7 @@ export function ManagerSettingsPage() {
       const docs = await organizationService.getDocuments(currentOrg.id);
       setDocuments(Array.isArray(docs) ? docs : docs.results || []);
     } catch (err) {
-      const respErr = err.response?.data;
-      if (respErr && typeof respErr === 'object') {
-        const msg = Object.entries(respErr)
-          .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(' ') : v}`)
-          .join(' | ');
-        setDocError(msg || 'Failed to upload document.');
-      } else {
-        setDocError('Failed to upload document.');
-      }
+      setDocError(formatApiError(err, 'Failed to upload document.'));
     } finally {
       setUploadingDoc(false);
     }
@@ -210,8 +203,7 @@ export function ManagerSettingsPage() {
       setSuccessMsg('Document deleted.');
       setDocuments(documents.filter((d) => d.id !== docId));
     } catch (err) {
-      const msg = err.response?.data?.error || 'Failed to delete document.';
-      setDocError(msg);
+      setDocError(formatApiError(err, 'Failed to delete document.'));
     } finally {
       setDeletingDocId(null);
     }
@@ -228,8 +220,7 @@ export function ManagerSettingsPage() {
       setSuccessMsg('Organization submitted for verification successfully!');
       if (refreshOrganizations) refreshOrganizations();
     } catch (err) {
-      const msg = err.response?.data?.error || 'Failed to submit verification request.';
-      setError(msg);
+      setError(formatApiError(err, 'Failed to submit verification request.'));
     } finally {
       setSubmittingVerification(false);
     }
@@ -250,7 +241,7 @@ export function ManagerSettingsPage() {
   // Check profile completion for verification submission requirement
   const isProfileComplete = Boolean(
     orgDetails?.name?.trim() &&
-    orgDetails?.contact_email?.trim() &&
+    (orgDetails?.email?.trim() || orgDetails?.contact_email?.trim()) &&
     orgDetails?.phone_number?.trim() &&
     orgDetails?.address?.trim()
   );
@@ -547,7 +538,7 @@ export function ManagerSettingsPage() {
                     <td style={{ padding: '0.65rem 0.85rem' }}>
                       {doc.file ? (
                         <a
-                          href={doc.file}
+                          href={doc.file.startsWith('/') ? `http://127.0.0.1:8000${doc.file}` : doc.file}
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{ color: '#5F7A70', fontWeight: 600, textDecoration: 'underline' }}
@@ -645,8 +636,8 @@ export function ManagerSettingsPage() {
               <input
                 type="email"
                 required
-                value={formData.contact_email}
-                onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="contact@clinic.com"
                 style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #E6E1D9', background: '#FAF8F3', fontSize: '0.95rem' }}
               />

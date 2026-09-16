@@ -81,13 +81,14 @@ class OrganizationListCreateView(APIView):
 class OrganizationDetailView(APIView):
     """
     GET: View details of a specific organization.
+    PATCH/PUT: Update organization profile details (Manager or System Admin only).
     Public/customer users only see operational organizations (is_active=True & APPROVED).
     Managers/admins may access non-operational organizations for management purposes.
     """
     def get_permissions(self):
         if self.request.method == 'GET':
             return [AllowAny()]
-        return [IsAuthenticated()]
+        return [IsAuthenticated(), IsOrganizationManager()]
 
     @extend_schema(
         responses={200: OrganizationSerializer, 404: OpenApiResponse(description="Organization not found")},
@@ -129,6 +130,28 @@ class OrganizationDetailView(APIView):
                 }
             
         return Response(data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        request=OrganizationSerializer,
+        responses={200: OrganizationSerializer, 400: OpenApiResponse(description="Validation Error"), 403: OpenApiResponse(description="Forbidden")},
+        summary="Update organization profile (Manager or Admin only)"
+    )
+    def patch(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id)
+        serializer = OrganizationSerializer(org, data=request.data, partial=True)
+        if serializer.is_valid():
+            new_slug = serializer.validated_data.get('slug')
+            if new_slug and new_slug != org.slug:
+                if Organization.objects.filter(slug=new_slug).exclude(id=org.id).exists():
+                    return Response({
+                        'slug': ['An organization with this URL slug already exists.']
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            updated_org = serializer.save()
+            return Response(OrganizationSerializer(updated_org).data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request, organization_id):
+        return self.patch(request, organization_id)
 
 
 
@@ -314,7 +337,7 @@ class AdminOrganizationVerificationQueueView(APIView):
     )
     def get(self, request):
         status_param = request.query_params.get('status') or request.query_params.get('verification_status')
-        orgs = Organization.objects.all()
+        orgs = Organization.objects.prefetch_related('documents').all()
         if status_param:
             orgs = orgs.filter(verification_status=status_param.upper())
 

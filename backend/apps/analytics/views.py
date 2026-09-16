@@ -1,8 +1,10 @@
 import csv
+from datetime import datetime
 
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -84,11 +86,45 @@ class AnalyticsSummaryView(APIView):
     permission_classes = [IsAuthenticated, CanViewAnalytics]
 
     @extend_schema(
-        responses={200: AnalyticsSummarySerializer, 403: OpenApiResponse(description='Manager or admin only'), 404: OpenApiResponse(description='Not Found')},
+        parameters=[
+            OpenApiParameter(name='start_date', type=str, location=OpenApiParameter.QUERY, required=False, description='Start date YYYY-MM-DD'),
+            OpenApiParameter(name='end_date', type=str, location=OpenApiParameter.QUERY, required=False, description='End date YYYY-MM-DD'),
+        ],
+        responses={
+            200: AnalyticsSummarySerializer,
+            400: OpenApiResponse(description='Validation Error'),
+            403: OpenApiResponse(description='Manager or admin only'),
+            404: OpenApiResponse(description='Not Found'),
+        },
         summary='Get organization appointment and queue analytics',
     )
     def get(self, request, organization_id):
         organization = get_object_or_404(Organization, id=organization_id, is_active=True)
-        return Response(AnalyticsSummarySerializer(
-            AnalyticsService.organization_summary(organization=organization)
-        ).data)
+
+        start_date_str = request.query_params.get('start_date')
+        end_date_str = request.query_params.get('end_date')
+
+        start_date = None
+        end_date = None
+
+        if start_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return Response({'detail': 'Invalid start_date format. Expected YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if end_date_str:
+            try:
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return Response({'detail': 'Invalid end_date format. Expected YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if start_date and end_date and start_date > end_date:
+            return Response({'detail': 'start_date cannot be after end_date.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        data = AnalyticsService.organization_summary(
+            organization=organization,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return Response(AnalyticsSummarySerializer(data).data)

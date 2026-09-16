@@ -72,8 +72,8 @@ export const managerService = {
   },
 
   // Analytics & Audit
-  async getAnalyticsSummary(orgId) {
-    const response = await apiClient.get(`/organizations/${orgId}/analytics/summary/`);
+  async getAnalyticsSummary(orgId, params = {}) {
+    const response = await apiClient.get(`/organizations/${orgId}/analytics/summary/`, { params });
     return response.data;
   },
 

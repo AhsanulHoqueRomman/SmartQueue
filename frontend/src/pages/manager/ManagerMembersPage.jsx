@@ -12,6 +12,7 @@ export function ManagerMembersPage() {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [feedback, setFeedback] = useState(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [addForm, setAddForm] = useState({
@@ -191,12 +192,17 @@ export function ManagerMembersPage() {
                 </tr>
               </thead>
               <tbody>
-                {members.map((m) => (
-                  <tr key={m.id}>
-                    <td>
-                      <div className="font-semibold">{m.user_email || `User #${m.user_id}`}</div>
-                      <div className="text-xs text-muted" style={{ marginTop: '0.15rem' }}>Membership #{m.id}</div>
-                    </td>
+                {members.map((m) => {
+                  const userEmail = m.user_email || m.user?.email;
+                  const userId = m.user_id || m.user?.id;
+                  const userName = m.user?.first_name ? `${m.user.first_name} ${m.user.last_name || ''}`.trim() : null;
+                  const displayName = userName ? `${userName} (${userEmail})` : (userEmail || `User #${userId}`);
+                  return (
+                    <tr key={m.id}>
+                      <td>
+                        <div className="font-semibold">{displayName}</div>
+                        <div className="text-xs text-muted" style={{ marginTop: '0.15rem' }}>Membership #{m.id}</div>
+                      </td>
                     <td>
                       <span className={`badge ${getRoleBadgeClass(m.role)}`}>{m.role}</span>
                     </td>
@@ -226,7 +232,8 @@ export function ManagerMembersPage() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                );
+              })}
               </tbody>
             </table>
           </div>

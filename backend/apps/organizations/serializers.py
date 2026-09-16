@@ -32,17 +32,32 @@ class OrganizationDocumentSerializer(serializers.ModelSerializer):
     """
     Serializer for OrganizationDocument verification documents.
     """
+    title = serializers.SerializerMethodField()
+    file = serializers.SerializerMethodField()
+
     class Meta:
         model = OrganizationDocument
         fields = (
-            'id', 'organization', 'document_type', 'file', 'original_filename',
+            'id', 'organization', 'document_type', 'title', 'file', 'original_filename',
             'uploaded_at', 'status', 'reviewed_by', 'reviewed_at', 'rejection_reason'
         )
         read_only_fields = ('id', 'organization', 'uploaded_at', 'status', 'reviewed_by', 'reviewed_at')
         extra_kwargs = {
             'original_filename': {'required': False, 'allow_blank': True},
-            'title': {'required': False, 'allow_blank': True},
         }
+
+    def get_title(self, obj):
+        return obj.original_filename or obj.get_document_type_display()
+
+    def get_file(self, obj):
+        if not obj.file:
+            return None
+        request = self.context.get('request') if isinstance(self.context, dict) else None
+        if request is not None:
+            return request.build_absolute_uri(obj.file.url)
+        url = obj.file.url
+        return f"http://127.0.0.1:8000{url}" if url.startswith('/') else url
+
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -55,6 +70,8 @@ class OrganizationSerializer(serializers.ModelSerializer):
     providers_count = serializers.SerializerMethodField()
     rating = serializers.SerializerMethodField()
     reviews_count = serializers.SerializerMethodField()
+    documents = serializers.SerializerMethodField()
+    documents_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
@@ -64,7 +81,8 @@ class OrganizationSerializer(serializers.ModelSerializer):
             'verification_submitted_at', 'verification_reviewed_at',
             'verification_rejection_reason', 'verification_suspension_reason',
             'created_at', 'updated_at',
-            'category', 'services_count', 'providers_count', 'rating', 'reviews_count'
+            'category', 'services_count', 'providers_count', 'rating', 'reviews_count',
+            'documents', 'documents_count'
         )
         read_only_fields = (
             'id', 'is_active', 'verification_status',
@@ -108,6 +126,18 @@ class OrganizationSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'reviews_count'):
             return obj.reviews_count
         return obj.reviews.count()
+
+    def get_documents_count(self, obj):
+        if hasattr(obj, 'documents_count'):
+            return obj.documents_count
+        return obj.documents.count()
+
+    def get_documents(self, obj):
+        docs = getattr(obj, 'prefetched_documents', None)
+        if docs is None:
+            docs = obj.documents.all()
+        ctx = self.context if isinstance(self.context, dict) else {}
+        return OrganizationDocumentSerializer(docs, many=True, context=ctx).data
 
 
 class AdminActionReasonSerializer(serializers.Serializer):

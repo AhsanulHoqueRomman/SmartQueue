@@ -194,7 +194,13 @@ export const AppShell = ({ children }) => {
             </nav>
           </div>
 
-          {currentOrg && (
+          {effectiveRole === 'ADMIN' ? (
+            <div className="card active-org-card" style={{ padding: '0.875rem', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', marginTop: '1.5rem' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>System Governance</div>
+              <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text-main)', marginTop: '0.2rem' }}>All System Tenants</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-error)', marginTop: '0.1rem', fontWeight: 600 }}>Scope: Global Admin</div>
+            </div>
+          ) : currentOrg && (
             <div className="card active-org-card" style={{ padding: '0.875rem', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', marginTop: '1.5rem' }}>
               <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Active Organization</div>
               <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text-main)', marginTop: '0.2rem' }}>{currentOrg.name}</div>

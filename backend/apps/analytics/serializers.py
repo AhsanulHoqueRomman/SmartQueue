@@ -1,6 +1,38 @@
 from rest_framework import serializers
 
 
+class PeriodSerializer(serializers.Serializer):
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+
+
+class KPISummarySerializer(serializers.Serializer):
+    total_appointments = serializers.IntegerField()
+    completed = serializers.IntegerField()
+    cancelled = serializers.IntegerField()
+    no_show = serializers.IntegerField()
+    completion_rate = serializers.FloatField()
+    check_in_rate = serializers.FloatField()
+    average_rating = serializers.FloatField()
+    total_reviews = serializers.IntegerField()
+
+
+class DailyTrendSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    total = serializers.IntegerField()
+    completed = serializers.IntegerField()
+    cancelled = serializers.IntegerField()
+    no_show = serializers.IntegerField()
+
+
+class QueueSummarySerializer(serializers.Serializer):
+    total_entries = serializers.IntegerField()
+    completed_entries = serializers.IntegerField()
+    skipped_entries = serializers.IntegerField()
+    average_wait_seconds = serializers.FloatField()
+    average_service_seconds = serializers.FloatField()
+
+
 class ProviderSummarySerializer(serializers.Serializer):
     provider_id = serializers.UUIDField()
     provider_name = serializers.CharField()
@@ -8,6 +40,7 @@ class ProviderSummarySerializer(serializers.Serializer):
     completed = serializers.IntegerField()
     cancelled = serializers.IntegerField()
     no_show = serializers.IntegerField()
+    average_rating = serializers.FloatField(required=False, default=0.0)
 
 
 class ServiceSummarySerializer(serializers.Serializer):
@@ -20,13 +53,16 @@ class ServiceSummarySerializer(serializers.Serializer):
 
 
 class AnalyticsSummarySerializer(serializers.Serializer):
-    total_appointments = serializers.IntegerField()
-    completed = serializers.IntegerField()
-    cancelled = serializers.IntegerField()
-    no_show = serializers.IntegerField()
-    queue_counts = serializers.DictField(child=serializers.IntegerField())
+    period = PeriodSerializer()
+    summary = KPISummarySerializer()
+    status_counts = serializers.DictField(child=serializers.IntegerField())
+    rating_distribution = serializers.DictField(child=serializers.IntegerField())
+    queue_summary = QueueSummarySerializer()
+    appointment_trend = DailyTrendSerializer(many=True)
     providers = ProviderSummarySerializer(many=True)
     services = ServiceSummarySerializer(many=True)
+    services_summary = ServiceSummarySerializer(many=True, required=False)
+    total_appointments = serializers.IntegerField(required=False)
 
 
 class ProviderMetricsSerializer(serializers.Serializer):

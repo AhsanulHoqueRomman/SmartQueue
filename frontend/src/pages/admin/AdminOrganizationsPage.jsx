@@ -212,12 +212,20 @@ export function AdminOrganizationsPage() {
     }
   };
 
-  const openReviewModal = (org) => {
+  const openReviewModal = async (org) => {
     setReviewOrg(org);
     setActionReason('');
     setShowRejectForm(false);
     setShowSuspendForm(false);
     setActionError('');
+
+    try {
+      const docs = await organizationService.getDocuments(org.id);
+      const docsList = Array.isArray(docs) ? docs : docs.results || [];
+      setReviewOrg((prev) => (prev && prev.id === org.id ? { ...prev, documents: docsList } : prev));
+    } catch (err) {
+      // Keep existing documents if fetch fails
+    }
   };
 
   return (
@@ -321,7 +329,7 @@ export function AdminOrganizationsPage() {
                         <div style={{ fontSize: '0.78rem', color: '#5F7A70', fontFamily: 'monospace', fontWeight: 400 }}>{org.slug}</div>
                       </td>
                       <td style={{ padding: '0.85rem 1.25rem', color: '#78716C', fontSize: '0.85rem' }}>
-                        <div>{org.contact_email || 'No email'}</div>
+                        <div>{org.email || org.contact_email || 'No email'}</div>
                         <div>{org.phone_number || 'No phone'}</div>
                       </td>
                       <td style={{ padding: '0.85rem 1.25rem' }}>
@@ -475,7 +483,7 @@ export function AdminOrganizationsPage() {
                 Facility Details & Contact Information
               </h4>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', fontSize: '0.9rem' }}>
-                <div><strong style={{ color: '#78716C' }}>Email:</strong> {reviewOrg.contact_email || '—'}</div>
+                <div><strong style={{ color: '#78716C' }}>Email:</strong> {reviewOrg.email || reviewOrg.contact_email || '—'}</div>
                 <div><strong style={{ color: '#78716C' }}>Phone:</strong> {reviewOrg.phone_number || '—'}</div>
                 <div><strong style={{ color: '#78716C' }}>URL Slug:</strong> {reviewOrg.slug}</div>
                 <div style={{ gridColumn: '1 / -1' }}><strong style={{ color: '#78716C' }}>Address:</strong> {reviewOrg.address || '—'}</div>
@@ -510,7 +518,12 @@ export function AdminOrganizationsPage() {
                           <td style={{ padding: '0.65rem 0.85rem', color: '#78716C' }}>{doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : '—'}</td>
                           <td style={{ padding: '0.65rem 0.85rem' }}>
                             {doc.file ? (
-                              <a href={doc.file} target="_blank" rel="noopener noreferrer" style={{ color: '#5F7A70', fontWeight: 600, textDecoration: 'underline' }}>
+                              <a
+                                href={doc.file.startsWith('/') ? `http://127.0.0.1:8000${doc.file}` : doc.file}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ color: '#5F7A70', fontWeight: 600, textDecoration: 'underline' }}
+                              >
                                 View Document ↗
                               </a>
                             ) : (

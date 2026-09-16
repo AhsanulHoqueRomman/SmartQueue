@@ -1,10 +1,12 @@
+from datetime import date, timedelta
 from django.db.models import Avg, Count, ExpressionWrapper, F, Max, Min, Q
 from django.db.models.fields import DurationField
-from django.db.models.functions import ExtractHour
+from django.db.models.functions import ExtractHour, TruncDate
 from django.utils import timezone
 
 from apps.appointments.models import Appointment
 from apps.queue.models import QueueEntry
+from apps.feedback.models import Review
 
 
 class AnalyticsService:
@@ -70,28 +72,154 @@ class AnalyticsService:
         }
 
     @staticmethod
-    def organization_summary(*, organization):
-        appointments = Appointment.objects.filter(organization=organization)
+    def organization_summary(*, organization, start_date=None, end_date=None):
+        today = timezone.localdate()
+        if end_date is None:
+            end_date = today
+        if start_date is None:
+            start_date = end_date - timedelta(days=30)
+
+        # Scoped appointments within date range
+        appointments = Appointment.objects.filter(
+            organization=organization,
+            start_datetime__date__range=(start_date, end_date)
+        )
+
         status_counts = appointments.aggregate(
+            total=Count('id'),
+            completed=Count('id', filter=Q(status=Appointment.Status.COMPLETED)),
+            confirmed=Count('id', filter=Q(status=Appointment.Status.CONFIRMED)),
+            checked_in=Count('id', filter=Q(status=Appointment.Status.CHECKED_IN)),
+            in_progress=Count('id', filter=Q(status=Appointment.Status.IN_PROGRESS)),
+            cancelled=Count('id', filter=Q(status=Appointment.Status.CANCELLED)),
+            no_show=Count('id', filter=Q(status=Appointment.Status.NO_SHOW)),
+        )
+
+        total_appts = status_counts['total'] or 0
+        completed_appts = status_counts['completed'] or 0
+        cancelled_appts = status_counts['cancelled'] or 0
+        no_show_appts = status_counts['no_show'] or 0
+        checked_in_appts = (status_counts['checked_in'] or 0) + (status_counts['in_progress'] or 0)
+
+        completion_rate = round((completed_appts / total_appts * 100), 1) if total_appts > 0 else 0.0
+        # Check-in rate includes checked-in, in_progress, completed, and no_show (all checked in patients)
+        checked_in_total = completed_appts + checked_in_appts + no_show_appts
+        check_in_rate = round((checked_in_total / total_appts * 100), 1) if total_appts > 0 else 0.0
+
+        # Reviews & Ratings
+        reviews = Review.objects.filter(
+            organization=organization,
+            created_at__date__range=(start_date, end_date)
+        )
+        avg_rating_val = reviews.aggregate(r=Avg('rating'))['r']
+        average_rating = round(avg_rating_val, 1) if avg_rating_val is not None else 0.0
+        total_reviews = reviews.count()
+
+        rating_dist_counts = reviews.aggregate(
+            star_5=Count('id', filter=Q(rating=5)),
+            star_4=Count('id', filter=Q(rating=4)),
+            star_3=Count('id', filter=Q(rating=3)),
+            star_2=Count('id', filter=Q(rating=2)),
+            star_1=Count('id', filter=Q(rating=1)),
+        )
+        rating_distribution = {
+            'star_5': rating_dist_counts['star_5'] or 0,
+            'star_4': rating_dist_counts['star_4'] or 0,
+            'star_3': rating_dist_counts['star_3'] or 0,
+            'star_2': rating_dist_counts['star_2'] or 0,
+            'star_1': rating_dist_counts['star_1'] or 0,
+        }
+
+        # Queue Entries Scoped Metrics
+        queue_qs = QueueEntry.objects.filter(
+            organization=organization,
+            queue_date__range=(start_date, end_date)
+        )
+
+        wait_expr = ExpressionWrapper(F('called_at') - F('created_at'), output_field=DurationField())
+        service_expr = ExpressionWrapper(F('completed_at') - F('started_at'), output_field=DurationField())
+
+        queue_aggs = queue_qs.aggregate(
+            total=Count('id'),
+            completed=Count('id', filter=Q(status=QueueEntry.Status.COMPLETED)),
+            skipped=Count('id', filter=Q(status=QueueEntry.Status.SKIPPED)),
+            avg_wait=Avg(wait_expr, filter=Q(called_at__isnull=False)),
+            avg_service=Avg(service_expr, filter=Q(completed_at__isnull=False, started_at__isnull=False)),
+        )
+
+        avg_wait_sec = queue_aggs['avg_wait'].total_seconds() if queue_aggs['avg_wait'] else 0.0
+        avg_service_sec = queue_aggs['avg_service'].total_seconds() if queue_aggs['avg_service'] else 0.0
+
+        queue_summary = {
+            'total_entries': queue_aggs['total'] or 0,
+            'completed_entries': queue_aggs['completed'] or 0,
+            'skipped_entries': queue_aggs['skipped'] or 0,
+            'average_wait_seconds': round(avg_wait_sec, 1),
+            'average_service_seconds': round(avg_service_sec, 1),
+        }
+
+        # Time-Series Appointment Trend
+        daily_appts = appointments.annotate(day=TruncDate('start_datetime')).values('day').annotate(
             total=Count('id'),
             completed=Count('id', filter=Q(status=Appointment.Status.COMPLETED)),
             cancelled=Count('id', filter=Q(status=Appointment.Status.CANCELLED)),
             no_show=Count('id', filter=Q(status=Appointment.Status.NO_SHOW)),
         )
-        queue_counts = dict(
-            QueueEntry.objects.filter(organization=organization)
-            .values_list('status')
-            .annotate(count=Count('id'))
-        )
+
+        daily_map = {row['day']: row for row in daily_appts}
+
+        trend = []
+        curr_date = start_date
+        while curr_date <= end_date:
+            row = daily_map.get(curr_date)
+            trend.append({
+                'date': curr_date.isoformat(),
+                'total': row['total'] if row else 0,
+                'completed': row['completed'] if row else 0,
+                'cancelled': row['cancelled'] if row else 0,
+                'no_show': row['no_show'] if row else 0,
+            })
+            curr_date += timedelta(days=1)
+
+        # Provider Operational Summary
         provider_rows = appointments.values(
-            'provider_id', 'provider__membership__user__first_name',
-            'provider__membership__user__last_name', 'provider__membership__user__email',
+            'provider_id',
+            'provider__membership__user__first_name',
+            'provider__membership__user__last_name',
+            'provider__membership__user__email',
         ).annotate(
             total_appointments=Count('id'),
             completed=Count('id', filter=Q(status=Appointment.Status.COMPLETED)),
             cancelled=Count('id', filter=Q(status=Appointment.Status.CANCELLED)),
             no_show=Count('id', filter=Q(status=Appointment.Status.NO_SHOW)),
-        ).order_by('provider_id')
+        ).order_by('-total_appointments')
+
+        # Map provider reviews
+        prov_ratings = dict(
+            reviews.values('provider_id').annotate(avg_r=Avg('rating')).values_list('provider_id', 'avg_r')
+        )
+
+        providers = []
+        for row in provider_rows:
+            p_id = row['provider_id']
+            name = ' '.join(filter(None, [
+                row['provider__membership__user__first_name'],
+                row['provider__membership__user__last_name'],
+            ])) or row['provider__membership__user__email']
+
+            p_avg_rating = round(prov_ratings.get(p_id), 1) if prov_ratings.get(p_id) is not None else 0.0
+
+            providers.append({
+                'provider_id': p_id,
+                'provider_name': name,
+                'total_appointments': row['total_appointments'],
+                'completed': row['completed'],
+                'cancelled': row['cancelled'],
+                'no_show': row['no_show'],
+                'average_rating': p_avg_rating,
+            })
+
+        # Service Utilization Summary
         service_rows = appointments.values(
             'service_id', 'service__name',
         ).annotate(
@@ -99,32 +227,48 @@ class AnalyticsService:
             completed=Count('id', filter=Q(status=Appointment.Status.COMPLETED)),
             cancelled=Count('id', filter=Q(status=Appointment.Status.CANCELLED)),
             no_show=Count('id', filter=Q(status=Appointment.Status.NO_SHOW)),
-        ).order_by('service__name')
+        ).order_by('-total_appointments')
 
-        providers = []
-        for row in provider_rows:
-            name = ' '.join(filter(None, [
-                row['provider__membership__user__first_name'],
-                row['provider__membership__user__last_name'],
-            ])) or row['provider__membership__user__email']
-            providers.append({
-                'provider_id': row['provider_id'], 'provider_name': name,
-                'total_appointments': row['total_appointments'],
-                'completed': row['completed'], 'cancelled': row['cancelled'],
-                'no_show': row['no_show'],
-            })
         services = [{
-            'service_id': row['service_id'], 'service_name': row['service__name'],
+            'service_id': row['service_id'],
+            'service_name': row['service__name'],
             'total_appointments': row['total_appointments'],
-            'completed': row['completed'], 'cancelled': row['cancelled'],
+            'completed': row['completed'],
+            'cancelled': row['cancelled'],
             'no_show': row['no_show'],
         } for row in service_rows]
+
+        status_counts_dict = {
+            'TOTAL': total_appts,
+            'COMPLETED': completed_appts,
+            'CONFIRMED': status_counts['confirmed'] or 0,
+            'CHECKED_IN': status_counts['checked_in'] or 0,
+            'IN_PROGRESS': status_counts['in_progress'] or 0,
+            'CANCELLED': cancelled_appts,
+            'NO_SHOW': no_show_appts,
+        }
+
         return {
-            'total_appointments': status_counts['total'],
-            'completed': status_counts['completed'],
-            'cancelled': status_counts['cancelled'],
-            'no_show': status_counts['no_show'],
-            'queue_counts': queue_counts,
+            'period': {
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat(),
+            },
+            'summary': {
+                'total_appointments': total_appts,
+                'completed': completed_appts,
+                'cancelled': cancelled_appts,
+                'no_show': no_show_appts,
+                'completion_rate': completion_rate,
+                'check_in_rate': check_in_rate,
+                'average_rating': average_rating,
+                'total_reviews': total_reviews,
+            },
+            'status_counts': status_counts_dict,
+            'rating_distribution': rating_distribution,
+            'queue_summary': queue_summary,
+            'appointment_trend': trend,
             'providers': providers,
             'services': services,
+            'services_summary': services,  # Backward compatibility field
+            'total_appointments': total_appts,  # Backward compatibility top-level key
         }

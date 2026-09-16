@@ -12,6 +12,7 @@ export function ManagerServicesPage() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [feedback, setFeedback] = useState(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingService, setEditingService] = useState(null);

@@ -43,6 +43,8 @@ def apply_list_query(
 
 def list_response(queryset, serializer_class, request, *, context=None):
     """Return legacy arrays by default and an envelope when pagination is requested."""
+    if context is None:
+        context = {'request': request}
     page = request.query_params.get('page')
     page_size = request.query_params.get('page_size')
     if page is None and page_size is None:

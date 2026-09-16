@@ -77,6 +77,21 @@ class TestOrganizationBootstrapAndDiscovery:
         assert response.status_code == status.HTTP_200_OK
         assert response.data['name'] == 'Public Org'
 
+    def test_manager_can_patch_organization(self, api_client, create_user):
+        manager = create_user(email="orgmanager@example.com")
+        org = Organization.objects.create(name='Original Org', slug='original-org', is_active=True)
+        OrganizationMembership.objects.create(user=manager, organization=org, role=OrganizationMembership.Role.MANAGER)
+
+        login_res = api_client.post(reverse('accounts:login'), {'email': 'orgmanager@example.com', 'password': 'Password123!'}, format='json')
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {login_res.data['access']}")
+
+        url = reverse('organizations:organization_detail', kwargs={'organization_id': org.id})
+        payload = {'name': 'Updated Org Name', 'phone_number': '+8801999999999'}
+        res = api_client.patch(url, payload, format='json')
+        assert res.status_code == status.HTTP_200_OK
+        assert res.data['name'] == 'Updated Org Name'
+        assert res.data['phone_number'] == '+8801999999999'
+
 
 @pytest.mark.django_db
 class TestOrganizationMemberManagement:
