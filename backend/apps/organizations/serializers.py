@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Organization, OrganizationMembership
+from .models import Organization, OrganizationMembership, OrganizationDocument
 
 User = get_user_model()
 
@@ -28,6 +28,19 @@ class OrganizationMembershipSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'created_at', 'updated_at')
 
 
+class OrganizationDocumentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for OrganizationDocument verification documents.
+    """
+    class Meta:
+        model = OrganizationDocument
+        fields = (
+            'id', 'organization', 'document_type', 'file', 'original_filename',
+            'uploaded_at', 'status', 'reviewed_by', 'reviewed_at', 'rejection_reason'
+        )
+        read_only_fields = ('id', 'uploaded_at', 'status', 'reviewed_by', 'reviewed_at')
+
+
 class OrganizationSerializer(serializers.ModelSerializer):
     """
     Serializer for public Organization information.
@@ -42,10 +55,10 @@ class OrganizationSerializer(serializers.ModelSerializer):
         model = Organization
         fields = (
             'id', 'name', 'slug', 'address', 'phone_number',
-            'email', 'is_active', 'created_at', 'updated_at',
+            'email', 'is_active', 'verification_status', 'created_at', 'updated_at',
             'category', 'services_count', 'providers_count', 'rating', 'reviews_count'
         )
-        read_only_fields = ('id', 'is_active', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'is_active', 'verification_status', 'created_at', 'updated_at')
 
     def get_category(self, obj):
         name_lower = obj.name.lower()

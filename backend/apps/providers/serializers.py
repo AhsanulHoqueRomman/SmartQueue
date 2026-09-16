@@ -1,27 +1,37 @@
 from rest_framework import serializers
 from apps.organizations.models import OrganizationMembership
-from .models import ProviderProfile, ProviderService, WeeklySchedule, ScheduleBreak, ProviderLeave
+from .models import ProviderProfile, ProviderDocument, ProviderService, WeeklySchedule, ScheduleBreak, ProviderLeave
 
 
-# ---------------------------------------------------------------------------
-# ProviderProfile
-# ---------------------------------------------------------------------------
+class ProviderDocumentSerializer(serializers.ModelSerializer):
+    """Serializer for ProviderDocument verification documents."""
+    class Meta:
+        model = ProviderDocument
+        fields = [
+            'id', 'provider_profile', 'document_type', 'file', 'original_filename',
+            'uploaded_at', 'status', 'reviewed_by', 'reviewed_at', 'rejection_reason',
+        ]
+        read_only_fields = ['id', 'uploaded_at', 'status', 'reviewed_by', 'reviewed_at']
+
 
 class ProviderProfileSerializer(serializers.ModelSerializer):
-    """Read serializer — exposes derived user/organization info."""
+    """Read serializer — exposes derived user/organization info, application status, and operational state."""
     user_email = serializers.EmailField(source='membership.user.email', read_only=True)
     user_id = serializers.IntegerField(source='membership.user.id', read_only=True)
     organization_id = serializers.UUIDField(source='membership.organization.id', read_only=True)
     membership_id = serializers.IntegerField(source='membership.id', read_only=True)
+    is_operationally_active = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = ProviderProfile
         fields = [
             'id', 'membership_id', 'user_id', 'user_email',
             'organization_id', 'bio', 'title', 'is_active',
+            'application_status', 'is_operationally_active',
             'created_at', 'updated_at',
         ]
         read_only_fields = fields
+
 
 
 class ProviderProfileCreateSerializer(serializers.Serializer):

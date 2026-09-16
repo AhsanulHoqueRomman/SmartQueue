@@ -4,12 +4,22 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
+from apps.organizations.validators import validate_document_file
+from django.conf import settings
+
+
 class ProviderProfile(models.Model):
     """
     Represents a Provider's profile within an Organization.
     Linked 1-to-1 with an OrganizationMembership where role='PROVIDER'.
     organization and user are derived through membership (no redundant FKs).
     """
+    class ApplicationStatus(models.TextChoices):
+        INCOMPLETE = 'INCOMPLETE', _('Incomplete')
+        PENDING_REVIEW = 'PENDING_REVIEW', _('Pending Review')
+        APPROVED = 'APPROVED', _('Approved')
+        REJECTED = 'REJECTED', _('Rejected')
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     membership = models.OneToOneField(
         'organizations.OrganizationMembership',
@@ -18,6 +28,12 @@ class ProviderProfile(models.Model):
     )
     bio = models.TextField(_('bio'), blank=True)
     title = models.CharField(_('title'), max_length=100, blank=True)
+    application_status = models.CharField(
+        _('application status'),
+        max_length=20,
+        choices=ApplicationStatus.choices,
+        default=ApplicationStatus.INCOMPLETE
+    )
     is_active = models.BooleanField(_('active'), default=True)
     created_at = models.DateTimeField(_('created at'), auto_now_add=True)
     updated_at = models.DateTimeField(_('updated at'), auto_now=True)
@@ -61,6 +77,83 @@ class ProviderProfile(models.Model):
     def user(self):
         """Derived; never stored redundantly."""
         return self.membership.user
+
+    @property
+    def is_operationally_active(self):
+        """
+        Dynamically derives operational status.
+        True ONLY when:
+        1. ProviderProfile.application_status == APPROVED
+        2. OrganizationMembership.is_active is True
+        3. Organization.is_active is True
+        4. Organization.verification_status == APPROVED
+        """
+        from apps.organizations.models import Organization
+        return (
+            self.application_status == ProviderProfile.ApplicationStatus.APPROVED and
+            self.membership.is_active is True and
+            self.membership.organization.is_active is True and
+            self.membership.organization.verification_status == Organization.VerificationStatus.APPROVED
+        )
+
+
+class ProviderDocument(models.Model):
+    """
+    Verification documents uploaded by a Provider for Organization Manager review.
+    """
+    class DocumentType(models.TextChoices):
+        GOVT_ID = 'GOVT_ID', _('Government Issued ID')
+        PROFESSIONAL_LICENSE = 'PROFESSIONAL_LICENSE', _('Professional License')
+        CERTIFICATE = 'CERTIFICATE', _('Degree / Certificate')
+        OTHER = 'OTHER', _('Other Supporting Document')
+
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', _('Pending Review')
+        APPROVED = 'APPROVED', _('Approved')
+        REJECTED = 'REJECTED', _('Rejected')
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    provider_profile = models.ForeignKey(
+        ProviderProfile,
+        on_delete=models.CASCADE,
+        related_name='documents'
+    )
+    document_type = models.CharField(
+        max_length=40,
+        choices=DocumentType.choices
+    )
+    file = models.FileField(
+        upload_to='provider_docs/%Y/%m/',
+        validators=[validate_document_file]
+    )
+    original_filename = models.CharField(max_length=255)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='reviewed_provider_documents'
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = _('provider document')
+        verbose_name_plural = _('provider documents')
+        ordering = ['-uploaded_at']
+        indexes = [
+            models.Index(fields=['provider_profile', 'status'], name='prov_doc_profile_status_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.provider_profile.user.email} — {self.get_document_type_display()} ({self.status})"
+
 
 
 class ProviderService(models.Model):
