@@ -6,7 +6,6 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
@@ -14,6 +13,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from apps.accounts.models import User
 from apps.appointments.models import Appointment
 from apps.appointments.services import (
     AppointmentService,
@@ -30,7 +30,6 @@ from apps.providers.models import (
 )
 from apps.services.models import Service
 
-User = get_user_model()
 TZ = ZoneInfo(settings.TIME_ZONE)
 
 
@@ -102,7 +101,8 @@ def booking_setup(create_user):
     )
 
     provider = ProviderProfile.objects.create(
-        membership=prov_mem, bio='Expert', title='Dr.', is_active=True
+        membership=prov_mem, bio='Expert', title='Dr.', is_active=True,
+        application_status=ProviderProfile.ApplicationStatus.APPROVED
     )
     service = Service.objects.create(
         organization=org,
@@ -925,6 +925,8 @@ class TestConcurrencySafeBooking:
         True multithreaded races are environment-dependent; this asserts the
         production locking query is present without weakening the lock.
         """
+        if not connection.features.has_select_for_update:
+            pytest.skip("select_for_update is not supported on this database engine")
         s = booking_setup
         start = _aware(s['work_date'], time(9, 0))
         with CaptureQueriesContext(connection) as ctx:

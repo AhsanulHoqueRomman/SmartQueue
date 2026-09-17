@@ -1,11 +1,9 @@
 import pytest
 from django.urls import reverse
-from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
+from apps.accounts.models import User
 from apps.organizations.models import Organization, OrganizationMembership
-
-User = get_user_model()
 
 
 @pytest.fixture
@@ -60,7 +58,10 @@ class TestOrganizationBootstrapAndDiscovery:
         assert membership.role == OrganizationMembership.Role.MANAGER
 
     def test_active_organizations_discovery(self, auth_client):
-        org1 = Organization.objects.create(name='Active Org', slug='active-org', is_active=True)
+        org1 = Organization.objects.create(
+            name='Active Org', slug='active-org', is_active=True,
+            verification_status=Organization.VerificationStatus.APPROVED
+        )
         org2 = Organization.objects.create(name='Inactive Org', slug='inactive-org', is_active=False)
 
         url = reverse('organizations:organization_list_create')
@@ -71,7 +72,10 @@ class TestOrganizationBootstrapAndDiscovery:
         assert 'inactive-org' not in slugs
 
     def test_organization_detail_retrieval(self, auth_client):
-        org = Organization.objects.create(name='Public Org', slug='public-org', is_active=True)
+        org = Organization.objects.create(
+            name='Public Org', slug='public-org', is_active=True,
+            verification_status=Organization.VerificationStatus.APPROVED
+        )
         url = reverse('organizations:organization_detail', kwargs={'organization_id': org.id})
         response = auth_client.get(url)
         assert response.status_code == status.HTTP_200_OK

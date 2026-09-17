@@ -3,12 +3,12 @@ from zoneinfo import ZoneInfo
 import importlib
 import pytest
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from apps.accounts.models import User
 from apps.appointments.models import Appointment
 from apps.audit.models import AuditLog
 from apps.organizations.models import Organization, OrganizationMembership
@@ -16,7 +16,6 @@ from apps.providers.models import ProviderProfile
 from apps.queue.models import QueueEntry
 from apps.services.models import Service
 
-User = get_user_model()
 TZ = ZoneInfo(settings.TIME_ZONE)
 
 

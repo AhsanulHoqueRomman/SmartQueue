@@ -38,7 +38,10 @@ def setup_org(create_user):
     manager = create_user(email='manager@example.com')
     provider_user = create_user(email='provider@example.com')
     staff_user = create_user(email='staff@example.com')
-    org = Organization.objects.create(name='Test Clinic', slug='test-clinic')
+    org = Organization.objects.create(
+        name='Test Clinic', slug='test-clinic',
+        verification_status=Organization.VerificationStatus.APPROVED
+    )
     mgr_mem = OrganizationMembership.objects.create(user=manager, organization=org, role=OrganizationMembership.Role.MANAGER)
     prov_mem = OrganizationMembership.objects.create(user=provider_user, organization=org, role=OrganizationMembership.Role.PROVIDER)
     OrganizationMembership.objects.create(user=staff_user, organization=org, role=OrganizationMembership.Role.STAFF)
@@ -56,7 +59,10 @@ def manager_client(api_client, setup_org):
 @pytest.fixture
 def provider_profile(setup_org):
     org, manager, provider_user, staff_user, prov_mem = setup_org
-    return ProviderProfile.objects.create(membership=prov_mem, bio='Expert provider', title='Dr.')
+    return ProviderProfile.objects.create(
+        membership=prov_mem, bio='Expert provider', title='Dr.',
+        application_status=ProviderProfile.ApplicationStatus.APPROVED
+    )
 
 
 @pytest.fixture

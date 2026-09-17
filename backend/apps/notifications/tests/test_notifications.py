@@ -1,13 +1,11 @@
 import uuid
-from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.accounts.models import User
 from apps.organizations.models import Organization, OrganizationMembership
 from apps.notifications.models import Notification
 from apps.notifications.services import NotificationService
-
-User = get_user_model()
 
 
 class NotificationServiceAndApiTests(APITestCase):

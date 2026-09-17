@@ -1,12 +1,11 @@
 import pytest
 from django.urls import reverse
-from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
+
+from apps.accounts.models import User
 from apps.organizations.models import Organization, OrganizationMembership
 from apps.services.models import Service
-
-User = get_user_model()
 
 
 # ---------------------------------------------------------------------------
@@ -35,7 +34,10 @@ def _login(api_client, email, password="Password123!"):
 @pytest.fixture
 def org_with_manager(create_user):
     manager = create_user(email='manager@example.com')
-    org = Organization.objects.create(name='Test Clinic', slug='test-clinic')
+    org = Organization.objects.create(
+        name='Test Clinic', slug='test-clinic',
+        verification_status=Organization.VerificationStatus.APPROVED
+    )
     OrganizationMembership.objects.create(user=manager, organization=org, role=OrganizationMembership.Role.MANAGER)
     return org, manager
 

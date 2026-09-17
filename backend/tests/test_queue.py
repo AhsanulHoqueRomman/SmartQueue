@@ -3,12 +3,12 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from apps.accounts.models import User
 from apps.appointments.models import Appointment
 from apps.organizations.models import Organization, OrganizationMembership
 from apps.providers.models import ProviderProfile
@@ -16,7 +16,6 @@ from apps.services.models import Service
 from apps.queue.models import QueueEntry
 from apps.queue.services import QueueService
 
-User = get_user_model()
 TZ = ZoneInfo(settings.TIME_ZONE)
 
 
@@ -76,7 +75,10 @@ class TestQueueService:
         )
         other_user = User.objects.create_user(email='other-provider@queue.test')
         other_membership = OrganizationMembership.objects.create(user=other_user, organization=s['org'], role='PROVIDER')
-        other_provider = ProviderProfile.objects.create(membership=other_membership)
+        other_provider = ProviderProfile.objects.create(
+            membership=other_membership,
+            application_status=ProviderProfile.ApplicationStatus.APPROVED
+        )
         third = QueueService.check_in_appointment(
             appointment=_appointment(s, customer=User.objects.create_user(email='third@queue.test'), provider=other_provider)
         )
