@@ -86,7 +86,11 @@ def booking_setup(create_user):
     customer = create_user(email='customer@example.com')
     customer2 = create_user(email='customer2@example.com')
 
-    org = Organization.objects.create(name='Test Clinic', slug='test-clinic')
+    org = Organization.objects.create(
+        name='Test Clinic',
+        slug='test-clinic',
+        verification_status=Organization.VerificationStatus.APPROVED
+    )
     OrganizationMembership.objects.create(
         user=manager, organization=org, role=OrganizationMembership.Role.MANAGER
     )

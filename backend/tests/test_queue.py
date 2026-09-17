@@ -25,10 +25,17 @@ def queue_setup(db):
     manager = User.objects.create_user(email='manager@queue.test', password='Password123!')
     provider_user = User.objects.create_user(email='provider@queue.test', password='Password123!')
     customer = User.objects.create_user(email='customer@queue.test', password='Password123!')
-    org = Organization.objects.create(name='Queue Clinic', slug='queue-clinic')
+    org = Organization.objects.create(
+        name='Queue Clinic',
+        slug='queue-clinic',
+        verification_status=Organization.VerificationStatus.APPROVED
+    )
     OrganizationMembership.objects.create(user=manager, organization=org, role='MANAGER')
     membership = OrganizationMembership.objects.create(user=provider_user, organization=org, role='PROVIDER')
-    provider = ProviderProfile.objects.create(membership=membership)
+    provider = ProviderProfile.objects.create(
+        membership=membership,
+        application_status=ProviderProfile.ApplicationStatus.APPROVED
+    )
     service = Service.objects.create(organization=org, name='Consult', duration_minutes=30, price='10.00')
     return locals()
 

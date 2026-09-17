@@ -82,17 +82,24 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
-# Database Configuration (PostgreSQL)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DATABASE_NAME', 'smartqueue_db'),
-        'USER': os.getenv('DATABASE_USER', 'postgres'),
-        'PASSWORD': os.getenv('DATABASE_PASSWORD', 'postgres'),
-        'HOST': os.getenv('DATABASE_HOST', '127.0.0.1'),
-        'PORT': os.getenv('DATABASE_PORT', '5432'),
+if os.getenv('USE_SQLITE', 'false').lower() in ('true', '1') or 'pytest' in sys.modules or 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': os.getenv('DATABASE_ENGINE', 'django.db.backends.postgresql'),
+            'NAME': os.getenv('DATABASE_NAME', 'smartqueue_db'),
+            'USER': os.getenv('DATABASE_USER', 'postgres'),
+            'PASSWORD': os.getenv('DATABASE_PASSWORD', 'postgres'),
+            'HOST': os.getenv('DATABASE_HOST', '127.0.0.1'),
+            'PORT': os.getenv('DATABASE_PORT', '5432'),
+        }
+    }
 
 # Password Validation
 AUTH_PASSWORD_VALIDATORS = [

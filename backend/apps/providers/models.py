@@ -89,16 +89,9 @@ class ProviderProfile(models.Model):
 
     @property
     def is_operationally_active(self):
-        """
-        Dynamically derives operational status.
-        True ONLY when:
-        1. ProviderProfile.application_status == APPROVED
-        2. OrganizationMembership.is_active is True
-        3. Organization.is_active is True
-        4. Organization.verification_status == APPROVED
-        """
         from apps.organizations.models import Organization
         return (
+            self.is_active is True and
             self.application_status == ProviderProfile.ApplicationStatus.APPROVED and
             self.membership.is_active is True and
             self.membership.organization.is_active is True and

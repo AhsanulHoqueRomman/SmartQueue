@@ -28,11 +28,23 @@ def m7_setup(db):
     provider_user = User.objects.create_user(email='m7-provider@example.com', password='Password123!')
     customer = User.objects.create_user(email='m7-customer@example.com', password='Password123!')
     outsider = User.objects.create_user(email='m7-outsider@example.com', password='Password123!')
-    org = Organization.objects.create(name='M7 Clinic', slug='m7-clinic')
-    other_org = Organization.objects.create(name='Other M7 Clinic', slug='other-m7-clinic')
+    org = Organization.objects.create(
+        name='M7 Clinic',
+        slug='m7-clinic',
+        verification_status=Organization.VerificationStatus.APPROVED
+    )
+    other_org = Organization.objects.create(
+        name='Other M7 Clinic',
+        slug='other-m7-clinic',
+        verification_status=Organization.VerificationStatus.APPROVED
+    )
     OrganizationMembership.objects.create(user=manager, organization=org, role='MANAGER')
     membership = OrganizationMembership.objects.create(user=provider_user, organization=org, role='PROVIDER')
-    provider = ProviderProfile.objects.create(membership=membership, title='Dr Searchable')
+    provider = ProviderProfile.objects.create(
+        membership=membership,
+        title='Dr Searchable',
+        application_status=ProviderProfile.ApplicationStatus.APPROVED
+    )
     service = Service.objects.create(organization=org, name='M7 Consultation', duration_minutes=30, price='20.00')
     other_service = Service.objects.create(organization=org, name='M7 Followup', duration_minutes=15, price='10.00')
     base = timezone.make_aware(datetime(2030, 1, 7, 9, 0), timezone=TZ)
