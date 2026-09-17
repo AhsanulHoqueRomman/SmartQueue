@@ -74,16 +74,29 @@ class AnalyticsService:
     @staticmethod
     def organization_summary(*, organization, start_date=None, end_date=None):
         today = timezone.localdate()
-        if end_date is None:
-            end_date = today
-        if start_date is None:
-            start_date = end_date - timedelta(days=30)
+        appt_filter = Q(organization=organization)
+        review_filter = Q(organization=organization)
+        queue_filter = Q(organization=organization)
+
+        if start_date is not None or end_date is not None:
+            if end_date is None:
+                end_date = today
+            if start_date is None:
+                start_date = end_date - timedelta(days=30)
+            appt_filter &= Q(start_datetime__date__range=(start_date, end_date))
+            review_filter &= Q(created_at__date__range=(start_date, end_date))
+            queue_filter &= Q(queue_date__range=(start_date, end_date))
 
         # Scoped appointments within date range
-        appointments = Appointment.objects.filter(
-            organization=organization,
-            start_datetime__date__range=(start_date, end_date)
-        )
+        appointments = Appointment.objects.filter(appt_filter)
+
+        if start_date is None or end_date is None:
+            dates = appointments.aggregate(min_d=Min('start_datetime__date'), max_d=Max('start_datetime__date'))
+            effective_end = end_date or dates['max_d'] or today
+            effective_start = start_date or dates['min_d'] or (effective_end - timedelta(days=30))
+        else:
+            effective_start = start_date
+            effective_end = end_date
 
         status_counts = appointments.aggregate(
             total=Count('id'),
@@ -107,10 +120,7 @@ class AnalyticsService:
         check_in_rate = round((checked_in_total / total_appts * 100), 1) if total_appts > 0 else 0.0
 
         # Reviews & Ratings
-        reviews = Review.objects.filter(
-            organization=organization,
-            created_at__date__range=(start_date, end_date)
-        )
+        reviews = Review.objects.filter(review_filter)
         avg_rating_val = reviews.aggregate(r=Avg('rating'))['r']
         average_rating = round(avg_rating_val, 1) if avg_rating_val is not None else 0.0
         total_reviews = reviews.count()
@@ -131,10 +141,7 @@ class AnalyticsService:
         }
 
         # Queue Entries Scoped Metrics
-        queue_qs = QueueEntry.objects.filter(
-            organization=organization,
-            queue_date__range=(start_date, end_date)
-        )
+        queue_qs = QueueEntry.objects.filter(queue_filter)
 
         wait_expr = ExpressionWrapper(F('called_at') - F('created_at'), output_field=DurationField())
         service_expr = ExpressionWrapper(F('completed_at') - F('started_at'), output_field=DurationField())
@@ -169,8 +176,8 @@ class AnalyticsService:
         daily_map = {row['day']: row for row in daily_appts}
 
         trend = []
-        curr_date = start_date
-        while curr_date <= end_date:
+        curr_date = effective_start
+        while curr_date <= effective_end:
             row = daily_map.get(curr_date)
             trend.append({
                 'date': curr_date.isoformat(),
@@ -251,8 +258,8 @@ class AnalyticsService:
 
         return {
             'period': {
-                'start_date': start_date.isoformat(),
-                'end_date': end_date.isoformat(),
+                'start_date': (start_date or effective_start).isoformat(),
+                'end_date': (end_date or effective_end).isoformat(),
             },
             'summary': {
                 'total_appointments': total_appts,
@@ -272,4 +279,12 @@ class AnalyticsService:
             'services': services,
             'services_summary': services,  # Backward compatibility field
             'total_appointments': total_appts,  # Backward compatibility top-level key
+            'completed': completed_appts,  # Backward compatibility top-level key
+            'cancelled': cancelled_appts,  # Backward compatibility top-level key
+            'no_show': no_show_appts,  # Backward compatibility top-level key
+            'queue_counts': {
+                'COMPLETED': queue_aggs['completed'] or 0,
+                'SKIPPED': queue_aggs['skipped'] or 0,
+                'TOTAL': queue_aggs['total'] or 0,
+            },  # Backward compatibility top-level key
         }

@@ -30,10 +30,17 @@ def m6_setup(db):
     provider_user = User.objects.create_user(email='m6-provider@example.com', password='Password123!')
     customer = User.objects.create_user(email='m6-customer@example.com', password='Password123!')
     other_customer = User.objects.create_user(email='m6-other@example.com', password='Password123!')
-    org = Organization.objects.create(name='M6 Clinic', slug='m6-clinic')
+    org = Organization.objects.create(
+        name='M6 Clinic',
+        slug='m6-clinic',
+        verification_status=Organization.VerificationStatus.APPROVED
+    )
     OrganizationMembership.objects.create(user=manager, organization=org, role='MANAGER')
     provider_membership = OrganizationMembership.objects.create(user=provider_user, organization=org, role='PROVIDER')
-    provider = ProviderProfile.objects.create(membership=provider_membership)
+    provider = ProviderProfile.objects.create(
+        membership=provider_membership,
+        application_status=ProviderProfile.ApplicationStatus.APPROVED
+    )
     service = Service.objects.create(organization=org, name='M6 Consult', duration_minutes=30, price='20.00')
     return locals()
 

@@ -63,6 +63,10 @@ class AnalyticsSummarySerializer(serializers.Serializer):
     services = ServiceSummarySerializer(many=True)
     services_summary = ServiceSummarySerializer(many=True, required=False)
     total_appointments = serializers.IntegerField(required=False)
+    completed = serializers.IntegerField(required=False)
+    cancelled = serializers.IntegerField(required=False)
+    no_show = serializers.IntegerField(required=False)
+    queue_counts = serializers.DictField(child=serializers.IntegerField(), required=False)
 
 
 class ProviderMetricsSerializer(serializers.Serializer):

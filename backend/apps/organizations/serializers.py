@@ -33,7 +33,6 @@ class OrganizationDocumentSerializer(serializers.ModelSerializer):
     Serializer for OrganizationDocument verification documents.
     """
     title = serializers.SerializerMethodField()
-    file = serializers.SerializerMethodField()
 
     class Meta:
         model = OrganizationDocument
@@ -43,20 +42,23 @@ class OrganizationDocumentSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('id', 'organization', 'uploaded_at', 'status', 'reviewed_by', 'reviewed_at')
         extra_kwargs = {
+            'file': {'required': True},
             'original_filename': {'required': False, 'allow_blank': True},
         }
 
     def get_title(self, obj):
         return obj.original_filename or obj.get_document_type_display()
 
-    def get_file(self, obj):
-        if not obj.file:
-            return None
-        request = self.context.get('request') if isinstance(self.context, dict) else None
-        if request is not None:
-            return request.build_absolute_uri(obj.file.url)
-        url = obj.file.url
-        return f"http://127.0.0.1:8000{url}" if url.startswith('/') else url
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.file:
+            request = self.context.get('request') if isinstance(self.context, dict) else None
+            if request is not None:
+                data['file'] = request.build_absolute_uri(instance.file.url)
+            else:
+                url = instance.file.url
+                data['file'] = f"http://127.0.0.1:8000{url}" if url.startswith('/') else url
+        return data
 
 
 

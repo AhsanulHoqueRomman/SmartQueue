@@ -292,14 +292,16 @@ class OrganizationDocumentListUploadView(APIView):
         org = get_object_or_404(Organization, id=organization_id)
         serializer = OrganizationDocumentSerializer(data=request.data)
         if serializer.is_valid():
+            uploaded_file = serializer.validated_data['file']
+            orig_name = serializer.validated_data.get('original_filename') or getattr(uploaded_file, 'name', '')
             doc = OrganizationService.upload_document(
                 organization=org,
                 document_type=serializer.validated_data['document_type'],
-                file=serializer.validated_data['file'],
-                original_filename=serializer.validated_data.get('original_filename', ''),
+                file=uploaded_file,
+                original_filename=orig_name,
                 actor=request.user
             )
-            return Response(OrganizationDocumentSerializer(doc).data, status=status.HTTP_201_CREATED)
+            return Response(OrganizationDocumentSerializer(doc, context={'request': request}).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
