@@ -136,7 +136,7 @@ export const LoginPage = () => {
         <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.875rem', color: 'var(--color-text-muted)', paddingTop: '1.5rem', borderTop: '1px solid var(--color-border)' }}>
           Don't have an account? <Link to="/register" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>Create Account</Link>
           <div style={{ marginTop: '0.875rem' }}>
-            <Link to="/" style={{ color: 'var(--color-text-tertiary)', fontSize: '0.8125rem', textDecoration: 'none' }}>← Back to Landing Page</Link>
+            <Link to="/" style={{ color: 'var(--color-text-tertiary)', fontSize: '0.8125rem', textDecoration: 'none' }}>← Back to Home Page</Link>
           </div>
         </div>
         </div>

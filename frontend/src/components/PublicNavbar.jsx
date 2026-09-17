@@ -100,24 +100,7 @@ export const PublicNavbar = ({ activePage = '' }) => {
                     boxShadow: '0 4px 12px rgba(47, 37, 32, 0.15)',
                   }}
                 >
-                  Register
-                </Link>
-              )}
-              {activePage === 'login' && (
-                <Link
-                  to="/register"
-                  style={{
-                    textDecoration: 'none',
-                    background: '#2F2520',
-                    color: '#FAF8F3',
-                    padding: '0.55rem 1.15rem',
-                    borderRadius: '10px',
-                    fontWeight: 600,
-                    fontSize: '0.875rem',
-                    boxShadow: '0 4px 12px rgba(47, 37, 32, 0.15)',
-                  }}
-                >
-                  Create Account
+                  {activePage === 'login' ? 'Create Account' : 'Register'}
                 </Link>
               )}
             </>

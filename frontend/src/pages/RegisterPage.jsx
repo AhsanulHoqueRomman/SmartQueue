@@ -198,7 +198,7 @@ export const RegisterPage = () => {
             </Link>
           </p>
           <Link to="/" style={{ color: '#A8A29E', fontSize: '0.85rem', textDecoration: 'none' }}>
-            ← Back to Landing Page
+            ← Back to Home Page
           </Link>
         </div>
         </div>
