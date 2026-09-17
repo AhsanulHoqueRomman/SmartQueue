@@ -1,0 +1,5 @@
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+extraPaths = ["backend"]
+include = ["backend"]

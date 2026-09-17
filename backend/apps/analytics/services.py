@@ -56,7 +56,7 @@ class AnalyticsService:
         hourly = dict(entries.filter(called_at__isnull=False).annotate(
             hour=ExtractHour('called_at')
         ).values('hour').annotate(count=Count('id')).values_list('hour', 'count'))
-        peak_hour = max(hourly, key=hourly.get) if hourly else None
+        peak_hour = max(hourly, key=lambda k: hourly[k]) if hourly else None
         drop_off_rate = (
             counts['skipped'] / counts['total'] * 100 if counts['total'] else 0.0
         )
@@ -207,7 +207,8 @@ class AnalyticsService:
                 row['provider__membership__user__last_name'],
             ])) or row['provider__membership__user__email']
 
-            p_avg_rating = round(prov_ratings.get(p_id), 1) if prov_ratings.get(p_id) is not None else 0.0
+            p_rating_val = prov_ratings.get(p_id)
+            p_avg_rating = round(p_rating_val, 1) if p_rating_val is not None else 0.0
 
             providers.append({
                 'provider_id': p_id,
