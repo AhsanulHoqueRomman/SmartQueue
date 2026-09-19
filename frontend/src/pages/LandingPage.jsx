@@ -5,6 +5,7 @@ import organizationService from '../services/organizationService';
 import appointmentService from '../services/appointmentService';
 import reviewService from '../services/reviewService';
 import { getRecentlyViewedOrgs, getFavoriteOrgs, toggleFavoriteOrg, isFavoriteOrg } from '../utils/recentAndFavorites';
+import { getApiDocsUrl } from '../api/client';
 import '../styles/LandingPage.css';
 
 /* ─── Tiny SVG Icon Components ─────────────────────────────────────────── */
@@ -1192,6 +1193,17 @@ export const LandingPage = () => {
             <p className="lp-footer-tagline">
               Multi-tenant appointment & queue management SaaS platform.
             </p>
+          </div>
+          <div className="lp-footer-links" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+            <a
+              href={getApiDocsUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="lp-footer-link"
+              style={{ fontWeight: 600 }}
+            >
+              API Docs
+            </a>
           </div>
         </div>
 

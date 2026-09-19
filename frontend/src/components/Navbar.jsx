@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { getApiDocsUrl } from '../api/client';
 
 export const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -12,6 +13,15 @@ export const Navbar = () => {
       </Link>
 
       <div className="nav-links">
+        <a
+          href={getApiDocsUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="nav-link"
+          style={{ textDecoration: 'none', color: 'var(--color-text-secondary)', fontSize: '0.875rem', fontWeight: 600, marginRight: '0.5rem' }}
+        >
+          API Docs
+        </a>
         {isAuthenticated ? (
           <>
             <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>

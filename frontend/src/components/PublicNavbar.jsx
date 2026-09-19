@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { getApiDocsUrl } from '../api/client';
 import '../styles/LandingPage.css';
 
 export const PublicNavbar = ({ activePage = '' }) => {
@@ -50,6 +51,15 @@ export const PublicNavbar = ({ activePage = '' }) => {
           >
             Why SmartQueue
           </span>
+          <a
+            href={getApiDocsUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="lp-nav-link"
+            style={{ textDecoration: 'none', color: '#57534E', fontWeight: 600, fontSize: '0.9rem' }}
+          >
+            API Docs
+          </a>
         </nav>
 
         {/* CTA Buttons */}

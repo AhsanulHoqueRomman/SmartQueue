@@ -3,6 +3,13 @@ import { tokenService } from '../services/tokenService';
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1';
 
+export const getApiDocsUrl = () => {
+  if (import.meta.env.VITE_API_DOCS_URL) {
+    return import.meta.env.VITE_API_DOCS_URL;
+  }
+  return baseURL.replace(/\/api\/v1\/?$/, '/api/docs/').replace(/\/api\/?$/, '/api/docs/');
+};
+
 export const apiClient = axios.create({
   baseURL,
   headers: {
