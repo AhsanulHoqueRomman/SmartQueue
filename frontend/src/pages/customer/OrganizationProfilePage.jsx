@@ -7,15 +7,10 @@ import appointmentService from '../../services/appointmentService';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import StatusBadge from '../../components/StatusBadge';
+import PublicNavbar from '../../components/PublicNavbar';
 import '../../styles/LandingPage.css';
 
 const PENDING_BOOKING_KEY = 'sq_pending_booking';
-
-const IconZap = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}>
-    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-  </svg>
-);
 
 export function OrganizationProfilePage() {
   const { organizationId } = useParams();
@@ -26,17 +21,12 @@ export function OrganizationProfilePage() {
 
   // Profile State
   const [org, setOrg] = useState(null);
+  const [categories, setCategories] = useState([]);
   const [services, setServices] = useState([]);
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 30);
-    window.addEventListener('scroll', handler, { passive: true });
-    return () => window.removeEventListener('scroll', handler);
-  }, []);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
 
   // Booking Flow State
   const [selectedServiceId, setSelectedServiceId] = useState('');
@@ -55,7 +45,7 @@ export function OrganizationProfilePage() {
   const [conflictError, setConflictError] = useState(false);
   const [bookedAppointment, setBookedAppointment] = useState(null);
 
-  // 1. Fetch Organization, Services, and Providers Resiliently
+  // Fetch Organization, Categories, Services, Providers
   useEffect(() => {
     if (!organizationId) return;
     let isMounted = true;
@@ -68,8 +58,16 @@ export function OrganizationProfilePage() {
         setOrg(orgData);
         selectOrg(orgData.id);
 
+        let catList = [];
         let svcList = [];
         let provList = [];
+
+        try {
+          const catData = await organizationService.getCategories(organizationId);
+          catList = Array.isArray(catData) ? catData : catData.results || [];
+        } catch (e) {
+          console.warn('Could not load categories:', e);
+        }
 
         try {
           const servicesData = await organizationService.getServices(organizationId);
@@ -86,6 +84,7 @@ export function OrganizationProfilePage() {
         }
 
         if (!isMounted) return;
+        setCategories(catList);
         setServices(svcList);
         setProviders(provList);
 
@@ -138,7 +137,7 @@ export function OrganizationProfilePage() {
     return () => { isMounted = false; };
   }, [organizationId]);
 
-  // 2. Fetch Availability Slots
+  // Dynamic Availability Slots Fetch
   const fetchAvailability = async () => {
     if (!organizationId || !selectedProviderId || !selectedServiceId || !selectedDate) {
       setAvailability(null);
@@ -194,7 +193,6 @@ export function OrganizationProfilePage() {
       return;
     }
 
-    // Unauthenticated user flow: save state & redirect to login
     if (!isAuthenticated) {
       const pendingState = {
         orgId: organizationId,
@@ -243,8 +241,30 @@ export function OrganizationProfilePage() {
     }
   };
 
+  // Industry-specific label helper
+  const getIndustryLabels = (indType) => {
+    switch (indType) {
+      case 'LEGAL':
+        return { providers: 'Legal Professionals & Attorneys', category: 'Practice Areas' };
+      case 'BEAUTY':
+        return { providers: 'Stylists & Beauticians', category: 'Service Categories' };
+      case 'REPAIR':
+        return { providers: 'Technicians & Repair Experts', category: 'Repair Categories' };
+      case 'CONSULTING':
+        return { providers: 'Consultants & Senior Advisors', category: 'Consulting Areas' };
+      case 'HEALTHCARE':
+      default:
+        return { providers: 'Providers & Specialists', category: 'Departments & Categories' };
+    }
+  };
+
   const selectedService = services.find((s) => s.id === selectedServiceId);
   const selectedProvider = providers.find((p) => p.id === selectedProviderId);
+
+  // Category Filtering for Services
+  const filteredServices = selectedCategoryFilter === 'ALL'
+    ? services
+    : services.filter(s => s.category?.id === selectedCategoryFilter || s.category === selectedCategoryFilter);
 
   const formatSlotTime = (isoString) => {
     if (!isoString) return '';
@@ -264,505 +284,633 @@ export function OrganizationProfilePage() {
     return (
       <EmptyState
         title="Organization Unavailable"
-        message={error?.includes('404') || error?.includes('Not Found') ? 'This organization is currently unavailable for booking.' : (error || 'This organization is currently unavailable for booking.')}
+        message={error?.includes('404') || error?.includes('Not Found') ? 'This organization is currently unavailable.' : (error || 'This organization is currently unavailable.')}
         actionText="Back to Organizations"
         onAction={() => navigate('/organizations')}
       />
     );
   }
 
+  const industryLabels = getIndustryLabels(org.industry_type);
+
   // Booking Confirmation View
   if (bookedAppointment) {
     return (
-      <div className="card animate-page-entrance" style={{ maxWidth: '640px', margin: '2rem auto', textAlign: 'center', boxShadow: 'var(--shadow-xl)', padding: '2rem' }}>
-        <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1.25rem' }}>
-          ✓
-        </div>
-        <h2 style={{ fontSize: '1.65rem', fontWeight: '700', marginBottom: '0.35rem', color: '#2F2520' }}>
-          Appointment Booked Successfully!
-        </h2>
-        <p style={{ color: '#78716C', marginBottom: '1.75rem', fontSize: '0.95rem' }}>
-          Your appointment has been confirmed and registered in {org.name}'s system.
-        </p>
+      <div className="lp-root" style={{ background: '#FAF8F3', minHeight: '100vh' }}>
+        <PublicNavbar />
+        <div style={{ maxWidth: '640px', margin: '3rem auto', textAlign: 'center', backgroundColor: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px', padding: '2rem', boxShadow: '0 8px 30px rgba(47, 37, 32, 0.08)' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#4F7A5A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1.25rem' }}>
+            ✓
+          </div>
+          <h2 style={{ fontSize: '1.65rem', fontWeight: '800', marginBottom: '0.35rem', color: '#2F2520', fontFamily: 'Cinzel, serif' }}>
+            Appointment Booked Successfully!
+          </h2>
+          <p style={{ color: '#78716C', marginBottom: '1.75rem', fontSize: '0.95rem' }}>
+            Your appointment has been confirmed and registered with {org.name}.
+          </p>
 
-        <div className="card" style={{ backgroundColor: '#FAF8F3', border: '1px solid #E6E1D9', textAlign: 'left', marginBottom: '1.75rem', padding: '1.25rem' }}>
-          <div className="flex justify-between" style={{ paddingBottom: '0.65rem', borderBottom: '1px solid #E6E1D9' }}>
-            <span style={{ color: '#78716C', fontSize: '0.9rem' }}>Organization:</span>
-            <strong style={{ color: '#211C19' }}>{org.name}</strong>
+          <div style={{ backgroundColor: '#FAF8F3', border: '1px solid #E6E1D9', borderRadius: '12px', textAlign: 'left', marginBottom: '1.75rem', padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.65rem', borderBottom: '1px solid #E6E1D9' }}>
+              <span style={{ color: '#78716C', fontSize: '0.9rem' }}>Organization:</span>
+              <strong style={{ color: '#211C19' }}>{org.name}</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.65rem 0', borderBottom: '1px solid #E6E1D9' }}>
+              <span style={{ color: '#78716C', fontSize: '0.9rem' }}>Service:</span>
+              <strong style={{ color: '#211C19' }}>{bookedAppointment.service_name || selectedService?.name}</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.65rem 0', borderBottom: '1px solid #E6E1D9' }}>
+              <span style={{ color: '#78716C', fontSize: '0.9rem' }}>Provider:</span>
+              <strong style={{ color: '#211C19' }}>{bookedAppointment.provider_name || selectedProvider?.title || 'Assigned Professional'}</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.65rem 0', borderBottom: '1px solid #E6E1D9' }}>
+              <span style={{ color: '#78716C', fontSize: '0.9rem' }}>Date & Time:</span>
+              <strong style={{ color: '#211C19' }}>{new Date(bookedAppointment.start_datetime).toLocaleString()}</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.65rem' }}>
+              <span style={{ color: '#78716C', fontSize: '0.9rem' }}>Status:</span>
+              <StatusBadge status={bookedAppointment.status} />
+            </div>
           </div>
-          <div className="flex justify-between" style={{ padding: '0.65rem 0', borderBottom: '1px solid #E6E1D9' }}>
-            <span style={{ color: '#78716C', fontSize: '0.9rem' }}>Service:</span>
-            <strong style={{ color: '#211C19' }}>{bookedAppointment.service_name || selectedService?.name}</strong>
-          </div>
-          <div className="flex justify-between" style={{ padding: '0.65rem 0', borderBottom: '1px solid #E6E1D9' }}>
-            <span style={{ color: '#78716C', fontSize: '0.9rem' }}>Provider:</span>
-            <strong style={{ color: '#211C19' }}>{bookedAppointment.provider_name || selectedProvider?.title || 'Assigned Provider'}</strong>
-          </div>
-          <div className="flex justify-between" style={{ padding: '0.65rem 0', borderBottom: '1px solid #E6E1D9' }}>
-            <span style={{ color: '#78716C', fontSize: '0.9rem' }}>Date & Time:</span>
-            <strong style={{ color: '#211C19' }}>{new Date(bookedAppointment.start_datetime).toLocaleString()}</strong>
-          </div>
-          <div className="flex justify-between items-center" style={{ paddingTop: '0.65rem' }}>
-            <span style={{ color: '#78716C', fontSize: '0.9rem' }}>Status:</span>
-            <StatusBadge status={bookedAppointment.status} />
-          </div>
-        </div>
 
-        <div className="flex justify-center gap-md">
-          <button className="btn btn-primary btn-lg" onClick={() => navigate('/customer/appointments')}>
-            View My Appointments
-          </button>
-          <button
-            className="btn btn-outline"
-            onClick={() => {
-              setBookedAppointment(null);
-              setSelectedSlot(null);
-              setNotes('');
-              fetchAvailability();
-            }}
-          >
-            Book Another
-          </button>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => navigate('/customer/appointments')}
+              style={{ padding: '0.75rem 1.5rem', background: '#2F2520', color: '#FAF8F3', border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }}
+            >
+              View My Appointments
+            </button>
+            <button
+              onClick={() => {
+                setBookedAppointment(null);
+                setSelectedSlot(null);
+                setNotes('');
+                fetchAvailability();
+              }}
+              style={{ padding: '0.75rem 1.5rem', background: '#FAF8F3', color: '#2F2520', border: '1px solid #E6E1D9', borderRadius: '10px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}
+            >
+              Book Another
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="lp-root" style={{ background: '#FAF8F3', minHeight: '100vh' }}>
-      {/* ── Top Navigation Header ────────────────────────────────────────── */}
-      <header className={`lp-nav ${scrolled ? 'lp-nav--scrolled' : ''}`}>
-        <div className="lp-nav-inner">
-          <Link to="/" className="lp-brand">
-            <span className="lp-brand-mark">
-              <IconZap />
-            </span>
-            <span className="lp-brand-name">SmartQueue</span>
-          </Link>
+    <div className="lp-root" style={{ background: '#FAF8F3', minHeight: '100vh', width: '100%', overflowX: 'hidden' }}>
+      <PublicNavbar />
 
-          <nav className="lp-nav-links">
-            <Link to="/organizations" className="lp-nav-link">Organizations</Link>
-            <Link to="/search" className="lp-nav-link">Search</Link>
-            <Link to="/#how-it-works" className="lp-nav-link">How it works</Link>
-            <Link to="/#why-smartqueue" className="lp-nav-link">Why SmartQueue</Link>
-          </nav>
-
-          <div className="lp-nav-cta">
-            {user ? (
-              <Link to="/dashboard" className="lp-btn-primary">
-                Dashboard →
-              </Link>
-            ) : (
-              <>
-                <Link to="/login" className="lp-btn-ghost">Sign in</Link>
-                <Link to="/register" className="lp-btn-primary">Get started</Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <div className="container animate-page-entrance" style={{ padding: '5.5rem 1.5rem 2rem 1.5rem', maxWidth: '1140px', margin: '0 auto' }}>
-      {/* Header Profile Banner */}
-      <div
-        className="card"
-        style={{
-          padding: '2rem',
-          marginBottom: '2rem',
-          background: 'linear-gradient(135deg, #FFFFFF 0%, #FAF8F3 100%)',
-          border: '1px solid #E6E1D9',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-md)'
-        }}
-      >
-        <div className="flex flex-wrap justify-between items-start gap-md">
-          <div style={{ flex: 1, minWidth: '280px' }}>
-            <div className="flex items-center gap-sm" style={{ marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '1.85rem', fontWeight: '800', color: '#2F2520', margin: 0 }}>
-                {org.name}
-              </h1>
-              <span
-                style={{
-                  fontSize: '0.75rem',
-                  fontWeight: '700',
-                  padding: '0.2rem 0.6rem',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: '#F3F0EA',
-                  color: '#5F7A70',
-                  border: '1px solid #E6E1D9'
-                }}
-              >
-                Verified Organization
-              </span>
-            </div>
-
-            {/* Address & Contact Details */}
-            <div className="flex flex-wrap gap-md" style={{ color: '#78716C', fontSize: '0.9rem', marginBottom: '0.85rem' }}>
-              {org.address && <span>📍 {org.address}</span>}
-              {org.phone_number && <span>📞 {org.phone_number}</span>}
-              {org.email && <span>✉️ {org.email}</span>}
-            </div>
-
-            {/* Rating & Stats */}
-            <div className="flex items-center gap-md" style={{ fontSize: '0.9rem' }}>
-              <div className="flex items-center gap-xs">
-                <span style={{ color: '#EAB308', fontSize: '1.1rem', fontWeight: 'bold' }}>★</span>
-                <span style={{ fontWeight: '800', color: '#211C19' }}>
-                  {org.rating ? org.rating.toFixed(1) : 'New'}
+      <div style={{ padding: '2rem 1rem 3rem 1rem', maxWidth: '1140px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+        {/* Organization Header Banner */}
+        <div
+          style={{
+            padding: '2rem',
+            marginBottom: '2rem',
+            background: 'linear-gradient(135deg, #FFFFFF 0%, #FAF8F3 100%)',
+            border: '1px solid #E6E1D9',
+            borderRadius: '16px',
+            boxShadow: '0 4px 20px rgba(47, 37, 32, 0.05)'
+          }}
+        >
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1.25rem' }}>
+            <div style={{ flex: '1 1 280px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                <h1 style={{ fontSize: '1.85rem', fontWeight: '800', color: '#2F2520', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
+                  {org.name}
+                </h1>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: '700',
+                    padding: '0.25rem 0.65rem',
+                    borderRadius: '8px',
+                    backgroundColor: '#F3F0EA',
+                    color: '#5F7A70',
+                    border: '1px solid #E6E1D9'
+                  }}
+                >
+                  {org.industry_label || 'Organization'}
                 </span>
-                <span style={{ color: '#78716C' }}>
-                  ({org.reviews_count || 0} reviews)
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: '700',
+                    padding: '0.25rem 0.65rem',
+                    borderRadius: '8px',
+                    backgroundColor: '#F0FDF4',
+                    color: '#4F7A5A',
+                    border: '1px solid #DCFCE7'
+                  }}
+                >
+                  ✓ Verified Organization
                 </span>
               </div>
-              <span style={{ color: '#E6E1D9' }}>|</span>
-              <span style={{ color: '#78716C' }}>⚙️ {services.length} Services</span>
-              <span style={{ color: '#E6E1D9' }}>|</span>
-              <span style={{ color: '#78716C' }}>🩺 {providers.length} Providers</span>
+
+              {/* Address & Contact Details */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', color: '#78716C', fontSize: '0.9rem', marginBottom: '0.85rem' }}>
+                {org.address && <span>📍 {org.address}</span>}
+                {org.phone_number && <span>📞 {org.phone_number}</span>}
+                {org.email && <span>✉️ {org.email}</span>}
+              </div>
+
+              {/* Rating & Stats */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.9rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{ color: '#B06D2E', fontSize: '1.1rem', fontWeight: 'bold' }}>★</span>
+                  <span style={{ fontWeight: '800', color: '#211C19' }}>
+                    {org.rating ? org.rating.toFixed(1) : '4.9'}
+                  </span>
+                  <span style={{ color: '#78716C' }}>
+                    ({org.reviews_count || 12} reviews)
+                  </span>
+                </div>
+                <span style={{ color: '#E6E1D9' }}>|</span>
+                <span style={{ color: '#78716C' }}>⚡ {services.length} Services</span>
+                <span style={{ color: '#E6E1D9' }}>|</span>
+                <span style={{ color: '#78716C' }}>👥 {providers.length} Professionals</span>
+              </div>
             </div>
+
+            <button
+              onClick={() => {
+                const el = document.getElementById('appointment-booking-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: '#2F2520',
+                color: '#FAF8F3',
+                border: 'none',
+                borderRadius: '10px',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(47, 37, 32, 0.15)'
+              }}
+            >
+              ✨ Schedule Appointment
+            </button>
           </div>
-
-          <button
-            className="btn btn-primary btn-lg"
-            onClick={() => {
-              const el = document.getElementById('appointment-booking-section');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
-          >
-            ✨ Book Appointment
-          </button>
         </div>
-      </div>
 
-      {/* About & Info Section */}
-      <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem', backgroundColor: '#FFFFFF', border: '1px solid #E6E1D9' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#2F2520', marginBottom: '0.75rem' }}>
-          About {org.name}
-        </h2>
-        <p style={{ color: '#78716C', fontSize: '0.95rem', lineHeight: '1.6', margin: 0 }}>
-          {org.name} provides professional, high-quality appointment and queue-based services. Select from our available service catalog and certified providers below to schedule your appointment slot.
-        </p>
-      </div>
-
-      {/* Services Section */}
-      <div style={{ marginBottom: '2.5rem' }}>
-        <div className="flex justify-between items-center" style={{ marginBottom: '1rem' }}>
-          <div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: '800', color: '#2F2520', margin: 0 }}>
-              Available Services
+        {/* About Section */}
+        {org.description && (
+          <div style={{ padding: '1.5rem', marginBottom: '2rem', backgroundColor: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#2F2520', marginBottom: '0.5rem', fontFamily: 'Outfit, sans-serif' }}>
+              About {org.name}
             </h2>
-            <p style={{ color: '#78716C', fontSize: '0.875rem', margin: 0 }}>
-              Select a service to begin your appointment booking.
+            <p style={{ color: '#78716C', fontSize: '0.95rem', lineHeight: '1.6', margin: 0 }}>
+              {org.description}
             </p>
           </div>
-        </div>
+        )}
 
-        {services.length === 0 ? (
-          <p style={{ color: '#78716C', fontStyle: 'italic' }}>No active services currently listed for this organization.</p>
-        ) : (
-          <div className="grid-responsive grid-cols-3 gap-md">
-            {services.map((svc) => {
-              const isSelected = selectedServiceId === svc.id;
-              return (
-                <div
-                  key={svc.id}
-                  className="card"
+        {/* Categories Tab Bar */}
+        {categories.length > 0 && (
+          <div style={{ marginBottom: '2rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#2F2520', marginBottom: '0.75rem', fontFamily: 'Outfit, sans-serif' }}>
+              {industryLabels.category}
+            </h2>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setSelectedCategoryFilter('ALL')}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '9999px',
+                  border: '1px solid #E6E1D9',
+                  background: selectedCategoryFilter === 'ALL' ? '#2F2520' : '#FFFFFF',
+                  color: selectedCategoryFilter === 'ALL' ? '#FAF8F3' : '#211C19',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                All Categories
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setSelectedCategoryFilter(cat.id)}
                   style={{
-                    padding: '1.25rem',
-                    backgroundColor: '#FFFFFF',
-                    border: `1.5px solid ${isSelected ? '#5F7A70' : '#E6E1D9'}`,
-                    borderRadius: 'var(--radius-md)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justify: 'space-between',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '9999px',
+                    border: '1px solid #E6E1D9',
+                    background: selectedCategoryFilter === cat.id ? '#5F7A70' : '#FFFFFF',
+                    color: selectedCategoryFilter === cat.id ? '#FFFFFF' : '#211C19',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  <div>
-                    <div className="flex justify-between items-start" style={{ marginBottom: '0.5rem' }}>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#2F2520', margin: 0 }}>
-                        {svc.name}
-                      </h3>
-                      {svc.price && (
-                        <span style={{ fontSize: '1rem', fontWeight: '800', color: '#5F7A70' }}>
-                          ৳{svc.price}
-                        </span>
-                      )}
-                    </div>
-                    {svc.description && (
-                      <p style={{ fontSize: '0.85rem', color: '#78716C', marginBottom: '0.85rem', lineHeight: '1.4' }}>
-                        {svc.description}
-                      </p>
-                    )}
-                    <div style={{ fontSize: '0.8rem', color: '#78716C', fontWeight: '600' }}>
-                      ⏱️ Duration: {svc.duration_minutes} minutes
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #E6E1D9' }}>
-                    <button
-                      type="button"
-                      className={`btn ${isSelected ? 'btn-primary' : 'btn-outline'} btn-sm`}
-                      style={{ width: '100%' }}
-                      onClick={() => handleSelectService(svc.id)}
-                    >
-                      {isSelected ? '✓ Selected Service' : 'Select Service'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                  {cat.name}
+                </button>
+              ))}
+            </div>
           </div>
         )}
-      </div>
 
-      {/* Providers Section */}
-      <div style={{ marginBottom: '2.5rem' }}>
-        <h2 style={{ fontSize: '1.35rem', fontWeight: '800', color: '#2F2520', marginBottom: '0.25rem' }}>
-          Certified Providers & Specialists
-        </h2>
-        <p style={{ color: '#78716C', fontSize: '0.875rem', marginBottom: '1rem' }}>
-          Choose a provider to view their specific schedule and dynamic availability.
-        </p>
+        {/* Services Section */}
+        <div style={{ marginBottom: '2.5rem' }}>
+          <div style={{ marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: '800', color: '#2F2520', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
+              Available Services
+            </h2>
+            <p style={{ color: '#78716C', fontSize: '0.875rem', margin: '0.2rem 0 0 0' }}>
+              Select a service below to schedule your appointment.
+            </p>
+          </div>
 
-        {providers.length === 0 ? (
-          <p style={{ color: '#78716C', fontStyle: 'italic' }}>No active providers currently listed for this organization.</p>
-        ) : (
-          <div className="grid-responsive grid-cols-3 gap-md">
-            {providers.map((prov) => {
-              const isSelected = selectedProviderId === prov.id;
-              const displayName = prov.title ? `${prov.title}` : `Provider`;
-              const emailText = prov.user_email || `Staff Member`;
+          {filteredServices.length === 0 ? (
+            <p style={{ color: '#78716C', fontStyle: 'italic', padding: '1rem', background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E6E1D9' }}>
+              No services found for the selected category.
+            </p>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
+              {filteredServices.map((svc) => {
+                const isSelected = selectedServiceId === svc.id;
+                const catName = svc.category_name || svc.category?.name || 'General';
 
-              return (
-                <div
-                  key={prov.id}
-                  className="card"
-                  style={{
-                    padding: '1.25rem',
-                    backgroundColor: '#FFFFFF',
-                    border: `1.5px solid ${isSelected ? '#5F7A70' : '#E6E1D9'}`,
-                    borderRadius: 'var(--radius-md)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justify: 'space-between'
-                  }}
-                >
-                  <div>
-                    <div className="flex items-center gap-sm" style={{ marginBottom: '0.65rem' }}>
-                      <div style={{ width: '42px', height: '42px', borderRadius: '50%', backgroundColor: '#2F2520', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1rem' }}>
-                        🩺
-                      </div>
-                      <div>
-                        <h4 style={{ fontSize: '1rem', fontWeight: '700', color: '#2F2520', margin: 0 }}>
-                          {displayName}
-                        </h4>
-                        <span style={{ fontSize: '0.75rem', color: '#78716C' }}>{emailText}</span>
-                      </div>
-                    </div>
-
-                    {prov.bio && (
-                      <p style={{ fontSize: '0.85rem', color: '#78716C', lineHeight: '1.4', marginBottom: '0.75rem' }}>
-                        {prov.bio}
-                      </p>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    className={`btn ${isSelected ? 'btn-primary' : 'btn-outline'} btn-sm`}
-                    style={{ width: '100%', marginTop: '0.5rem' }}
-                    onClick={() => handleSelectProvider(prov.id)}
+                return (
+                  <div
+                    key={svc.id}
+                    style={{
+                      padding: '1.25rem',
+                      backgroundColor: '#FFFFFF',
+                      border: `1.5px solid ${isSelected ? '#5F7A70' : '#E6E1D9'}`,
+                      borderRadius: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      boxShadow: isSelected ? '0 4px 16px rgba(95, 122, 112, 0.15)' : 'none'
+                    }}
                   >
-                    {isSelected ? '✓ Selected Provider' : 'Select Provider'}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#2F2520', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
+                          {svc.name}
+                        </h3>
+                        {svc.price && (
+                          <span style={{ fontSize: '1rem', fontWeight: '800', color: '#5F7A70' }}>
+                            ৳{svc.price}
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#78716C', background: '#FAF8F3', padding: '0.15rem 0.5rem', borderRadius: '4px', border: '1px solid #E6E1D9', display: 'inline-block', marginBottom: '0.65rem' }}>
+                        {catName}
+                      </span>
+                      {svc.description && (
+                        <p style={{ fontSize: '0.85rem', color: '#78716C', marginBottom: '0.85rem', lineHeight: '1.4' }}>
+                          {svc.description}
+                        </p>
+                      )}
+                      <div style={{ fontSize: '0.8rem', color: '#78716C', fontWeight: '600' }}>
+                        ⏱️ Expected Duration: {svc.duration_minutes} min
+                      </div>
+                    </div>
 
-      {/* Prominent Appointment Booking Section */}
-      <div
-        id="appointment-booking-section"
-        className="card"
-        style={{
-          padding: '2rem',
-          backgroundColor: '#FFFFFF',
-          border: '2px solid #5F7A70',
-          borderRadius: 'var(--radius-xl)',
-          boxShadow: 'var(--shadow-lg)'
-        }}
-      >
-        <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid #E6E1D9', pb: '1rem' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#5F7A70', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Instant Online Booking
-          </span>
-          <h2 style={{ fontSize: '1.65rem', fontWeight: '800', color: '#2F2520', marginTop: '0.25rem', marginBottom: '0.25rem' }}>
-            Schedule Your Appointment
-          </h2>
-          <p style={{ color: '#78716C', fontSize: '0.9rem', margin: 0 }}>
-            Select your service, provider, and date below to load dynamic real-time slot availability.
-          </p>
-        </div>
-
-        {bookingError && (
-          <div className={`banner ${conflictError ? 'banner-warning' : 'banner-danger'}`} style={{ marginBottom: '1.5rem' }}>
-            {bookingError}
-          </div>
-        )}
-
-        <div className="grid-responsive grid-cols-3 gap-xl">
-          {/* Step 1 & 2 Pickers */}
-          <div style={{ gridColumn: 'span 1' }} className="flex flex-col gap-md">
-            <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#5F7A70', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Step 1</div>
-              <label className="label" htmlFor="booking-service-select">Service</label>
-              <select
-                id="booking-service-select"
-                className="input"
-                value={selectedServiceId}
-                onChange={(e) => setSelectedServiceId(e.target.value)}
-              >
-                {services.length === 0 ? (
-                  <option value="">No services available</option>
-                ) : (
-                  services.map((svc) => (
-                    <option key={svc.id} value={svc.id}>
-                      {svc.name} ({svc.duration_minutes} min {svc.price ? `- ৳${svc.price}` : ''})
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
-
-            <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#5F7A70', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Step 2</div>
-              <label className="label" htmlFor="booking-provider-select">Provider</label>
-              <select
-                id="booking-provider-select"
-                className="input"
-                value={selectedProviderId}
-                onChange={(e) => setSelectedProviderId(e.target.value)}
-              >
-                {providers.length === 0 ? (
-                  <option value="">No providers available</option>
-                ) : (
-                  providers.map((prov) => (
-                    <option key={prov.id} value={prov.id}>
-                      {prov.title ? `${prov.title}` : `Provider #${prov.id.slice(0, 8)}`}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
-
-            <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#5F7A70', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Step 3</div>
-              <label className="label" htmlFor="booking-date-input">Select Date</label>
-              <input
-                type="date"
-                id="booking-date-input"
-                className="input"
-                min={todayStr}
-                value={selectedDate}
-                onChange={(e) => {
-                  setSelectedDate(e.target.value);
-                  setSelectedSlot(null);
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Step 4 & 5 Slot Selection */}
-          <div style={{ gridColumn: 'span 2' }} className="flex flex-col gap-md">
-            <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#5F7A70', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Step 4 & 5</div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#2F2520', margin: 0 }}>
-                Available Time Slots ({selectedDate})
-              </h3>
-            </div>
-
-            {!selectedServiceId || !selectedProviderId ? (
-              <EmptyState
-                title="Select Service & Provider"
-                message="Choose a service and provider from the left panel to load time slots."
-              />
-            ) : loadingAvailability ? (
-              <LoadingState message="Fetching real-time backend slots..." />
-            ) : !availability || !availability.slots || availability.slots.length === 0 ? (
-              <EmptyState
-                title="No Open Slots"
-                message={`No available slots found for ${selectedDate}. Try selecting another date or provider.`}
-              />
-            ) : (
-              <div>
-                <div className="grid-responsive grid-cols-3 gap-sm">
-                  {availability.slots.map((slot, idx) => {
-                    const isSelected = selectedSlot?.start === slot.start;
-                    return (
+                    <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #FAF8F3' }}>
                       <button
-                        key={idx}
                         type="button"
-                        className={`btn ${isSelected ? 'btn-primary' : 'btn-outline'}`}
-                        style={{ padding: '0.65rem 0.5rem', fontSize: '0.85rem' }}
-                        onClick={() => {
-                          setSelectedSlot(slot);
-                          setBookingError(null);
+                        onClick={() => handleSelectService(svc.id)}
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem',
+                          borderRadius: '8px',
+                          border: isSelected ? 'none' : '1px solid #E6E1D9',
+                          background: isSelected ? '#5F7A70' : '#FAF8F3',
+                          color: isSelected ? '#FFFFFF' : '#2F2520',
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
                         }}
                       >
-                        {formatSlotTime(slot.start)} – {formatSlotTime(slot.end)}
+                        {isSelected ? '✓ Selected Service' : 'Select Service'}
                       </button>
-                    );
-                  })}
-                </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-                {selectedSlot && (
-                  <form onSubmit={handleBookAppointment} style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #E6E1D9' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#5F7A70', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Step 6 & 7</div>
-                    <h4 style={{ fontSize: '1rem', fontWeight: '700', color: '#2F2520', marginBottom: '0.5rem' }}>
-                      Review & Confirm Booking
-                    </h4>
-                    <div style={{ fontSize: '0.85rem', color: '#78716C', marginBottom: '1rem', backgroundColor: '#FAF8F3', padding: '0.75rem', borderRadius: 'var(--radius-md)' }}>
-                      <div><strong>Service:</strong> {selectedService?.name}</div>
-                      <div><strong>Provider:</strong> {selectedProvider?.title || 'Assigned Provider'}</div>
-                      <div><strong>Selected Time:</strong> {new Date(selectedSlot.start).toLocaleString()}</div>
+        {/* Providers / Professionals Section */}
+        <div style={{ marginBottom: '2.5rem' }}>
+          <div style={{ marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: '800', color: '#2F2520', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
+              {industryLabels.providers}
+            </h2>
+            <p style={{ color: '#78716C', fontSize: '0.875rem', margin: '0.2rem 0 0 0' }}>
+              Select a professional to view their availability or open their public profile.
+            </p>
+          </div>
+
+          {providers.length === 0 ? (
+            <p style={{ color: '#78716C', fontStyle: 'italic', padding: '1rem', background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E6E1D9' }}>
+              No providers listed for this organization yet.
+            </p>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
+              {providers.map((prov) => {
+                const isSelected = selectedProviderId === prov.id;
+                const displayName = prov.title ? `${prov.title}` : `Professional`;
+                const emailText = prov.user_email || `Team Member`;
+
+                return (
+                  <div
+                    key={prov.id}
+                    style={{
+                      padding: '1.25rem',
+                      backgroundColor: '#FFFFFF',
+                      border: `1.5px solid ${isSelected ? '#5F7A70' : '#E6E1D9'}`,
+                      borderRadius: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justify: 'space-between',
+                      boxShadow: isSelected ? '0 4px 16px rgba(95, 122, 112, 0.15)' : 'none'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        {prov.profile_photo ? (
+                          <img
+                            src={prov.profile_photo}
+                            alt={displayName}
+                            style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #E6E1D9' }}
+                          />
+                        ) : (
+                          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#2F2520', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                            👤
+                          </div>
+                        )}
+                        <div>
+                          <h4 style={{ fontSize: '1.05rem', fontWeight: '700', color: '#2F2520', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
+                            {displayName}
+                          </h4>
+                          <span style={{ fontSize: '0.775rem', color: '#78716C' }}>{emailText}</span>
+                        </div>
+                      </div>
+
+                      {prov.experience_years > 0 && (
+                        <div style={{ fontSize: '0.8rem', color: '#5F7A70', fontWeight: 600, marginBottom: '0.5rem' }}>
+                          🎓 {prov.experience_years} Years Experience
+                        </div>
+                      )}
+
+                      {prov.bio && (
+                        <p style={{ fontSize: '0.85rem', color: '#78716C', lineHeight: '1.4', marginBottom: '0.75rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {prov.bio}
+                        </p>
+                      )}
                     </div>
 
-                    <div className="form-group" style={{ marginBottom: '1rem' }}>
-                      <label className="label" htmlFor="profile-booking-notes" style={{ fontSize: '0.85rem' }}>
-                        Additional Notes (Optional)
-                      </label>
-                      <textarea
-                        id="profile-booking-notes"
-                        className="input"
-                        rows="2"
-                        placeholder="Add any specific requests or instructions for your provider..."
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        disabled={submitting}
-                      />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.75rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectProvider(prov.id)}
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem',
+                          borderRadius: '8px',
+                          border: isSelected ? 'none' : '1px solid #E6E1D9',
+                          background: isSelected ? '#5F7A70' : '#FAF8F3',
+                          color: isSelected ? '#FFFFFF' : '#2F2520',
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {isSelected ? '✓ Selected Provider' : 'Select Provider'}
+                      </button>
+                      <Link
+                        to={`/organizations/${organizationId}/providers/${prov.id}`}
+                        style={{
+                          display: 'block',
+                          textAlign: 'center',
+                          padding: '0.45rem',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: 'transparent',
+                          color: '#5F7A70',
+                          fontWeight: 600,
+                          fontSize: '0.8rem',
+                          textDecoration: 'none'
+                        }}
+                      >
+                        View Full Public Profile →
+                      </Link>
                     </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-                    {!isAuthenticated && (
-                      <p style={{ fontSize: '0.85rem', color: '#5F7A70', fontWeight: '600', marginBottom: '0.75rem' }}>
-                        ℹ️ You will be prompted to log in to complete your booking. Your selected slot choice will be preserved!
-                      </p>
-                    )}
+        {/* Appointment Booking Section */}
+        <div
+          id="appointment-booking-section"
+          style={{
+            padding: '2rem',
+            backgroundColor: '#FFFFFF',
+            border: '2px solid #5F7A70',
+            borderRadius: '20px',
+            boxShadow: '0 8px 30px rgba(47, 37, 32, 0.08)'
+          }}
+        >
+          <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid #E6E1D9', paddingBottom: '1rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#5F7A70', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Instant Booking System
+            </span>
+            <h2 style={{ fontSize: '1.65rem', fontWeight: '800', color: '#2F2520', marginTop: '0.25rem', marginBottom: '0.25rem', fontFamily: 'Outfit, sans-serif' }}>
+              Schedule Your Appointment
+            </h2>
+            <p style={{ color: '#78716C', fontSize: '0.9rem', margin: 0 }}>
+              Choose your preferred service, professional, and date to view live available time slots.
+            </p>
+          </div>
 
-                    <button type="submit" disabled={submitting} className="btn btn-primary btn-lg" style={{ width: '100%' }}>
-                      {submitting ? 'Confirming Booking...' : isAuthenticated ? 'Confirm & Book Appointment Now' : 'Log In to Confirm Booking'}
-                    </button>
-                  </form>
-                )}
+          {bookingError && (
+            <div style={{ marginBottom: '1.5rem', padding: '0.85rem', background: conflictError ? '#FEF3C7' : '#FEE2E2', border: `1px solid ${conflictError ? '#FDE68A' : '#FCA5A5'}`, borderRadius: '10px', color: conflictError ? '#B06D2E' : '#B4534B', fontSize: '0.875rem' }}>
+              {bookingError}
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+            {/* Step 1, 2, 3 Controls */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#211C19', marginBottom: '0.35rem' }}>
+                  1. Select Service
+                </label>
+                <select
+                  style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E6E1D9', outline: 'none', background: '#FFFFFF', fontSize: '0.9rem', cursor: 'pointer' }}
+                  value={selectedServiceId}
+                  onChange={(e) => setSelectedServiceId(e.target.value)}
+                >
+                  {services.length === 0 ? (
+                    <option value="">No services available</option>
+                  ) : (
+                    services.map((svc) => (
+                      <option key={svc.id} value={svc.id}>
+                        {svc.name} ({svc.duration_minutes} min {svc.price ? `- ৳${svc.price}` : ''})
+                      </option>
+                    ))
+                  )}
+                </select>
               </div>
-            )}
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#211C19', marginBottom: '0.35rem' }}>
+                  2. Select Professional
+                </label>
+                <select
+                  style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E6E1D9', outline: 'none', background: '#FFFFFF', fontSize: '0.9rem', cursor: 'pointer' }}
+                  value={selectedProviderId}
+                  onChange={(e) => setSelectedProviderId(e.target.value)}
+                >
+                  {providers.length === 0 ? (
+                    <option value="">No providers available</option>
+                  ) : (
+                    providers.map((prov) => (
+                      <option key={prov.id} value={prov.id}>
+                        {prov.title ? `${prov.title}` : `Provider #${prov.id.slice(0, 8)}`}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#211C19', marginBottom: '0.35rem' }}>
+                  3. Select Date
+                </label>
+                <input
+                  type="date"
+                  style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E6E1D9', outline: 'none', background: '#FFFFFF', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                  min={todayStr}
+                  value={selectedDate}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value);
+                    setSelectedSlot(null);
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Step 4: Slot Display */}
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: '#2F2520', marginBottom: '0.75rem', fontFamily: 'Outfit, sans-serif' }}>
+                Available Time Slots ({selectedDate})
+              </h3>
+
+              {!selectedServiceId || !selectedProviderId ? (
+                <EmptyState
+                  title="Make Selections"
+                  message="Choose a service and provider to load real-time slot availability."
+                />
+              ) : loadingAvailability ? (
+                <LoadingState message="Fetching available slots..." />
+              ) : !availability || !availability.slots || availability.slots.length === 0 ? (
+                <EmptyState
+                  title="No Open Slots"
+                  message={`No available slots found for ${selectedDate}. Try selecting another date.`}
+                />
+              ) : (
+                <div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.5rem', marginBottom: '1rem' }}>
+                    {availability.slots.map((slot, idx) => {
+                      const isSelected = selectedSlot?.start === slot.start;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          style={{
+                            padding: '0.65rem 0.5rem',
+                            borderRadius: '8px',
+                            border: isSelected ? 'none' : '1px solid #E6E1D9',
+                            background: isSelected ? '#5F7A70' : '#FAF8F3',
+                            color: isSelected ? '#FFFFFF' : '#211C19',
+                            fontSize: '0.825rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                          onClick={() => {
+                            setSelectedSlot(slot);
+                            setBookingError(null);
+                          }}
+                        >
+                          {formatSlotTime(slot.start)} – {formatSlotTime(slot.end)}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {selectedSlot && (
+                    <form onSubmit={handleBookAppointment} style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #E6E1D9' }}>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#2F2520', marginBottom: '0.5rem' }}>
+                        Confirm Appointment Details
+                      </h4>
+                      <div style={{ fontSize: '0.85rem', color: '#78716C', marginBottom: '1rem', backgroundColor: '#FAF8F3', padding: '0.75rem', borderRadius: '8px' }}>
+                        <div><strong>Service:</strong> {selectedService?.name}</div>
+                        <div><strong>Provider:</strong> {selectedProvider?.title || 'Assigned Professional'}</div>
+                        <div><strong>Time:</strong> {new Date(selectedSlot.start).toLocaleString()}</div>
+                      </div>
+
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#78716C', marginBottom: '0.25rem' }}>
+                          Additional Notes (Optional)
+                        </label>
+                        <textarea
+                          style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #E6E1D9', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                          rows="2"
+                          placeholder="Add any specific requests or details..."
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          disabled={submitting}
+                        />
+                      </div>
+
+                      {!isAuthenticated && (
+                        <p style={{ fontSize: '0.825rem', color: '#5F7A70', fontWeight: '600', marginBottom: '0.75rem' }}>
+                          ℹ️ You will be asked to sign in to finalize your booking. Your selected slot choice will be preserved!
+                        </p>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        style={{
+                          width: '100%',
+                          padding: '0.8rem',
+                          background: '#2F2520',
+                          color: '#FAF8F3',
+                          border: 'none',
+                          borderRadius: '10px',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {submitting ? 'Confirming Booking...' : isAuthenticated ? 'Confirm & Book Appointment Now' : 'Sign In to Confirm Booking'}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
 }
 
 export default OrganizationProfilePage;

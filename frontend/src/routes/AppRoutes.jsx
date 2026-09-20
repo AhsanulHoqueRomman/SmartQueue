@@ -25,6 +25,7 @@ import { NotificationsPage } from '../pages/customer/NotificationsPage';
 import { CustomerReviewsPage } from '../pages/customer/CustomerReviewsPage';
 import { OrganizationsPage } from '../pages/customer/OrganizationsPage';
 import { OrganizationProfilePage } from '../pages/customer/OrganizationProfilePage';
+import { ProviderPublicProfilePage } from '../pages/customer/ProviderPublicProfilePage';
 import { CustomerFavoritesPage } from '../pages/customer/CustomerFavoritesPage';
 import { GlobalSearchPage } from '../pages/public/GlobalSearchPage';
 
@@ -88,6 +89,7 @@ export const AppRoutes = () => {
       <Route path="/favorites" element={<CustomerFavoritesPage />} />
       <Route path="/organizations" element={<OrganizationsPage />} />
       <Route path="/organizations/:organizationId" element={<OrganizationProfilePage />} />
+      <Route path="/organizations/:organizationId/providers/:providerId" element={<ProviderPublicProfilePage />} />
       <Route
         path="/dashboard"
         element={isAuthenticated ? <Navigate to={rolePath} replace /> : <Navigate to="/login" replace />}

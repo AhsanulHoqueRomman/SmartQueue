@@ -50,8 +50,8 @@ class OrganizationListCreateView(APIView):
         )
         orgs = apply_list_query(
             orgs, request,
-            filter_fields=('is_active',),
-            search_fields=('name', 'address', 'email', 'slug'),
+            filter_fields=('is_active', 'industry_type'),
+            search_fields=('name', 'address', 'email', 'slug', 'description'),
             ordering_fields=('name', 'created_at'),
             default_ordering=('name',),
         )

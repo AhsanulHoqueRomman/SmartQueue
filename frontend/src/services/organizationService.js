@@ -27,6 +27,14 @@ export const organizationService = {
   },
 
   /**
+   * Fetch categories for a given organization.
+   */
+  async getCategories(orgId) {
+    const response = await apiClient.get(`/organizations/${orgId}/categories/`);
+    return response.data;
+  },
+
+  /**
    * Fetch active provider profiles for a given organization.
    */
   async getProviders(orgId) {

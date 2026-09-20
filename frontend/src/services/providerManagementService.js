@@ -12,6 +12,16 @@ export const providerManagementService = {
   },
 
   /**
+   * Get provider public profile (credentials, categories, services, rating).
+   */
+  async getProviderPublicProfile(orgId, providerId) {
+    const response = await apiClient.get(
+      `/organizations/${orgId}/providers/${providerId}/profile/`
+    );
+    return response.data;
+  },
+
+  /**
    * Update provider bio, title, active status.
    */
   async updateProviderProfile(orgId, providerId, data) {
