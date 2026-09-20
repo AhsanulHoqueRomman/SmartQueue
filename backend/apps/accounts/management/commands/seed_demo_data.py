@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.organizations.models import Organization, OrganizationMembership
+from apps.services.models import Category, Service
 from apps.providers.models import (
     ProviderProfile,
     ProviderService,
@@ -13,7 +14,6 @@ from apps.providers.models import (
     ScheduleBreak,
     ProviderLeave,
 )
-from apps.services.models import Service
 from apps.appointments.models import Appointment
 from apps.queue.models import QueueEntry
 from apps.feedback.models import Review
@@ -22,7 +22,7 @@ from apps.audit.models import AuditLog
 
 
 class Command(BaseCommand):
-    help = "Seeds SmartQueue with a rich, realistic Bangladeshi demo dataset."
+    help = "Seeds SmartQueue with a rich, multi-industry, deterministic Bangladeshi demo dataset."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -33,20 +33,21 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         random.seed(42)
-        self.stdout.write(self.style.SUCCESS("Starting SmartQueue demo data seeding..."))
+        self.stdout.write(self.style.SUCCESS("Starting SmartQueue multi-industry demo data seeding..."))
 
         with transaction.atomic():
-            self.clean_demo_data()
-            demo_accounts, orgs, customers, providers, services, appointments, queue_entries, reviews = self.seed_all()
+            if options.get('reset'):
+                self.clean_demo_data()
+            demo_accounts, orgs, categories, services, providers, appointments, queue_entries, reviews = self.seed_all()
 
         self.stdout.write(self.style.SUCCESS("\n" + "=" * 65))
-        self.stdout.write(self.style.SUCCESS("SUCCESSFULLY SEEDED SMARTQUEUE DEMO DATASET!"))
+        self.stdout.write(self.style.SUCCESS("SUCCESSFULLY SEEDED SMARTQUEUE MULTI-INDUSTRY DEMO DATASET!"))
         self.stdout.write(self.style.SUCCESS("=" * 65))
         self.stdout.write(f"  - Organizations:  {len(orgs)}")
-        self.stdout.write(f"  - Total Users:    {User.objects.count()}")
-        self.stdout.write(f"  - Global Customers:{len(customers)}")
-        self.stdout.write(f"  - Providers:      {len(providers)}")
+        self.stdout.write(f"  - Categories:     {len(categories)}")
         self.stdout.write(f"  - Services:       {len(services)}")
+        self.stdout.write(f"  - Total Users:    {User.objects.count()}")
+        self.stdout.write(f"  - Providers:      {len(providers)}")
         self.stdout.write(f"  - Appointments:   {len(appointments)}")
         self.stdout.write(f"  - Queue Entries:  {len(queue_entries)}")
         self.stdout.write(f"  - Reviews:        {len(reviews)}")
@@ -74,56 +75,38 @@ class Command(BaseCommand):
         ProviderService.objects.all().delete()
         ProviderProfile.objects.all().delete()
         Service.objects.all().delete()
+        Category.objects.all().delete()
         OrganizationMembership.objects.all().delete()
         Organization.objects.all().delete()
-
-        # Preserve superuser if exists or clear non-system demo users
         User.objects.all().delete()
         self.stdout.write(self.style.WARNING("Existing demo data cleaned successfully."))
 
+    def _get_or_create_user(self, email, password, first_name, last_name, phone_number, is_superuser=False):
+        user, created = User.objects.get_or_create(
+            email=email,
+            defaults={
+                'first_name': first_name,
+                'last_name': last_name,
+                'phone_number': phone_number,
+                'is_active': True,
+                'is_staff': is_superuser,
+                'is_superuser': is_superuser,
+            }
+        )
+        if created or not user.check_password(password):
+            user.set_password(password)
+            user.save()
+        return user
+
     def seed_all(self):
         # 1. Create Core Superuser & Demo Accounts
-        admin_user = User.objects.create_superuser(
-            email='admin@example.com',
-            password='password123',
-            first_name='System',
-            last_name='Admin',
-            phone_number='+8801700000000',
-        )
+        admin_user = self._get_or_create_user('admin@example.com', 'password123', 'System', 'Admin', '+8801700000000', is_superuser=True)
+        manager_demo = self._get_or_create_user('manager.demo@example.com', 'password123', 'Ahsanul', 'Hoque', '+8801711112222')
+        provider_demo_user = self._get_or_create_user('provider.demo@example.com', 'password123', 'Dr. Tanvir', 'Ahmed', '+8801722223333')
+        staff_demo_user = self._get_or_create_user('staff.demo@example.com', 'password123', 'Nusrat', 'Jahan', '+8801733334444')
+        customer_demo_user = self._get_or_create_user('customer.demo@example.com', 'password123', 'Sadia', 'Rahman', '+8801744445555')
 
-        manager_demo = User.objects.create_user(
-            email='manager.demo@example.com',
-            password='password123',
-            first_name='Ahsanul',
-            last_name='Hoque',
-            phone_number='+8801711112222',
-        )
-
-        provider_demo_user = User.objects.create_user(
-            email='provider.demo@example.com',
-            password='password123',
-            first_name='Dr. Tanvir',
-            last_name='Ahmed',
-            phone_number='+8801722223333',
-        )
-
-        staff_demo_user = User.objects.create_user(
-            email='staff.demo@example.com',
-            password='password123',
-            first_name='Nusrat',
-            last_name='Jahan',
-            phone_number='+8801733334444',
-        )
-
-        customer_demo_user = User.objects.create_user(
-            email='customer.demo@example.com',
-            password='password123',
-            first_name='Sadia',
-            last_name='Rahman',
-            phone_number='+8801744445555',
-        )
-
-        # 2. Bangladeshi Customer Pool (40 customers)
+        # 2. Customer Pool
         bangla_customers_data = [
             ('Fahim', 'Hasan', 'fahim.hasan@example.com'),
             ('Mahmudul', 'Islam', 'mahmudul.islam@example.com'),
@@ -145,889 +128,598 @@ class Command(BaseCommand):
             ('Farhana', 'Yeasmin', 'farhana.yeasmin@example.com'),
             ('Subrata', 'Chowdhury', 'subrata.chowdhury@example.com'),
             ('Tahmidur', 'Rahman', 'tahmidur.rahman@example.com'),
-            ('Rokia', 'Begum', 'rokia.begum@example.com'),
-            ('Moniruzzaman', 'Khan', 'moniruzzaman.khan@example.com'),
-            ('Sadiya', 'Afrin', 'sadiya.afrin@example.com'),
-            ('Taskin', 'Ahmed', 'taskin.ahmed@example.com'),
-            ('Naimul', 'Hasan', 'naimul.hasan@example.com'),
-            ('Tamanna', 'Yasmin', 'tamanna.yasmin@example.com'),
-            ('Ziaur', 'Rahman', 'ziaur.rahman@example.com'),
-            ('Laila', 'Arjumand', 'laila.arjumand@example.com'),
-            ('Shafiqul', 'Alam', 'shafiqul.alam@example.com'),
-            ('Anika', 'Tabassum', 'anika.tabassum@example.com'),
-            ('Sabbir', 'Hossain', 'sabbir.hossain@example.com'),
-            ('Rumana', 'Rashid', 'rumana.rashid@example.com'),
-            ('Kamrul', 'Hassan', 'kamrul.hassan@example.com'),
-            ('Nabila', 'Chowdhury', 'nabila.chowdhury@example.com'),
-            ('Mustafizur', 'Rahman', 'mustafizur.rahman@example.com'),
-            ('Sharmin', 'Akter', 'sharmin.akter@example.com'),
-            ('Babul', 'Miah', 'babul.miah@example.com'),
-            ('Nazia', 'Hassan', 'nazia.hassan@example.com'),
-            ('Rubel', 'Hossain', 'rubel.hossain@example.com'),
-            ('Dilruba', 'Khanom', 'dilruba.khanom@example.com'),
         ]
 
         customers = [customer_demo_user]
         for fn, ln, em in bangla_customers_data:
-            u = User.objects.create_user(
-                email=em,
-                password='password123',
-                first_name=fn,
-                last_name=ln,
-                phone_number=f"+88018{random.randint(10000000, 99999999)}",
-            )
+            u = self._get_or_create_user(em, 'password123', fn, ln, f"+88018{random.randint(10000000, 99999999)}")
             customers.append(u)
 
-        # 3. Create Organizations (12 Bangladeshi Orgs across 4 sectors)
+        # 3. Multi-Industry Organizations Definition (All 6 Industries Represented)
         orgs_definition = [
-            # Healthcare
+            # ---------------------------------------------------------------
+            # HEALTHCARE
+            # ---------------------------------------------------------------
             {
+                'industry_type': Organization.IndustryType.HEALTHCARE,
                 'name': 'Dhaka Care Clinic',
                 'slug': 'dhaka-care-clinic',
                 'address': 'House 42, Road 27, Dhanmondi, Dhaka 1209',
                 'phone': '+88029660000',
                 'email': 'contact@dhakacare.example.com',
+                'logo': 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=300&auto=format&fit=crop',
+                'cover_image': 'https://images.unsplash.com/photo-1516549655169-df83a0774514?w=1200&auto=format&fit=crop',
+                'description': 'Leading multi-specialty healthcare outpatient facility in Dhanmondi providing general medicine, dermatology, and pediatric consultations.',
                 'manager': manager_demo,
                 'staff': [staff_demo_user],
-                'providers_data': [
-                    (provider_demo_user, 'Dr. Senior Consultant', 'MBBS, FCPS (Medicine). 12+ years experience.'),
-                    ('Dr. Tanjila Akter', 'Dermatology Specialist', 'MBBS, DDV. Specialist in skin and laser care.'),
-                    ('Dr. Rafiul Islam', 'Pediatrics Consultant', 'MBBS, DCH. Child healthcare expert.'),
+                'categories': [
+                    ('General Medicine', 'general-medicine', 'Primary care and internal medicine consultations', 'stethoscope', 1),
+                    ('Dermatology & Skin Care', 'dermatology', 'Advanced skin, hair, and laser dermatological care', 'sparkles', 2),
+                    ('Pediatrics', 'pediatrics', 'Comprehensive healthcare and growth monitoring for children', 'baby', 3),
                 ],
                 'services': [
-                    ('General Medical Consultation', 'Comprehensive health checkup and prescription.', 20, '800.00'),
-                    ('Specialist Follow-up Consultation', 'Follow-up review for ongoing treatments.', 15, '500.00'),
-                    ('Dermatology & Skin Checkup', 'Full skin, hair, and dermatological assessment.', 30, '1200.00'),
-                    ('Pediatric Health Checkup', 'Comprehensive growth and health audit for children.', 25, '1000.00'),
-                ]
-            },
-            {
-                'name': 'Mirpur Family Health Center',
-                'slug': 'mirpur-family-health',
-                'address': 'Plot 12, Main Road, Mirpur-10, Dhaka 1216',
-                'phone': '+88029001122',
-                'email': 'info@mirpurfamilyhealth.example.com',
-                'manager': ('Mahmudul', 'Islam', 'mahmudul.mgr@example.com'),
-                'staff': [('Samia', 'Rahman', 'samia.staff@example.com')],
-                'providers_data': [
-                    ('Dr. Arif Hossain', 'Family Medicine Physician', 'MBBS, PGT (Family Medicine).'),
-                    ('Dr. Jannatul Ferdous', 'Gynecology Specialist', 'MBBS, FCPS (OBGYN).'),
+                    ('general-medicine', 'General Medical Consultation', 'Comprehensive health checkup and general diagnosis.', 20, '800.00'),
+                    ('general-medicine', 'Specialist Follow-up Review', 'Follow-up review for ongoing medical treatments.', 15, '500.00'),
+                    ('dermatology', 'Full Skin & Laser Checkup', 'Dermatological assessment for skin conditions and laser therapy.', 30, '1200.00'),
+                    ('pediatrics', 'Pediatric Growth & Health Audit', 'Growth, vaccination, and pediatric wellness checkup.', 25, '1000.00'),
                 ],
-                'services': [
-                    ('Family Doctor Consultation', 'Routine healthcare consultation for family members.', 20, '500.00'),
-                    ('Maternal & Gynae Checkup', 'Antenatal care and general gynecological consultation.', 30, '1000.00'),
-                    ('Diabetes & Blood Pressure Audit', 'Specialized metabolic health monitoring.', 20, '600.00'),
-                ]
-            },
-            {
-                'name': 'Uttara Wellness Clinic',
-                'slug': 'uttara-wellness-clinic',
-                'address': 'Sector 4, Road 7, Uttara, Dhaka 1230',
-                'phone': '+88028954321',
-                'email': 'care@uttarawellness.example.com',
-                'manager': ('Sharmin', 'Sultana', 'sharmin.mgr@example.com'),
-                'staff': [('Nafis', 'Ahmed', 'nafis.staff@example.com')],
                 'providers_data': [
-                    ('Dr. Mehedi Hasan', 'Orthopedic Consultant', 'MBBS, MS (Orthopedics). Spine and joint care.'),
-                    ('Dr. Farhana Yeasmin', 'Nutrition & Lifestyle Consultant', 'BSc, MSc (Nutrition & Food Science).'),
-                ],
-                'services': [
-                    ('Orthopedic & Joint Consultation', 'Bone, joint, and spine pain evaluation.', 25, '1200.00'),
-                    ('Nutrition & Diet Planning', 'Customized diet plans for weight management & diabetes.', 30, '1500.00'),
-                    ('Physiotherapy Assessment', 'Physical rehabilitation planning.', 30, '1000.00'),
-                ]
-            },
-            {
-                'name': 'Dhanmondi Medical Point',
-                'slug': 'dhanmondi-medical-point',
-                'address': 'Road 2, Dhanmondi, Dhaka 1205',
-                'phone': '+88029671122',
-                'email': 'info@dhanmondimedical.example.com',
-                'manager': ('Imran', 'Hossain', 'imran.mgr@example.com'),
-                'staff': [('Mim', 'Akter', 'mim.staff@example.com')],
-                'providers_data': [
-                    ('Dr. Farhan Kabir', 'Cardiology Specialist', 'MBBS, MD (Cardiology). Heart care expert.'),
-                    ('Dr. Sadiya Afrin', 'ENT Consultant', 'MBBS, DLO. Ear, nose, and throat specialist.'),
-                ],
-                'services': [
-                    ('Cardiology & ECG Review', 'Heart health check and ECG interpretation.', 30, '1500.00'),
-                    ('ENT Consultation', 'Diagnosis of ear, nose, throat conditions.', 20, '1000.00'),
+                    {
+                        'user': provider_demo_user,
+                        'title': 'Dr. Senior Consultant (Medicine & Skin)',
+                        'bio': 'Senior physician with over 12 years of clinical experience in internal medicine and dermatological consultation.',
+                        'profile_photo': 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop',
+                        'experience_years': 12,
+                        'education': [
+                            {'degree': 'MBBS', 'institution': 'Dhaka Medical College', 'year': '2010'},
+                            {'degree': 'FCPS (Medicine)', 'institution': 'BCPS', 'year': '2016'},
+                        ],
+                        'experience_history': [
+                            {'role': 'Senior Consultant', 'organization': 'Dhaka Care Clinic', 'period': '2018-Present', 'description': 'Head of Outpatient Internal Medicine.'},
+                            {'role': 'Registrar', 'organization': 'Square Hospital', 'period': '2012-2017', 'description': 'Internal medicine inpatient registrar.'},
+                        ],
+                        'certifications': [
+                            {'name': 'Certified Clinical Internist', 'issuer': 'BMDC', 'year': '2011'},
+                            {'name': 'Advanced Skin Care & Laser Certificate', 'issuer': 'AAS', 'year': '2018'},
+                        ],
+                        'specialties': ['Internal Medicine', 'Dermatology', 'Hypertension', 'Diabetes Management'],
+                        'service_names': ['General Medical Consultation', 'Specialist Follow-up Review', 'Full Skin & Laser Checkup'], # Multi-category provider!
+                    },
+                    {
+                        'user': ('Tanjila', 'Akter', 'dr.tanjila@dhakacare.example.com'),
+                        'title': 'Dr. Tanjila Akter, Dermatology Specialist',
+                        'bio': 'Specialist in clinical dermatology, acne therapy, and aesthetic skin procedures.',
+                        'profile_photo': 'https://images.unsplash.com/photo-1594824813566-88855ce78c4c?w=400&auto=format&fit=crop',
+                        'experience_years': 9,
+                        'education': [
+                            {'degree': 'MBBS', 'institution': 'Chittagong Medical College', 'year': '2013'},
+                            {'degree': 'DDV (Dermatology)', 'institution': 'BSMMU', 'year': '2018'},
+                        ],
+                        'experience_history': [
+                            {'role': 'Assistant Professor Dermatology', 'organization': 'Enam Medical College', 'period': '2019-Present', 'description': 'Academic and clinical instruction.'},
+                        ],
+                        'certifications': [
+                            {'name': 'Aesthetic Dermatology Fellow', 'issuer': 'Dermatology Society BD', 'year': '2019'},
+                        ],
+                        'specialties': ['Acne Vulgaris', 'Laser Hair Removal', 'Eczema', 'Psoriasis'],
+                        'service_names': ['Full Skin & Laser Checkup'],
+                    },
                 ]
             },
 
-            # Salon & Beauty (6 Orgs)
             {
-                'name': 'Gulshan Glow Studio',
-                'slug': 'gulshan-glow-studio',
+                'industry_type': Organization.IndustryType.HEALTHCARE,
+                'name': 'CarePlus Diagnostic & Imaging',
+                'slug': 'careplus-diagnostic',
+                'address': 'Plot 12, Main Road, Dhanmondi, Dhaka 1205',
+                'phone': '+88029669480',
+                'email': 'info@careplusdiag.example.com',
+                'logo': 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=300&auto=format&fit=crop',
+                'cover_image': 'https://images.unsplash.com/photo-1516549655169-df83a0774514?w=1200&auto=format&fit=crop',
+                'description': 'Advanced diagnostic pathology lab and digital MRI/CT imaging center.',
+                'manager': ('Mahmudul', 'Islam', 'mahmudul.careplus@example.com'),
+                'staff': [('Samia', 'Rahman', 'samia.careplus@example.com')],
+                'categories': [
+                    ('Pathology Lab', 'pathology-lab', 'Diagnostic blood, urine, and metabolic lab panels', 'flask', 1),
+                    ('Radiology & MRI', 'radiology-mri', 'Digital X-Ray, Ultrasonogram, and MRI imaging', 'activity', 2),
+                ],
+                'services': [
+                    ('pathology-lab', 'Comprehensive Health Screening Lab Panel', 'Full blood count, lipid profile, kidney & liver screening.', 25, '3500.00'),
+                    ('radiology-mri', 'High-Resolution Lumbar Spine MRI Scan', '1.5T MRI imaging for spine and nerve root assessment.', 30, '7000.00'),
+                ],
+                'providers_data': [
+                    {
+                        'user': ('Ariful', 'Islam', 'dr.ariful@careplus.example.com'),
+                        'title': 'Dr. Ariful Islam, Consultant Radiologist',
+                        'bio': 'Expert radiologist specializing in neuro-imaging and musculoskeletal MRI interpretation.',
+                        'profile_photo': 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=400&auto=format&fit=crop',
+                        'experience_years': 15,
+                        'education': [
+                            {'degree': 'MBBS', 'institution': 'Sir Salimullah Medical College', 'year': '2007'},
+                            {'degree': 'MD (Radiology)', 'institution': 'BSMMU', 'year': '2014'},
+                        ],
+                        'experience_history': [
+                            {'role': 'Chief Radiologist', 'organization': 'CarePlus Diagnostic', 'period': '2016-Present', 'description': 'Head of Diagnostic Imaging.'},
+                        ],
+                        'certifications': [
+                            {'name': 'MRI Specialist Certification', 'issuer': 'Asian Society of Radiology', 'year': '2015'},
+                        ],
+                        'specialties': ['Neuro MRI', 'CT Angiography', 'Musculoskeletal Ultrasound'],
+                        'service_names': ['High-Resolution Lumbar Spine MRI Scan'],
+                    }
+                ]
+            },
+
+            # ---------------------------------------------------------------
+            # LEGAL
+            # ---------------------------------------------------------------
+            {
+                'industry_type': Organization.IndustryType.LEGAL,
+                'name': 'ABC Legal Associates',
+                'slug': 'abc-legal-associates',
+                'address': 'Level 8, City Center Tower, Motijheel C/A, Dhaka 1000',
+                'phone': '+88029550099',
+                'email': 'contact@abclegal.example.com',
+                'logo': 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=300&auto=format&fit=crop',
+                'cover_image': 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=1200&auto=format&fit=crop',
+                'description': 'Premier corporate, commercial, and property law firm in Dhaka providing corporate registration, land title vetting, and dispute resolution.',
+                'manager': ('Sharmin', 'Sultana', 'sharmin.legal@example.com'),
+                'staff': [('Nafis', 'Ahmed', 'nafis.legal@example.com')],
+                'categories': [
+                    ('Corporate & Commercial Law', 'corporate-law', 'Company RJSC registration, shareholder contracts, and FDI licensing', 'briefcase', 1),
+                    ('Property & Real Estate Law', 'property-law', 'Land title vetting, deed registration, and property dispute counsel', 'home', 2),
+                    ('Family & Civil Litigation', 'family-civil-law', 'Civil litigation, family settlement, and arbitration advisory', 'scale', 3),
+                ],
+                'services': [
+                    ('corporate-law', 'Company RJSC Registration Consultation', 'Comprehensive guidance on corporate entity setup and RJSC filing.', 60, '15000.00'),
+                    ('corporate-law', 'Commercial Contract Review & Vetting', 'Detailed legal risk review for commercial agreements and NDAs.', 45, '8000.00'),
+                    ('property-law', 'Land Deed & Title Legal Vetting', 'Verification of ownership history, CS/SA/RS khatian, and deed validity.', 60, '12000.00'),
+                    ('family-civil-law', 'Family Settlement & Civil Consultation', 'Legal counsel regarding inheritance, family settlement, and civil suits.', 45, '6000.00'),
+                ],
+                'providers_data': [
+                    {
+                        'user': ('Rahim', 'Chowdhury', 'adv.rahim@abclegal.example.com'),
+                        'title': 'Barrister Rahim Chowdhury, Head of Corporate Law',
+                        'bio': 'Senior corporate advocate with 14 years experience advising startups, banks, and multinational corporations in Bangladesh.',
+                        'profile_photo': 'https://images.unsplash.com/photo-1556157382-97eda2d62296?w=400&auto=format&fit=crop',
+                        'experience_years': 14,
+                        'education': [
+                            {'degree': 'LL.B (Honours)', 'institution': 'University of London', 'year': '2008'},
+                            {'degree': 'Bar-at-Law', 'institution': "Lincoln's Inn, UK", 'year': '2010'},
+                        ],
+                        'experience_history': [
+                            {'role': 'Senior Partner', 'organization': 'ABC Legal Associates', 'period': '2015-Present', 'description': 'Managing corporate & FDI practice.'},
+                            {'role': 'Associate Advocate', 'organization': 'Fox Mandal BD', 'period': '2010-2014', 'description': 'Commercial drafting and arbitration.'},
+                        ],
+                        'certifications': [
+                            {'name': 'Enrolled Advocate', 'issuer': 'Bangladesh Bar Council', 'year': '2011'},
+                            {'name': 'High Court Division Permission', 'issuer': 'Supreme Court of Bangladesh', 'year': '2014'},
+                        ],
+                        'specialties': ['Corporate Governance', 'FDI Licensing', 'Property Vetting', 'Commercial Arbitration'],
+                        'service_names': ['Company RJSC Registration Consultation', 'Commercial Contract Review & Vetting', 'Land Deed & Title Legal Vetting'], # Multi-category legal practitioner!
+                    }
+                ]
+            },
+
+            # ---------------------------------------------------------------
+            # BEAUTY
+            # ---------------------------------------------------------------
+            {
+                'industry_type': Organization.IndustryType.BEAUTY,
+                'name': 'Glow Beauty Studio & Spa',
+                'slug': 'glow-beauty-studio',
                 'address': 'Pink City Shopping Complex, Gulshan-2, Dhaka 1212',
                 'phone': '+880175550011',
-                'email': 'booking@gulshanglow.example.com',
-                'manager': ('Tamanna', 'Yasmin', 'tamanna.mgr@example.com'),
-                'staff': [('Rokia', 'Begum', 'rokia.staff@example.com')],
-                'providers_data': [
-                    ('Farzana Shakil Associate', 'Senior Hair & Makeup Artist', 'Certified International Stylist.'),
-                    ('Nusrat Jahan Style', 'Skin Care & Facial Specialist', 'Organic facial and skin specialist.'),
+                'email': 'booking@glowbeauty.example.com',
+                'logo': 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=300&auto=format&fit=crop',
+                'cover_image': 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&auto=format&fit=crop',
+                'description': 'Luxury salon and wellness spa offering executive hair styling, organic hydra-facials, and bridal makeover packages.',
+                'manager': ('Tamanna', 'Yasmin', 'tamanna.glow@example.com'),
+                'staff': [('Rokia', 'Begum', 'rokia.glow@example.com')],
+                'categories': [
+                    ('Hair Styling & Treatment', 'hair-care', 'Precision haircut, blow-dry, keratin smoothing, and organic hair spa', 'scissors', 1),
+                    ('Skin & Hydra Facial', 'skin-care', 'Deep pore cleansing, collagen boost, and skin rejuvenation facials', 'sparkles', 2),
+                    ('Bridal Makeover', 'makeup-bridal', 'Trial makeover, party glam, and high-definition bridal makeup', 'palette', 3),
                 ],
                 'services': [
-                    ('Executive Haircut & Styling', 'Wash, cut, blow-dry, and professional styling.', 45, '1500.00'),
-                    ('Hydra-Glow Facial Treatment', 'Deep cleansing and skin rejuvenation facial.', 60, '3500.00'),
-                    ('Bridal Makeup Consultation', 'Trial session and wedding makeup planning.', 60, '5000.00'),
-                    ('Hair Keratin Protein Treatment', 'Deep hair conditioning and smoothing.', 90, '6500.00'),
-                ]
-            },
-            {
-                'name': 'Banani Style Lounge',
-                'slug': 'banani-style-lounge',
-                'address': 'Block F, Road 11, Banani, Dhaka 1213',
-                'phone': '+880175550022',
-                'email': 'hello@bananistyle.example.com',
-                'manager': ('Anika', 'Tabassum', 'anika.mgr@example.com'),
-                'staff': [('Rumana', 'Rashid', 'rumana.staff@example.com')],
-                'providers_data': [
-                    ('Tariqul Islam', 'Master Barber & Stylist', 'Grooming and beard design expert.'),
-                    ('Saif Hasan Stylist', 'Creative Hair Artist', 'Coloring and modern cuts expert.'),
+                    ('hair-care', 'Executive Haircut & Keratin Smoothing', 'Wash, cut, blow-dry, and deep keratin protein smoothing.', 60, '3500.00'),
+                    ('skin-care', 'Hydra-Rejuvenation Organic Facial', '6-step deep cleansing and hydration facial treatment.', 60, '4500.00'),
+                    ('makeup-bridal', 'Bridal Glam Makeup Consultation & Trial', 'High-definition trial makeover and bridal wedding styling session.', 90, '12000.00'),
                 ],
-                'services': [
-                    ('Gentlemen Royal Grooming Package', 'Haircut, beard trim, face massage.', 45, '1200.00'),
-                    ('Beard Sculpting & Hot Towel Treatment', 'Precision beard shaping with hot towel.', 30, '600.00'),
-                    ('Hair Color & Highlights', 'Global hair coloring and highlighting.', 60, '2800.00'),
-                ]
-            },
-            {
-                'name': 'Mirpur Beauty Care',
-                'slug': 'mirpur-beauty-care',
-                'address': 'Mirpur DOHS Shopping Complex, Dhaka 1216',
-                'phone': '+880175550033',
-                'email': 'care@mirpurbeauty.example.com',
-                'manager': ('Nazia', 'Hassan', 'nazia.mgr@example.com'),
-                'staff': [('Dilruba', 'Khanom', 'dilruba.staff@example.com')],
                 'providers_data': [
-                    ('Sharmeen Akter', 'Beauty & Spa Specialist', 'Aromatherapy and hair care.'),
-                ],
-                'services': [
-                    ('Herbal Hair Spa Treatment', 'Nourishing herbal oil massage and steam.', 45, '800.00'),
-                    ('Classic Pedicure & Manicure', 'Nail care, scrub, and deep moisturizing.', 45, '1000.00'),
-                ]
-            },
-            {
-                'name': 'Dhanmondi Aesthetic & Spa',
-                'slug': 'dhanmondi-aesthetic-spa',
-                'address': 'Road 27, Dhanmondi, Dhaka 1209',
-                'phone': '+880175550044',
-                'email': 'info@dhanmondiaesthetic.example.com',
-                'manager': ('Sadiya', 'Afrin', 'sadiya.spa@example.com'),
-                'staff': [('Tanjila', 'Akter', 'tanjila.spa@example.com')],
-                'providers_data': [
-                    ('Ayesha Rahman', 'Senior Aesthetic Specialist', 'Certified laser & skin specialist.'),
-                ],
-                'services': [
-                    ('Aromatherapy Body Massage', 'Full body relaxing essential oil massage.', 60, '3000.00'),
-                    ('Anti-Aging Rejuvenation Facial', 'Collagen boost facial therapy.', 60, '4000.00'),
-                ]
-            },
-            {
-                'name': 'Uttara Glamour Salon',
-                'slug': 'uttara-glamour-salon',
-                'address': 'Sector 3, Sonargaon Janapath, Uttara, Dhaka 1230',
-                'phone': '+880175550055',
-                'email': 'glamour@uttarasalon.example.com',
-                'manager': ('Subrata', 'Chowdhury', 'subrata.glamour@example.com'),
-                'staff': [('Farhana', 'Yeasmin', 'farhana.glamour@example.com')],
-                'providers_data': [
-                    ('Mehedi Hasan Hair', 'Creative Hair Stylist', 'Unisex hair cut and styling.'),
-                ],
-                'services': [
-                    ('Trendy Haircut & Rebonding', 'Straightening and sleek shine finish.', 90, '5500.00'),
-                    ('Party Makeup & Hair Styling', 'Flawless evening party glam look.', 60, '3000.00'),
-                ]
-            },
-            {
-                'name': 'Sylhet Chic Beauty Bar',
-                'slug': 'sylhet-chic-beauty-bar',
-                'address': 'Zindabazar Commercial Complex, Sylhet 3100',
-                'phone': '+880175550066',
-                'email': 'booking@sylhetchic.example.com',
-                'manager': ('Subrata', 'Chowdhury', 'subrata.sylhet@example.com'),
-                'staff': [('Samia', 'Rahman', 'samia.sylhet@example.com')],
-                'providers_data': [
-                    ('Nafis Ahmed Stylist', 'Bridal & Party Specialist', 'Regional bridal specialist.'),
-                ],
-                'services': [
-                    ('Deluxe Spa Pedicure', 'Exfoliating foot scrub & polish.', 45, '1200.00'),
-                    ('Organic Gold Glow Facial', '24k gold foil radiance facial.', 60, '4500.00'),
+                    {
+                        'user': ('Farzana', 'Shakil-Assoc', 'farzana.stylist@glowbeauty.example.com'),
+                        'title': 'Farzana Shakil Associate, Master Stylist',
+                        'bio': 'Certified international hair artist and aesthetician with 11 years experience in bridal makeover and skin therapy.',
+                        'profile_photo': 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=400&auto=format&fit=crop',
+                        'experience_years': 11,
+                        'education': [
+                            {'degree': 'Diploma in Hair & Beauty', 'institution': 'Pivot Point Academy, UK', 'year': '2012'},
+                        ],
+                        'experience_history': [
+                            {'role': 'Master Stylist', 'organization': 'Glow Beauty Studio', 'period': '2017-Present', 'description': 'Lead bridal and aesthetic specialist.'},
+                            {'role': 'Senior Aesthetician', 'organization': 'Persona Beauty Care', 'period': '2013-2017', 'description': 'Skin and hair care specialist.'},
+                        ],
+                        'certifications': [
+                            {'name': 'Certified HydraFacial Operator', 'issuer': 'Aesthetic International', 'year': '2018'},
+                        ],
+                        'specialties': ['Bridal Makeover', 'Keratin Smoothing', 'Hydra Facial', 'Hair Color'],
+                        'service_names': ['Executive Haircut & Keratin Smoothing', 'Hydra-Rejuvenation Organic Facial', 'Bridal Glam Makeup Consultation & Trial'], # Multi-category beautician!
+                    }
                 ]
             },
 
-            # Dental Care (6 Orgs)
+            # ---------------------------------------------------------------
+            # REPAIR
+            # ---------------------------------------------------------------
             {
-                'name': 'Dhanmondi Dental Speciality',
-                'slug': 'dhanmondi-dental-speciality',
-                'address': 'Road 7, Dhanmondi, Dhaka 1205',
-                'phone': '+88029661122',
-                'email': 'care@dhanmondidental.example.com',
-                'manager': ('Farhan', 'Kabir', 'farhan.dental@example.com'),
-                'staff': [('Jannatul', 'Ferdous', 'jannatul.dental@example.com')],
-                'providers_data': [
-                    ('Dr. Kazi Nazrul Dental', 'Orthodontics & Implant Specialist', 'BDS, MS (Orthodontics).'),
-                    ('Dr. Subrata Dental', 'Cosmetic Dentist', 'BDS, PGT (Endodontics).'),
+                'industry_type': Organization.IndustryType.REPAIR,
+                'name': 'CoolTech Service Center',
+                'slug': 'cooltech-service-center',
+                'address': 'Multiplan Center, Elephant Road, Dhaka 1205',
+                'phone': '+8801788990011',
+                'email': 'support@cooltech.example.com',
+                'logo': 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300&auto=format&fit=crop',
+                'cover_image': 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=1200&auto=format&fit=crop',
+                'description': 'Multi-brand hardware repair hub specializing in laptop chip-level diagnostics, mobile screen replacement, and inverter AC servicing.',
+                'manager': ('Imran', 'Hossain', 'imran.cooltech@example.com'),
+                'staff': [('Farhan', 'Kabir', 'farhan.cooltech@example.com')],
+                'categories': [
+                    ('Laptop & Computer Repair', 'laptop-pc-repair', 'Chip-level motherboard repair, display replacement, and OS recovery', 'laptop', 1),
+                    ('Smartphone Repair', 'mobile-repair', 'OLED display assembly, battery replacement, and logic board soldering', 'smartphone', 2),
+                    ('Home Appliance Repair', 'home-appliances', 'Inverter AC master servicing, gas refilling, and PCB board repair', 'wrench', 3),
                 ],
                 'services': [
-                    ('Scaling & Polishing Treatment', 'Ultrasound dental scaling and stain removal.', 30, '1500.00'),
-                    ('Root Canal Therapy (Single Sitting)', 'Painless single-visit root canal.', 45, '4500.00'),
-                    ('Laser Tooth Whitening', 'Instant teeth whitening treatment.', 45, '6000.00'),
-                    ('Invisible Braces Consultation', 'Clear aligner assessment and 3D scan.', 30, '2000.00'),
-                ]
-            },
-            {
-                'name': 'Gulshan Smile & Implant Center',
-                'slug': 'gulshan-smile-implant',
-                'address': 'Avenue 1, Gulshan-1, Dhaka 1212',
-                'phone': '+88029882233',
-                'email': 'info@gulshansmile.example.com',
-                'manager': ('Tahmidur', 'Rahman', 'tahmidur.smile@example.com'),
-                'staff': [('Rokia', 'Begum', 'rokia.smile@example.com')],
-                'providers_data': [
-                    ('Dr. Moniruzzaman Dental', 'Implantologist & Oral Surgeon', 'BDS, FCPS (Oral Surgery).'),
+                    ('laptop-pc-repair', 'Laptop Motherboard & Chip Repair Audit', 'Component-level motherboard diagnostic and GPU/power IC repair.', 45, '2500.00'),
+                    ('mobile-repair', 'Smartphone Screen & Battery Replacement', 'Original OLED display assembly and high-capacity battery installation.', 30, '1800.00'),
+                    ('home-appliances', 'Inverter AC Master Servicing & Gas Refill', 'Indoor/outdoor pressure wash, jet cleaning, and Freon gas refill.', 60, '3000.00'),
                 ],
-                'services': [
-                    ('Dental Implant Evaluation', '3D X-ray and titanium implant planning.', 30, '3000.00'),
-                    ('Ceramic Crown & Bridge Fitting', 'Custom tooth color ceramic crown.', 45, '5000.00'),
-                ]
-            },
-            {
-                'name': 'Uttara Dental Care & Orthodontics',
-                'slug': 'uttara-dental-care',
-                'address': 'Sector 11, Road 2, Uttara, Dhaka 1230',
-                'phone': '+88028963344',
-                'email': 'support@uttaradental.example.com',
-                'manager': ('Taskin', 'Ahmed', 'taskin.dental@example.com'),
-                'staff': [('Naimul', 'Hasan', 'naimul.dental@example.com')],
                 'providers_data': [
-                    ('Dr. Tamanna Dental', 'Pediatric Dental Specialist', 'BDS, MPH. Child dental care.'),
-                ],
-                'services': [
-                    ('Kids Dental Checkup & Fluoride', 'Cavity prevention and tooth sealant.', 30, '1200.00'),
-                    ('Tooth Extraction (Simple)', 'Painless dental extraction under local anesthesia.', 30, '1500.00'),
-                ]
-            },
-            {
-                'name': 'Banani Pearl Dental Clinic',
-                'slug': 'banani-pearl-dental',
-                'address': 'Road 11, Banani, Dhaka 1213',
-                'phone': '+88029874455',
-                'email': 'pearl@bananidental.example.com',
-                'manager': ('Ziaur', 'Rahman', 'ziaur.pearl@example.com'),
-                'staff': [('Laila', 'Arjumand', 'laila.pearl@example.com')],
-                'providers_data': [
-                    ('Dr. Shafiqul Dental', 'Cosmetic Dental Surgeon', 'BDS, PGT (Cosmetic Dentistry).'),
-                ],
-                'services': [
-                    ('Composite Veneers & Smile Design', 'Aesthetic smile correction.', 45, '4000.00'),
-                    ('Wisdom Tooth Removal Audit', 'Impacted wisdom tooth consultation.', 30, '2500.00'),
-                ]
-            },
-            {
-                'name': 'Mirpur Apex Dental Care',
-                'slug': 'mirpur-apex-dental',
-                'address': 'Main Road, Mirpur-2, Dhaka 1216',
-                'phone': '+88029015566',
-                'email': 'apex@mirpurdental.example.com',
-                'manager': ('Sabbir', 'Hossain', 'sabbir.apex@example.com'),
-                'staff': [('Rumana', 'Rashid', 'rumana.apex@example.com')],
-                'providers_data': [
-                    ('Dr. Kamrul Dental', 'General Dental Practitioner', 'BDS. 8+ yrs experience.'),
-                ],
-                'services': [
-                    ('Routine Dental Cleaning & Checkup', 'Complete plaque removal & examination.', 30, '1000.00'),
-                    ('Tooth Cavity Filling (Composite)', 'Invisible tooth-colored filling.', 30, '1200.00'),
-                ]
-            },
-            {
-                'name': 'Chittagong Perfect Smile Clinic',
-                'slug': 'chittagong-perfect-smile',
-                'address': 'GEC Circle, Nasirabad, Chittagong 4000',
-                'phone': '+880316556677',
-                'email': 'chittagong@perfectsmile.example.com',
-                'manager': ('Nabila', 'Chowdhury', 'nabila.ctg@example.com'),
-                'staff': [('Mustafizur', 'Rahman', 'mustafizur.ctg@example.com')],
-                'providers_data': [
-                    ('Dr. Rubel Dental Specialist', 'Orthodontic Surgeon', 'BDS, MS.'),
-                ],
-                'services': [
-                    ('Orthodontic Metal Braces Setup', 'Complete alignment braces fitting.', 60, '35000.00'),
-                    ('Night Guard & Gum Shield', 'Custom tooth grinding guard.', 30, '2000.00'),
+                    {
+                        'user': ('Kamrul', 'Hasan-Eng', 'eng.kamrul@cooltech.example.com'),
+                        'title': 'Engr. Kamrul Hasan, Chief Technical Specialist',
+                        'bio': 'Hardware engineer with 10 years experience in micro-soldering, laptop motherboard chip diagnostics, and mobile logic boards.',
+                        'profile_photo': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop',
+                        'experience_years': 10,
+                        'education': [
+                            {'degree': 'B.Sc in Electrical Engineering', 'institution': 'DUET', 'year': '2013'},
+                        ],
+                        'experience_history': [
+                            {'role': 'Chief Hardware Specialist', 'organization': 'CoolTech Service Center', 'period': '2017-Present', 'description': 'Lead technician for laptop & smartphone chip repair.'},
+                        ],
+                        'certifications': [
+                            {'name': 'Apple Certified Macintosh Technician (ACMT)', 'issuer': 'Apple Inc.', 'year': '2016'},
+                            {'name': 'Dell Certified Hardware Expert', 'issuer': 'Dell Technologies', 'year': '2015'},
+                        ],
+                        'specialties': ['Micro Soldering', 'GPU BGA Reballing', 'iPhone Logic Board Repair', 'AC PCB Diagnostics'],
+                        'service_names': ['Laptop Motherboard & Chip Repair Audit', 'Smartphone Screen & Battery Replacement'], # Multi-category technician!
+                    }
                 ]
             },
 
-            # Diagnostic (6 Orgs)
+            # ---------------------------------------------------------------
+            # CONSULTING
+            # ---------------------------------------------------------------
             {
-                'name': 'Popular Diagnostic & Imaging Center',
-                'slug': 'popular-diagnostic-imaging',
-                'address': 'House 16, Road 2, Dhanmondi, Dhaka 1205',
-                'phone': '+88029669480',
-                'email': 'info@populardiagnostic.example.com',
-                'manager': ('Fahim', 'Hasan', 'fahim.pop@example.com'),
-                'staff': [('Mehedi', 'Hasan', 'mehedi.pop@example.com')],
-                'providers_data': [
-                    ('Dr. Ariful Radiologist', 'Consultant Radiologist', 'MBBS, MD (Radiology). 15+ yrs.'),
-                    ('Dr. Tanjila Pathologist', 'Consultant Pathologist', 'MBBS, DCP.'),
+                'industry_type': Organization.IndustryType.CONSULTING,
+                'name': 'Nexus Business & Tax Consulting',
+                'slug': 'nexus-business-consulting',
+                'address': 'Road 11, Block D, Banani, Dhaka 1213',
+                'phone': '+88029881122',
+                'email': 'advisory@nexusconsulting.example.com',
+                'logo': 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=300&auto=format&fit=crop',
+                'cover_image': 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop',
+                'description': 'Strategic corporate advisory firm providing NBR tax planning, audit preparation, RJSC compliance, and IT cloud transformation consulting.',
+                'manager': ('Moniruzzaman', 'Khan', 'monir.nexus@example.com'),
+                'staff': [('Taskin', 'Ahmed', 'taskin.nexus@example.com')],
+                'categories': [
+                    ('Tax & Financial Advisory', 'tax-finance', 'Corporate income tax planning, NBR return audit, and ICAB audit preparation', 'calculator', 1),
+                    ('Business Strategy & Advisory', 'business-strategy', 'Startup valuation, corporate restructuring, and expansion feasibility studies', 'trending-up', 2),
+                    ('IT & Cloud Architecture', 'it-consulting', 'Cloud security audit, software architecture review, and DevOps transformation', 'cpu', 3),
                 ],
                 'services': [
-                    ('Full Body Health Screening Lab Package', 'Comprehensive blood count, lipid, kidney & liver panel.', 30, '3500.00'),
-                    ('High-Resolution MRI Scan Review', '1.5T Brain/Spine MRI imaging.', 30, '7000.00'),
-                    ('4D Color Doppler Ultrasonogram', 'Advanced abdominal and pelvic ultrasound scan.', 25, '2500.00'),
-                    ('Digital Chest X-Ray & ECG', 'Dual cardio-respiratory preliminary audit.', 15, '800.00'),
-                ]
-            },
-            {
-                'name': 'Ibn Sina Specialized Lab',
-                'slug': 'ibn-sina-specialized-lab',
-                'address': 'House 68, Road 15/A, Dhanmondi, Dhaka 1209',
-                'phone': '+88029126622',
-                'email': 'lab@ibnsina.example.com',
-                'manager': ('Arif', 'Hossain', 'arif.ibn@example.com'),
-                'staff': [('Rakibul', 'Hasan', 'rakibul.ibn@example.com')],
-                'providers_data': [
-                    ('Dr. Samia Pathologist', 'Chief Medical Biochemist', 'MBBS, MPhil (Biochemistry).'),
+                    ('tax-finance', 'Corporate Tax Planning & NBR Return Audit', 'Strategic corporate tax optimization and annual NBR tax return filing advisory.', 60, '10000.00'),
+                    ('business-strategy', 'Startup Growth & Financial Valuation Advisory', 'Investment pitch deck evaluation, business valuation, and term sheet review.', 60, '15000.00'),
+                    ('it-consulting', 'Cloud Security & Software Architecture Audit', 'Infrastructure review, AWS/Azure security audit, and scalability assessment.', 60, '20000.00'),
                 ],
-                'services': [
-                    ('Diabetes Profile (HbA1c & Fasting)', 'Comprehensive blood sugar control evaluation.', 20, '1200.00'),
-                    ('Thyroid Function Test (T3, T4, TSH)', 'Complete hormone panel.', 20, '1500.00'),
-                ]
-            },
-            {
-                'name': 'Labaid Diagnostic Complex',
-                'slug': 'labaid-diagnostic-complex',
-                'address': 'House 1, Road 4, Dhanmondi, Dhaka 1205',
-                'phone': '+88028610701',
-                'email': 'reports@labaiddiagnostic.example.com',
-                'manager': ('Nafis', 'Ahmed', 'nafis.lab@example.com'),
-                'staff': [('Saif', 'Hasan', 'saif.lab@example.com')],
                 'providers_data': [
-                    ('Dr. Mim Radiologist', 'Consultant Sonologist', 'MBBS, PGT (Ultrasonography).'),
-                ],
-                'services': [
-                    ('Echocardiogram (Echo TTE)', 'Color Doppler cardiac ultrasound.', 30, '3000.00'),
-                    ('128-Slice CT Scan Chest', 'High speed lung scan.', 30, '8000.00'),
-                ]
-            },
-            {
-                'name': 'BioMed Pathology & Scan Center',
-                'slug': 'biomed-pathology-scan',
-                'address': 'Sector 4, Main Road, Uttara, Dhaka 1230',
-                'phone': '+88028956677',
-                'email': 'info@biomedscan.example.com',
-                'manager': ('Imran', 'Hossain', 'imran.biomed@example.com'),
-                'staff': [('Farhan', 'Kabir', 'farhan.biomed@example.com')],
-                'providers_data': [
-                    ('Dr. Jannatul Microbiologist', 'Senior Consultant Microbiologist', 'MBBS, MD.'),
-                ],
-                'services': [
-                    ('Vitamin D & B12 Assay', 'Serum vitamin level analysis.', 20, '3200.00'),
-                    ('Dengue & Fever Screening Panel', 'NS1 antigen and CBC emergency panel.', 15, '900.00'),
-                ]
-            },
-            {
-                'name': 'National Diagnostic & MRI Lab',
-                'slug': 'national-diagnostic-mri',
-                'address': 'Mirpur-10 Circle, Dhaka 1216',
-                'phone': '+88029017788',
-                'email': 'contact@nationalmri.example.com',
-                'manager': ('Adnan', 'Rahman', 'adnan.nat@example.com'),
-                'staff': [('Kazi', 'Nazrul', 'kazi.nat@example.com')],
-                'providers_data': [
-                    ('Dr. Farhana Radiologist', 'Musculoskeletal Radiologist', 'MBBS, MD.'),
-                ],
-                'services': [
-                    ('Lumbar Spine MRI', 'Spine disc and nerve root MRI.', 30, '6500.00'),
-                    ('Knee Joint Digital X-Ray', 'Dual view knee joint X-ray.', 15, '600.00'),
-                ]
-            },
-            {
-                'name': 'Medinova Specialized Diagnostic',
-                'slug': 'medinova-specialized-diagnostic',
-                'address': 'Kazi Nazrul Islam Avenue, Malibagh, Dhaka 1217',
-                'phone': '+88029348899',
-                'email': 'support@medinova.example.com',
-                'manager': ('Subrata', 'Chowdhury', 'subrata.med@example.com'),
-                'staff': [('Tahmidur', 'Rahman', 'tahmidur.med@example.com')],
-                'providers_data': [
-                    ('Dr. Rokia Pathologist', 'Consultant Hematologist', 'MBBS, FCPS (Hematology).'),
-                ],
-                'services': [
-                    ('Complete Blood Count (CBC) & ESR', 'Routine hematology audit.', 15, '400.00'),
-                    ('Liver & Kidney Function Panel', 'Bilirubin, SGPT, Creatinine, Urea.', 20, '1800.00'),
+                    {
+                        'user': ('Tariqul', 'Islam-FCA', 'fca.tariq@nexusconsulting.example.com'),
+                        'title': 'Tariqul Islam FCA, Managing Partner & Financial Advisor',
+                        'bio': 'Fellow Chartered Accountant with 15 years experience in corporate taxation, audit compliance, and startup financial restructuring.',
+                        'profile_photo': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop',
+                        'experience_years': 15,
+                        'education': [
+                            {'degree': 'BBA in Accounting', 'institution': 'University of Dhaka', 'year': '2006'},
+                            {'degree': 'FCA (Chartered Accountant)', 'institution': 'ICAB', 'year': '2011'},
+                        ],
+                        'experience_history': [
+                            {'role': 'Managing Partner', 'organization': 'Nexus Business Consulting', 'period': '2016-Present', 'description': 'Leading tax advisory and corporate finance.'},
+                            {'role': 'Senior Audit Manager', 'organization': 'KPMG Bangladesh', 'period': '2011-2015', 'description': 'Statutory audit of banking and telecom sector.'},
+                        ],
+                        'certifications': [
+                            {'name': 'Certified Income Tax Practitioner (ITP)', 'issuer': 'National Board of Revenue (NBR)', 'year': '2012'},
+                        ],
+                        'specialties': ['Corporate Tax Audits', 'Financial Restructuring', 'Mergers & Acquisitions', 'NBR Disputes'],
+                        'service_names': ['Corporate Tax Planning & NBR Return Audit', 'Startup Growth & Financial Valuation Advisory'], # Multi-category consultant!
+                    }
                 ]
             },
 
-            # Consulting (6 Orgs)
+            # ---------------------------------------------------------------
+            # OTHER
+            # ---------------------------------------------------------------
             {
-                'name': 'Bengal Business Consulting',
-                'slug': 'bengal-business-consulting',
-                'address': 'City Center Tower, Motijheel C/A, Dhaka 1000',
-                'phone': '+88029550099',
-                'email': 'advisory@bengalbusiness.example.com',
-                'manager': ('Moniruzzaman', 'Khan', 'moniruzzaman.mgr@example.com'),
-                'staff': [('Taskin', 'Ahmed', 'taskin.staff@example.com')],
-                'providers_data': [
-                    ('Kazi Nazrul Islam CPA', 'Tax & Compliance Consultant', 'Chartered Accountant. 15+ yrs experience.'),
-                    ('Subrata Chowdhury MBA', 'Business Strategy Advisor', 'Corporate growth and market entry strategist.'),
+                'industry_type': Organization.IndustryType.OTHER,
+                'name': 'Green Line Express Counter & Support',
+                'slug': 'green-line-express-counter',
+                'address': 'Fakirapool Bus Counter, Motijheel, Dhaka 1000',
+                'phone': '+88029331122',
+                'email': 'counter@greenlineexpress.example.com',
+                'logo': 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=300&auto=format&fit=crop',
+                'cover_image': 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=1200&auto=format&fit=crop',
+                'description': 'Central customer support counter for inter-city VIP bus ticket reservation, parcel tracking, and luggage assistance.',
+                'manager': ('Subrata', 'Chowdhury', 'subrata.greenline@example.com'),
+                'staff': [('Tahmidur', 'Rahman', 'tahmidur.greenline@example.com')],
+                'categories': [
+                    ('Ticket Reservation', 'ticket-reservation', 'VIP Scania/Volvo sleeper bus ticket booking and schedule adjustment', 'ticket', 1),
+                    ('Parcel & Cargo Inquiry', 'parcel-cargo', 'Inter-city express parcel tracking, claim processing, and freight inquiry', 'package', 2),
                 ],
                 'services': [
-                    ('Corporate Tax & Audit Session', 'Corporate tax filing and audit compliance advice.', 60, '5000.00'),
-                    ('Business Growth Strategy Session', 'Market expansion and operational scaling advice.', 60, '7500.00'),
-                    ('Startup Advisory & Regulatory Legal', 'Trade license, VAT, and RJSC compliance advice.', 45, '3500.00'),
-                ]
-            },
-            {
-                'name': 'Dhaka Career Advisory',
-                'slug': 'dhaka-career-advisory',
-                'address': 'Farmgate Tower, Kazi Nazrul Islam Avenue, Dhaka 1215',
-                'phone': '+8801811998877',
-                'email': 'counsel@dhakacareer.example.com',
-                'manager': ('Tahmidur', 'Rahman', 'tahmidur.mgr@example.com'),
-                'staff': [('Sabbir', 'Hossain', 'sabbir.staff@example.com')],
-                'providers_data': [
-                    ('Shafiqul Alam HR', 'Senior Career Counselor', 'Former Multinational HR Director.'),
+                    ('ticket-reservation', 'VIP Bus Sleeper Ticket Booking & Seat Selection', 'Personalized assistance for seat reservation and schedule modification.', 15, '150.00'),
+                    ('parcel-cargo', 'Express Parcel Tracking & Claim Consultation', 'Waybill verification, lost package inquiry, and delivery status tracking.', 15, '100.00'),
                 ],
-                'services': [
-                    ('Executive CV & LinkedIn Audit', 'Professional resume review and LinkedIn optimization.', 30, '1500.00'),
-                    ('Mock Job Interview & Feedback', 'Realistic mock interview session with detailed feedback.', 45, '2500.00'),
-                ]
-            },
-            {
-                'name': 'Apex Legal & Tax Partners',
-                'slug': 'apex-legal-tax-partners',
-                'address': 'Supreme Court Bar Annex, Segunbagicha, Dhaka 1000',
-                'phone': '+88029561122',
-                'email': 'legal@apexpartners.example.com',
-                'manager': ('Anika', 'Tabassum', 'anika.legal@example.com'),
-                'staff': [('Sabbir', 'Hossain', 'sabbir.legal@example.com')],
                 'providers_data': [
-                    ('Advocate Kamrul Hassan', 'Supreme Court Legal Practitioner', 'LL.M. Corporate law & litigation expert.'),
-                ],
-                'services': [
-                    ('Corporate Contract & Agreement Audit', 'Legal vetting of business contracts & NDAs.', 60, '6000.00'),
-                    ('IP & Trademark Registration Advisory', 'Patent, logo, and trademark filing guidance.', 45, '4000.00'),
-                ]
-            },
-            {
-                'name': 'Horizon Corporate Advisory',
-                'slug': 'horizon-corporate-advisory',
-                'address': 'Crystal Palace, Road 140, Gulshan-1, Dhaka 1212',
-                'phone': '+88029892233',
-                'email': 'info@horizonadvisory.example.com',
-                'manager': ('Nabila', 'Chowdhury', 'nabila.horizon@example.com'),
-                'staff': [('Mustafizur', 'Rahman', 'mustafizur.horizon@example.com')],
-                'providers_data': [
-                    ('Mustafizur Rahman MBA', 'Financial Restructuring Specialist', 'Ex-Investment Banker.'),
-                ],
-                'services': [
-                    ('Financial Feasibility Study', 'Investment project modeling & ROI audit.', 60, '10000.00'),
-                    ('Mergers & Acquisition Due Diligence', 'Corporate valuation & due diligence session.', 90, '15000.00'),
-                ]
-            },
-            {
-                'name': 'Prime Financial & Audit Consultants',
-                'slug': 'prime-financial-audit',
-                'address': 'Dilkusha C/A, Motijheel, Dhaka 1000',
-                'phone': '+88029573344',
-                'email': 'audit@primefinancial.example.com',
-                'manager': ('Sharmin', 'Akter', 'sharmin.prime@example.com'),
-                'staff': [('Babul', 'Miah', 'babul.prime@example.com')],
-                'providers_data': [
-                    ('Nazia Hassan FCA', 'Fellow Chartered Accountant', 'Internal audit and risk management expert.'),
-                ],
-                'services': [
-                    ('Internal Audit & Payroll Setup', 'Payroll tax compliance & internal controls audit.', 60, '7000.00'),
-                    ('VAT Registration & Return Filing', 'Monthly NBR VAT return advisory.', 45, '3000.00'),
-                ]
-            },
-            {
-                'name': 'Innovate Tech & Venture Advisory',
-                'slug': 'innovate-tech-venture',
-                'address': 'Software Technology Park, Janata Tower, Karwan Bazar, Dhaka 1215',
-                'phone': '+88029144455',
-                'email': 'venture@innovatetech.example.com',
-                'manager': ('Rubel', 'Hossain', 'rubel.venture@example.com'),
-                'staff': [('Dilruba', 'Khanom', 'dilruba.venture@example.com')],
-                'providers_data': [
-                    ('Fahim Hasan Tech Advisor', 'SaaS & AI Venture Consultant', 'Tech startup mentor and angel investor.'),
-                ],
-                'services': [
-                    ('Startup Pitch Deck & Fundraising', 'Investor pitch refinement & term sheet advisory.', 60, '8000.00'),
-                    ('Software Architecture & Cloud Audit', 'Cloud security and scalable tech stack review.', 60, '12000.00'),
+                    {
+                        'user': ('Moniruzzaman', 'Operations-Lead', 'officer.monir@greenline.example.com'),
+                        'title': 'Moniruzzaman Khan, Senior Customer Operations Lead',
+                        'bio': 'Customer relations and logistics operations specialist with 7 years experience in transport ticketing and parcel tracking.',
+                        'profile_photo': 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&auto=format&fit=crop',
+                        'experience_years': 7,
+                        'education': [
+                            {'degree': 'B.A. (Honours)', 'institution': 'National University', 'year': '2016'},
+                        ],
+                        'experience_history': [
+                            {'role': 'Senior Counter Lead', 'organization': 'Green Line Express', 'period': '2019-Present', 'description': 'Managing passenger ticketing and cargo support.'},
+                        ],
+                        'certifications': [
+                            {'name': 'Certified Customer Service Associate', 'issuer': 'Transport Association BD', 'year': '2018'},
+                        ],
+                        'specialties': ['Seat Allocation Systems', 'Cargo Waybill Tracking', 'Customer Complaint Resolution'],
+                        'service_names': ['VIP Bus Sleeper Ticket Booking & Seat Selection', 'Express Parcel Tracking & Claim Consultation'], # Multi-category counter lead!
+                    }
                 ]
             },
         ]
 
         org_instances = []
-        provider_instances = []
+        category_instances = []
         service_instances = []
+        provider_instances = []
 
         for odef in orgs_definition:
-            # 1. Organization
-            org = Organization.objects.create(
-                name=odef['name'],
+            # A. Organization (Deterministic update_or_create)
+            org, _ = Organization.objects.update_or_create(
                 slug=odef['slug'],
-                address=odef['address'],
-                phone_number=odef['phone'],
-                email=odef['email'],
+                defaults={
+                    'name': odef['name'],
+                    'industry_type': odef['industry_type'],
+                    'address': odef['address'],
+                    'phone_number': odef['phone'],
+                    'email': odef['email'],
+                    'logo': odef['logo'],
+                    'cover_image': odef['cover_image'],
+                    'description': odef['description'],
+                    'is_active': True,
+                    'verification_status': Organization.VerificationStatus.APPROVED,
+                }
             )
             org_instances.append(org)
 
-            # 2. Manager
+            # B. Manager Membership
             m_data = odef['manager']
             if isinstance(m_data, User):
                 m_user = m_data
             else:
-                m_user = User.objects.create_user(
-                    email=m_data[2],
-                    password='password123',
-                    first_name=m_data[0],
-                    last_name=m_data[1],
-                    phone_number=f"+88017{random.randint(10000000, 99999999)}",
-                )
-            OrganizationMembership.objects.create(
+                m_user = self._get_or_create_user(m_data[2], 'password123', m_data[0], m_data[1], f"+88017{random.randint(10000000, 99999999)}")
+            
+            OrganizationMembership.objects.get_or_create(
                 user=m_user,
                 organization=org,
-                role=OrganizationMembership.Role.MANAGER,
+                defaults={'role': OrganizationMembership.Role.MANAGER, 'is_active': True}
             )
 
-            # 3. Staff
+            # C. Staff Memberships
             for s_data in odef['staff']:
                 if isinstance(s_data, User):
                     s_user = s_data
                 else:
-                    s_user = User.objects.create_user(
-                        email=s_data[2],
-                        password='password123',
-                        first_name=s_data[0],
-                        last_name=s_data[1],
-                        phone_number=f"+88017{random.randint(10000000, 99999999)}",
-                    )
-                OrganizationMembership.objects.create(
+                    s_user = self._get_or_create_user(s_data[2], 'password123', s_data[0], s_data[1], f"+88017{random.randint(10000000, 99999999)}")
+                OrganizationMembership.objects.get_or_create(
                     user=s_user,
                     organization=org,
-                    role=OrganizationMembership.Role.STAFF,
+                    defaults={'role': OrganizationMembership.Role.STAFF, 'is_active': True}
                 )
 
-            # 4. Services
-            org_services = []
-            for sname, sdesc, sdur, sprice in odef['services']:
-                svc = Service.objects.create(
+            # D. Categories (Deterministic update_or_create per Organization)
+            org_categories_by_slug = {}
+            for cat_name, cat_slug, cat_desc, cat_icon, cat_order in odef['categories']:
+                cat, _ = Category.objects.update_or_create(
+                    organization=org,
+                    slug=cat_slug,
+                    defaults={
+                        'name': cat_name,
+                        'description': cat_desc,
+                        'icon': cat_icon,
+                        'display_order': cat_order,
+                        'is_active': True,
+                    }
+                )
+                org_categories_by_slug[cat_slug] = cat
+                category_instances.append(cat)
+
+            # E. Services (Linked to Category)
+            org_services_by_name = {}
+            for cat_slug, sname, sdesc, sdur, sprice in odef['services']:
+                cat_obj = org_categories_by_slug.get(cat_slug)
+                svc, _ = Service.objects.update_or_create(
                     organization=org,
                     name=sname,
-                    description=sdesc,
-                    duration_minutes=sdur,
-                    price=sprice,
+                    defaults={
+                        'category': cat_obj,
+                        'description': sdesc,
+                        'duration_minutes': sdur,
+                        'price': sprice,
+                        'is_active': True,
+                    }
                 )
-                org_services.append(svc)
+                org_services_by_name[sname] = svc
                 service_instances.append(svc)
 
-            # 5. Providers
+            # F. Providers & ProviderProfiles
             for idx, p_item in enumerate(odef['providers_data'], start=1):
-                if isinstance(p_item[0], User):
-                    p_user = p_item[0]
+                if isinstance(p_item['user'], User):
+                    p_user = p_item['user']
                 else:
-                    p_name_parts = p_item[0].split(' ')
-                    fn = p_name_parts[0]
-                    ln = " ".join(p_name_parts[1:]) if len(p_name_parts) > 1 else "Provider"
-                    em = f"provider.{org.slug}.{idx}_{fn.lower().replace('.', '')}@example.com"
-                    p_user = User.objects.create_user(
-                        email=em,
-                        password='password123',
-                        first_name=fn,
-                        last_name=ln,
-                        phone_number=f"+88017{random.randint(10000000, 99999999)}",
-                    )
-                
-                mem = OrganizationMembership.objects.create(
+                    fn, ln, em = p_item['user']
+                    p_user = self._get_or_create_user(em, 'password123', fn, ln, f"+88017{random.randint(10000000, 99999999)}")
+
+                mem, _ = OrganizationMembership.objects.get_or_create(
                     user=p_user,
                     organization=org,
-                    role=OrganizationMembership.Role.PROVIDER,
+                    defaults={'role': OrganizationMembership.Role.PROVIDER, 'is_active': True}
                 )
 
-                profile = ProviderProfile.objects.create(
+                profile, _ = ProviderProfile.objects.update_or_create(
                     membership=mem,
-                    title=p_item[1],
-                    bio=p_item[2],
+                    defaults={
+                        'title': p_item['title'],
+                        'bio': p_item['bio'],
+                        'profile_photo': p_item['profile_photo'],
+                        'experience_years': p_item['experience_years'],
+                        'education': p_item['education'],
+                        'experience_history': p_item['experience_history'],
+                        'certifications': p_item['certifications'],
+                        'specialties': p_item['specialties'],
+                        'application_status': ProviderProfile.ApplicationStatus.APPROVED,
+                        'is_active': True,
+                    }
                 )
                 provider_instances.append(profile)
 
-                # Link services
-                for svc in org_services:
-                    ProviderService.objects.create(
-                        provider=profile,
-                        service=svc,
-                    )
-
-                # Weekly Schedule (Saturday - Thursday, 09:00 - 17:00 or 10:00 - 18:00)
-                work_start = time(9, 0) if random.choice([True, False]) else time(10, 0)
-                work_end = time(17, 0) if work_start.hour == 9 else time(18, 0)
-                
-                # Saturday (5), Sunday (6), Monday (0), Tuesday (1), Wednesday (2), Thursday (3), Friday (4 - OFF)
-                for day_idx in range(7):
-                    is_work = (day_idx != 4) # Friday OFF in BD
-                    ws = WeeklySchedule.objects.create(
-                        provider=profile,
-                        day_of_week=day_idx,
-                        start_time=work_start,
-                        end_time=work_end,
-                        is_working_day=is_work,
-                    )
-                    if is_work:
-                        # Lunch break 13:00 - 14:00
-                        ScheduleBreak.objects.create(
-                            weekly_schedule=ws,
-                            title='Lunch & Prayer Break',
-                            start_time=time(13, 0),
-                            end_time=time(14, 0),
+                # Link ProviderServices (Supports Multi-category provider in 1 ProviderProfile!)
+                for sname in p_item['service_names']:
+                    svc_obj = org_services_by_name.get(sname)
+                    if svc_obj:
+                        ProviderService.objects.get_or_create(
+                            provider=profile,
+                            service=svc_obj,
                         )
 
-                # Add occasional provider leave for upcoming date (e.g. 10 days from now)
-                if random.random() > 0.7:
-                    leave_start = timezone.now() + timedelta(days=10, hours=9)
-                    ProviderLeave.objects.create(
-                        provider=profile,
-                        start_datetime=leave_start,
-                        end_datetime=leave_start + timedelta(days=1),
-                        reason='Personal leave / Conference',
-                    )
+                # Weekly Schedule (Saturday - Thursday, 09:00 - 17:00)
+                work_start = time(9, 0) if idx % 2 == 1 else time(10, 0)
+                work_end = time(17, 0) if work_start.hour == 9 else time(18, 0)
 
-        # 4. Generate Appointments, Queue Entries, Reviews, Notifications, Audit Logs
+                for day_idx in range(7):
+                    is_work = (day_idx != 4)  # Friday OFF in BD
+                    ws, _ = WeeklySchedule.objects.update_or_create(
+                        provider=profile,
+                        day_of_week=day_idx,
+                        defaults={
+                            'start_time': work_start,
+                            'end_time': work_end,
+                            'is_working_day': is_work,
+                        }
+                    )
+                    if is_work:
+                        ScheduleBreak.objects.get_or_create(
+                            weekly_schedule=ws,
+                            title='Lunch & Prayer Break',
+                            defaults={
+                                'start_time': time(13, 0),
+                                'end_time': time(14, 0),
+                            }
+                        )
+
+        # 4. Generate Appointments, Queue Entries, Reviews
         appointment_instances = []
         queue_instances = []
         review_instances = []
 
-        now = timezone.now()
         today_date = date.today()
 
         sample_review_comments = [
             "Very helpful and professional service. Highly recommended!",
             "The service was smooth, punctual, and well-organized.",
-            "Good experience overall. Clean facilities.",
+            "Good experience overall. Clean and modern facilities.",
             "Appointment started right on time. Excellent behavior.",
-            "Friendly and professional team. Satisfied with the care.",
-            "Waiting time was a little long, but service quality was great.",
-            "Excellent service. Will definitely book again.",
-            "Very skilled provider. Solved my issue quickly.",
+            "Friendly and skilled professional. Very satisfied with the care.",
         ]
 
         token_counter_map = {}
 
-        # A) Historical Completed Appointments (Past 30 days - 90 appointments)
-        for i in range(90):
-            days_ago = random.randint(1, 30)
+        # Historical Completed Appointments (Past 14 days)
+        for i in range(35):
+            days_ago = (i % 14) + 1
             appt_date = today_date - timedelta(days=days_ago)
-            # Pick random org, provider, customer, service
-            provider = random.choice(provider_instances)
+            provider = provider_instances[i % len(provider_instances)]
             org = provider.organization
             available_services = [ps.service for ps in provider.provider_services.all()]
             if not available_services:
                 continue
-            service = random.choice(available_services)
-            customer = random.choice(customers)
+            service = available_services[i % len(available_services)]
+            customer = customers[i % len(customers)]
 
-            slot_hour = random.choice([9, 10, 11, 14, 15, 16])
+            slot_hour = 9 + (i % 7)
             start_dt = timezone.make_aware(datetime.combine(appt_date, time(slot_hour, 0)))
             end_dt = start_dt + timedelta(minutes=service.duration_minutes)
 
-            appt = Appointment.objects.create(
+            appt, _ = Appointment.objects.get_or_create(
                 organization=org,
                 customer=customer,
                 provider=provider,
                 service=service,
                 start_datetime=start_dt,
-                end_datetime=end_dt,
-                status=Appointment.Status.COMPLETED,
-                notes='Historical appointment completed successfully.',
+                defaults={
+                    'end_datetime': end_dt,
+                    'status': Appointment.Status.COMPLETED,
+                    'notes': 'Historical appointment completed successfully.',
+                }
             )
             appointment_instances.append(appt)
 
-            # Queue entry for historical appt (sequential token per provider per date)
             q_key = (provider.id, appt_date)
             t_num = token_counter_map.get(q_key, 1)
             token_counter_map[q_key] = t_num + 1
 
-            q_entry = QueueEntry.objects.create(
+            q_entry, _ = QueueEntry.objects.get_or_create(
                 organization=org,
                 appointment=appt,
-                provider=provider,
-                queue_date=appt_date,
-                token_number=t_num,
-                status=QueueEntry.Status.COMPLETED,
-                called_at=start_dt - timedelta(minutes=5),
-                started_at=start_dt,
-                completed_at=end_dt,
+                defaults={
+                    'provider': provider,
+                    'queue_date': appt_date,
+                    'token_number': t_num,
+                    'status': QueueEntry.Status.COMPLETED,
+                    'called_at': start_dt + timedelta(minutes=2),
+                    'started_at': start_dt + timedelta(minutes=4),
+                    'completed_at': end_dt,
+                }
             )
             queue_instances.append(q_entry)
 
-            # Create review for ~60% of completed appointments
-            if random.random() > 0.4:
-                rev = Review.objects.create(
-                    organization=org,
-                    appointment=appt,
-                    customer=customer,
-                    provider=provider,
-                    rating=random.choice([4, 5, 5, 4, 3, 5]),
-                    comment=random.choice(sample_review_comments),
-                )
-                review_instances.append(rev)
-
-        # B) Today's Active Appointments & Queue Entries (15 appointments)
-        # Create today's queue for Dr. Tanvir Ahmed (provider.demo@example.com) & other providers
-        dhaka_care_org = org_instances[0]
-        demo_provider_profile = provider_instances[0] # Dr. Tanvir Ahmed
-
-        today_hours = [9, 10, 11, 14, 15, 16]
-        token_counter = 1
-        for h in today_hours:
-            customer = customers[token_counter % len(customers)]
-            svc = demo_provider_profile.provider_services.first().service
-            start_dt = timezone.make_aware(datetime.combine(today_date, time(h, 0)))
-            end_dt = start_dt + timedelta(minutes=svc.duration_minutes)
-
-            # Token 1: IN_PROGRESS
-            # Token 2: CALLED
-            # Token 3+: WAITING
-            if token_counter == 1:
-                a_status = Appointment.Status.IN_PROGRESS
-                q_status = QueueEntry.Status.IN_PROGRESS
-            elif token_counter == 2:
-                a_status = Appointment.Status.CHECKED_IN
-                q_status = QueueEntry.Status.CALLED
-            elif token_counter == 3:
-                a_status = Appointment.Status.CHECKED_IN
-                q_status = QueueEntry.Status.WAITING
-            else:
-                a_status = Appointment.Status.CONFIRMED
-                q_status = QueueEntry.Status.WAITING
-
-            appt = Appointment.objects.create(
-                organization=dhaka_care_org,
-                customer=customer,
-                provider=demo_provider_profile,
-                service=svc,
-                start_datetime=start_dt,
-                end_datetime=end_dt,
-                status=a_status,
-                notes=f'Today operational queue booking #{token_counter}',
-            )
-            appointment_instances.append(appt)
-
-            q_key = (demo_provider_profile.id, today_date)
-            t_num = token_counter_map.get(q_key, 1)
-            token_counter_map[q_key] = t_num + 1
-
-            q_entry = QueueEntry.objects.create(
-                organization=dhaka_care_org,
+            # Review
+            r_rating = 4 if (i % 3 == 0) else 5
+            rev, _ = Review.objects.get_or_create(
+                organization=org,
                 appointment=appt,
-                provider=demo_provider_profile,
-                queue_date=today_date,
-                token_number=t_num,
-                status=q_status,
-                called_at=now - timedelta(minutes=10) if q_status in [QueueEntry.Status.CALLED, QueueEntry.Status.IN_PROGRESS] else None,
-                started_at=now - timedelta(minutes=5) if q_status == QueueEntry.Status.IN_PROGRESS else None,
+                defaults={
+                    'customer': customer,
+                    'provider': provider,
+                    'rating': r_rating,
+                    'comment': sample_review_comments[i % len(sample_review_comments)],
+                }
             )
-            queue_instances.append(q_entry)
+            review_instances.append(rev)
 
-            token_counter += 1
-
-        # C) Future Upcoming Appointments (Next 14 days - 45 appointments)
-        for i in range(45):
-            days_ahead = random.randint(1, 14)
-            appt_date = today_date + timedelta(days=days_ahead)
-            provider = random.choice(provider_instances)
-            org = provider.organization
-            available_services = [ps.service for ps in provider.provider_services.all()]
-            if not available_services:
-                continue
-            service = random.choice(available_services)
-            customer = random.choice(customers)
-
-            slot_hour = random.choice([9, 10, 11, 14, 15, 16])
-            start_dt = timezone.make_aware(datetime.combine(appt_date, time(slot_hour, 0)))
-            end_dt = start_dt + timedelta(minutes=service.duration_minutes)
-
-            appt = Appointment.objects.create(
-                organization=org,
-                customer=customer,
-                provider=provider,
-                service=service,
-                start_datetime=start_dt,
-                end_datetime=end_dt,
-                status=Appointment.Status.CONFIRMED,
-                notes='Upcoming confirmed booking.',
-            )
-            appointment_instances.append(appt)
-
-        # D) Cancelled & No-Show Appointments (15 appointments)
-        for i in range(15):
-            days_ago = random.randint(1, 15)
-            appt_date = today_date - timedelta(days=days_ago)
-            provider = random.choice(provider_instances)
-            org = provider.organization
-            available_services = [ps.service for ps in provider.provider_services.all()]
-            if not available_services:
-                continue
-            service = random.choice(available_services)
-            customer = random.choice(customers)
-
-            start_dt = timezone.make_aware(datetime.combine(appt_date, time(11, 0)))
-            end_dt = start_dt + timedelta(minutes=service.duration_minutes)
-
-            is_cancelled = random.choice([True, False])
-            status = Appointment.Status.CANCELLED if is_cancelled else Appointment.Status.NO_SHOW
-
-            Appointment.objects.create(
-                organization=org,
-                customer=customer,
-                provider=provider,
-                service=service,
-                start_datetime=start_dt,
-                end_datetime=end_dt,
-                status=status,
-                cancellation_reason='Schedule conflict / Personal emergency' if is_cancelled else '',
-                notes='Cancelled or no-show appointment record.',
-            )
-
-        # 5. Seed Notifications
-        for cust in customers[:15]:
-            Notification.objects.create(
-                recipient=cust,
-                organization=dhaka_care_org,
-                kind=Notification.Kind.APPOINTMENT_BOOKED,
-                title='Appointment Confirmed',
-                message='Your appointment with Dhaka Care Clinic has been successfully confirmed.',
-                read_at=now if random.choice([True, False]) else None,
-            )
-
-        # 6. Seed Audit Logs
-        AuditLog.objects.create(
-            organization=dhaka_care_org,
-            actor=manager_demo,
-            action='ORGANIZATION_CONFIGURED',
-            entity_type='Organization',
-            entity_id=str(dhaka_care_org.id),
-            metadata={'name': dhaka_care_org.name, 'seeded': True},
-        )
-        AuditLog.objects.create(
-            organization=dhaka_care_org,
-            actor=staff_demo_user,
-            action='CUSTOMER_CHECKED_IN',
-            entity_type='Appointment',
-            entity_id=str(appointment_instances[0].id),
-            metadata={'customer': customer_demo_user.email},
-        )
-
-        return (
-            [admin_user, manager_demo, provider_demo_user, staff_demo_user, customer_demo_user],
-            org_instances,
-            customers,
-            provider_instances,
-            service_instances,
-            appointment_instances,
-            queue_instances,
-            review_instances,
-        )
+        demo_accounts = [admin_user, manager_demo, provider_demo_user, staff_demo_user, customer_demo_user]
+        return demo_accounts, org_instances, category_instances, service_instances, provider_instances, appointment_instances, queue_instances, review_instances
