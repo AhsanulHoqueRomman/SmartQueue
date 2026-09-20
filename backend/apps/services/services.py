@@ -16,7 +16,7 @@ class ServiceService:
     """
 
     @staticmethod
-    def create_service(*, organization, name, description='', duration_minutes, price='0.00', is_active=True):
+    def create_service(*, organization, name, description='', duration_minutes, price='0.00', is_active=True, category=None):
         """
         Create a new Service within the given organization.
         Duration / price / unique-name constraints are enforced at serializer and DB level.
@@ -26,6 +26,7 @@ class ServiceService:
         try:
             return Service.objects.create(
                 organization=organization,
+                category=category,
                 name=name,
                 description=description,
                 duration_minutes=duration_minutes,
@@ -41,7 +42,7 @@ class ServiceService:
         Update an existing Service's fields.
         Only whitelisted fields accepted (enforced by caller serializer).
         """
-        allowed_fields = {'name', 'description', 'duration_minutes', 'price', 'is_active'}
+        allowed_fields = {'name', 'category', 'description', 'duration_minutes', 'price', 'is_active'}
         for field, value in kwargs.items():
             if field in allowed_fields:
                 setattr(service, field, value)

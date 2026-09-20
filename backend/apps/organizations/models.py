@@ -32,7 +32,7 @@ class Organization(models.Model):
         _('industry type'),
         max_length=30,
         choices=IndustryType.choices,
-        default=IndustryType.HEALTHCARE
+        default=IndustryType.OTHER
     )
     address = models.TextField(_('address'), blank=True)
     phone_number = models.CharField(_('phone number'), max_length=30, blank=True)

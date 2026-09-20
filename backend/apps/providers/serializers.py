@@ -33,8 +33,9 @@ class ProviderProfileSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'membership_id', 'membership_is_active', 'user_id', 'user_email',
             'user_first_name', 'user_last_name', 'organization_id', 'organization_name',
-            'bio', 'title', 'is_active',
-            'application_status', 'application_rejection_reason',
+            'bio', 'title', 'profile_photo', 'experience_years',
+            'education', 'experience_history', 'certifications', 'specialties',
+            'is_active', 'application_status', 'application_rejection_reason',
             'application_reviewed_at', 'application_reviewed_by', 'application_reviewed_by_email',
             'is_operationally_active', 'documents',
             'created_at', 'updated_at',
@@ -70,6 +71,25 @@ class ProviderDocumentReviewSerializer(serializers.Serializer):
 
 
 
+class EducationItemSerializer(serializers.Serializer):
+    degree = serializers.CharField(max_length=200, required=True)
+    institution = serializers.CharField(max_length=200, required=False, allow_blank=True, default='')
+    year = serializers.CharField(max_length=50, required=False, allow_blank=True, default='')
+
+
+class ExperienceItemSerializer(serializers.Serializer):
+    role = serializers.CharField(max_length=200, required=True)
+    organization = serializers.CharField(max_length=200, required=False, allow_blank=True, default='')
+    period = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
+    description = serializers.CharField(required=False, allow_blank=True, default='')
+
+
+class CertificationItemSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=200, required=True)
+    issuer = serializers.CharField(max_length=200, required=False, allow_blank=True, default='')
+    year = serializers.CharField(max_length=50, required=False, allow_blank=True, default='')
+
+
 class ProviderProfileCreateSerializer(serializers.Serializer):
     """
     Create a ProviderProfile from an existing PROVIDER membership.
@@ -81,11 +101,147 @@ class ProviderProfileCreateSerializer(serializers.Serializer):
 
 
 class ProviderProfileUpdateSerializer(serializers.ModelSerializer):
-    """Partial-update serializer for bio, title, is_active."""
+    """Partial-update serializer for bio, title, credentials, profile_photo, is_active."""
+    bio = serializers.CharField(required=False, allow_blank=True)
+    title = serializers.CharField(required=False, allow_blank=True)
+    profile_photo = serializers.URLField(required=False, allow_blank=True)
+    experience_years = serializers.IntegerField(min_value=0, required=False)
+    is_active = serializers.BooleanField(required=False)
 
     class Meta:
         model = ProviderProfile
-        fields = ['bio', 'title', 'is_active']
+        fields = [
+            'bio', 'title', 'profile_photo', 'experience_years',
+            'education', 'experience_history', 'certifications',
+            'specialties', 'is_active'
+        ]
+
+    def validate_education(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError("education must be a list of objects.")
+        for item in value:
+            if not isinstance(item, dict):
+                raise serializers.ValidationError("Each education item must be an object.")
+            s = EducationItemSerializer(data=item)
+            if not s.is_valid():
+                raise serializers.ValidationError(s.errors)
+        return value
+
+    def validate_experience_history(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError("experience_history must be a list of objects.")
+        for item in value:
+            if not isinstance(item, dict):
+                raise serializers.ValidationError("Each experience item must be an object.")
+            s = ExperienceItemSerializer(data=item)
+            if not s.is_valid():
+                raise serializers.ValidationError(s.errors)
+        return value
+
+    def validate_certifications(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError("certifications must be a list of objects.")
+        for item in value:
+            if not isinstance(item, dict):
+                raise serializers.ValidationError("Each certification item must be an object.")
+            s = CertificationItemSerializer(data=item)
+            if not s.is_valid():
+                raise serializers.ValidationError(s.errors)
+        return value
+
+    def validate_specialties(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError("specialties must be a list of strings.")
+        for item in value:
+            if not isinstance(item, str) or not item.strip():
+                raise serializers.ValidationError("Specialties must be non-empty strings.")
+        return value
+
+
+class ProviderPublicProfileSerializer(serializers.ModelSerializer):
+    """
+    Public Profile Serializer for Provider.
+    Exposes provider info, credentials, derived categories, offered services, and rating metrics.
+    No ProviderCategory or redundant DB relations.
+    """
+    provider_name = serializers.SerializerMethodField()
+    organization_id = serializers.UUIDField(source='membership.organization.id', read_only=True)
+    organization_name = serializers.CharField(source='membership.organization.name', read_only=True)
+    categories = serializers.SerializerMethodField()
+    services = serializers.SerializerMethodField()
+    rating = serializers.SerializerMethodField()
+    reviews_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProviderProfile
+        fields = [
+            'id', 'provider_name', 'profile_photo', 'title', 'bio',
+            'organization_id', 'organization_name',
+            'experience_years', 'education', 'experience_history',
+            'certifications', 'specialties',
+            'categories', 'services', 'rating', 'reviews_count',
+        ]
+        read_only_fields = fields
+
+    def get_provider_name(self, obj):
+        user = obj.membership.user
+        full_name = f"{user.first_name} {user.last_name}".strip()
+        return full_name if full_name else user.email
+
+    def get_categories(self, obj):
+        categories_dict = {}
+        for ps in obj.provider_services.select_related('service__category').all():
+            cat = ps.service.category
+            if cat and cat.is_active:
+                categories_dict[str(cat.id)] = {
+                    'id': str(cat.id),
+                    'name': cat.name,
+                    'slug': cat.slug,
+                    'icon': cat.icon,
+                }
+        return list(categories_dict.values())
+
+    def get_services(self, obj):
+        services_list = []
+        for ps in obj.provider_services.select_related('service__category').all():
+            svc = ps.service
+            if svc.is_active:
+                duration = ps.custom_duration_minutes if ps.custom_duration_minutes is not None else svc.duration_minutes
+                price = ps.custom_price if ps.custom_price is not None else svc.price
+                cat_data = None
+                if svc.category and svc.category.is_active:
+                    cat_data = {
+                        'id': str(svc.category.id),
+                        'name': svc.category.name,
+                        'slug': svc.category.slug,
+                        'icon': svc.category.icon,
+                    }
+                services_list.append({
+                    'id': str(svc.id),
+                    'name': svc.name,
+                    'description': svc.description,
+                    'duration_minutes': duration,
+                    'price': str(price),
+                    'category': cat_data,
+                })
+        return services_list
+
+    def get_rating(self, obj):
+        reviews = getattr(obj, 'reviews', None)
+        if reviews is None or not hasattr(reviews, 'all'):
+            return 0.0
+        review_list = reviews.all()
+        if not review_list:
+            return 0.0
+        avg = sum(r.rating for r in review_list) / len(review_list)
+        return round(float(avg), 1)
+
+    def get_reviews_count(self, obj):
+        reviews = getattr(obj, 'reviews', None)
+        if reviews is None or not hasattr(reviews, 'count'):
+            return 0
+        return reviews.count()
+
 
 
 # ---------------------------------------------------------------------------

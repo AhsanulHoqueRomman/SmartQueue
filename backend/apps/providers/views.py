@@ -13,6 +13,7 @@ from .serializers import (
     ProviderProfileSerializer,
     ProviderProfileCreateSerializer,
     ProviderProfileUpdateSerializer,
+    ProviderPublicProfileSerializer,
     ProviderDocumentSerializer,
     ProviderApplicationReviewSerializer,
     ProviderDocumentReviewSerializer,
@@ -191,6 +192,26 @@ class ProviderProfileDetailView(APIView):
         profile = _get_provider(organization_id, provider_id)
         profile.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProviderPublicProfileView(APIView):
+    """
+    GET /api/v1/organizations/{organization_id}/providers/{provider_id}/profile/
+    Retrieve public profile for a provider including credentials, derived categories, offered services, and rating metrics.
+    AllowAny for public discovery. Non-operational providers hidden from non-managers (404).
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        responses={200: ProviderPublicProfileSerializer, 404: OpenApiResponse(description="Not Found")},
+        summary="Retrieve provider public profile"
+    )
+    def get(self, request, organization_id, provider_id):
+        profile = _get_provider(organization_id, provider_id)
+        if not _is_org_manager_or_admin(request.user, organization_id):
+            if not profile.is_operationally_active:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(ProviderPublicProfileSerializer(profile).data, status=status.HTTP_200_OK)
 
 
 # ---------------------------------------------------------------------------

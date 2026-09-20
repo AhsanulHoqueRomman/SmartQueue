@@ -22,6 +22,7 @@ urlpatterns = [
     path('api/v1/invitations/staff/<str:token>/accept/', PublicAcceptStaffInvitationView.as_view(), name='public_accept_staff_invitation'),
 
     path('api/v1/organizations/', include('apps.organizations.urls')),
+    path('api/v1/organizations/<uuid:organization_id>/categories/', include('apps.services.category_urls')),
     path('api/v1/organizations/<uuid:organization_id>/services/', include('apps.services.urls')),
     path('api/v1/organizations/<uuid:organization_id>/providers/', include('apps.providers.urls')),
     path('api/v1/organizations/<uuid:organization_id>/appointments/', include('apps.appointments.urls')),

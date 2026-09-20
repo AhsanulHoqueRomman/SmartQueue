@@ -23,7 +23,17 @@ class TestOrganizationModels:
         assert org.is_active is True
         assert org.created_at is not None
         assert org.updated_at is not None
+        assert org.industry_type == Organization.IndustryType.OTHER
+        assert org.industry_type != Organization.IndustryType.HEALTHCARE
         assert str(org) == "SmartCare Clinic"
+
+    def test_industry_type_can_be_customized_on_creation(self):
+        legal_org = Organization.objects.create(
+            name="Apex Legal",
+            slug="apex-legal",
+            industry_type=Organization.IndustryType.LEGAL
+        )
+        assert legal_org.industry_type == Organization.IndustryType.LEGAL
 
     def test_unique_slug_constraint(self):
         Organization.objects.create(name="Clinic A", slug="clinic-a")

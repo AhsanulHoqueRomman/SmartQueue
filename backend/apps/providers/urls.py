@@ -3,6 +3,7 @@ from apps.appointments.views import ProviderAvailabilityView
 from .views import (
     ProviderProfileListCreateView,
     ProviderProfileDetailView,
+    ProviderPublicProfileView,
     ProviderServiceListCreateView,
     ProviderServiceDetailView,
     WeeklyScheduleListCreateView,
@@ -22,6 +23,7 @@ urlpatterns = [
     # Provider Profiles
     path('', ProviderProfileListCreateView.as_view(), name='provider_list_create'),
     path('<uuid:provider_id>/', ProviderProfileDetailView.as_view(), name='provider_detail'),
+    path('<uuid:provider_id>/profile/', ProviderPublicProfileView.as_view(), name='provider_public_profile'),
     path('<uuid:provider_id>/submit-application/', ProviderApplicationSubmitView.as_view(), name='provider_submit_application'),
     path('<uuid:provider_id>/review-application/', ManagerProviderApplicationReviewView.as_view(), name='provider_review_application'),
     path('<uuid:provider_id>/documents/', ProviderDocumentUploadView.as_view(), name='provider_document_list_upload'),

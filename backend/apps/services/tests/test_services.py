@@ -64,9 +64,12 @@ class TestServiceCRUD:
         return reverse('services:service_detail', kwargs={'organization_id': org_id, 'service_id': service_id})
 
     def test_manager_can_create_service(self, manager_client):
+        from apps.services.models import Category
         org = manager_client.org
+        cat = Category.objects.create(organization=org, name="Styling", slug="styling")
         url = self._list_url(org.id)
         payload = {
+            'category_id': str(cat.id),
             'name': 'Haircut',
             'description': 'Basic haircut service',
             'duration_minutes': 30,
@@ -153,12 +156,14 @@ class TestServiceCRUD:
         assert res.status_code == status.HTTP_200_OK
 
     def test_duplicate_service_name_rejected(self, manager_client):
+        from apps.services.models import Category
         org = manager_client.org
-        Service.objects.create(organization=org, name='Haircut', duration_minutes=30, price='10.00')
+        cat = Category.objects.create(organization=org, name="Grooming", slug="grooming")
+        Service.objects.create(organization=org, category=cat, name='Haircut', duration_minutes=30, price='10.00')
         url = self._list_url(org.id)
         res = manager_client.post(
             url,
-            {'name': 'Haircut', 'duration_minutes': 20, 'price': '5.00'},
+            {'category_id': str(cat.id), 'name': 'Haircut', 'duration_minutes': 20, 'price': '5.00'},
             format='json',
         )
         assert res.status_code == status.HTTP_409_CONFLICT

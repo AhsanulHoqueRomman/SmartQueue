@@ -101,13 +101,15 @@ class ProviderService_:
         )
 
     @staticmethod
-    def update_provider_profile(*, profile, bio=None, title=None, is_active=None):
-        if bio is not None:
-            profile.bio = bio
-        if title is not None:
-            profile.title = title
-        if is_active is not None:
-            profile.is_active = is_active
+    def update_provider_profile(*, profile, **kwargs):
+        allowed_fields = {
+            'bio', 'title', 'profile_photo', 'experience_years',
+            'education', 'experience_history', 'certifications',
+            'specialties', 'is_active'
+        }
+        for field, value in kwargs.items():
+            if field in allowed_fields:
+                setattr(profile, field, value)
         profile.save()
         return profile
 

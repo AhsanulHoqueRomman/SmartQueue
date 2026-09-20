@@ -67,7 +67,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
     Serializer for public & management Organization information.
     Exposes read-only verification status and timestamps.
     """
-    category = serializers.SerializerMethodField()
+    industry_label = serializers.SerializerMethodField()
     services_count = serializers.SerializerMethodField()
     providers_count = serializers.SerializerMethodField()
     rating = serializers.SerializerMethodField()
@@ -78,12 +78,13 @@ class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
         fields = (
-            'id', 'name', 'slug', 'address', 'phone_number',
-            'email', 'is_active', 'verification_status',
+            'id', 'name', 'slug', 'industry_type', 'industry_label',
+            'address', 'phone_number', 'email', 'logo', 'cover_image', 'description',
+            'is_active', 'verification_status',
             'verification_submitted_at', 'verification_reviewed_at',
             'verification_rejection_reason', 'verification_suspension_reason',
             'created_at', 'updated_at',
-            'category', 'services_count', 'providers_count', 'rating', 'reviews_count',
+            'services_count', 'providers_count', 'rating', 'reviews_count',
             'documents', 'documents_count'
         )
         read_only_fields = (
@@ -93,17 +94,8 @@ class OrganizationSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         )
 
-    def get_category(self, obj):
-        name_lower = obj.name.lower()
-        if any(k in name_lower for k in ['beauty', 'salon', 'glow', 'style', 'spa', 'barber', 'aesthetic', 'chic', 'glamour']):
-            return 'Salon & Beauty'
-        if any(k in name_lower for k in ['dental', 'orthodontic', 'tooth', 'teeth', 'smile', 'pearl']):
-            return 'Dental Care'
-        if any(k in name_lower for k in ['diagnostic', 'lab', 'imaging', 'scan', 'pathology', 'biomed', 'mri', 'medinova']):
-            return 'Diagnostic'
-        if any(k in name_lower for k in ['consulting', 'advisory', 'legal', 'cpa', 'career', 'tax', 'audit', 'financial', 'venture']):
-            return 'Consulting'
-        return 'Healthcare'
+    def get_industry_label(self, obj):
+        return obj.get_industry_type_display() if obj.industry_type else 'Other Services'
 
     def get_services_count(self, obj):
         if hasattr(obj, 'services_count'):
@@ -161,7 +153,10 @@ class OrganizationCreateSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Organization
-        fields = ('name', 'slug', 'address', 'phone_number', 'email')
+        fields = ('name', 'slug', 'industry_type', 'address', 'phone_number', 'email')
+        extra_kwargs = {
+            'industry_type': {'required': False}
+        }
 
     def validate_slug(self, value):
         if Organization.objects.filter(slug=value).exists():

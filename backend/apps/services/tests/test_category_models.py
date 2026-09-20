@@ -9,7 +9,7 @@ from apps.accounts.models import User
 
 @pytest.mark.django_db
 class TestPhase1DatabaseModels:
-    def test_organization_industry_type_defaults(self):
+    def test_organization_industry_type_explicit(self):
         org = Organization.objects.create(
             name="Dhaka Dental Clinic",
             slug="dhaka-dental-clinic",
@@ -20,7 +20,7 @@ class TestPhase1DatabaseModels:
         assert org.cover_image == ""
 
     def test_category_model_creation(self):
-        org = Organization.objects.create(name="Care Clinic", slug="care-clinic")
+        org = Organization.objects.create(name="Care Clinic", slug="care-clinic", industry_type=Organization.IndustryType.HEALTHCARE)
         cat1 = Category.objects.create(
             organization=org,
             name="Dentistry",
@@ -36,7 +36,7 @@ class TestPhase1DatabaseModels:
             Category.objects.create(organization=org, name="Dentistry", slug="dentistry")
 
     def test_service_category_protected_deletion(self):
-        org = Organization.objects.create(name="Legal Associates", slug="legal-associates")
+        org = Organization.objects.create(name="Legal Associates", slug="legal-associates", industry_type=Organization.IndustryType.LEGAL)
         cat = Category.objects.create(organization=org, name="Corporate Law", slug="corporate-law")
         svc = Service.objects.create(
             organization=org,
@@ -53,7 +53,7 @@ class TestPhase1DatabaseModels:
 
     def test_provider_profile_json_credentials_fields(self):
         user = User.objects.create_user(email="doctor@example.com", password="Password123!")
-        org = Organization.objects.create(name="City Hospital", slug="city-hospital")
+        org = Organization.objects.create(name="City Hospital", slug="city-hospital", industry_type=Organization.IndustryType.HEALTHCARE)
         membership = OrganizationMembership.objects.create(
             user=user, organization=org, role=OrganizationMembership.Role.PROVIDER
         )
