@@ -17,12 +17,29 @@ class Organization(models.Model):
         REJECTED = 'REJECTED', _('Rejected')
         SUSPENDED = 'SUSPENDED', _('Suspended')
 
+    class IndustryType(models.TextChoices):
+        HEALTHCARE = 'HEALTHCARE', _('Healthcare & Medical')
+        LEGAL = 'LEGAL', _('Legal & Law Firm')
+        BEAUTY = 'BEAUTY', _('Beauty, Salon & Wellness')
+        REPAIR = 'REPAIR', _('Technical Repair & Service')
+        CONSULTING = 'CONSULTING', _('Consulting & Professional Services')
+        OTHER = 'OTHER', _('Other Services')
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(_('organization name'), max_length=255)
     slug = models.SlugField(_('slug'), max_length=255, unique=True, db_index=True)
+    industry_type = models.CharField(
+        _('industry type'),
+        max_length=30,
+        choices=IndustryType.choices,
+        default=IndustryType.HEALTHCARE
+    )
     address = models.TextField(_('address'), blank=True)
     phone_number = models.CharField(_('phone number'), max_length=30, blank=True)
     email = models.EmailField(_('email'), blank=True)
+    logo = models.URLField(_('logo url'), max_length=500, blank=True)
+    cover_image = models.URLField(_('cover image url'), max_length=500, blank=True)
+    description = models.TextField(_('description'), blank=True)
     is_active = models.BooleanField(_('active'), default=True)
     verification_status = models.CharField(
         _('verification status'),

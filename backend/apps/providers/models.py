@@ -28,6 +28,12 @@ class ProviderProfile(models.Model):
     )
     bio = models.TextField(_('bio'), blank=True)
     title = models.CharField(_('title'), max_length=100, blank=True)
+    profile_photo = models.URLField(_('profile photo url'), max_length=500, blank=True)
+    experience_years = models.PositiveIntegerField(_('years of experience'), default=0)
+    education = models.JSONField(_('education'), default=list, blank=True)
+    experience_history = models.JSONField(_('experience history'), default=list, blank=True)
+    certifications = models.JSONField(_('certifications'), default=list, blank=True)
+    specialties = models.JSONField(_('specialties'), default=list, blank=True)
     application_status = models.CharField(
         _('application status'),
         max_length=20,
