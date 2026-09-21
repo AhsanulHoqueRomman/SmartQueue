@@ -58,6 +58,28 @@ export const queueService = {
     );
     return response.data;
   },
+
+  /**
+   * Mark a queue entry as urgent.
+   */
+  async markUrgent(orgId, queueEntryId, reason = '') {
+    const response = await apiClient.post(
+      `/organizations/${orgId}/queue/${queueEntryId}/urgent/`,
+      { reason }
+    );
+    return response.data;
+  },
+
+  /**
+   * Register a front-desk walk-in customer.
+   */
+  async registerWalkIn(orgId, providerId, walkInData) {
+    const response = await apiClient.post(
+      `/organizations/${orgId}/queue/providers/${providerId}/walk-in/`,
+      walkInData
+    );
+    return response.data;
+  },
 };
 
 export default queueService;

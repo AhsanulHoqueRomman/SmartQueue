@@ -20,6 +20,15 @@ class Appointment(models.Model):
         CANCELLED = 'CANCELLED', _('Cancelled')
         NO_SHOW = 'NO_SHOW', _('No show')
 
+    class BookingChannel(models.TextChoices):
+        ONLINE = 'ONLINE', _('Online')
+        PHONE = 'PHONE', _('Phone')
+        FRONT_DESK = 'FRONT_DESK', _('Front Desk')
+
+    class ArrivalType(models.TextChoices):
+        SCHEDULED = 'SCHEDULED', _('Scheduled')
+        WALK_IN = 'WALK_IN', _('Walk-in')
+
     # Statuses that block a provider's availability / cause double-booking.
     BLOCKING_STATUSES = (
         Status.PENDING,
@@ -60,6 +69,20 @@ class Appointment(models.Model):
         on_delete=models.PROTECT,
         related_name='appointments',
     )
+    appointment_date = models.DateField(_('appointment date'), null=True, blank=True, db_index=True)
+    serial_number = models.PositiveIntegerField(_('serial number'), null=True, blank=True, db_index=True)
+    booking_channel = models.CharField(
+        _('booking channel'),
+        max_length=20,
+        choices=BookingChannel.choices,
+        default=BookingChannel.ONLINE,
+    )
+    arrival_type = models.CharField(
+        _('arrival type'),
+        max_length=20,
+        choices=ArrivalType.choices,
+        default=ArrivalType.SCHEDULED,
+    )
     start_datetime = models.DateTimeField(_('start datetime'))
     end_datetime = models.DateTimeField(_('end datetime'))
     status = models.CharField(
@@ -77,8 +100,12 @@ class Appointment(models.Model):
     class Meta:
         verbose_name = _('appointment')
         verbose_name_plural = _('appointments')
-        ordering = ['start_datetime']
+        ordering = ['appointment_date', 'serial_number', 'start_datetime']
         indexes = [
+            models.Index(
+                fields=['provider', 'appointment_date', 'serial_number'],
+                name='appt_provider_date_serial_idx',
+            ),
             models.Index(
                 fields=['provider', 'start_datetime', 'end_datetime'],
                 name='appt_provider_time_idx',

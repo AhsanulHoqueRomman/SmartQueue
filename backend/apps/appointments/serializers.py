@@ -6,6 +6,7 @@ from .models import Appointment
 class AppointmentSerializer(serializers.ModelSerializer):
     """Full read serializer for appointments."""
     customer_email = serializers.EmailField(source='customer.email', read_only=True)
+    customer_name = serializers.CharField(source='customer.get_full_name', read_only=True)
     provider_id = serializers.UUIDField(source='provider.id', read_only=True)
     service_id = serializers.UUIDField(source='service.id', read_only=True)
     service_name = serializers.CharField(source='service.name', read_only=True)
@@ -18,9 +19,14 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'organization_id',
             'customer',
             'customer_email',
+            'customer_name',
             'provider_id',
             'service_id',
             'service_name',
+            'appointment_date',
+            'serial_number',
+            'booking_channel',
+            'arrival_type',
             'start_datetime',
             'end_datetime',
             'status',
@@ -35,6 +41,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
 class AppointmentListSerializer(serializers.ModelSerializer):
     """Compact list serializer."""
     customer_email = serializers.EmailField(source='customer.email', read_only=True)
+    customer_name = serializers.CharField(source='customer.get_full_name', read_only=True)
     provider_id = serializers.UUIDField(source='provider.id', read_only=True)
     service_id = serializers.UUIDField(source='service.id', read_only=True)
     service_name = serializers.CharField(source='service.name', read_only=True)
@@ -45,9 +52,14 @@ class AppointmentListSerializer(serializers.ModelSerializer):
             'id',
             'customer',
             'customer_email',
+            'customer_name',
             'provider_id',
             'service_id',
             'service_name',
+            'appointment_date',
+            'serial_number',
+            'booking_channel',
+            'arrival_type',
             'start_datetime',
             'end_datetime',
             'status',
@@ -64,6 +76,8 @@ class AppointmentCreateSerializer(serializers.Serializer):
     provider_id = serializers.UUIDField()
     service_id = serializers.UUIDField()
     start_datetime = serializers.DateTimeField()
+    booking_channel = serializers.CharField(required=False, default=Appointment.BookingChannel.ONLINE)
+    arrival_type = serializers.CharField(required=False, default=Appointment.ArrivalType.SCHEDULED)
     notes = serializers.CharField(required=False, allow_blank=True, default='')
 
     def validate_start_datetime(self, value):

@@ -16,6 +16,12 @@ class QueueEntry(models.Model):
         COMPLETED = 'COMPLETED', _('Completed')
         SKIPPED = 'SKIPPED', _('Skipped')
 
+    class ReadinessState(models.TextChoices):
+        NOT_YET = 'NOT_YET', _('Not yet')
+        GET_READY = 'GET_READY', _('Get ready')
+        BE_READY = 'BE_READY', _('Be ready')
+        TURN_NOW = 'TURN_NOW', _('Turn now')
+
     ACTIVE_STATUSES = (Status.CALLED, Status.IN_PROGRESS)
 
     ALLOWED_TRANSITIONS = {
@@ -23,7 +29,7 @@ class QueueEntry(models.Model):
         Status.CALLED: {Status.IN_PROGRESS, Status.SKIPPED},
         Status.IN_PROGRESS: {Status.COMPLETED},
         Status.COMPLETED: set(),
-        Status.SKIPPED: set(),
+        Status.SKIPPED: {Status.WAITING}, # Staff reinstatement allowed
     }
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -43,7 +49,8 @@ class QueueEntry(models.Model):
         related_name='queue_entries',
     )
     queue_date = models.DateField(_('queue date'), db_index=True)
-    token_number = models.PositiveIntegerField(_('token number'))
+    serial_number = models.PositiveIntegerField(_('serial number'), null=True, blank=True, db_index=True)
+    token_number = models.PositiveIntegerField(_('token number'), null=True, blank=True)
     status = models.CharField(
         _('status'),
         max_length=20,
@@ -51,6 +58,17 @@ class QueueEntry(models.Model):
         default=Status.WAITING,
         db_index=True,
     )
+    readiness_state = models.CharField(
+        _('readiness state'),
+        max_length=20,
+        choices=ReadinessState.choices,
+        default=ReadinessState.NOT_YET,
+    )
+    is_checked_in = models.BooleanField(_('is checked in'), default=False, db_index=True)
+    checked_in_at = models.DateTimeField(_('checked in at'), null=True, blank=True)
+    is_urgent = models.BooleanField(_('is urgent'), default=False)
+    urgent_reason = models.TextField(_('urgent reason'), blank=True)
+
     created_at = models.DateTimeField(_('created at'), auto_now_add=True)
     updated_at = models.DateTimeField(_('updated at'), auto_now=True)
     called_at = models.DateTimeField(_('called at'), null=True, blank=True)
@@ -61,8 +79,12 @@ class QueueEntry(models.Model):
     class Meta:
         verbose_name = _('queue entry')
         verbose_name_plural = _('queue entries')
-        ordering = ['token_number']
+        ordering = ['serial_number', 'token_number']
         indexes = [
+            models.Index(
+                fields=['provider', 'queue_date', 'serial_number'],
+                name='queue_prov_date_serial_idx',
+            ),
             models.Index(
                 fields=['provider', 'queue_date'],
                 name='queue_provider_date_idx',

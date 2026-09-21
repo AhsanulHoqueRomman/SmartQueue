@@ -161,6 +161,8 @@ class AppointmentListCreateView(APIView):
             provider_id=serializer.validated_data['provider_id'],
             service_id=serializer.validated_data['service_id'],
             start_datetime=serializer.validated_data['start_datetime'],
+            booking_channel=serializer.validated_data.get('booking_channel', Appointment.BookingChannel.ONLINE),
+            arrival_type=serializer.validated_data.get('arrival_type', Appointment.ArrivalType.SCHEDULED),
             notes=serializer.validated_data.get('notes', ''),
         )
         return Response(

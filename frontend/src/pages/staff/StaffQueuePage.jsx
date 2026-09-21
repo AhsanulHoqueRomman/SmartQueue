@@ -55,7 +55,8 @@ export function StaffQueuePage() {
         currentOrg.id,
         selectedProviderId
       );
-      setQueueEntries(Array.isArray(data) ? data : data.results || []);
+      const list = Array.isArray(data) ? data : data.entries || data.results || [];
+      setQueueEntries(list);
     } catch (err) {
       setError('Failed to fetch provider queue.');
     }
@@ -138,8 +139,12 @@ export function StaffQueuePage() {
                 <div className="flex justify-between items-center" style={{ backgroundColor: 'var(--color-primary-light)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-primary-border)' }}>
                   <div>
                     <StatusBadge status="IN_PROGRESS" type="queue" />
-                    <h2 style={{ fontSize: '2rem', marginTop: '0.25rem', color: 'var(--color-primary-text)' }}>Token #{activeEntry.token_number}</h2>
-                    <p className="text-sm text-muted" style={{ marginTop: '0.15rem' }}>{activeEntry.customer_email}</p>
+                    <h2 style={{ fontSize: '2rem', marginTop: '0.25rem', color: 'var(--color-primary-text)' }}>
+                      Serial #{activeEntry.serial_number || activeEntry.token_number}
+                    </h2>
+                    <p className="text-sm font-semibold" style={{ marginTop: '0.15rem' }}>
+                      {activeEntry.customer_name || activeEntry.customer_email}
+                    </p>
                   </div>
                   <span className="badge badge-info">In Room</span>
                 </div>
@@ -147,8 +152,12 @@ export function StaffQueuePage() {
                 <div className="flex justify-between items-center" style={{ backgroundColor: 'var(--color-warning-bg)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-warning-border)' }}>
                   <div>
                     <StatusBadge status="CALLED" type="queue" />
-                    <h2 style={{ fontSize: '2rem', marginTop: '0.25rem', color: 'var(--color-warning)' }}>Token #{calledEntry.token_number}</h2>
-                    <p className="text-sm text-muted" style={{ marginTop: '0.15rem' }}>{calledEntry.customer_email}</p>
+                    <h2 style={{ fontSize: '2rem', marginTop: '0.25rem', color: 'var(--color-warning)' }}>
+                      Serial #{calledEntry.serial_number || calledEntry.token_number}
+                    </h2>
+                    <p className="text-sm font-semibold" style={{ marginTop: '0.15rem' }}>
+                      {calledEntry.customer_name || calledEntry.customer_email}
+                    </p>
                   </div>
                   <span className="badge badge-warning">Called</span>
                 </div>
@@ -160,7 +169,7 @@ export function StaffQueuePage() {
 
           {/* Queue List Table */}
           <div className="card animate-section stagger-2">
-            <h3>Waiting Tokens ({waitingEntries.length})</h3>
+            <h3>Waiting Patients ({waitingEntries.length})</h3>
             {waitingEntries.length === 0 ? (
               <EmptyState
                 title="Queue Empty"
@@ -171,26 +180,40 @@ export function StaffQueuePage() {
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Token #</th>
-                      <th>Customer Email</th>
-                      <th>Status</th>
-                      <th>Check-In Time</th>
+                      <th>Serial #</th>
+                      <th>Patient Name</th>
+                      <th>Arrival Type</th>
+                      <th>Check-In Status</th>
+                      <th>Priority</th>
                     </tr>
                   </thead>
                   <tbody>
                     {waitingEntries.map((entry) => (
-                      <tr key={entry.id}>
+                      <tr key={entry.id} style={{ background: entry.is_urgent ? '#FEF2F2' : 'transparent' }}>
                         <td>
-                          <span className="badge badge-info" style={{ fontSize: '0.85rem', fontWeight: 700 }}>#{entry.token_number}</span>
+                          <span className="badge badge-info" style={{ fontSize: '0.85rem', fontWeight: 700 }}>
+                            #{entry.serial_number || entry.token_number}
+                          </span>
                         </td>
-                        <td className="font-semibold">{entry.customer_email || 'Customer'}</td>
+                        <td className="font-semibold">{entry.customer_name || entry.customer_email || 'Patient'}</td>
                         <td>
-                          <StatusBadge status={entry.status} type="queue" />
+                          <span className="badge" style={{ fontSize: '0.75rem', background: entry.arrival_type === 'WALK_IN' ? '#F5EFE6' : '#E0F2FE', color: entry.arrival_type === 'WALK_IN' ? '#B06D2E' : '#0369A1' }}>
+                            {entry.arrival_type === 'WALK_IN' ? '🚶 Walk-In' : '📅 Scheduled'}
+                          </span>
                         </td>
-                        <td className="text-muted">
-                          {entry.created_at
-                            ? new Date(entry.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            : 'N/A'}
+                        <td>
+                          {entry.is_checked_in ? (
+                            <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>✓ Checked In</span>
+                          ) : (
+                            <span className="badge badge-warning" style={{ fontSize: '0.75rem' }}>⏳ Waiting Arrival</span>
+                          )}
+                        </td>
+                        <td>
+                          {entry.is_urgent ? (
+                            <span className="badge badge-danger" style={{ fontSize: '0.75rem', fontWeight: 700 }}>🚨 URGENT</span>
+                          ) : (
+                            <span className="text-xs text-muted">Normal</span>
+                          )}
                         </td>
                       </tr>
                     ))}

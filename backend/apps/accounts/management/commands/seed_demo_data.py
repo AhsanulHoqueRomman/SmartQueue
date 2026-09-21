@@ -674,6 +674,9 @@ class Command(BaseCommand):
             start_dt = timezone.make_aware(datetime.combine(appt_date, time(slot_hour, 0)))
             end_dt = start_dt + timedelta(minutes=service.duration_minutes)
 
+            q_key = (provider.id, appt_date)
+            t_num = token_counter_map.get(q_key, 1)
+
             appt, _ = Appointment.objects.get_or_create(
                 organization=org,
                 customer=customer,
@@ -682,14 +685,16 @@ class Command(BaseCommand):
                 start_datetime=start_dt,
                 defaults={
                     'end_datetime': end_dt,
+                    'appointment_date': appt_date,
+                    'serial_number': t_num,
+                    'booking_channel': Appointment.BookingChannel.ONLINE,
+                    'arrival_type': Appointment.ArrivalType.SCHEDULED,
                     'status': Appointment.Status.COMPLETED,
                     'notes': 'Historical appointment completed successfully.',
                 }
             )
             appointment_instances.append(appt)
 
-            q_key = (provider.id, appt_date)
-            t_num = token_counter_map.get(q_key, 1)
             token_counter_map[q_key] = t_num + 1
 
             q_entry, _ = QueueEntry.objects.get_or_create(
@@ -698,7 +703,10 @@ class Command(BaseCommand):
                 defaults={
                     'provider': provider,
                     'queue_date': appt_date,
+                    'serial_number': t_num,
                     'token_number': t_num,
+                    'is_checked_in': True,
+                    'checked_in_at': start_dt,
                     'status': QueueEntry.Status.COMPLETED,
                     'called_at': start_dt + timedelta(minutes=2),
                     'started_at': start_dt + timedelta(minutes=4),
@@ -720,6 +728,71 @@ class Command(BaseCommand):
                 }
             )
             review_instances.append(rev)
+
+        # Today's Active Live Queue Entries for Primary Demo Providers
+        active_demo_providers = provider_instances[:3]
+        for p_idx, provider in enumerate(active_demo_providers):
+            org = provider.organization
+            available_services = [ps.service for ps in provider.provider_services.all()]
+            if not available_services:
+                continue
+            service = available_services[0]
+            now_dt = timezone.now()
+
+            today_queue_states = [
+                # (serial, status, booking_channel, arrival_type, is_checked_in, notes)
+                (1, QueueEntry.Status.IN_PROGRESS, Appointment.BookingChannel.ONLINE, Appointment.ArrivalType.SCHEDULED, True, "Consultation currently in progress."),
+                (2, QueueEntry.Status.CALLED, Appointment.BookingChannel.FRONT_DESK, Appointment.ArrivalType.WALK_IN, True, "Patient called to counter."),
+                (3, QueueEntry.Status.WAITING, Appointment.BookingChannel.ONLINE, Appointment.ArrivalType.SCHEDULED, True, "Patient arrived & checked in."),
+                (4, QueueEntry.Status.WAITING, Appointment.BookingChannel.PHONE, Appointment.ArrivalType.SCHEDULED, False, "Scheduled patient not yet checked in."),
+                (5, QueueEntry.Status.WAITING, Appointment.BookingChannel.FRONT_DESK, Appointment.ArrivalType.WALK_IN, True, "Front desk walk-in patient."),
+            ]
+
+            for s_num, q_status, b_chan, a_type, checked_in, note in today_queue_states:
+                cust = customers[(p_idx * 5 + s_num) % len(customers)]
+                start_dt = timezone.make_aware(datetime.combine(today_date, time(9 + s_num, 0)))
+                end_dt = start_dt + timedelta(minutes=service.duration_minutes)
+
+                appt_status = Appointment.Status.CONFIRMED
+                if q_status == QueueEntry.Status.IN_PROGRESS:
+                    appt_status = Appointment.Status.IN_PROGRESS
+                elif q_status == QueueEntry.Status.COMPLETED:
+                    appt_status = Appointment.Status.COMPLETED
+
+                appt, _ = Appointment.objects.get_or_create(
+                    organization=org,
+                    provider=provider,
+                    appointment_date=today_date,
+                    serial_number=s_num,
+                    defaults={
+                        'customer': cust,
+                        'service': service,
+                        'start_datetime': start_dt,
+                        'end_datetime': end_dt,
+                        'booking_channel': b_chan,
+                        'arrival_type': a_type,
+                        'status': appt_status,
+                        'notes': note,
+                    }
+                )
+                appointment_instances.append(appt)
+
+                q_entry, _ = QueueEntry.objects.get_or_create(
+                    organization=org,
+                    provider=provider,
+                    queue_date=today_date,
+                    serial_number=s_num,
+                    defaults={
+                        'appointment': appt,
+                        'token_number': s_num,
+                        'status': q_status,
+                        'is_checked_in': checked_in,
+                        'checked_in_at': now_dt - timedelta(minutes=15) if checked_in else None,
+                        'called_at': now_dt - timedelta(minutes=2) if q_status in (QueueEntry.Status.CALLED, QueueEntry.Status.IN_PROGRESS) else None,
+                        'started_at': now_dt - timedelta(minutes=5) if q_status == QueueEntry.Status.IN_PROGRESS else None,
+                    }
+                )
+                queue_instances.append(q_entry)
 
         demo_accounts = [admin_user, manager_demo, provider_demo_user, staff_demo_user, customer_demo_user]
         return demo_accounts, org_instances, category_instances, service_instances, provider_instances, appointment_instances, queue_instances, review_instances

@@ -1,4 +1,5 @@
-from datetime import date
+import random
+from datetime import date, timedelta
 
 from django.db import IntegrityError, models, transaction
 from django.db.models import Max
@@ -127,17 +128,9 @@ class QueueService:
     def check_in_appointment(cls, *, appointment: Appointment, actor=None) -> QueueEntry:
         """
         Atomically:
-          CONFIRMED → CHECKED_IN
-          create QueueEntry WAITING with next provider/day token
+          Mark appointment CONFIRMED -> CHECKED_IN
+          Mark QueueEntry is_checked_in = True, checked_in_at = now()
         """
-        if appointment.status != Appointment.Status.CONFIRMED:
-            raise InvalidCheckInException(
-                message=(
-                    f'Only CONFIRMED appointments can be checked in '
-                    f'(current: {appointment.status}).'
-                ),
-            )
-
         with transaction.atomic():
             try:
                 provider = (
@@ -162,59 +155,61 @@ class QueueService:
                     message='Appointment provider is not operationally active.'
                 )
 
-
-            # Re-fetch appointment under the same transaction after provider lock.
+            # Re-fetch appointment under lock
             appointment = Appointment.objects.select_for_update().get(pk=appointment.pk)
 
-            if appointment.status != Appointment.Status.CONFIRMED:
+            if appointment.status in (
+                Appointment.Status.COMPLETED,
+                Appointment.Status.CANCELLED,
+                Appointment.Status.NO_SHOW,
+            ):
                 raise InvalidCheckInException(
-                    message=(
-                        f'Only CONFIRMED appointments can be checked in '
-                        f'(current: {appointment.status}).'
-                    ),
+                    message=f'Cannot check in an appointment in status {appointment.status}.'
                 )
 
-            if hasattr(appointment, 'queue_entry'):
-                raise QueueEntryAlreadyExistsException()
+            # Look for existing QueueEntry
+            entry = QueueEntry.objects.filter(appointment=appointment).first()
+            now = timezone.now()
 
-            if QueueEntry.objects.filter(appointment=appointment).exists():
-                raise QueueEntryAlreadyExistsException()
+            if entry:
+                if entry.is_checked_in:
+                    return entry  # Already checked in, idempotent return
+                entry.is_checked_in = True
+                entry.checked_in_at = now
+                entry.save(update_fields=['is_checked_in', 'checked_in_at', 'updated_at'])
+            else:
+                queue_date = business_date_for_appointment(appointment)
+                serial_num = appointment.serial_number
+                if not serial_num:
+                    max_serial = (
+                        QueueEntry.objects.filter(provider=provider, queue_date=queue_date)
+                        .aggregate(m=Max('serial_number'))['m'] or 0
+                    )
+                    serial_num = max_serial + 1
+                    appointment.serial_number = serial_num
 
-            if appointment.organization_id != provider.membership.organization_id:
-                raise ApplicationError(
-                    message='Appointment provider does not belong to the appointment organization.',
-                    code='QUEUE_ORGANIZATION_MISMATCH',
-                    status_code=400,
-                )
-
-            queue_date = business_date_for_appointment(appointment)
-            next_token = (
-                QueueEntry.objects.filter(provider=provider, queue_date=queue_date)
-                .aggregate(m=Max('token_number'))['m']
-                or 0
-            ) + 1
-
-            appointment.status = Appointment.Status.CHECKED_IN
-            appointment.save(update_fields=['status', 'updated_at'])
-
-            try:
                 entry = QueueEntry.objects.create(
                     organization_id=appointment.organization_id,
                     appointment=appointment,
                     provider=provider,
                     queue_date=queue_date,
-                    token_number=next_token,
+                    serial_number=serial_num,
+                    token_number=serial_num,
                     status=QueueEntry.Status.WAITING,
+                    is_checked_in=True,
+                    checked_in_at=now,
                 )
-            except IntegrityError as exc:
-                raise QueueEntryAlreadyExistsException() from exc
+
+            if appointment.status == Appointment.Status.CONFIRMED:
+                appointment.status = Appointment.Status.CHECKED_IN
+                appointment.save(update_fields=['status', 'updated_at'])
 
             NotificationService.create(
                 recipient=appointment.customer,
                 organization=appointment.organization,
                 kind='APPOINTMENT_CHECKED_IN',
                 title='Appointment checked in',
-                message=f'You are checked in with queue token {entry.token_number}.',
+                message=f'You are checked in with Serial #{entry.serial_number}.',
                 appointment=appointment,
                 queue_entry=entry,
             )
@@ -224,14 +219,14 @@ class QueueService:
                     organization=appointment.organization,
                     kind='PROVIDER_CHECKED_IN',
                     title='Customer checked in',
-                    message=f'{appointment.customer.get_full_name() or appointment.customer.email} checked in for token #{entry.token_number}.',
+                    message=f'{appointment.customer.get_full_name() or appointment.customer.email} checked in for Serial #{entry.serial_number}.',
                     appointment=appointment,
                     queue_entry=entry,
                 )
             AuditService.record(
                 action='APPOINTMENT_CHECKED_IN', entity_type='QueueEntry', entity_id=entry.id,
                 organization_id=entry.organization_id, actor=actor or appointment.customer,
-                metadata={'token_number': entry.token_number},
+                metadata={'serial_number': entry.serial_number},
             )
             return entry
 
@@ -257,7 +252,7 @@ class QueueService:
                 'provider',
                 'provider__membership__user',
             )
-            .order_by('token_number')
+            .order_by('-is_urgent', 'serial_number')
         )
         return provider, queue_date, entries
 
@@ -282,14 +277,16 @@ class QueueService:
             if active:
                 raise ActiveQueueCustomerException()
 
+            # Under Phase 5 serial model: call next checked-in waiting customer (urgent first)
             next_waiting = (
                 QueueEntry.objects.select_for_update()
                 .filter(
                     provider=provider,
                     queue_date=queue_date,
                     status=QueueEntry.Status.WAITING,
+                    is_checked_in=True,
                 )
-                .order_by('token_number')
+                .order_by('-is_urgent', 'serial_number')
                 .first()
             )
             if next_waiting is None:
@@ -305,16 +302,123 @@ class QueueService:
                 organization=organization,
                 kind='QUEUE_CALLED',
                 title='Your queue turn is called',
-                message=f'Token {next_waiting.token_number} has been called.',
+                message=f'Serial #{next_waiting.serial_number} has been called.',
                 appointment=next_waiting.appointment,
                 queue_entry=next_waiting,
             )
             AuditService.record(
                 action='QUEUE_CALLED', entity_type='QueueEntry', entity_id=next_waiting.id,
                 organization_id=organization.id, actor=actor or provider.membership.user,
-                metadata={'token_number': next_waiting.token_number},
+                metadata={'serial_number': next_waiting.serial_number},
             )
             return next_waiting
+
+    @classmethod
+    def mark_urgent(cls, *, organization_id, queue_entry_id, reason='', actor=None) -> QueueEntry:
+        organization = _load_org(organization_id)
+        with transaction.atomic():
+            entry = cls._lock_entry(organization=organization, queue_entry_id=queue_entry_id)
+            entry.is_urgent = True
+            entry.urgent_reason = reason or 'Marked urgent by staff/provider'
+            entry.save(update_fields=['is_urgent', 'urgent_reason', 'updated_at'])
+            AuditService.record(
+                action='QUEUE_MARKED_URGENT', entity_type='QueueEntry', entity_id=entry.id,
+                organization_id=organization.id, actor=actor,
+                metadata={'reason': entry.urgent_reason},
+            )
+            return entry
+
+    @classmethod
+    def register_walk_in(
+        cls,
+        *,
+        organization_id,
+        provider_id,
+        service_id,
+        first_name: str,
+        last_name: str,
+        phone_number: str = '',
+        notes: str = '',
+        actor=None,
+    ) -> Appointment:
+        from apps.accounts.models import User
+        from apps.appointments.services import AppointmentService
+
+        with transaction.atomic():
+            # Create or fetch guest customer
+            email_fallback = f"walkin.{int(timezone.now().timestamp())}.{random.randint(100, 999)}@smartqueue.local"
+            user, _ = User.objects.get_or_create(
+                phone_number=phone_number if phone_number else email_fallback,
+                defaults={
+                    'email': email_fallback,
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'is_active': True,
+                }
+            )
+
+            start_dt = timezone.now() + timedelta(seconds=5)
+            appt = AppointmentService.book_appointment(
+                organization_id=organization_id,
+                customer=user,
+                provider_id=provider_id,
+                service_id=service_id,
+                start_datetime=start_dt,
+                booking_channel=Appointment.BookingChannel.FRONT_DESK,
+                arrival_type=Appointment.ArrivalType.WALK_IN,
+                notes=notes,
+            )
+            return appt
+
+    @classmethod
+    def calculate_readiness_and_eta(cls, queue_entry: QueueEntry) -> dict:
+        if queue_entry.status == QueueEntry.Status.COMPLETED:
+            return {'readiness_state': 'COMPLETED', 'people_ahead': 0, 'estimated_wait_minutes': 0}
+        if queue_entry.status == QueueEntry.Status.SKIPPED:
+            return {'readiness_state': 'SKIPPED', 'people_ahead': 0, 'estimated_wait_minutes': 0}
+        if queue_entry.status in (QueueEntry.Status.IN_PROGRESS, QueueEntry.Status.CALLED):
+            return {'readiness_state': QueueEntry.ReadinessState.TURN_NOW, 'people_ahead': 0, 'estimated_wait_minutes': 0}
+
+        waiting_ahead = QueueEntry.objects.filter(
+            provider=queue_entry.provider,
+            queue_date=queue_entry.queue_date,
+            status=QueueEntry.Status.WAITING,
+            is_checked_in=True,
+            serial_number__lt=queue_entry.serial_number,
+        ).count()
+
+        active_in_service = QueueEntry.objects.filter(
+            provider=queue_entry.provider,
+            queue_date=queue_entry.queue_date,
+            status__in=[QueueEntry.Status.IN_PROGRESS, QueueEntry.Status.CALLED],
+        ).exists()
+
+        people_ahead = waiting_ahead + (1 if active_in_service else 0)
+
+        if people_ahead == 0:
+            readiness = QueueEntry.ReadinessState.BE_READY
+        elif people_ahead <= 2:
+            readiness = QueueEntry.ReadinessState.GET_READY
+        else:
+            readiness = QueueEntry.ReadinessState.NOT_YET
+
+        avg_duration = 15
+        if queue_entry.appointment and queue_entry.appointment.service:
+            avg_duration = queue_entry.appointment.service.duration_minutes or 15
+
+        est_wait = people_ahead * avg_duration
+
+        now = timezone.now()
+        est_start = now + timedelta(minutes=est_wait)
+        rec_arrival = now + timedelta(minutes=max(0, est_wait - 15))
+
+        return {
+            'readiness_state': readiness,
+            'people_ahead': people_ahead,
+            'estimated_wait_minutes': est_wait,
+            'estimated_start_time': est_start.isoformat(),
+            'recommended_arrival_time': rec_arrival.isoformat(),
+        }
 
     # ------------------------------------------------------------------
     # start / complete / skip

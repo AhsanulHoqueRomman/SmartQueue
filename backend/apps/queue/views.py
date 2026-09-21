@@ -120,3 +120,51 @@ class CompleteQueueEntryView(_QueueEntryActionView):
 
 class SkipQueueEntryView(_QueueEntryActionView):
     handler = QueueService.skip_queue_entry
+
+
+class WalkInRegisterView(APIView):
+    permission_classes = [IsAuthenticated, CanManageProviderQueue]
+    serializer_class = QueueEntrySerializer
+
+    def post(self, request, organization_id, provider_id):
+        from .serializers import WalkInRegisterSerializer
+        serializer = WalkInRegisterSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        appt = QueueService.register_walk_in(
+            organization_id=organization_id,
+            provider_id=provider_id,
+            service_id=serializer.validated_data['service_id'],
+            first_name=serializer.validated_data['first_name'],
+            last_name=serializer.validated_data['last_name'],
+            phone_number=serializer.validated_data.get('phone_number', ''),
+            notes=serializer.validated_data.get('notes', ''),
+            actor=request.user,
+        )
+        queue_entry = getattr(appt, 'queue_entry', None) or QueueEntry.objects.filter(appointment=appt).first()
+        return Response(QueueEntrySerializer(queue_entry).data, status=status.HTTP_201_CREATED)
+
+
+class MarkUrgentQueueView(APIView):
+    permission_classes = [IsAuthenticated, CanActOnQueueEntry]
+    serializer_class = QueueEntrySerializer
+
+    def post(self, request, organization_id, queue_entry_id):
+        from .serializers import MarkUrgentSerializer
+        entry = _entry_for_org(organization_id, queue_entry_id)
+        permission = CanActOnQueueEntry()
+        if not permission.has_object_permission(request, self, entry):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = MarkUrgentSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        updated = QueueService.mark_urgent(
+            organization_id=organization_id,
+            queue_entry_id=queue_entry_id,
+            reason=serializer.validated_data.get('reason', ''),
+            actor=request.user,
+        )
+        return Response(QueueEntrySerializer(updated).data)

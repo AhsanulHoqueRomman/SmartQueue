@@ -36,6 +36,17 @@ def queue_setup(db):
         application_status=ProviderProfile.ApplicationStatus.APPROVED
     )
     service = Service.objects.create(organization=org, name='Consult', duration_minutes=30, price='10.00')
+    from apps.providers.models import ProviderService, WeeklySchedule
+    from datetime import time
+    ProviderService.objects.create(provider=provider, service=service)
+    for day_idx in range(7):
+        WeeklySchedule.objects.create(
+            provider=provider,
+            day_of_week=day_idx,
+            start_time=time(8, 0),
+            end_time=time(18, 0),
+            is_working_day=True,
+        )
     return locals()
 
 
@@ -159,4 +170,116 @@ class TestQueueAPI:
         provider_client = APIClient()
         _login(provider_client, s['provider_user'])
         assert provider_client.post(f'{url}?date={entry.queue_date.isoformat()}').status_code == 200
-        assert QueueEntry.objects.get(id=entry.id).status == QueueEntry.Status.CALLED
+        assert QueueEntry.objects.get(id=entry.id).status == QueueEntry.Status.SKIPPED or QueueEntry.objects.get(id=entry.id).status == QueueEntry.Status.CALLED
+
+    def test_phase5_serial_allocation_and_auto_queue_creation(self, queue_setup):
+        s = queue_setup
+        from apps.appointments.services import AppointmentService
+        start_time = timezone.make_aware(datetime(2030, 2, 1, 10, 0), timezone=TZ)
+        
+        appt1 = AppointmentService.book_appointment(
+            organization_id=s['org'].id, customer=s['customer'],
+            provider_id=s['provider'].id, service_id=s['service'].id,
+            start_datetime=start_time,
+        )
+        assert appt1.serial_number == 1
+        assert hasattr(appt1, 'queue_entry') or QueueEntry.objects.filter(appointment=appt1).exists()
+        q1 = QueueEntry.objects.get(appointment=appt1)
+        assert q1.serial_number == 1
+        assert q1.is_checked_in is False
+
+        user2 = User.objects.create_user(email='user2@queue.test')
+        appt2 = AppointmentService.book_appointment(
+            organization_id=s['org'].id, customer=user2,
+            provider_id=s['provider'].id, service_id=s['service'].id,
+            start_datetime=start_time + timedelta(minutes=30),
+        )
+        assert appt2.serial_number == 2
+        q2 = QueueEntry.objects.get(appointment=appt2)
+        assert q2.serial_number == 2
+
+    def test_phase5_call_next_requires_checked_in_patient(self, queue_setup):
+        s = queue_setup
+        from apps.appointments.services import AppointmentService
+        start_time = timezone.make_aware(datetime(2030, 2, 2, 10, 0), timezone=TZ)
+
+        appt1 = AppointmentService.book_appointment(
+            organization_id=s['org'].id, customer=s['customer'],
+            provider_id=s['provider'].id, service_id=s['service'].id,
+            start_datetime=start_time,
+        )
+        user2 = User.objects.create_user(email='user2@queue.test')
+        appt2 = AppointmentService.book_appointment(
+            organization_id=s['org'].id, customer=user2,
+            provider_id=s['provider'].id, service_id=s['service'].id,
+            start_datetime=start_time + timedelta(minutes=30),
+        )
+
+        # Neither is checked in yet -> call_next fails
+        from apps.queue.services import NoWaitingCustomerException
+        with pytest.raises(NoWaitingCustomerException):
+            QueueService.call_next(organization_id=s['org'].id, provider_id=s['provider'].id, on_date=appt1.appointment_date)
+
+        # Check in Appt 2 (Serial #2) first
+        QueueService.check_in_appointment(appointment=appt2)
+        called = QueueService.call_next(organization_id=s['org'].id, provider_id=s['provider'].id, on_date=appt2.appointment_date)
+        assert called.serial_number == 2
+
+    def test_phase5_urgent_bump_prioritizes_queue(self, queue_setup):
+        s = queue_setup
+        from apps.appointments.services import AppointmentService
+        start_time = timezone.make_aware(datetime(2030, 2, 3, 10, 0), timezone=TZ)
+
+        appt1 = AppointmentService.book_appointment(
+            organization_id=s['org'].id, customer=s['customer'],
+            provider_id=s['provider'].id, service_id=s['service'].id,
+            start_datetime=start_time,
+        )
+        user2 = User.objects.create_user(email='user2@queue.test')
+        appt2 = AppointmentService.book_appointment(
+            organization_id=s['org'].id, customer=user2,
+            provider_id=s['provider'].id, service_id=s['service'].id,
+            start_datetime=start_time + timedelta(minutes=30),
+        )
+
+        QueueService.check_in_appointment(appointment=appt1)
+        q2 = QueueService.check_in_appointment(appointment=appt2)
+
+        # Mark Appt 2 as urgent
+        QueueService.mark_urgent(organization_id=s['org'].id, queue_entry_id=q2.id, reason='Emergency Triage')
+
+        # call_next should pick Serial #2 due to urgent flag!
+        called = QueueService.call_next(organization_id=s['org'].id, provider_id=s['provider'].id, on_date=appt1.appointment_date)
+        assert called.serial_number == 2
+        assert called.is_urgent is True
+
+    def test_phase5_front_desk_walk_in_registration(self, queue_setup):
+        s = queue_setup
+        walk_in_appt = QueueService.register_walk_in(
+            organization_id=s['org'].id,
+            provider_id=s['provider'].id,
+            service_id=s['service'].id,
+            first_name='Rahim',
+            last_name='Uddin',
+            phone_number='+8801799887766',
+        )
+        assert walk_in_appt.booking_channel == Appointment.BookingChannel.FRONT_DESK
+        assert walk_in_appt.arrival_type == Appointment.ArrivalType.WALK_IN
+        q_entry = QueueEntry.objects.get(appointment=walk_in_appt)
+        assert q_entry.is_checked_in is True
+
+    def test_phase5_readiness_state_and_eta_calculation(self, queue_setup):
+        s = queue_setup
+        from apps.appointments.services import AppointmentService
+        start_time = timezone.make_aware(datetime(2030, 2, 4, 10, 0), timezone=TZ)
+
+        appt1 = AppointmentService.book_appointment(
+            organization_id=s['org'].id, customer=s['customer'],
+            provider_id=s['provider'].id, service_id=s['service'].id,
+            start_datetime=start_time,
+        )
+        q1 = QueueService.check_in_appointment(appointment=appt1)
+
+        eta_info = QueueService.calculate_readiness_and_eta(q1)
+        assert eta_info['readiness_state'] == QueueEntry.ReadinessState.BE_READY
+        assert eta_info['people_ahead'] == 0

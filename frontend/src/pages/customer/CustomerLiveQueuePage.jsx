@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTenant } from '../../contexts/TenantContext';
 import queueService from '../../services/queueService';
+import appointmentService from '../../services/appointmentService';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
@@ -15,6 +16,7 @@ export function CustomerLiveQueuePage() {
   const [providerQueueEntries, setProviderQueueEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [checkingIn, setCheckingIn] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
 
@@ -41,7 +43,7 @@ export function CustomerLiveQueuePage() {
       setMyQueueEntry(entry);
       setLastUpdated(new Date());
 
-      // 2. Fetch full provider queue to compute currently serving token and people ahead
+      // 2. Fetch full provider queue to compute currently serving serial and people ahead
       if (entry.provider_id) {
         try {
           const provData = await queueService.getProviderQueue(currentOrg.id, entry.provider_id);
@@ -50,7 +52,7 @@ export function CustomerLiveQueuePage() {
             : provData.entries || provData.results || [];
           setProviderQueueEntries(provEntries);
         } catch (pErr) {
-          // If customer lacks direct provider queue list permission, fallback gracefully
+          // Fallback gracefully
         }
       }
     } catch (err) {
@@ -61,13 +63,26 @@ export function CustomerLiveQueuePage() {
     }
   };
 
+  const handleCheckInNow = async () => {
+    if (!currentOrg?.id || !myQueueEntry?.appointment_id) return;
+    setCheckingIn(true);
+    try {
+      await appointmentService.checkInAppointment(currentOrg.id, myQueueEntry.appointment_id);
+      await fetchQueueStatus(true);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Check-in failed.');
+    } finally {
+      setCheckingIn(false);
+    }
+  };
+
   useEffect(() => {
     fetchQueueStatus();
 
-    // 12-second polling loop
+    // 10-second polling loop for responsive dynamic ETA updates
     timerRef.current = setInterval(() => {
       fetchQueueStatus();
-    }, 12000);
+    }, 10000);
 
     return () => {
       if (timerRef.current) {
@@ -76,7 +91,6 @@ export function CustomerLiveQueuePage() {
     };
   }, [currentOrg?.id, queueEntryId]);
 
-  // Stop polling if queue reaches terminal status (COMPLETED, SKIPPED)
   useEffect(() => {
     if (myQueueEntry && ['COMPLETED', 'SKIPPED'].includes(myQueueEntry.status)) {
       if (timerRef.current) {
@@ -102,21 +116,29 @@ export function CustomerLiveQueuePage() {
     );
   }
 
-  // Calculate currently serving token
   const currentlyServing = providerQueueEntries.find(
     (e) => e.status === 'IN_PROGRESS' || e.status === 'CALLED'
   );
 
-  // Calculate people ahead in queue (status == WAITING and created before / lower token)
-  const peopleAhead = providerQueueEntries.filter(
-    (e) => e.status === 'WAITING' && e.token_number < myQueueEntry.token_number
-  ).length;
-
   const isTerminal = ['COMPLETED', 'SKIPPED'].includes(myQueueEntry.status);
 
+  const readiness = myQueueEntry.readiness_info?.readiness_state || 'NOT_YET';
+  const peopleAhead = myQueueEntry.readiness_info?.people_ahead ?? 0;
+  const estWaitMins = myQueueEntry.readiness_info?.estimated_wait_minutes ?? 0;
+  const recArrivalStr = myQueueEntry.readiness_info?.recommended_arrival_time
+    ? new Date(myQueueEntry.readiness_info.recommended_arrival_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : 'Now';
+
+  const readinessBadgeConfig = {
+    TURN_NOW: { text: '🟢 It is Your Turn! Proceed inside', bg: '#DCFCE7', color: '#166534', border: '#86EFAC' },
+    BE_READY: { text: '⚡ You Are Next! Be ready at door', bg: '#FEF3C7', color: '#92400E', border: '#FDE68A' },
+    GET_READY: { text: '🚶 Get Ready! Turn approaching', bg: '#FEF9C3', color: '#854D0E', border: '#FEF08A' },
+    NOT_YET: { text: '☕ Relaxed Waiting (Time remaining)', bg: '#F3F4F6', color: '#4B5563', border: '#E5E7EB' },
+  }[readiness] || { text: 'Queue Active', bg: '#FAF8F3', color: '#5F7A70', border: '#E6E1D9' };
+
   return (
-    <div className="animate-page-entrance" style={{ maxWidth: '800px', margin: '0 auto' }}>
-      {/* Top back link */}
+    <div className="animate-page-entrance" style={{ maxWidth: '850px', margin: '0 auto' }}>
+      {/* Top back link & manual refresh button */}
       <div style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Link
           to="/customer/appointments"
@@ -165,21 +187,74 @@ export function CustomerLiveQueuePage() {
           marginBottom: '1.5rem',
         }}
       >
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#FAF8F3', color: '#5F7A70', border: '1px solid #E6E1D9', padding: '0.35rem 0.85rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 600, marginBottom: '1.25rem' }}>
-          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: isTerminal ? '#78716C' : '#22C55E', animation: isTerminal ? 'none' : 'pulse 1.5s infinite' }} />
-          {isTerminal ? 'Queue Session Ended' : 'Live Queue Telemetry Active'}
+        {/* Readiness Pill Badge */}
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          background: readinessBadgeConfig.bg,
+          color: readinessBadgeConfig.color,
+          border: `1px solid ${readinessBadgeConfig.border}`,
+          padding: '0.5rem 1.1rem',
+          borderRadius: '9999px',
+          fontSize: '0.9rem',
+          fontWeight: 700,
+          marginBottom: '1.25rem'
+        }}>
+          <span style={{ display: 'inline-block', width: '9px', height: '9px', borderRadius: '50%', background: isTerminal ? '#78716C' : readinessBadgeConfig.color, animation: isTerminal ? 'none' : 'pulse 1.5s infinite' }} />
+          {readinessBadgeConfig.text}
         </div>
 
         <h1 style={{ fontSize: '1.75rem', color: '#211C19', fontFamily: 'Cinzel, serif', marginBottom: '0.25rem' }}>
           {myQueueEntry.service_name || 'Service Consultation'}
         </h1>
         <p style={{ color: '#78716C', fontSize: '0.95rem', margin: '0 0 1.75rem 0' }}>
-          {currentOrg?.name || 'Clinic'} — Provider: <strong>{myQueueEntry.provider_name || 'Assigned Provider'}</strong>
+          {currentOrg?.name || 'Organization'} &bull; Provider: <strong>{myQueueEntry.provider_name || 'Assigned Provider'}</strong>
         </p>
 
-        {/* Primary Token Telemetry Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-          {/* Your Token */}
+        {/* Check-In Status Callout Banner */}
+        {!myQueueEntry.is_checked_in && !isTerminal && (
+          <div style={{
+            background: '#FFFBEB',
+            border: '1px solid #FCD34D',
+            borderRadius: '12px',
+            padding: '1.25rem',
+            marginBottom: '1.75rem',
+            display: 'flex',
+            alignItems: 'center',
+            justify: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            textAlign: 'left'
+          }}>
+            <div>
+              <div style={{ fontWeight: 700, color: '#92400E', fontSize: '0.95rem' }}>📍 Physical Presence Check-In Required</div>
+              <div style={{ fontSize: '0.85rem', color: '#B45309', marginTop: '0.15rem' }}>
+                Please click "Check In Now" when you arrive at the facility so the provider can call your serial number.
+              </div>
+            </div>
+            <button
+              onClick={handleCheckInNow}
+              disabled={checkingIn}
+              style={{
+                padding: '0.6rem 1.25rem',
+                background: '#B06D2E',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                cursor: 'pointer'
+              }}
+            >
+              {checkingIn ? 'Checking In...' : '✓ Check In Now'}
+            </button>
+          </div>
+        )}
+
+        {/* Primary Serial Telemetry Row */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+          {/* Your Serial # */}
           <div
             style={{
               background: '#2F2520',
@@ -190,10 +265,13 @@ export function CustomerLiveQueuePage() {
             }}
           >
             <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#E6E1D9', marginBottom: '0.35rem' }}>
-              Your Token Number
+              Your Serial #
             </div>
             <div style={{ fontSize: '2.75rem', fontWeight: 800, fontFamily: 'Outfit, sans-serif' }}>
-              #{myQueueEntry.token_number}
+              #{myQueueEntry.serial_number || myQueueEntry.token_number}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: myQueueEntry.is_checked_in ? '#86EFAC' : '#FCD34D', marginTop: '0.25rem', fontWeight: 600 }}>
+              {myQueueEntry.is_checked_in ? '✓ Checked In' : '• Waiting for Check-In'}
             </div>
           </div>
 
@@ -210,7 +288,10 @@ export function CustomerLiveQueuePage() {
               Now Serving
             </div>
             <div style={{ fontSize: '2.75rem', fontWeight: 800, color: '#5F7A70', fontFamily: 'Outfit, sans-serif' }}>
-              {currentlyServing ? `#${currentlyServing.token_number}` : 'Waiting'}
+              {currentlyServing ? `#${currentlyServing.serial_number || currentlyServing.token_number}` : 'None'}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#78716C', marginTop: '0.25rem' }}>
+              Active in Room
             </div>
           </div>
 
@@ -229,10 +310,33 @@ export function CustomerLiveQueuePage() {
             <div style={{ fontSize: '2.75rem', fontWeight: 800, color: '#B06D2E', fontFamily: 'Outfit, sans-serif' }}>
               {myQueueEntry.status === 'CALLED' || myQueueEntry.status === 'IN_PROGRESS' ? '0' : peopleAhead}
             </div>
+            <div style={{ fontSize: '0.75rem', color: '#78716C', marginTop: '0.25rem' }}>
+              Checked-in Waiting
+            </div>
+          </div>
+
+          {/* Est Wait */}
+          <div
+            style={{
+              background: '#FAF8F3',
+              border: '1px solid #E6E1D9',
+              borderRadius: '16px',
+              padding: '1.5rem',
+            }}
+          >
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#78716C', marginBottom: '0.35rem' }}>
+              Dynamic ETA
+            </div>
+            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#211C19', fontFamily: 'Outfit, sans-serif', marginTop: '0.4rem' }}>
+              ~{estWaitMins} min
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#78716C', marginTop: '0.25rem' }}>
+              Arrive by: {recArrivalStr}
+            </div>
           </div>
         </div>
 
-        {/* Queue Status Callout */}
+        {/* Detailed Queue Status Callout */}
         <div style={{ background: '#FAF8F3', border: '1px solid #E6E1D9', borderRadius: '12px', padding: '1.25rem', textAlign: 'left' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
             <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#211C19' }}>Queue Status</span>
@@ -241,19 +345,21 @@ export function CustomerLiveQueuePage() {
 
           {myQueueEntry.status === 'WAITING' && (
             <p style={{ margin: 0, color: '#5C544E', fontSize: '0.9rem', lineHeight: 1.5 }}>
-              You are checked in and safely in the queue. Please stay nearby or keep this page open. You will be notified when called.
+              {myQueueEntry.is_checked_in
+                ? 'You are checked in and safely in line. Please remain available near the waiting area.'
+                : 'Your serial number is confirmed. Remember to check in upon physical arrival at the venue.'}
             </p>
           )}
 
           {myQueueEntry.status === 'CALLED' && (
             <p style={{ margin: 0, color: '#065F46', fontSize: '0.95rem', fontWeight: 700, lineHeight: 1.5 }}>
-              ⚡ Your token has been called! Please proceed directly to the provider desk.
+              ⚡ Your serial number has been called! Please proceed directly to the provider room.
             </p>
           )}
 
           {myQueueEntry.status === 'IN_PROGRESS' && (
             <p style={{ margin: 0, color: '#5F7A70', fontSize: '0.9rem', fontWeight: 600, lineHeight: 1.5 }}>
-              🩺 Your service is currently in progress.
+              🩺 Your consultation/service is currently in progress.
             </p>
           )}
 
@@ -282,14 +388,14 @@ export function CustomerLiveQueuePage() {
 
           {myQueueEntry.status === 'SKIPPED' && (
             <p style={{ margin: 0, color: '#991B1B', fontSize: '0.9rem', fontWeight: 600 }}>
-              ⚠️ Your token was skipped. If you missed your turn, please check with the front desk.
+              ⚠️ Your serial turn was skipped. If you missed your call, please report to the front desk.
             </p>
           )}
         </div>
 
         {lastUpdated && (
           <div style={{ fontSize: '0.75rem', color: '#78716C', marginTop: '1.25rem' }}>
-            Auto-refreshes every 12 seconds · Last updated at {lastUpdated.toLocaleTimeString()}
+            Live ETA Telemetry &bull; Auto-refreshes every 10s &bull; Last updated {lastUpdated.toLocaleTimeString()}
           </div>
         )}
       </div>

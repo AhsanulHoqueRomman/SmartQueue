@@ -378,6 +378,8 @@ class AppointmentService:
         provider_id,
         service_id,
         start_datetime: datetime,
+        booking_channel: str = Appointment.BookingChannel.ONLINE,
+        arrival_type: str = Appointment.ArrivalType.SCHEDULED,
         notes: str = '',
     ) -> Appointment:
         organization = _load_active_organization(organization_id)
@@ -407,7 +409,6 @@ class AppointmentService:
                     code='PROVIDER_INACTIVE',
                 )
 
-
             service = _load_active_service(organization=organization, service_id=service_id)
             _ensure_provider_offers_service(provider=provider, service=service)
 
@@ -420,6 +421,17 @@ class AppointmentService:
                 end_datetime=end_datetime,
             )
 
+            appt_date = timezone.localtime(start_datetime, get_project_tz()).date()
+
+            from django.db.models import Max
+            max_serial = (
+                Appointment.objects.filter(
+                    provider=provider,
+                    appointment_date=appt_date,
+                ).aggregate(m=Max('serial_number'))['m'] or 0
+            )
+            serial_number = max_serial + 1
+
             appointment = Appointment.objects.create(
                 organization=organization,
                 customer=customer,
@@ -427,15 +439,38 @@ class AppointmentService:
                 service=service,
                 start_datetime=start_datetime,
                 end_datetime=end_datetime,
+                appointment_date=appt_date,
+                serial_number=serial_number,
+                booking_channel=booking_channel,
+                arrival_type=arrival_type,
                 status=Appointment.Status.CONFIRMED,
                 notes=notes or '',
             )
+
+            # Auto-create linked QueueEntry
+            from apps.queue.models import QueueEntry
+            is_auto_checked_in = (
+                arrival_type == Appointment.ArrivalType.WALK_IN
+                or booking_channel == Appointment.BookingChannel.FRONT_DESK
+            )
+            QueueEntry.objects.create(
+                organization=organization,
+                appointment=appointment,
+                provider=provider,
+                queue_date=appt_date,
+                serial_number=serial_number,
+                token_number=serial_number,
+                status=QueueEntry.Status.WAITING,
+                is_checked_in=is_auto_checked_in,
+                checked_in_at=timezone.now() if is_auto_checked_in else None,
+            )
+
             NotificationService.create(
                 recipient=customer,
                 organization=organization,
                 kind='APPOINTMENT_BOOKED',
                 title='Appointment booked',
-                message=f'Your appointment is booked for {appointment.start_datetime}.',
+                message=f'Your appointment (Serial #{serial_number}) is booked for {appointment.start_datetime}.',
                 appointment=appointment,
             )
             if provider.membership and provider.membership.user and provider.membership.user != customer:
@@ -444,13 +479,13 @@ class AppointmentService:
                     organization=organization,
                     kind='PROVIDER_NEW_APPOINTMENT',
                     title='New appointment assigned',
-                    message=f'New appointment booked with {customer.get_full_name() or customer.email} for {appointment.start_datetime}.',
+                    message=f'New appointment (Serial #{serial_number}) booked with {customer.get_full_name() or customer.email}.',
                     appointment=appointment,
                 )
             AuditService.record(
                 action='APPOINTMENT_BOOKED', entity_type='Appointment', entity_id=appointment.id,
                 organization_id=organization.id, actor=customer,
-                metadata={'provider_id': str(provider.id), 'service_id': str(service.id)},
+                metadata={'provider_id': str(provider.id), 'service_id': str(service.id), 'serial_number': serial_number},
             )
             return appointment
 
