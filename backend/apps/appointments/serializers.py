@@ -119,3 +119,63 @@ class AvailabilityResponseSerializer(serializers.Serializer):
     service_id = serializers.UUIDField()
     duration_minutes = serializers.IntegerField()
     slots = AvailabilitySlotSerializer(many=True)
+
+
+class CustomerDashboardItemSerializer(serializers.ModelSerializer):
+    organization_id = serializers.UUIDField(source='organization.id', read_only=True)
+    organization_name = serializers.CharField(source='organization.name', read_only=True)
+    organization_slug = serializers.CharField(source='organization.slug', read_only=True)
+    organization_category = serializers.CharField(source='organization.industry_type', read_only=True)
+    provider_id = serializers.UUIDField(source='provider.id', read_only=True)
+    provider_name = serializers.SerializerMethodField()
+    provider_title = serializers.CharField(source='provider.title', read_only=True)
+    service_id = serializers.UUIDField(source='service.id', read_only=True)
+    service_name = serializers.CharField(source='service.name', read_only=True)
+    category_id = serializers.UUIDField(source='service.category.id', read_only=True, default=None)
+    category_name = serializers.CharField(source='service.category.name', read_only=True, default=None)
+    queue_entry = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Appointment
+        fields = [
+            'id',
+            'organization_id',
+            'organization_name',
+            'organization_slug',
+            'organization_category',
+            'provider_id',
+            'provider_name',
+            'provider_title',
+            'service_id',
+            'service_name',
+            'category_id',
+            'category_name',
+            'appointment_date',
+            'serial_number',
+            'booking_channel',
+            'arrival_type',
+            'start_datetime',
+            'end_datetime',
+            'status',
+            'notes',
+            'queue_entry',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = fields
+
+    def get_provider_name(self, obj):
+        if obj.provider and obj.provider.membership and obj.provider.membership.user:
+            return obj.provider.membership.user.get_full_name() or obj.provider.membership.user.email
+        return obj.provider.title if obj.provider else ''
+
+    def get_queue_entry(self, obj):
+        from apps.queue.serializers import QueueEntrySerializer
+        q = getattr(obj, 'queue_entry', None)
+        if q is None:
+            from apps.queue.models import QueueEntry
+            q = QueueEntry.objects.filter(appointment=obj).first()
+        if q:
+            return QueueEntrySerializer(q).data
+        return None
+

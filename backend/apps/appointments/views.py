@@ -307,3 +307,34 @@ class AppointmentCheckInView(APIView):
 
         entry = QueueService.check_in_appointment(appointment=appointment, actor=request.user)
         return Response(AppointmentSerializer(entry.appointment).data)
+
+
+# ---------------------------------------------------------------------------
+# Customer Multi-Organization Dashboard Endpoint
+# ---------------------------------------------------------------------------
+
+class CustomerDashboardView(APIView):
+    """
+    GET /api/v1/customer/dashboard/
+    Retrieves all appointments and queue telemetry belonging to the authenticated customer (request.user)
+    across all organizations.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={200: OpenApiResponse(description='Customer multi-org appointments and live queue dashboard telemetry')},
+        summary='Get customer dashboard appointments across all organizations',
+    )
+    def get(self, request):
+        qs = Appointment.objects.filter(customer=request.user).select_related(
+            'organization',
+            'provider',
+            'provider__membership__user',
+            'service',
+            'service__category',
+        ).order_by('-start_datetime')
+
+        from .serializers import CustomerDashboardItemSerializer
+        serializer = CustomerDashboardItemSerializer(qs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+

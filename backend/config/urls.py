@@ -6,6 +6,7 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
+from apps.appointments.views import CustomerDashboardView
 from apps.organizations.views import (
     PublicInvitationDetailsView,
     PublicAcceptInvitationView,
@@ -16,6 +17,7 @@ from apps.organizations.views import (
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/auth/', include('apps.accounts.urls')),
+    path('api/v1/customer/dashboard/', CustomerDashboardView.as_view(), name='customer_dashboard'),
     path('api/v1/invitations/provider/<str:token>/', PublicInvitationDetailsView.as_view(), name='public_invitation_detail'),
     path('api/v1/invitations/provider/<str:token>/accept/', PublicAcceptInvitationView.as_view(), name='public_accept_invitation'),
     path('api/v1/invitations/staff/<str:token>/', PublicStaffInvitationDetailsView.as_view(), name='public_staff_invitation_detail'),

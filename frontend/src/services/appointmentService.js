@@ -35,6 +35,14 @@ export const appointmentService = {
   },
 
   /**
+   * Fetch all customer appointments and active queue entries across all organizations.
+   */
+  async getCustomerDashboard() {
+    const response = await apiClient.get('/customer/dashboard/');
+    return response.data;
+  },
+
+  /**
    * List appointments for an organization (scoped to current user).
    * @param {string} orgId
    * @param {Object} params - optional filtering / ordering parameters

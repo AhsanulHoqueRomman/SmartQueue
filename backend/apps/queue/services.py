@@ -373,6 +373,7 @@ class QueueService:
 
     @classmethod
     def calculate_readiness_and_eta(cls, queue_entry: QueueEntry) -> dict:
+        now = timezone.now()
         if queue_entry.status == QueueEntry.Status.COMPLETED:
             return {'readiness_state': 'COMPLETED', 'people_ahead': 0, 'estimated_wait_minutes': 0}
         if queue_entry.status == QueueEntry.Status.SKIPPED:
@@ -380,9 +381,17 @@ class QueueService:
         if queue_entry.status in (QueueEntry.Status.CANCELLED, QueueEntry.Status.NO_SHOW):
             return {'readiness_state': queue_entry.status, 'people_ahead': 0, 'estimated_wait_minutes': 0}
         if queue_entry.status in (QueueEntry.Status.IN_PROGRESS, QueueEntry.Status.CALLED):
-            return {'readiness_state': QueueEntry.ReadinessState.TURN_NOW, 'people_ahead': 0, 'estimated_wait_minutes': 0}
-
-        now = timezone.now()
+            dur = 15
+            if queue_entry.appointment and queue_entry.appointment.service:
+                dur = queue_entry.appointment.service.duration_minutes or 15
+            return {
+                'readiness_state': QueueEntry.ReadinessState.TURN_NOW,
+                'people_ahead': 0,
+                'estimated_wait_minutes': 0,
+                'estimated_start_time': now.isoformat(),
+                'estimated_end_time': (now + timedelta(minutes=dur)).isoformat(),
+                'recommended_arrival_time': now.isoformat(),
+            }
 
         # Active entry in consultation / called
         active_entry = QueueEntry.objects.filter(
@@ -443,7 +452,12 @@ class QueueService:
         else:
             readiness = QueueEntry.ReadinessState.NOT_YET
 
+        service_dur = 15
+        if queue_entry.appointment and queue_entry.appointment.service:
+            service_dur = queue_entry.appointment.service.duration_minutes or 15
+
         est_start = now + timedelta(minutes=est_wait)
+        est_end = est_start + timedelta(minutes=service_dur)
         rec_arrival = now + timedelta(minutes=max(0, est_wait - 15))
 
         return {
@@ -451,6 +465,7 @@ class QueueService:
             'people_ahead': people_ahead,
             'estimated_wait_minutes': est_wait,
             'estimated_start_time': est_start.isoformat(),
+            'estimated_end_time': est_end.isoformat(),
             'recommended_arrival_time': rec_arrival.isoformat(),
         }
 
