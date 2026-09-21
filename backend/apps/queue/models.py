@@ -15,6 +15,8 @@ class QueueEntry(models.Model):
         IN_PROGRESS = 'IN_PROGRESS', _('In progress')
         COMPLETED = 'COMPLETED', _('Completed')
         SKIPPED = 'SKIPPED', _('Skipped')
+        CANCELLED = 'CANCELLED', _('Cancelled')
+        NO_SHOW = 'NO_SHOW', _('No show')
 
     class ReadinessState(models.TextChoices):
         NOT_YET = 'NOT_YET', _('Not yet')
@@ -25,11 +27,13 @@ class QueueEntry(models.Model):
     ACTIVE_STATUSES = (Status.CALLED, Status.IN_PROGRESS)
 
     ALLOWED_TRANSITIONS = {
-        Status.WAITING: {Status.CALLED},
-        Status.CALLED: {Status.IN_PROGRESS, Status.SKIPPED},
-        Status.IN_PROGRESS: {Status.COMPLETED},
+        Status.WAITING: {Status.CALLED, Status.CANCELLED, Status.NO_SHOW},
+        Status.CALLED: {Status.IN_PROGRESS, Status.SKIPPED, Status.CANCELLED, Status.NO_SHOW},
+        Status.IN_PROGRESS: {Status.COMPLETED, Status.CANCELLED},
         Status.COMPLETED: set(),
-        Status.SKIPPED: {Status.WAITING}, # Staff reinstatement allowed
+        Status.SKIPPED: {Status.WAITING, Status.CANCELLED, Status.NO_SHOW},
+        Status.CANCELLED: set(),
+        Status.NO_SHOW: set(),
     }
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

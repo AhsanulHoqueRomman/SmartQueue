@@ -128,6 +128,10 @@ class Appointment(models.Model):
                 condition=models.Q(end_datetime__gt=models.F('start_datetime')),
                 name='appointment_end_after_start',
             ),
+            models.UniqueConstraint(
+                fields=['provider', 'appointment_date', 'serial_number'],
+                name='unique_provider_date_serial',
+            ),
         ]
 
     def __str__(self):

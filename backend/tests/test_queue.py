@@ -283,3 +283,118 @@ class TestQueueAPI:
         eta_info = QueueService.calculate_readiness_and_eta(q1)
         assert eta_info['readiness_state'] == QueueEntry.ReadinessState.BE_READY
         assert eta_info['people_ahead'] == 0
+
+    def test_phase5_cancellation_sync(self, queue_setup):
+        s = queue_setup
+        from apps.appointments.services import AppointmentService
+        start_time = timezone.make_aware(datetime(2030, 2, 5, 10, 0), timezone=TZ)
+        appt = AppointmentService.book_appointment(
+            organization_id=s['org'].id, customer=s['customer'],
+            provider_id=s['provider'].id, service_id=s['service'].id,
+            start_datetime=start_time,
+        )
+        entry = QueueService.check_in_appointment(appointment=appt)
+        assert entry.status == QueueEntry.Status.WAITING
+
+        AppointmentService.cancel_appointment(appointment=appt, reason='Customer changed mind')
+        appt.refresh_from_db()
+        entry.refresh_from_db()
+        assert appt.status == Appointment.Status.CANCELLED
+        assert entry.status == QueueEntry.Status.CANCELLED
+
+        from apps.queue.services import NoWaitingCustomerException
+        with pytest.raises(NoWaitingCustomerException):
+            QueueService.call_next(organization_id=s['org'].id, provider_id=s['provider'].id, on_date=appt.appointment_date)
+
+    def test_phase5_urgent_eta_calculation(self, queue_setup):
+        s = queue_setup
+        from apps.appointments.services import AppointmentService
+        start_time = timezone.make_aware(datetime(2030, 2, 6, 10, 0), timezone=TZ)
+
+        appt1 = AppointmentService.book_appointment(
+            organization_id=s['org'].id, customer=s['customer'],
+            provider_id=s['provider'].id, service_id=s['service'].id,
+            start_datetime=start_time,
+        )
+        user2 = User.objects.create_user(email='user2_eta@queue.test')
+        appt2 = AppointmentService.book_appointment(
+            organization_id=s['org'].id, customer=user2,
+            provider_id=s['provider'].id, service_id=s['service'].id,
+            start_datetime=start_time + timedelta(minutes=30),
+        )
+
+        q1 = QueueService.check_in_appointment(appointment=appt1)
+        q2 = QueueService.check_in_appointment(appointment=appt2)
+
+        # Mark appt2 (Serial #2) urgent
+        QueueService.mark_urgent(organization_id=s['org'].id, queue_entry_id=q2.id, reason='Urgent case')
+
+        # ETA for q1 (Serial #1, normal) must include q2 (urgent) ahead of it
+        eta_q1 = QueueService.calculate_readiness_and_eta(q1)
+        assert eta_q1['people_ahead'] == 1
+        assert eta_q1['estimated_wait_minutes'] == 30
+
+    def test_phase5_active_consultation_elapsed_time_deduction(self, queue_setup):
+        s = queue_setup
+        from apps.appointments.services import AppointmentService
+        start_time = timezone.make_aware(datetime(2030, 2, 7, 10, 0), timezone=TZ)
+
+        appt1 = AppointmentService.book_appointment(
+            organization_id=s['org'].id, customer=s['customer'],
+            provider_id=s['provider'].id, service_id=s['service'].id,
+            start_datetime=start_time,
+        )
+        user2 = User.objects.create_user(email='user2_elapsed@queue.test')
+        appt2 = AppointmentService.book_appointment(
+            organization_id=s['org'].id, customer=user2,
+            provider_id=s['provider'].id, service_id=s['service'].id,
+            start_datetime=start_time + timedelta(minutes=30),
+        )
+
+        q1 = QueueService.check_in_appointment(appointment=appt1)
+        q2 = QueueService.check_in_appointment(appointment=appt2)
+
+        QueueService.call_next(organization_id=s['org'].id, provider_id=s['provider'].id, on_date=appt1.appointment_date)
+        # Start q1 10 minutes ago (duration = 30 mins -> remaining = 20 mins)
+        q1.status = QueueEntry.Status.IN_PROGRESS
+        q1.started_at = timezone.now() - timedelta(minutes=10)
+        q1.save()
+
+        eta_q2 = QueueService.calculate_readiness_and_eta(q2)
+        assert eta_q2['people_ahead'] == 1
+        assert eta_q2['estimated_wait_minutes'] == 20
+
+    def test_phase5_db_unique_constraint_provider_date_serial(self, queue_setup):
+        s = queue_setup
+        from apps.appointments.services import AppointmentService
+        start_time = timezone.make_aware(datetime(2030, 2, 8, 10, 0), timezone=TZ)
+        appt1 = AppointmentService.book_appointment(
+            organization_id=s['org'].id, customer=s['customer'],
+            provider_id=s['provider'].id, service_id=s['service'].id,
+            start_datetime=start_time,
+        )
+
+        user2 = User.objects.create_user(email='dup_serial@queue.test')
+        with pytest.raises(IntegrityError):
+            Appointment.objects.create(
+                organization=s['org'], customer=user2, provider=s['provider'],
+                service=s['service'], appointment_date=appt1.appointment_date,
+                serial_number=appt1.serial_number, start_datetime=start_time,
+                end_datetime=start_time + timedelta(minutes=30),
+            )
+
+    def test_phase5_walk_in_analytics_metrics(self, queue_setup):
+        s = queue_setup
+        from apps.analytics.services import AnalyticsService
+        walk_in_appt = QueueService.register_walk_in(
+            organization_id=s['org'].id,
+            provider_id=s['provider'].id,
+            service_id=s['service'].id,
+            first_name='Anis',
+            last_name='Rahman',
+        )
+        summary = AnalyticsService.organization_summary(organization=s['org'], start_date=date(2020, 1, 1), end_date=date(2040, 1, 1))
+        assert summary['queue_summary']['walk_in_volume'] >= 1
+        assert summary['queue_summary']['booking_channels']['front_desk'] >= 1
+        assert summary['queue_summary']['arrival_types']['walk_in'] >= 1
+

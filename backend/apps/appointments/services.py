@@ -266,14 +266,9 @@ def validate_slot_against_schedule_and_blocks(
             code='LEAVE_CONFLICT',
         )
 
-    conflicting = _blocking_appointment_qs(
-        provider, exclude_appointment_id=exclude_appointment_id
-    ).filter(
-        start_datetime__lt=end_datetime,
-        end_datetime__gt=start_datetime,
-    ).exists()
-    if conflicting:
-        raise DoubleBookingConflictException()
+    # Under serial provider queue model, provider working hours, breaks, and leaves remain enforced.
+    # Rigid single-patient slot overlap blocking is removed as patients receive sequential serials.
+
 
 
 # ---------------------------------------------------------------------------
@@ -321,13 +316,6 @@ class AppointmentAvailabilityService:
                 end_datetime__gt=day_start,
             )
         )
-        appointments = list(
-            _blocking_appointment_qs(provider).filter(
-                start_datetime__lt=day_end,
-                end_datetime__gt=day_start,
-            )
-        )
-
         now = timezone.now()
         slots = []
         cursor = schedule_start
@@ -342,8 +330,6 @@ class AppointmentAvailabilityService:
             if _slot_overlaps_breaks(slot_start, slot_end, breaks, on_date):
                 continue
             if _slot_overlaps_leaves(slot_start, slot_end, leaves):
-                continue
-            if _slot_overlaps_appointments(slot_start, slot_end, appointments):
                 continue
 
             slots.append({
@@ -552,38 +538,46 @@ class AppointmentService:
                 message=f'Cannot cancel appointment in status {appointment.status}.',
             )
 
-        appointment.status = Appointment.Status.CANCELLED
-        appointment.cancellation_reason = reason or ''
-        appointment.save(update_fields=['status', 'cancellation_reason', 'updated_at'])
-        organization = appointment.organization
-        NotificationService.create(
-            recipient=appointment.customer,
-            organization=organization,
-            kind='APPOINTMENT_CANCELLED',
-            title='Appointment cancelled',
-            message='Your appointment has been cancelled.',
-            appointment=appointment,
-        )
-        if (
-            appointment.provider
-            and appointment.provider.membership
-            and appointment.provider.membership.user
-            and appointment.provider.membership.user != (actor or appointment.customer)
-        ):
+        with transaction.atomic():
+            appointment.status = Appointment.Status.CANCELLED
+            appointment.cancellation_reason = reason or ''
+            appointment.save(update_fields=['status', 'cancellation_reason', 'updated_at'])
+
+            from apps.queue.models import QueueEntry
+            entry = QueueEntry.objects.filter(appointment=appointment).first()
+            if entry:
+                entry.status = QueueEntry.Status.CANCELLED
+                entry.save(update_fields=['status', 'updated_at'])
+
+            organization = appointment.organization
             NotificationService.create(
-                recipient=appointment.provider.membership.user,
+                recipient=appointment.customer,
                 organization=organization,
-                kind='PROVIDER_APPOINTMENT_CANCELLED',
+                kind='APPOINTMENT_CANCELLED',
                 title='Appointment cancelled',
-                message=f'Appointment with {appointment.customer.get_full_name() or appointment.customer.email} has been cancelled.',
+                message='Your appointment has been cancelled.',
                 appointment=appointment,
             )
-        AuditService.record(
-            action='APPOINTMENT_CANCELLED', entity_type='Appointment', entity_id=appointment.id,
-            organization_id=organization.id, actor=actor or appointment.customer,
-            metadata={'reason': reason or ''},
-        )
-        return appointment
+            if (
+                appointment.provider
+                and appointment.provider.membership
+                and appointment.provider.membership.user
+                and appointment.provider.membership.user != (actor or appointment.customer)
+            ):
+                NotificationService.create(
+                    recipient=appointment.provider.membership.user,
+                    organization=organization,
+                    kind='PROVIDER_APPOINTMENT_CANCELLED',
+                    title='Appointment cancelled',
+                    message=f'Appointment with {appointment.customer.get_full_name() or appointment.customer.email} has been cancelled.',
+                    appointment=appointment,
+                )
+            AuditService.record(
+                action='APPOINTMENT_CANCELLED', entity_type='Appointment', entity_id=appointment.id,
+                organization_id=organization.id, actor=actor or appointment.customer,
+                metadata={'reason': reason or ''},
+            )
+            return appointment
 
     @classmethod
     def transition_status(

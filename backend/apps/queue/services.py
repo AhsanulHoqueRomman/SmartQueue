@@ -285,6 +285,7 @@ class QueueService:
                     queue_date=queue_date,
                     status=QueueEntry.Status.WAITING,
                     is_checked_in=True,
+                    appointment__status__in=[Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN],
                 )
                 .order_by('-is_urgent', 'serial_number')
                 .first()
@@ -376,24 +377,64 @@ class QueueService:
             return {'readiness_state': 'COMPLETED', 'people_ahead': 0, 'estimated_wait_minutes': 0}
         if queue_entry.status == QueueEntry.Status.SKIPPED:
             return {'readiness_state': 'SKIPPED', 'people_ahead': 0, 'estimated_wait_minutes': 0}
+        if queue_entry.status in (QueueEntry.Status.CANCELLED, QueueEntry.Status.NO_SHOW):
+            return {'readiness_state': queue_entry.status, 'people_ahead': 0, 'estimated_wait_minutes': 0}
         if queue_entry.status in (QueueEntry.Status.IN_PROGRESS, QueueEntry.Status.CALLED):
             return {'readiness_state': QueueEntry.ReadinessState.TURN_NOW, 'people_ahead': 0, 'estimated_wait_minutes': 0}
 
-        waiting_ahead = QueueEntry.objects.filter(
+        now = timezone.now()
+
+        # Active entry in consultation / called
+        active_entry = QueueEntry.objects.filter(
             provider=queue_entry.provider,
             queue_date=queue_entry.queue_date,
-            status=QueueEntry.Status.WAITING,
-            is_checked_in=True,
-            serial_number__lt=queue_entry.serial_number,
-        ).count()
+            status__in=[QueueEntry.Status.CALLED, QueueEntry.Status.IN_PROGRESS],
+        ).select_related('appointment__service').first()
 
-        active_in_service = QueueEntry.objects.filter(
-            provider=queue_entry.provider,
-            queue_date=queue_entry.queue_date,
-            status__in=[QueueEntry.Status.IN_PROGRESS, QueueEntry.Status.CALLED],
-        ).exists()
+        active_remaining = 0
+        if active_entry:
+            dur = 15
+            if active_entry.appointment and active_entry.appointment.service:
+                dur = active_entry.appointment.service.duration_minutes or 15
+            if active_entry.started_at:
+                elapsed = (now - active_entry.started_at).total_seconds() / 60.0
+                active_remaining = max(0, int(round(dur - elapsed)))
+            else:
+                active_remaining = dur
 
-        people_ahead = waiting_ahead + (1 if active_in_service else 0)
+        # Query preceding waiting entries according to effective queue ordering (-is_urgent, serial_number)
+        if queue_entry.is_urgent:
+            ahead_qs = QueueEntry.objects.filter(
+                provider=queue_entry.provider,
+                queue_date=queue_entry.queue_date,
+                status=QueueEntry.Status.WAITING,
+                is_checked_in=True,
+                is_urgent=True,
+                serial_number__lt=queue_entry.serial_number,
+                appointment__status__in=[Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN],
+            )
+        else:
+            ahead_qs = QueueEntry.objects.filter(
+                provider=queue_entry.provider,
+                queue_date=queue_entry.queue_date,
+                status=QueueEntry.Status.WAITING,
+                is_checked_in=True,
+                appointment__status__in=[Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN],
+            ).filter(
+                models.Q(is_urgent=True) | models.Q(is_urgent=False, serial_number__lt=queue_entry.serial_number)
+            )
+
+        waiting_ahead_count = ahead_qs.count()
+        people_ahead = waiting_ahead_count + (1 if active_entry else 0)
+
+        waiting_ahead_minutes = 0
+        for entry in ahead_qs.select_related('appointment__service'):
+            dur = 15
+            if entry.appointment and entry.appointment.service:
+                dur = entry.appointment.service.duration_minutes or 15
+            waiting_ahead_minutes += dur
+
+        est_wait = active_remaining + waiting_ahead_minutes
 
         if people_ahead == 0:
             readiness = QueueEntry.ReadinessState.BE_READY
@@ -402,13 +443,6 @@ class QueueService:
         else:
             readiness = QueueEntry.ReadinessState.NOT_YET
 
-        avg_duration = 15
-        if queue_entry.appointment and queue_entry.appointment.service:
-            avg_duration = queue_entry.appointment.service.duration_minutes or 15
-
-        est_wait = people_ahead * avg_duration
-
-        now = timezone.now()
         est_start = now + timedelta(minutes=est_wait)
         rec_arrival = now + timedelta(minutes=max(0, est_wait - 15))
 

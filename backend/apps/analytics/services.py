@@ -157,12 +157,30 @@ class AnalyticsService:
         avg_wait_sec = queue_aggs['avg_wait'].total_seconds() if queue_aggs['avg_wait'] else 0.0
         avg_service_sec = queue_aggs['avg_service'].total_seconds() if queue_aggs['avg_service'] else 0.0
 
+        channel_aggs = appointments.aggregate(
+            online=Count('id', filter=Q(booking_channel=Appointment.BookingChannel.ONLINE)),
+            phone=Count('id', filter=Q(booking_channel=Appointment.BookingChannel.PHONE)),
+            front_desk=Count('id', filter=Q(booking_channel=Appointment.BookingChannel.FRONT_DESK)),
+            walk_in=Count('id', filter=Q(arrival_type=Appointment.ArrivalType.WALK_IN)),
+            scheduled=Count('id', filter=Q(arrival_type=Appointment.ArrivalType.SCHEDULED)),
+        )
+
         queue_summary = {
             'total_entries': queue_aggs['total'] or 0,
             'completed_entries': queue_aggs['completed'] or 0,
             'skipped_entries': queue_aggs['skipped'] or 0,
             'average_wait_seconds': round(avg_wait_sec, 1),
             'average_service_seconds': round(avg_service_sec, 1),
+            'booking_channels': {
+                'online': channel_aggs['online'] or 0,
+                'phone': channel_aggs['phone'] or 0,
+                'front_desk': channel_aggs['front_desk'] or 0,
+            },
+            'arrival_types': {
+                'walk_in': channel_aggs['walk_in'] or 0,
+                'scheduled': channel_aggs['scheduled'] or 0,
+            },
+            'walk_in_volume': channel_aggs['walk_in'] or 0,
         }
 
         # Time-Series Appointment Trend

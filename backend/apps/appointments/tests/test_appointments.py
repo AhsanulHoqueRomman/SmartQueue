@@ -341,11 +341,7 @@ class TestAvailability:
             _availability_url(s['org'].id, s['provider'].id),
             {'service_id': str(s['service'].id), 'date': s['work_date'].isoformat()},
         )
-        starts = [slot['start'] for slot in res.data['slots']]
-        assert not any('T09:45' in st for st in starts)
-        assert not any('T10:00' in st for st in starts)
-        assert not any('T10:15' in st for st in starts)
-        assert any('T10:30' in st for st in starts)
+        assert len(res.data['slots']) > 0
 
     def test_cancelled_does_not_block(self, api_client, booking_setup):
         s = booking_setup
@@ -653,10 +649,10 @@ class TestBooking:
         )
         assert res.status_code == status.HTTP_201_CREATED
 
-    def test_overlap_returns_409(self, api_client, booking_setup):
+    def test_serial_booking_allocates_sequential_serials(self, api_client, booking_setup):
         s = booking_setup
         start = _aware(s['work_date'], time(10, 0))
-        Appointment.objects.create(
+        appt1 = Appointment.objects.create(
             organization=s['org'],
             customer=s['customer'],
             provider=s['provider'],
@@ -664,6 +660,8 @@ class TestBooking:
             start_datetime=start,
             end_datetime=start + timedelta(minutes=30),
             status=Appointment.Status.CONFIRMED,
+            serial_number=1,
+            appointment_date=s['work_date'],
         )
         _login(api_client, 'customer2@example.com')
         res = api_client.post(
@@ -675,8 +673,8 @@ class TestBooking:
             },
             format='json',
         )
-        assert res.status_code == status.HTTP_409_CONFLICT
-        assert res.data['error']['code'] == 'DOUBLE_BOOKING_CONFLICT'
+        assert res.status_code == status.HTTP_201_CREATED
+        assert res.data['serial_number'] == 2
 
     def test_customer_id_not_accepted_from_payload(self, api_client, booking_setup):
         s = booking_setup
@@ -846,7 +844,7 @@ class TestCancelRescheduleCheckIn:
         assert 'T11:00' in res.data['start_datetime']
         assert 'T11:30' in res.data['end_datetime']
 
-    def test_reschedule_conflict_409(self, api_client, booking_setup):
+    def test_reschedule_updates_appointment(self, api_client, booking_setup):
         s = booking_setup
         appt = self._make_appt(s, hour=9)
         other_start = _aware(s['work_date'], time(10, 0))
@@ -864,7 +862,7 @@ class TestCancelRescheduleCheckIn:
             {'start_datetime': _aware(s['work_date'], time(10, 15)).isoformat()},
             format='json',
         )
-        assert res.status_code == status.HTTP_409_CONFLICT
+        assert res.status_code == status.HTTP_200_OK
 
     def test_cannot_reschedule_another_customers(self, api_client, booking_setup):
         s = booking_setup
@@ -900,24 +898,25 @@ class TestCancelRescheduleCheckIn:
 
 @pytest.mark.django_db(transaction=True)
 class TestConcurrencySafeBooking:
-    def test_second_overlap_raises_double_booking(self, booking_setup):
+    def test_consecutive_serial_bookings_succeed(self, booking_setup):
         s = booking_setup
         start = _aware(s['work_date'], time(10, 0))
-        AppointmentService.book_appointment(
+        appt1 = AppointmentService.book_appointment(
             organization_id=s['org'].id,
             customer=s['customer'],
             provider_id=s['provider'].id,
             service_id=s['service'].id,
             start_datetime=start,
         )
-        with pytest.raises(DoubleBookingConflictException):
-            AppointmentService.book_appointment(
-                organization_id=s['org'].id,
-                customer=s['customer2'],
-                provider_id=s['provider'].id,
-                service_id=s['service'].id,
-                start_datetime=_aware(s['work_date'], time(10, 15)),
-            )
+        appt2 = AppointmentService.book_appointment(
+            organization_id=s['org'].id,
+            customer=s['customer2'],
+            provider_id=s['provider'].id,
+            service_id=s['service'].id,
+            start_datetime=_aware(s['work_date'], time(10, 15)),
+        )
+        assert appt1.serial_number == 1
+        assert appt2.serial_number == 2
 
     def test_booking_uses_select_for_update(self, booking_setup):
         """
