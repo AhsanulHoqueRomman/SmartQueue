@@ -122,12 +122,19 @@ export function CustomerLiveQueuePage() {
 
   const isTerminal = ['COMPLETED', 'SKIPPED'].includes(myQueueEntry.status);
 
+  const formatTime = (isoStr) => {
+    if (!isoStr) return null;
+    const d = new Date(isoStr);
+    return isNaN(d.getTime()) ? null : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   const readiness = myQueueEntry.readiness_info?.readiness_state || 'NOT_YET';
   const peopleAhead = myQueueEntry.readiness_info?.people_ahead ?? 0;
-  const estWaitMins = myQueueEntry.readiness_info?.estimated_wait_minutes ?? 0;
-  const recArrivalStr = myQueueEntry.readiness_info?.recommended_arrival_time
-    ? new Date(myQueueEntry.readiness_info.recommended_arrival_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : 'Now';
+  const nowServingSerial = myQueueEntry.readiness_info?.now_serving_serial || currentlyServing?.serial_number;
+
+  const estStartStr = formatTime(myQueueEntry.readiness_info?.estimated_start_time) || formatTime(myQueueEntry.appointment_start);
+  const estEndStr = formatTime(myQueueEntry.readiness_info?.estimated_end_time) || formatTime(myQueueEntry.appointment_end);
+  const recArrivalStr = formatTime(myQueueEntry.readiness_info?.recommended_arrival_time) || 'Now';
 
   const readinessBadgeConfig = {
     TURN_NOW: { text: '🟢 It is Your Turn! Proceed inside', bg: '#DCFCE7', color: '#166534', border: '#86EFAC' },
@@ -201,7 +208,7 @@ export function CustomerLiveQueuePage() {
           fontWeight: 700,
           marginBottom: '1.25rem'
         }}>
-          <span style={{ display: 'inline-block', width: '9px', height: '9px', borderRadius: '50%', background: isTerminal ? '#78716C' : readinessBadgeConfig.color, animation: isTerminal ? 'none' : 'pulse 1.5s infinite' }} />
+          <span style={{ display: 'inline-block', width: '9px', height: '9px', borderRadius: '50%', background: isTerminal ? '#78716C' : readinessBadgeConfig.color }} />
           {readinessBadgeConfig.text}
         </div>
 
@@ -235,7 +242,7 @@ export function CustomerLiveQueuePage() {
             </div>
             <button
               onClick={handleCheckInNow}
-              disabled={checkingIn}
+              disabled={checking}
               style={{
                 padding: '0.6rem 1.25rem',
                 background: '#B06D2E',
@@ -288,7 +295,7 @@ export function CustomerLiveQueuePage() {
               Now Serving
             </div>
             <div style={{ fontSize: '2.75rem', fontWeight: 800, color: '#5F7A70', fontFamily: 'Outfit, sans-serif' }}>
-              {currentlyServing ? `#${currentlyServing.serial_number || currentlyServing.token_number}` : 'None'}
+              {nowServingSerial ? `#${nowServingSerial}` : 'Not started'}
             </div>
             <div style={{ fontSize: '0.75rem', color: '#78716C', marginTop: '0.25rem' }}>
               Active in Room
@@ -315,7 +322,7 @@ export function CustomerLiveQueuePage() {
             </div>
           </div>
 
-          {/* Est Wait */}
+          {/* Estimated Service Range */}
           <div
             style={{
               background: '#FAF8F3',
@@ -325,13 +332,13 @@ export function CustomerLiveQueuePage() {
             }}
           >
             <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#78716C', marginBottom: '0.35rem' }}>
-              Dynamic ETA
+              Estimated Service
             </div>
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#211C19', fontFamily: 'Outfit, sans-serif', marginTop: '0.4rem' }}>
-              ~{estWaitMins} min
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#211C19', fontFamily: 'Outfit, sans-serif', marginTop: '0.4rem' }}>
+              {estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : estStartStr || 'Scheduled'}
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#78716C', marginTop: '0.25rem' }}>
-              Arrive by: {recArrivalStr}
+            <div style={{ fontSize: '0.75rem', color: '#5F7A70', marginTop: '0.35rem', fontWeight: 600 }}>
+              Recommended arrival: {recArrivalStr}
             </div>
           </div>
         </div>

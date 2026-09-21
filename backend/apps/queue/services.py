@@ -391,6 +391,7 @@ class QueueService:
                 'estimated_start_time': now.isoformat(),
                 'estimated_end_time': (now + timedelta(minutes=dur)).isoformat(),
                 'recommended_arrival_time': now.isoformat(),
+                'now_serving_serial': queue_entry.serial_number,
             }
 
         # Active entry in consultation / called
@@ -467,6 +468,7 @@ class QueueService:
             'estimated_start_time': est_start.isoformat(),
             'estimated_end_time': est_end.isoformat(),
             'recommended_arrival_time': rec_arrival.isoformat(),
+            'now_serving_serial': active_entry.serial_number if active_entry else None,
         }
 
     # ------------------------------------------------------------------

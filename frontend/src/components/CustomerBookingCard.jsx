@@ -32,16 +32,18 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
 
   const readinessState = qEntry?.readiness_info?.readiness_state || 'NOT_YET';
   const peopleAhead = qEntry?.readiness_info?.people_ahead ?? 0;
+  const nowServingSerial = qEntry?.readiness_info?.now_serving_serial;
 
   const readinessConfig = {
-    TURN_NOW: { label: 'Your Turn', bg: '#DCFCE7', color: '#166534', border: '#86EFAC' },
-    BE_READY: { label: 'Be Ready', bg: '#FEF3C7', color: '#92400E', border: '#FDE68A' },
-    GET_READY: { label: 'Get Ready', bg: '#FEF9C3', color: '#854D0E', border: '#FEF08A' },
-    NOT_YET: { label: 'Not Yet', bg: '#F3F4F6', color: '#4B5563', border: '#E5E7EB' },
-  }[readinessState] || { label: 'Waiting', bg: '#FAF8F3', color: '#5F7A70', border: '#E6E1D9' };
+    TURN_NOW: { label: 'Your Turn', bg: '#DCFCE7', color: '#166534', border: '#86EFAC', note: 'Please proceed inside' },
+    BE_READY: { label: 'Be Ready', bg: '#FEF3C7', color: '#92400E', border: '#FDE68A', note: 'You are next in line' },
+    GET_READY: { label: 'Get Ready', bg: '#FEF9C3', color: '#854D0E', border: '#FEF08A', note: 'Turn approaching soon' },
+    NOT_YET: { label: 'Not Yet', bg: '#F3F4F6', color: '#4B5563', border: '#E5E7EB', note: 'Relaxed waiting' },
+  }[readinessState] || { label: 'Waiting', bg: '#FAF8F3', color: '#5F7A70', border: '#E6E1D9', note: '' };
 
   const isLive = ['WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
   const isTerminal = ['COMPLETED', 'SKIPPED', 'CANCELLED', 'NO_SHOW'].includes(qStatus);
+  const isCheckingIn = checkingInId === item.id;
 
   return (
     <div
@@ -54,7 +56,7 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
         boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
         display: 'flex',
         flexDirection: 'column',
-        justify: 'space-between',
+        justifyContent: 'space-between',
         transition: 'transform 0.15s ease, box-shadow 0.15s ease',
       }}
     >
@@ -78,6 +80,42 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
           {item.category_name && <span> &bull; {item.category_name}</span>}
         </div>
 
+        {/* State-Specific Callout Banners for Live Queue */}
+        {qStatus === 'IN_PROGRESS' && (
+          <div
+            style={{
+              background: '#2F2520',
+              color: '#FAF8F3',
+              borderRadius: '12px',
+              padding: '0.85rem 1rem',
+              marginBottom: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justify: 'space-between',
+            }}
+          >
+            <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>🩺 YOU ARE BEING SERVED</div>
+            <span style={{ fontSize: '0.75rem', color: '#86EFAC', fontWeight: 600 }}>Active Service</span>
+          </div>
+        )}
+
+        {qStatus === 'CALLED' && (
+          <div
+            style={{
+              background: '#ECFDF5',
+              border: '1px solid #6EE7B7',
+              borderRadius: '12px',
+              padding: '0.85rem 1rem',
+              marginBottom: '1.25rem',
+            }}
+          >
+            <div style={{ fontWeight: 700, color: '#065F46', fontSize: '0.95rem' }}>⚡ YOUR TURN — Please proceed to service area</div>
+            <div style={{ fontSize: '0.8rem', color: '#047857', marginTop: '0.15rem' }}>
+              The provider is waiting for you now.
+            </div>
+          </div>
+        )}
+
         {/* Live Telemetry Box if active in queue */}
         {isLive && (
           <div
@@ -89,18 +127,25 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
               marginBottom: '1.25rem',
             }}
           >
-            {/* Serial & Readiness Row */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 600 }}>Your Serial</span>
-                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#2F2520', fontFamily: 'Outfit, sans-serif' }}>
+            {/* Primary Telemetry Grid: Serial, Now Serving, People Ahead */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginBottom: '0.85rem', textAlign: 'center' }}>
+              <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
+                <span style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Your Serial</span>
+                <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#2F2520', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
                   #{item.serial_number || qEntry?.token_number || '—'}
                 </div>
               </div>
 
-              <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '0.75rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 600 }}>People Ahead</span>
-                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#B06D2E', fontFamily: 'Outfit, sans-serif' }}>
+              <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
+                <span style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Now Serving</span>
+                <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#5F7A70', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+                  {nowServingSerial ? `#${nowServingSerial}` : 'Not started'}
+                </div>
+              </div>
+
+              <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
+                <span style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>People Ahead</span>
+                <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#B06D2E', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
                   {qStatus === 'CALLED' || qStatus === 'IN_PROGRESS' ? '0' : peopleAhead}
                 </div>
               </div>
@@ -125,7 +170,7 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
               )}
             </div>
 
-            {/* Readiness Pill */}
+            {/* Readiness Pill Row */}
             <div style={{ marginTop: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div
                 style={{
@@ -172,20 +217,22 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
         {qEntry && !qEntry.is_checked_in && !isTerminal && onCheckIn && (
           <button
             onClick={() => onCheckIn(item.organization_id, item.id)}
-            disabled={checkingInId === item.id}
+            disabled={isCheckingIn}
             style={{
               flex: 1,
+              minWidth: '130px',
               padding: '0.6rem 1rem',
-              background: '#B06D2E',
+              background: isCheckingIn ? '#78716C' : '#B06D2E',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: '8px',
               fontWeight: 700,
               fontSize: '0.85rem',
-              cursor: 'pointer',
+              cursor: isCheckingIn ? 'not-allowed' : 'pointer',
+              transition: 'background 0.15s ease',
             }}
           >
-            {checkingInId === item.id ? 'Checking In...' : '✓ Check In Now'}
+            {isCheckingIn ? 'Checking In...' : '✓ Check In Now'}
           </button>
         )}
 
@@ -194,6 +241,7 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
             onClick={() => navigate(`/customer/queue/${qId}`)}
             style={{
               flex: 1,
+              minWidth: '130px',
               padding: '0.6rem 1rem',
               background: '#2F2520',
               color: '#FAF8F3',
