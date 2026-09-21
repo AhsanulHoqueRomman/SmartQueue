@@ -16,13 +16,13 @@ class AnalyticsService:
             'appointment', 'provider__membership__user'
         )
         wait_duration = ExpressionWrapper(
-            F('called_at') - F('created_at'), output_field=DurationField()
+            F('called_at') - F('checked_in_at'), output_field=DurationField()
         )
         aggregates = entries.aggregate(
             total=Count('id'),
             completed=Count('id', filter=Q(status=QueueEntry.Status.COMPLETED)),
             skipped=Count('id', filter=Q(status=QueueEntry.Status.SKIPPED)),
-            average_wait=Avg(wait_duration, filter=Q(called_at__isnull=False)),
+            average_wait=Avg(wait_duration, filter=Q(called_at__isnull=False, checked_in_at__isnull=False)),
         )
         completed = entries.filter(status=QueueEntry.Status.COMPLETED)
         bounds = completed.aggregate(first=Min('started_at'), last=Max('completed_at'))
@@ -143,14 +143,14 @@ class AnalyticsService:
         # Queue Entries Scoped Metrics
         queue_qs = QueueEntry.objects.filter(queue_filter)
 
-        wait_expr = ExpressionWrapper(F('called_at') - F('created_at'), output_field=DurationField())
+        wait_expr = ExpressionWrapper(F('called_at') - F('checked_in_at'), output_field=DurationField())
         service_expr = ExpressionWrapper(F('completed_at') - F('started_at'), output_field=DurationField())
 
         queue_aggs = queue_qs.aggregate(
             total=Count('id'),
             completed=Count('id', filter=Q(status=QueueEntry.Status.COMPLETED)),
             skipped=Count('id', filter=Q(status=QueueEntry.Status.SKIPPED)),
-            avg_wait=Avg(wait_expr, filter=Q(called_at__isnull=False)),
+            avg_wait=Avg(wait_expr, filter=Q(called_at__isnull=False, checked_in_at__isnull=False)),
             avg_service=Avg(service_expr, filter=Q(completed_at__isnull=False, started_at__isnull=False)),
         )
 

@@ -398,3 +398,53 @@ class TestQueueAPI:
         assert summary['queue_summary']['booking_channels']['front_desk'] >= 1
         assert summary['queue_summary']['arrival_types']['walk_in'] >= 1
 
+    def test_staff_permissions_for_start_complete_and_cross_org_isolation(self, queue_setup):
+        s = queue_setup
+        staff_user = User.objects.create_user(email='staff@queue.test', password='Password123!')
+        OrganizationMembership.objects.create(user=staff_user, organization=s['org'], role='STAFF')
+
+        other_org = Organization.objects.create(name='Other Clinic', slug='other-clinic', verification_status=Organization.VerificationStatus.APPROVED)
+        other_staff = User.objects.create_user(email='otherstaff@queue.test', password='Password123!')
+        OrganizationMembership.objects.create(user=other_staff, organization=other_org, role='STAFF')
+
+        from apps.appointments.services import AppointmentService
+        start_time = timezone.make_aware(datetime(2030, 2, 9, 10, 0), timezone=TZ)
+        appt = AppointmentService.book_appointment(
+            organization_id=s['org'].id, customer=s['customer'],
+            provider_id=s['provider'].id, service_id=s['service'].id,
+            start_datetime=start_time,
+        )
+        entry = QueueService.check_in_appointment(appointment=appt)
+
+        start_url = reverse('queue:queue_start', kwargs={'organization_id': s['org'].id, 'queue_entry_id': entry.id})
+        complete_url = reverse('queue:queue_complete', kwargs={'organization_id': s['org'].id, 'queue_entry_id': entry.id})
+
+        # 1. Customer cannot start or complete
+        client = APIClient()
+        _login(client, s['customer'])
+        assert client.post(start_url).status_code == 403
+        assert client.post(complete_url).status_code == 403
+
+        # 2. Staff from another org cannot start or complete
+        _login(client, other_staff)
+        assert client.post(start_url).status_code == 403
+        assert client.post(complete_url).status_code == 403
+
+        # 3. Staff from same org CAN start and complete
+        _login(client, staff_user)
+        # First call_next to transition to CALLED
+        call_url = reverse('queue:call_next', kwargs={'organization_id': s['org'].id, 'provider_id': s['provider'].id})
+        call_res = client.post(f'{call_url}?date={entry.queue_date.isoformat()}')
+        assert call_res.status_code == 200
+        assert call_res.data['status'] == QueueEntry.Status.CALLED
+
+        # Staff starts service
+        start_res = client.post(start_url)
+        assert start_res.status_code == 200
+        assert start_res.data['status'] == QueueEntry.Status.IN_PROGRESS
+
+        # Staff completes service
+        complete_res = client.post(complete_url)
+        assert complete_res.status_code == 200
+        assert complete_res.data['status'] == QueueEntry.Status.COMPLETED
+

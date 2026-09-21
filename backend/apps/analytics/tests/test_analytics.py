@@ -49,6 +49,7 @@ class TestAdvancedAnalytics(APITestCase):
         completed = QueueEntry.objects.create(
             organization=self.organization, appointment=self.appointment, provider=self.provider,
             queue_date=date(2030, 1, 7), token_number=1, status=QueueEntry.Status.COMPLETED,
+            checked_in_at=start + timedelta(minutes=5),
             called_at=start + timedelta(minutes=10), started_at=start + timedelta(minutes=12),
             completed_at=start + timedelta(minutes=42),
         )
@@ -63,6 +64,7 @@ class TestAdvancedAnalytics(APITestCase):
         skipped = QueueEntry.objects.create(
             organization=self.organization, appointment=skipped_appointment, provider=self.provider,
             queue_date=date(2030, 1, 7), token_number=2, status=QueueEntry.Status.SKIPPED,
+            checked_in_at=start + timedelta(hours=1, minutes=2),
             called_at=start + timedelta(hours=1, minutes=5),
         )
         QueueEntry.objects.filter(pk=skipped.pk).update(created_at=start + timedelta(hours=1))
@@ -77,8 +79,40 @@ class TestAdvancedAnalytics(APITestCase):
         self.assertEqual(metrics['total_queue_entries'], 2)
         self.assertEqual(metrics['completed_entries'], 1)
         self.assertEqual(metrics['skipped_entries'], 1)
-        self.assertEqual(metrics['average_wait_seconds'], 450.0)
+        # Entry 1 wait: 10 - 5 = 5m (300s). Entry 2 wait: 5 - 2 = 3m (180s). Avg = 240s.
+        self.assertEqual(metrics['average_wait_seconds'], 240.0)
         self.assertEqual(metrics['throughput_per_hour'], 2.0)
+
+    def test_queue_wait_uses_checked_in_at_not_created_at_example(self):
+        # Example from prompt requirement:
+        # created_at = 5:00 PM, checked_in_at = 6:50 PM, called_at = 7:10 PM -> wait = 20 minutes (1200s), NOT 130 min (7800s)
+        test_provider_user = User.objects.create_user(email='wait-test-provider@example.com', password='Password123!')
+        test_mem = OrganizationMembership.objects.create(user=test_provider_user, organization=self.organization, role='PROVIDER', is_active=True)
+        test_provider = ProviderProfile.objects.create(membership=test_mem, title='Wait Test Provider', application_status=ProviderProfile.ApplicationStatus.APPROVED)
+
+        base_time = timezone.make_aware(datetime(2030, 2, 1, 17, 0), timezone=TZ) # 5:00 PM
+        checked_in = base_time + timedelta(hours=1, minutes=50) # 6:50 PM
+        called = base_time + timedelta(hours=2, minutes=10) # 7:10 PM
+        
+        appt = Appointment.objects.create(
+            organization=self.organization, customer=self.customer, provider=test_provider, service=self.service,
+            start_datetime=base_time, end_datetime=base_time + timedelta(minutes=30),
+            status=Appointment.Status.CHECKED_IN,
+        )
+        q_entry = QueueEntry.objects.create(
+            organization=self.organization, appointment=appt, provider=test_provider,
+            queue_date=date(2030, 2, 1), token_number=99, status=QueueEntry.Status.CALLED,
+            checked_in_at=checked_in, called_at=called,
+        )
+        QueueEntry.objects.filter(pk=q_entry.pk).update(created_at=base_time)
+
+        p_metrics = AnalyticsService.provider_metrics(provider=test_provider)
+        org_summary = AnalyticsService.organization_summary(
+            organization=self.organization, start_date=date(2030, 2, 1), end_date=date(2030, 2, 1)
+        )
+        # Wait time must be 20 min = 1200.0s, NOT 130 min = 7800.0s
+        self.assertEqual(p_metrics['average_wait_seconds'], 1200.0)
+        self.assertEqual(org_summary['queue_summary']['average_wait_seconds'], 1200.0)
 
     def test_dashboard_calculates_served_peak_and_dropoff(self):
         dashboard = AnalyticsService.organization_dashboard(organization=self.organization, on_date=date(2030, 1, 7))
@@ -98,6 +132,7 @@ class TestAdvancedAnalytics(APITestCase):
         self.assertEqual(summary['summary']['completion_rate'], 50.0)
         self.assertEqual(summary['summary']['average_rating'], 5.0)
         self.assertEqual(summary['summary']['total_reviews'], 1)
+        self.assertEqual(summary['queue_summary']['average_wait_seconds'], 240.0)
         self.assertEqual(len(summary['appointment_trend']), 31)
 
     def test_analytics_summary_api_date_range_validation(self):

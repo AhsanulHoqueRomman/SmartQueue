@@ -232,14 +232,20 @@ export function BookAppointmentPage() {
 
   // Success view if appointment is booked
   if (bookedAppointment) {
+    const queueId = bookedAppointment.queue_entry?.id || bookedAppointment.queue_entry_id;
     return (
       <div className="card animate-page-entrance" style={{ maxWidth: '600px', margin: '2rem auto', textAlign: 'center', boxShadow: 'var(--shadow-xl)' }}>
-        <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', margin: '0 auto 1.25rem' }}>
+        <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1.25rem' }}>
           ✓
         </div>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '0.35rem' }}>Appointment Confirmed!</h2>
-        <p className="subtitle" style={{ marginBottom: '1.5rem' }}>
-          Your appointment is confirmed and added to your schedule.
+        <div style={{ fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase', color: 'var(--color-primary)', letterSpacing: '0.05em' }}>
+          Serial Allocated Successfully
+        </div>
+        <h2 style={{ fontSize: '2.25rem', margin: '0.25rem 0 0.5rem', fontWeight: '800' }}>
+          Serial #{bookedAppointment.serial_number || 1}
+        </h2>
+        <p className="subtitle" style={{ marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+          Your place in the provider queue is confirmed for {bookedAppointment.appointment_date || selectedDate}.
         </p>
 
         <div className="card" style={{ backgroundColor: 'var(--color-bg-subtle)', textAlign: 'left', marginBottom: '1.5rem', padding: '1.25rem' }}>
@@ -248,12 +254,12 @@ export function BookAppointmentPage() {
             <strong className="text-main">{currentOrg?.name || selectedOrgId}</strong>
           </div>
           <div className="flex justify-between" style={{ padding: '0.65rem 0', borderBottom: '1px solid var(--color-border)' }}>
-            <span className="text-muted text-sm">Service:</span>
-            <strong className="text-main">{bookedAppointment.service_name || selectedService?.name}</strong>
+            <span className="text-muted text-sm">Service & Provider:</span>
+            <strong className="text-main">{bookedAppointment.service_name || selectedService?.name} &bull; {selectedProvider?.user_email || 'Assigned Provider'}</strong>
           </div>
           <div className="flex justify-between" style={{ padding: '0.65rem 0', borderBottom: '1px solid var(--color-border)' }}>
-            <span className="text-muted text-sm">Date & Time:</span>
-            <strong className="text-main">{new Date(bookedAppointment.start_datetime).toLocaleString()}</strong>
+            <span className="text-muted text-sm">Target Arrival Target:</span>
+            <strong className="text-main">{new Date(bookedAppointment.start_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>
           </div>
           <div className="flex justify-between items-center" style={{ paddingTop: '0.65rem' }}>
             <span className="text-muted text-sm">Status:</span>
@@ -261,12 +267,21 @@ export function BookAppointmentPage() {
           </div>
         </div>
 
-        <div className="flex justify-center gap-md">
-          <button className="btn btn-primary" onClick={() => navigate('/customer/appointments')}>
+        <div className="card" style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '1rem', textAlign: 'left', marginBottom: '1.5rem', fontSize: '0.875rem', color: '#166534' }}>
+          💡 <strong>Dynamic ETA Notice:</strong> Your actual consultation time will adapt continuously based on live queue movement. Please check in on your live queue tracker upon physical arrival.
+        </div>
+
+        <div className="flex justify-center gap-md flex-wrap">
+          {queueId && (
+            <button className="btn btn-primary" onClick={() => navigate(`/customer/queue/${queueId}`)}>
+              📍 Track Live Queue & Check In
+            </button>
+          )}
+          <button className="btn btn-secondary" onClick={() => navigate('/customer/appointments')}>
             View My Appointments
           </button>
           <button
-            className="btn btn-secondary"
+            className="btn btn-outline"
             onClick={() => {
               setBookedAppointment(null);
               setSelectedSlot(null);
@@ -407,37 +422,72 @@ export function BookAppointmentPage() {
               </div>
 
               {loadingAvailability ? (
-                <LoadingState message="Fetching available slots..." />
-              ) : !availability || !availability.slots || availability.slots.length === 0 ? (
+                <LoadingState message="Fetching provider operating schedule & serial availability..." />
+              ) : !availability ? (
                 <EmptyState
-                  title="No Slots Available"
-                  message={`No open slots found for ${selectedDate}. Try selecting a different date or provider.`}
+                  title="No Schedule Available"
+                  message={`Provider is not operating on ${selectedDate}. Try selecting a different date or provider.`}
                 />
               ) : (
-                <div className="grid-responsive grid-cols-3 gap-sm margin-top-sm">
-                  {availability.slots.map((slot, idx) => {
-                    const isSelected = selectedSlot?.start === slot.start;
-                    return (
+                <div className="flex flex-col gap-md margin-top-sm">
+                  {/* Provider Operating Hours Banner */}
+                  <div className="card" style={{ backgroundColor: 'var(--color-bg-subtle)', padding: '1.25rem', borderLeft: '4px solid var(--color-primary)' }}>
+                    <div style={{ fontWeight: '700', fontSize: '1rem', color: 'var(--color-text-main)', marginBottom: '0.35rem' }}>
+                      Provider Operating Schedule: {selectedDate}
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
+                      Serial Queue Booking Available &bull; Duration per patient: ~{selectedService?.duration_minutes || 15} mins
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-info)', marginTop: '0.5rem', fontWeight: '500' }}>
+                      ℹ️ SmartQueue assigns sequential serial numbers. Your estimated consultation start will update continuously on your live queue tracker.
+                    </div>
+                  </div>
+
+                  {/* Target Arrival Window Preference Selector */}
+                  <div className="form-group margin-top-sm">
+                    <label className="form-label" htmlFor="arrival-preference-select">
+                      Preferred Target Arrival Window (Optional)
+                    </label>
+                    <p className="subtitle" style={{ fontSize: '0.825rem', marginBottom: '0.5rem' }}>
+                      Select a preferred arrival target during operating hours. This helps estimate your serial position while live queue movement determines exact service order.
+                    </p>
+                    {availability.slots && availability.slots.length > 0 ? (
+                      <div className="grid-responsive grid-cols-3 gap-sm">
+                        {availability.slots.map((slot, idx) => {
+                          const isSelected = selectedSlot?.start === slot.start;
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              className={`btn ${isSelected ? 'btn-primary' : 'btn-outline'}`}
+                              style={{ padding: '0.75rem 0.5rem', whiteSpace: 'nowrap' }}
+                              onClick={() => handleSelectSlot(slot)}
+                            >
+                              Arrive ~{formatSlotTime(slot.start)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
                       <button
-                        key={idx}
                         type="button"
-                        className={`btn ${isSelected ? 'btn-primary' : 'btn-outline'}`}
-                        style={{ padding: '0.75rem 0.5rem', whiteSpace: 'nowrap' }}
-                        onClick={() => handleSelectSlot(slot)}
+                        className={`btn ${selectedSlot ? 'btn-primary' : 'btn-outline'}`}
+                        style={{ padding: '0.85rem 1.25rem', textAlign: 'left' }}
+                        onClick={() => handleSelectSlot({ start: `${selectedDate}T09:00:00` })}
                       >
-                        {formatSlotTime(slot.start)} - {formatSlotTime(slot.end)}
+                        Book Next Available Serial on {selectedDate}
                       </button>
-                    );
-                  })}
+                    )}
+                  </div>
                 </div>
               )}
 
               {selectedSlot && (
                 <form onSubmit={handleBookAppointment} style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--color-border)' }}>
                   <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--color-primary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Step 4</div>
-                  <h3>Confirm Booking</h3>
+                  <h3>Confirm Serial Booking</h3>
                   <p className="subtitle" style={{ marginBottom: '1rem' }}>
-                    Selected Time: <strong>{new Date(selectedSlot.start).toLocaleString()}</strong>
+                    Target Arrival: <strong>{new Date(selectedSlot.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({selectedDate})</strong>
                   </p>
 
                   <div className="form-group">
@@ -454,7 +504,7 @@ export function BookAppointmentPage() {
                   </div>
 
                   <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }} disabled={submitting}>
-                    {submitting ? 'Confirming Booking...' : 'Book Appointment Now'}
+                    {submitting ? 'Assigning Serial Number...' : 'Book Queue Serial Now'}
                   </button>
                 </form>
               )}
