@@ -26,7 +26,8 @@ class NotificationService:
         return notification
 
     @staticmethod
-    def mark_all_read(*, recipient, organization):
-        return Notification.objects.filter(
-            recipient=recipient, organization=organization, read_at__isnull=True
-        ).update(read_at=timezone.now())
+    def mark_all_read(*, recipient, organization=None):
+        qs = Notification.objects.filter(recipient=recipient, read_at__isnull=True)
+        if organization is not None:
+            qs = qs.filter(organization=organization)
+        return qs.update(read_at=timezone.now())

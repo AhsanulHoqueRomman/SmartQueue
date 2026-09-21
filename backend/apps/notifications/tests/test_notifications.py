@@ -127,3 +127,43 @@ class NotificationServiceAndApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.data.get("results") if isinstance(response.data, dict) else response.data
         self.assertEqual(len(results), 0)
+
+    def test_customer_notifications_cross_org_aggregation(self):
+        # Create a notification for customer_a in org_b as well
+        n3 = NotificationService.create(
+            recipient=self.customer_a,
+            organization=self.org_b,
+            kind="SERVICE_COMPLETED",
+            title="Service Completed at Org B",
+            message="Your service was completed at Org B.",
+        )
+        self.client.force_authenticate(user=self.customer_a)
+        response = self.client.get("/api/v1/customer/notifications/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get("results") if isinstance(response.data, dict) else response.data
+        self.assertEqual(len(results), 3)
+        notif_ids = [n["id"] for n in results]
+        self.assertIn(str(self.n1.id), notif_ids)
+        self.assertIn(str(self.n2.id), notif_ids)
+        self.assertIn(str(n3.id), notif_ids)
+
+    def test_customer_notifications_mark_all_read(self):
+        n3 = NotificationService.create(
+            recipient=self.customer_a,
+            organization=self.org_b,
+            kind="SERVICE_COMPLETED",
+            title="Service Completed at Org B",
+            message="Your service was completed at Org B.",
+        )
+        self.client.force_authenticate(user=self.customer_a)
+        response = self.client.post("/api/v1/customer/notifications/read-all/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["updated_count"], 3)
+
+        self.n1.refresh_from_db()
+        self.n2.refresh_from_db()
+        n3.refresh_from_db()
+        self.assertIsNotNone(self.n1.read_at)
+        self.assertIsNotNone(self.n2.read_at)
+        self.assertIsNotNone(n3.read_at)
+

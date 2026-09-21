@@ -36,6 +36,23 @@ export const notificationService = {
     );
     return response.data;
   },
+
+  /**
+   * List all cross-organization notifications for the authenticated customer.
+   * @param {Object} params - optional filtering
+   */
+  async getCustomerNotifications(params = {}) {
+    const response = await apiClient.get('/customer/notifications/', { params });
+    return response.data;
+  },
+
+  /**
+   * Mark all unread notifications as read for the customer across all organizations.
+   */
+  async markAllCustomerNotificationsRead() {
+    const response = await apiClient.post('/customer/notifications/read-all/');
+    return response.data;
+  },
 };
 
 export default notificationService;

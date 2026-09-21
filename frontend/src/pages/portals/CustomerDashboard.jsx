@@ -41,15 +41,13 @@ export const CustomerDashboard = () => {
       const list = Array.isArray(data) ? data : data.results || [];
       setDashboardItems(list);
 
-      // Fetch notifications if tenant is selected
-      if (currentOrg?.id) {
-        try {
-          const notifRes = await notificationService.getNotifications(currentOrg.id);
-          const nList = Array.isArray(notifRes) ? notifRes : notifRes.results || [];
-          setNotifications(nList.slice(0, 3));
-        } catch (nErr) {
-          // Fallback silently for notification errors
-        }
+      // Fetch cross-org customer notifications
+      try {
+        const notifRes = await notificationService.getCustomerNotifications();
+        const nList = Array.isArray(notifRes) ? notifRes : notifRes.results || [];
+        setNotifications(nList.slice(0, 3));
+      } catch (nErr) {
+        // Fallback silently for notification errors
       }
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to update customer dashboard data.');

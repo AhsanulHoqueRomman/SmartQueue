@@ -14,12 +14,13 @@ export const NotificationBell = ({ onNewNotification }) => {
   const prevIdsRef = useRef(new Set());
 
   const fetchNotifications = async () => {
-    if (!currentOrg?.id) {
-      setNotifications([]);
-      return;
-    }
     try {
-      const data = await notificationService.getNotifications(currentOrg.id);
+      let data;
+      if (effectiveRole === 'CUSTOMER' || !currentOrg?.id) {
+        data = await notificationService.getCustomerNotifications();
+      } else {
+        data = await notificationService.getNotifications(currentOrg.id);
+      }
       const list = Array.isArray(data) ? data : data.results || [];
       
       // Check for new unread notifications to trigger toast
@@ -46,7 +47,7 @@ export const NotificationBell = ({ onNewNotification }) => {
     }, 20000);
 
     return () => clearInterval(timer);
-  }, [currentOrg?.id]);
+  }, [currentOrg?.id, effectiveRole]);
 
   // Handle outside click & Escape key
   useEffect(() => {
@@ -72,9 +73,11 @@ export const NotificationBell = ({ onNewNotification }) => {
 
   const handleMarkRead = async (e, n) => {
     e.stopPropagation();
-    if (!currentOrg?.id || n.read_at) return;
+    if (n.read_at) return;
+    const orgId = n.organization || currentOrg?.id;
+    if (!orgId) return;
     try {
-      await notificationService.markRead(currentOrg.id, n.id);
+      await notificationService.markRead(orgId, n.id);
       setNotifications((prev) =>
         prev.map((item) => (item.id === n.id ? { ...item, read_at: new Date().toISOString() } : item))
       );
@@ -82,9 +85,13 @@ export const NotificationBell = ({ onNewNotification }) => {
   };
 
   const handleMarkAllRead = async () => {
-    if (!currentOrg?.id || unreadCount === 0) return;
+    if (unreadCount === 0) return;
     try {
-      await notificationService.markAllRead(currentOrg.id);
+      if (effectiveRole === 'CUSTOMER' || !currentOrg?.id) {
+        await notificationService.markAllCustomerNotificationsRead();
+      } else {
+        await notificationService.markAllRead(currentOrg.id);
+      }
       setNotifications((prev) =>
         prev.map((n) => ({ ...n, read_at: n.read_at || new Date().toISOString() }))
       );
@@ -92,8 +99,9 @@ export const NotificationBell = ({ onNewNotification }) => {
   };
 
   const handleItemClick = async (n) => {
-    if (!n.read_at && currentOrg?.id) {
-      notificationService.markRead(currentOrg.id, n.id).catch(() => {});
+    const orgId = n.organization || currentOrg?.id;
+    if (!n.read_at && orgId) {
+      notificationService.markRead(orgId, n.id).catch(() => {});
       setNotifications((prev) =>
         prev.map((item) => (item.id === n.id ? { ...item, read_at: new Date().toISOString() } : item))
       );

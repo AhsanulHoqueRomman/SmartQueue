@@ -52,3 +52,30 @@ class NotificationMarkAllReadView(APIView):
         organization = get_object_or_404(Organization, id=organization_id, is_active=True)
         updated_count = NotificationService.mark_all_read(recipient=request.user, organization=organization)
         return Response({'status': 'success', 'updated_count': updated_count}, status=status.HTTP_200_OK)
+
+
+class CustomerNotificationListView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
+
+    def get(self, request):
+        notifications = Notification.objects.filter(
+            recipient=request.user
+        ).select_related('organization', 'appointment', 'queue_entry')
+        notifications = apply_list_query(
+            notifications, request,
+            filter_fields=('kind', 'read_at', 'organization'),
+            search_fields=('title', 'message'),
+            ordering_fields=('created_at', 'read_at', 'kind'),
+            default_ordering=('-created_at',),
+        )
+        return list_response(notifications, NotificationSerializer, request)
+
+
+class CustomerNotificationMarkAllReadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        updated_count = NotificationService.mark_all_read(recipient=request.user, organization=None)
+        return Response({'status': 'success', 'updated_count': updated_count}, status=status.HTTP_200_OK)
+

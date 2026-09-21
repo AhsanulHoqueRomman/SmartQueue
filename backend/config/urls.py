@@ -7,6 +7,10 @@ from drf_spectacular.views import (
 )
 
 from apps.appointments.views import CustomerDashboardView
+from apps.notifications.views import (
+    CustomerNotificationListView,
+    CustomerNotificationMarkAllReadView,
+)
 from apps.organizations.views import (
     PublicInvitationDetailsView,
     PublicAcceptInvitationView,
@@ -18,6 +22,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/auth/', include('apps.accounts.urls')),
     path('api/v1/customer/dashboard/', CustomerDashboardView.as_view(), name='customer_dashboard'),
+    path('api/v1/customer/notifications/', CustomerNotificationListView.as_view(), name='customer_notifications_list'),
+    path('api/v1/customer/notifications/read-all/', CustomerNotificationMarkAllReadView.as_view(), name='customer_notifications_mark_all_read'),
     path('api/v1/invitations/provider/<str:token>/', PublicInvitationDetailsView.as_view(), name='public_invitation_detail'),
     path('api/v1/invitations/provider/<str:token>/accept/', PublicAcceptInvitationView.as_view(), name='public_accept_invitation'),
     path('api/v1/invitations/staff/<str:token>/', PublicStaffInvitationDetailsView.as_view(), name='public_staff_invitation_detail'),
