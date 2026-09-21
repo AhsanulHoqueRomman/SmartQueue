@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTenant } from '../../contexts/TenantContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import appointmentService from '../../services/appointmentService';
 import queueService from '../../services/queueService';
 import CancelAppointmentModal from '../../components/CancelAppointmentModal';
@@ -11,84 +12,54 @@ import EmptyState from '../../components/EmptyState';
 
 export function CustomerAppointmentsPage() {
   const navigate = useNavigate();
-  const { currentOrg } = useTenant();
+  const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
 
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
-  const [actionFeedback, setActionFeedback] = useState(null);
-  const [activeTab, setActiveTab] = useState('upcoming');
-  
+  const [activeTab, setActiveTab] = useState('active');
+
   // Modals state
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [checkingInId, setCheckingInId] = useState(null);
 
-  const fetchAppointments = async () => {
-    if (!currentOrg?.id) {
-      setAppointments([]);
-      setLoading(false);
-      return;
-    }
-
+  const fetchAppointments = async (isManual = false) => {
+    if (isManual) setRefreshing(true);
     setLoading(true);
     setError(null);
 
     try {
-      const data = await appointmentService.getAppointments(currentOrg.id);
+      const data = await appointmentService.getCustomerDashboard();
       const list = Array.isArray(data) ? data : data.results || [];
       setAppointments(list);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to load your appointments.');
+      setError(err.response?.data?.detail || 'Failed to load your appointments schedule.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchAppointments();
-  }, [currentOrg?.id]);
+  }, []);
 
-  const handleCheckIn = async (appointmentId) => {
+  const handleCheckIn = async (orgId, appointmentId) => {
+    if (!orgId || !appointmentId) return;
     setCheckingInId(appointmentId);
-    setActionFeedback(null);
     setError(null);
 
     try {
-      const updated = await appointmentService.checkInAppointment(
-        currentOrg.id,
-        appointmentId
-      );
-
-      // Check if queue entry can be retrieved to jump directly to live queue
-      try {
-        const queueRes = await queueService.getMyQueue(currentOrg.id);
-        const myQueueList = Array.isArray(queueRes) ? queueRes : queueRes.results || [];
-        const match = myQueueList.find(q => String(q.appointment_id) === String(appointmentId));
-        if (match) {
-          setActionFeedback({
-            type: 'success',
-            message: `Checked in successfully! Your token is #${match.token_number || match.id}.`,
-            queueEntryId: match.id,
-          });
-          fetchAppointments();
-          return;
-        }
-      } catch (qErr) {
-        // Fallback if myQueue lookup is delayed
-      }
-
-      setActionFeedback({
-        type: 'success',
-        message: `Successfully checked in for ${updated.service_name || 'appointment'}! You have been added to the queue.`,
-      });
-      fetchAppointments();
+      await appointmentService.checkInAppointment(orgId, appointmentId);
+      showSuccess('Checked in successfully! You are now in the live queue.');
+      await fetchAppointments(true);
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        'Failed to check in. Please make sure check-in is currently allowed.';
-      setActionFeedback({ type: 'error', message: msg });
+      const msg = err.response?.data?.detail || 'Check-in failed. Please verify your appointment status.';
+      showError(msg);
     } finally {
       setCheckingInId(null);
     }
@@ -105,23 +76,17 @@ export function CustomerAppointmentsPage() {
   };
 
   const handleConfirmCancel = async (reason) => {
-    if (!selectedAppointment || !currentOrg?.id) return;
+    if (!selectedAppointment) return;
+    const orgId = selectedAppointment.organization_id || selectedAppointment.organization;
     try {
-      await appointmentService.cancelAppointment(
-        currentOrg.id,
-        selectedAppointment.id,
-        reason
-      );
-      setActionFeedback({
-        type: 'success',
-        message: 'Appointment successfully cancelled.',
-      });
+      await appointmentService.cancelAppointment(orgId, selectedAppointment.id, reason);
+      showSuccess('Appointment successfully cancelled.');
       setCancelModalOpen(false);
       setSelectedAppointment(null);
-      fetchAppointments();
+      await fetchAppointments(true);
     } catch (err) {
       const msg = err.response?.data?.detail || 'Failed to cancel appointment.';
-      setActionFeedback({ type: 'error', message: msg });
+      showError(msg);
       setCancelModalOpen(false);
     }
   };
@@ -130,24 +95,23 @@ export function CustomerAppointmentsPage() {
   const getFilteredAppointments = () => {
     const todayStr = new Date().toDateString();
 
-    return appointments.filter((appt) => {
-      const apptDateStr = new Date(appt.start_datetime).toDateString();
-      const isToday = apptDateStr === todayStr;
+    return appointments.filter((item) => {
+      const qStatus = item.queue_entry?.status || item.status;
+      const isToday = new Date(item.start_datetime).toDateString() === todayStr;
 
       switch (activeTab) {
+        case 'active':
+          return ['WAITING', 'CALLED', 'IN_PROGRESS', 'CHECKED_IN'].includes(qStatus) ||
+            (item.status === 'CONFIRMED' && isToday);
         case 'upcoming':
-          return (
-            (['CONFIRMED', 'PENDING'].includes(appt.status) && !isToday) ||
-            (appt.status === 'CONFIRMED' && new Date(appt.start_datetime) > new Date())
-          );
-        case 'today':
-          return isToday && ['CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS', 'WAITING', 'CALLED'].includes(appt.status);
+          return !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(qStatus) &&
+            !isToday && new Date(item.start_datetime) > new Date();
         case 'completed':
-          return appt.status === 'COMPLETED';
+          return qStatus === 'COMPLETED';
         case 'cancelled':
-          return appt.status === 'CANCELLED';
+          return qStatus === 'CANCELLED';
         case 'no_show':
-          return appt.status === 'NO_SHOW';
+          return qStatus === 'NO_SHOW' || qStatus === 'SKIPPED';
         default:
           return true;
       }
@@ -158,71 +122,85 @@ export function CustomerAppointmentsPage() {
 
   const getEmptyMessage = () => {
     switch (activeTab) {
+      case 'active':
+        return 'No active appointments or live queue participation today.';
       case 'upcoming':
-        return 'You have no upcoming appointments scheduled.';
-      case 'today':
-        return 'You have no appointments scheduled for today.';
+        return 'You have no future appointments scheduled.';
       case 'completed':
         return 'You have no completed appointments yet.';
       case 'cancelled':
         return 'You have no cancelled appointments.';
       case 'no_show':
-        return 'You have no missed (no show) appointments.';
+        return 'You have no missed appointments.';
       default:
         return 'No appointments found.';
     }
   };
 
   return (
-    <div className="animate-page-entrance">
-      {/* Header */}
-      <div className="flex justify-between items-center flex-wrap gap-md margin-bottom">
-        <div>
-          <h1 style={{ fontSize: '1.75rem', marginBottom: '0.25rem', fontFamily: 'Cinzel, serif', color: '#211C19' }}>
-            My Appointments
-          </h1>
-          <p className="subtitle" style={{ color: '#78716C' }}>
-            Track your appointment schedule, check in online, and view service history.
-          </p>
-        </div>
-        <div>
-          <button
-            className="btn btn-primary"
-            onClick={() => navigate('/customer/book')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: '#5F7A70', border: 'none' }}
-          >
-            <span>✨</span> Book Appointment
-          </button>
-        </div>
-      </div>
+    <div className="animate-page-entrance" style={{ maxWidth: '1150px', margin: '0 auto' }}>
+      {/* Header Banner */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #2F2520 0%, #211C19 100%)',
+          color: '#FAF8F3',
+          borderRadius: '20px',
+          padding: '2rem',
+          boxShadow: '0 8px 30px rgba(47, 37, 32, 0.12)',
+          marginBottom: '1.75rem',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(230, 225, 217, 0.15)', color: '#E6E1D9', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+              📋 Appointment Lifecycle Center
+            </div>
+            <h1 style={{ fontSize: '1.85rem', fontWeight: 700, margin: '0 0 0.4rem 0', fontFamily: 'Cinzel, serif', color: '#FAF8F3' }}>
+              My Appointments & Consultations
+            </h1>
+            <p style={{ color: '#E6E1D9', margin: 0, fontSize: '0.95rem', opacity: 0.9 }}>
+              Track your appointments, check in online, view live telemetry, and review past care.
+            </p>
+          </div>
 
-      {actionFeedback && (
-        <div
-          className={`banner ${actionFeedback.type === 'success' ? 'banner-success' : 'banner-danger'}`}
-          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}
-        >
-          <span>{actionFeedback.message}</span>
-          {actionFeedback.queueEntryId && (
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
-              onClick={() => navigate(`/customer/queue/${actionFeedback.queueEntryId}`)}
+              onClick={() => fetchAppointments(true)}
+              disabled={refreshing}
               style={{
-                background: '#2F2520',
-                color: '#FFFFFF',
-                border: 'none',
-                padding: '0.4rem 0.85rem',
-                borderRadius: '6px',
+                padding: '0.75rem 1rem',
+                background: 'rgba(255, 255, 255, 0.12)',
+                color: '#FAF8F3',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '10px',
                 fontWeight: 600,
                 fontSize: '0.85rem',
                 cursor: 'pointer',
               }}
             >
-              View Live Queue →
+              🔄 {refreshing ? 'Refreshing...' : 'Refresh All'}
             </button>
-          )}
+            <button
+              onClick={() => navigate('/customer/book')}
+              style={{
+                padding: '0.75rem 1.25rem',
+                background: '#5F7A70',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '10px',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(95, 122, 112, 0.3)',
+              }}
+            >
+              ✨ Book Appointment
+            </button>
+          </div>
         </div>
-      )}
+      </div>
 
-      {error && <div className="banner banner-danger">{error}</div>}
+      {error && <div className="banner banner-danger" style={{ marginBottom: '1.5rem' }}>{error}</div>}
 
       {/* Tabs */}
       <div
@@ -236,11 +214,11 @@ export function CustomerAppointmentsPage() {
         }}
       >
         {[
-          { id: 'upcoming', label: 'Upcoming' },
-          { id: 'today', label: "Today's Schedule" },
-          { id: 'completed', label: 'Completed' },
-          { id: 'cancelled', label: 'Cancelled' },
-          { id: 'no_show', label: 'No Show' },
+          { id: 'active', label: '🟢 Active Today / Queue' },
+          { id: 'upcoming', label: '📅 Upcoming' },
+          { id: 'completed', label: '✅ Completed' },
+          { id: 'cancelled', label: '❌ Cancelled' },
+          { id: 'no_show', label: '⚠️ Missed / Skipped' },
         ].map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -267,27 +245,28 @@ export function CustomerAppointmentsPage() {
         })}
       </div>
 
-      {/* Main Content */}
-      {!currentOrg ? (
-        <EmptyState
-          title="No Organization Selected"
-          message="Please select an organization from the header dropdown above to view your appointments."
-        />
-      ) : loading ? (
-        <LoadingState message="Loading your appointment bookings..." />
+      {/* Main Grid */}
+      {loading ? (
+        <LoadingState message="Loading your appointments..." />
       ) : filteredAppointments.length === 0 ? (
         <EmptyState
           title={getEmptyMessage()}
-          message="Select another tab or schedule a new appointment."
+          message="Select another tab or schedule a new appointment consultation."
           actionText="Book New Appointment"
           onAction={() => navigate('/customer/book')}
         />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem' }}>
           {filteredAppointments.map((appt) => {
-            const canCheckIn = appt.status === 'CONFIRMED';
-            const canCancel = ['CONFIRMED', 'PENDING'].includes(appt.status);
-            const inQueue = ['CHECKED_IN', 'WAITING', 'CALLED', 'IN_PROGRESS'].includes(appt.status);
+            const qEntry = appt.queue_entry;
+            const qStatus = qEntry?.status || appt.status;
+            const orgId = appt.organization_id || appt.organization;
+
+            const canCheckIn = appt.status === 'CONFIRMED' || (qEntry && !qEntry.is_checked_in);
+            const canCancel = ['CONFIRMED', 'PENDING'].includes(appt.status) && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED', 'IN_PROGRESS'].includes(qStatus);
+            const isLive = ['CHECKED_IN', 'WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
+            const isTerminal = ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(qStatus);
+
             const formattedDate = new Date(appt.start_datetime).toLocaleDateString(undefined, {
               weekday: 'short',
               month: 'short',
@@ -315,84 +294,135 @@ export function CustomerAppointmentsPage() {
                 }}
               >
                 <div>
+                  {/* Header: Organization & Category Badge */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                    <StatusBadge status={appt.status} />
-                    <span style={{ fontSize: '0.75rem', color: '#78716C', fontFamily: 'monospace' }}>
-                      #{appt.id.slice(0, 8)}
-                    </span>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#5F7A70', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        {appt.organization_category || 'CLINIC'} &bull; {appt.organization_name || 'Organization'}
+                      </span>
+                      <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1.2rem', color: '#211C19', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
+                        {appt.service_name || 'Service Consultation'}
+                      </h3>
+                    </div>
+                    <StatusBadge status={qStatus} />
                   </div>
 
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#211C19', marginBottom: '0.35rem', fontFamily: 'Outfit, sans-serif' }}>
-                    {appt.service_name || 'Appointment Service'}
-                  </h3>
-
-                  <div style={{ fontSize: '0.85rem', color: '#5F7A70', fontWeight: 600, marginBottom: '0.75rem' }}>
-                    👨‍⚕️ {appt.provider_name || 'Assigned Provider'}
+                  {/* Subheader: Provider */}
+                  <div style={{ fontSize: '0.85rem', color: '#78716C', marginBottom: '1rem' }}>
+                    Provider: <strong style={{ color: '#211C19' }}>{appt.provider_name || appt.provider_title || 'Assigned Specialist'}</strong>
                   </div>
 
+                  {/* Schedule Card Info */}
                   <div
                     style={{
                       background: '#FAF8F3',
                       border: '1px solid #E6E1D9',
                       borderRadius: '10px',
-                      padding: '0.75rem',
+                      padding: '0.85rem',
                       marginBottom: '1rem',
                       fontSize: '0.85rem',
                       color: '#211C19',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-                      <span>📅</span> <strong>{formattedDate}</strong>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                      <span>📅 <strong>{formattedDate}</strong></span>
+                      <span>⏰ <strong>{formattedTime}</strong></span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <span>⏰</span> <span>{formattedTime}</span>
-                    </div>
+
+                    {appt.serial_number && (
+                      <div style={{ fontSize: '0.8rem', color: '#2F2520', fontWeight: 700, marginTop: '0.25rem', paddingTop: '0.35rem', borderTop: '1px solid #E6E1D9' }}>
+                        Serial Number: <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.1rem' }}>#{appt.serial_number}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
+                {/* Footer Action Controls */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'flex-end', paddingTop: '0.75rem', borderTop: '1px solid #FAF8F3' }}>
-                  {canCheckIn && (
+                  {canCheckIn && !isTerminal && (
                     <button
-                      className="btn btn-sm btn-success"
-                      onClick={() => handleCheckIn(appt.id)}
+                      onClick={() => handleCheckIn(orgId, appt.id)}
                       disabled={checkingInId === appt.id}
-                      style={{ background: '#5F7A70', color: '#FFFFFF', border: 'none', fontWeight: 600 }}
+                      style={{
+                        padding: '0.55rem 0.9rem',
+                        background: '#B06D2E',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        cursor: checkingInId === appt.id ? 'not-allowed' : 'pointer',
+                      }}
                     >
-                      {checkingInId === appt.id ? 'Checking in...' : '⚡ Check-In'}
+                      {checkingInId === appt.id ? 'Checking in...' : '✓ Check-In'}
                     </button>
                   )}
 
-                  {inQueue && (
+                  {isLive && qEntry?.id && (
                     <button
-                      className="btn btn-sm"
-                      onClick={() => navigate(`/customer/appointments/${appt.id}`)}
-                      style={{ background: '#2F2520', color: '#FFFFFF', border: 'none', fontWeight: 600 }}
+                      onClick={() => navigate(`/customer/queue/${qEntry.id}`)}
+                      style={{
+                        padding: '0.55rem 0.9rem',
+                        background: '#2F2520',
+                        color: '#FAF8F3',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                      }}
                     >
-                      ⏳ View Queue
+                      Open Telemetry →
                     </button>
                   )}
 
-                  {appt.status === 'COMPLETED' && (
+                  <button
+                    onClick={() => navigate(`/customer/appointments/${appt.id}`)}
+                    style={{
+                      padding: '0.55rem 0.9rem',
+                      background: '#FAF8F3',
+                      color: '#5F7A70',
+                      border: '1px solid #E6E1D9',
+                      borderRadius: '8px',
+                      fontWeight: 600,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Details
+                  </button>
+
+                  {qStatus === 'COMPLETED' && (
                     <button
-                      className="btn btn-sm"
                       onClick={() => handleOpenReviewModal(appt)}
-                      style={{ background: '#F5EFE6', color: '#B06D2E', border: '1px solid #E6E1D9', fontWeight: 600 }}
+                      style={{
+                        padding: '0.55rem 0.9rem',
+                        background: '#F5EFE6',
+                        color: '#B06D2E',
+                        border: '1px solid #E6E1D9',
+                        borderRadius: '8px',
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                      }}
                     >
                       ★ Leave Review
                     </button>
                   )}
 
-                  <button
-                    className="btn btn-sm btn-outline"
-                    onClick={() => navigate(`/customer/appointments/${appt.id}`)}
-                  >
-                    Details
-                  </button>
-
                   {canCancel && (
                     <button
-                      className="btn btn-sm btn-danger"
                       onClick={() => handleOpenCancelModal(appt)}
+                      style={{
+                        padding: '0.55rem 0.9rem',
+                        background: '#FFF1F0',
+                        color: '#B4534B',
+                        border: '1px solid #FCA5A5',
+                        borderRadius: '8px',
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                      }}
                     >
                       Cancel
                     </button>
@@ -419,9 +449,9 @@ export function CustomerAppointmentsPage() {
         <LeaveReviewModal
           isOpen={reviewModalOpen}
           appointment={selectedAppointment}
-          orgId={currentOrg?.id}
+          orgId={selectedAppointment.organization_id || selectedAppointment.organization}
           onSuccess={() => {
-            setActionFeedback({ type: 'success', message: 'Thank you! Your review has been submitted.' });
+            showSuccess('Thank you! Your review has been recorded.');
             fetchAppointments();
           }}
           onClose={() => setReviewModalOpen(false)}

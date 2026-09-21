@@ -43,8 +43,8 @@ def queue_setup(db):
         WeeklySchedule.objects.create(
             provider=provider,
             day_of_week=day_idx,
-            start_time=time(8, 0),
-            end_time=time(18, 0),
+            start_time=time(0, 0),
+            end_time=time(23, 59),
             is_working_day=True,
         )
     return locals()
