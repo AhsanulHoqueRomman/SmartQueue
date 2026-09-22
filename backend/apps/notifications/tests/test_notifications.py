@@ -167,4 +167,22 @@ class NotificationServiceAndApiTests(APITestCase):
         self.n_b.refresh_from_db()
         self.assertIsNone(self.n_b.read_at)
 
+    def test_repeated_polling_and_checkin_no_duplicate_notifications(self):
+        self.client.force_authenticate(user=self.customer_a)
+
+        initial_count = Notification.objects.filter(recipient=self.customer_a).count()
+        self.assertEqual(initial_count, 2)
+
+        # Repeated polling reads (GET endpoints) create zero persistent notifications
+        for _ in range(5):
+            res_notif = self.client.get("/api/v1/customer/notifications/")
+            self.assertEqual(res_notif.status_code, status.HTTP_200_OK)
+            res_dash = self.client.get("/api/v1/customer/dashboard/")
+            self.assertEqual(res_dash.status_code, status.HTTP_200_OK)
+
+        post_poll_count = Notification.objects.filter(recipient=self.customer_a).count()
+        self.assertEqual(post_poll_count, initial_count)
+
+
+
 
