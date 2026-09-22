@@ -16,13 +16,14 @@ export const notificationService = {
 
   /**
    * Mark a notification as read.
-   * @param {string} orgId
+   * @param {string|null} orgId
    * @param {string} notificationId
    */
   async markRead(orgId, notificationId) {
-    const response = await apiClient.post(
-      `/organizations/${orgId}/notifications/${notificationId}/read/`
-    );
+    const url = orgId
+      ? `/organizations/${orgId}/notifications/${notificationId}/read/`
+      : `/customer/notifications/${notificationId}/read/`;
+    const response = await apiClient.post(url);
     return response.data;
   },
 

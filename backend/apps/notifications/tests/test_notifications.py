@@ -147,23 +147,24 @@ class NotificationServiceAndApiTests(APITestCase):
         self.assertIn(str(self.n2.id), notif_ids)
         self.assertIn(str(n3.id), notif_ids)
 
-    def test_customer_notifications_mark_all_read(self):
-        n3 = NotificationService.create(
-            recipient=self.customer_a,
-            organization=self.org_b,
-            kind="SERVICE_COMPLETED",
-            title="Service Completed at Org B",
-            message="Your service was completed at Org B.",
-        )
+    def test_customer_single_mark_read_security(self):
+        # Customer A can mark their own notification as read via customer endpoint
         self.client.force_authenticate(user=self.customer_a)
-        response = self.client.post("/api/v1/customer/notifications/read-all/")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["updated_count"], 3)
-
+        res_own = self.client.post(f"/api/v1/customer/notifications/{self.n1.id}/read/")
+        self.assertEqual(res_own.status_code, status.HTTP_200_OK)
         self.n1.refresh_from_db()
-        self.n2.refresh_from_db()
-        n3.refresh_from_db()
         self.assertIsNotNone(self.n1.read_at)
-        self.assertIsNotNone(self.n2.read_at)
-        self.assertIsNotNone(n3.read_at)
+
+        # Customer A CANNOT mark Customer B's notification as read via customer endpoint
+        res_other = self.client.post(f"/api/v1/customer/notifications/{self.n_b.id}/read/")
+        self.assertEqual(res_other.status_code, status.HTTP_404_NOT_FOUND)
+        self.n_b.refresh_from_db()
+        self.assertIsNone(self.n_b.read_at)
+
+        # Customer A CANNOT mark Customer B's notification as read via org endpoint
+        res_other_org = self.client.post(f"/api/v1/organizations/{self.org.id}/notifications/{self.n_b.id}/read/")
+        self.assertEqual(res_other_org.status_code, status.HTTP_404_NOT_FOUND)
+        self.n_b.refresh_from_db()
+        self.assertIsNone(self.n_b.read_at)
+
 

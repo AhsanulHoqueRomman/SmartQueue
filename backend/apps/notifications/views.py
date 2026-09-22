@@ -79,3 +79,16 @@ class CustomerNotificationMarkAllReadView(APIView):
         updated_count = NotificationService.mark_all_read(recipient=request.user, organization=None)
         return Response({'status': 'success', 'updated_count': updated_count}, status=status.HTTP_200_OK)
 
+
+class CustomerNotificationReadView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
+
+    def post(self, request, notification_id):
+        notification = get_object_or_404(
+            Notification, id=notification_id, recipient=request.user
+        )
+        NotificationService.mark_read(notification=notification)
+        return Response(NotificationSerializer(notification).data, status=status.HTTP_200_OK)
+
+

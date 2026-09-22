@@ -17,7 +17,6 @@ export const CustomerDashboard = () => {
   const navigate = useNavigate();
 
   const [dashboardItems, setDashboardItems] = useState([]);
-  const [notifications, setNotifications] = useState([]);
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [savedFavorites, setSavedFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,15 +39,6 @@ export const CustomerDashboard = () => {
       const data = await appointmentService.getCustomerDashboard();
       const list = Array.isArray(data) ? data : data.results || [];
       setDashboardItems(list);
-
-      // Fetch cross-org customer notifications
-      try {
-        const notifRes = await notificationService.getCustomerNotifications();
-        const nList = Array.isArray(notifRes) ? notifRes : notifRes.results || [];
-        setNotifications(nList.slice(0, 3));
-      } catch (nErr) {
-        // Fallback silently for notification errors
-      }
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to update customer dashboard data.');
     } finally {
