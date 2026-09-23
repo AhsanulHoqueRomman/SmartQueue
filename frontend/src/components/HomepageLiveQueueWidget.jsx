@@ -3,6 +3,27 @@ import { Link } from 'react-router-dom';
 import appointmentService from '../services/appointmentService';
 import StatusBadge from './StatusBadge';
 
+// Intersection Observer Hook for scroll-triggered entrance animation
+function useInView(options = {}) {
+  const ref = useRef(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setInView(entry.isIntersecting);
+      },
+      { threshold: 0.1, ...options }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return [ref, inView];
+}
+
 function LiveQueuePreviewCard({ item, formatTime }) {
   const qEntry = item.queue_entry;
   const qStatus = qEntry?.status || item.status;
@@ -38,21 +59,21 @@ function LiveQueuePreviewCard({ item, formatTime }) {
         flex: '0 0 100%',
         width: '100%',
         boxSizing: 'border-box',
-        padding: '0 2px',
       }}
     >
       <div
         style={{
           background: '#FFFFFF',
           border: '1px solid #E6E1D9',
-          borderRadius: '20px',
-          padding: '1.5rem 1.75rem',
-          boxShadow: '0 6px 24px rgba(47, 37, 32, 0.05)',
+          borderRadius: '24px',
+          padding: '2.25rem',
+          boxShadow: '0 10px 35px rgba(47, 37, 32, 0.06)',
           minHeight: '380px',
           display: 'flex',
           flexDirection: 'column',
           justify: 'space-between',
           boxSizing: 'border-box',
+          width: '100%',
         }}
       >
         <div>
@@ -77,7 +98,7 @@ function LiveQueuePreviewCard({ item, formatTime }) {
               <h4
                 style={{
                   margin: '0.1rem 0 0 0',
-                  fontSize: '1.2rem',
+                  fontSize: '1.3rem',
                   color: '#211C19',
                   fontWeight: 700,
                   fontFamily: 'Cinzel, serif',
@@ -95,9 +116,9 @@ function LiveQueuePreviewCard({ item, formatTime }) {
           {/* Provider Subheader */}
           <div
             style={{
-              fontSize: '0.85rem',
+              fontSize: '0.875rem',
               color: '#78716C',
-              marginBottom: '1rem',
+              marginBottom: '1.25rem',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -107,15 +128,15 @@ function LiveQueuePreviewCard({ item, formatTime }) {
           </div>
 
           {/* Status Callout Banner */}
-          <div style={{ minHeight: '44px', marginBottom: '1rem' }}>
+          <div style={{ minHeight: '44px', marginBottom: '1.25rem' }}>
             {qStatus === 'IN_PROGRESS' && (
               <div
                 style={{
                   background: '#2F2520',
                   color: '#FAF8F3',
-                  borderRadius: '10px',
-                  padding: '0.65rem 1rem',
-                  fontSize: '0.85rem',
+                  borderRadius: '12px',
+                  padding: '0.75rem 1.25rem',
+                  fontSize: '0.9rem',
                   fontWeight: 700,
                   display: 'flex',
                   justify: 'space-between',
@@ -132,9 +153,9 @@ function LiveQueuePreviewCard({ item, formatTime }) {
                 style={{
                   background: '#ECFDF5',
                   border: '1px solid #6EE7B7',
-                  borderRadius: '10px',
-                  padding: '0.65rem 1rem',
-                  fontSize: '0.85rem',
+                  borderRadius: '12px',
+                  padding: '0.75rem 1.25rem',
+                  fontSize: '0.9rem',
                   color: '#065F46',
                   fontWeight: 700,
                 }}
@@ -150,9 +171,9 @@ function LiveQueuePreviewCard({ item, formatTime }) {
               style={{
                 background: '#FAF8F3',
                 border: '1px solid #E6E1D9',
-                borderRadius: '14px',
-                padding: '1rem 1.25rem',
-                marginBottom: '1rem',
+                borderRadius: '16px',
+                padding: '1.25rem 1.5rem',
+                marginBottom: '1.25rem',
               }}
             >
               {/* 3 Telemetry Columns: Your Serial | Now Serving | People Ahead */}
@@ -160,35 +181,35 @@ function LiveQueuePreviewCard({ item, formatTime }) {
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '0.6rem',
+                  gap: '1rem',
                   textAlign: 'center',
-                  marginBottom: '0.85rem',
+                  marginBottom: '1rem',
                 }}
               >
-                <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
-                  <div style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Your Serial</div>
-                  <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#2F2520', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+                <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '12px', padding: '0.75rem 0.5rem' }}>
+                  <div style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>Your Serial</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#2F2520', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
                     #{item.serial_number || qEntry?.token_number || '—'}
                   </div>
                 </div>
 
-                <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
-                  <div style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Now Serving</div>
-                  <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#5F7A70', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+                <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '12px', padding: '0.75rem 0.5rem' }}>
+                  <div style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>Now Serving</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#5F7A70', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
                     {nowServingSerial ? `#${nowServingSerial}` : 'None'}
                   </div>
                 </div>
 
-                <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
-                  <div style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>People Ahead</div>
-                  <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#B06D2E', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+                <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '12px', padding: '0.75rem 0.5rem' }}>
+                  <div style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>People Ahead</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#B06D2E', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
                     {qStatus === 'CALLED' || qStatus === 'IN_PROGRESS' ? '0' : peopleAhead}
                   </div>
                 </div>
               </div>
 
               {/* Estimated Service & Recommended Arrival Row */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.825rem', color: '#57534E', paddingTop: '0.4rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.875rem', color: '#57534E', paddingTop: '0.5rem' }}>
                 <div>
                   <span>Est. Service: </span>
                   <strong style={{ color: '#211C19' }}>
@@ -208,10 +229,10 @@ function LiveQueuePreviewCard({ item, formatTime }) {
               style={{
                 background: '#FAF8F3',
                 border: '1px solid #E6E1D9',
-                borderRadius: '14px',
-                padding: '1rem',
-                marginBottom: '1rem',
-                fontSize: '0.85rem',
+                borderRadius: '16px',
+                padding: '1.25rem',
+                marginBottom: '1.25rem',
+                fontSize: '0.9rem',
                 color: '#78716C',
                 minHeight: '120px',
                 display: 'flex',
@@ -225,39 +246,39 @@ function LiveQueuePreviewCard({ item, formatTime }) {
         </div>
 
         {/* Card Footer */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid #FAF8F3' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid #FAF8F3' }}>
           {isLive ? (
             <span
               style={{
                 background: readinessConfig.bg,
                 color: readinessConfig.color,
                 border: `1px solid ${readinessConfig.border}`,
-                padding: '0.3rem 0.85rem',
+                padding: '0.4rem 1rem',
                 borderRadius: '9999px',
-                fontSize: '0.75rem',
+                fontSize: '0.8rem',
                 fontWeight: 700,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.35rem',
+                gap: '0.4rem',
               }}
             >
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: readinessConfig.color }} />
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: readinessConfig.color }} />
               {readinessConfig.label}
             </span>
           ) : (
-            <span style={{ fontSize: '0.8rem', color: '#78716C' }}>Status: {qStatus}</span>
+            <span style={{ fontSize: '0.85rem', color: '#78716C' }}>Status: {qStatus}</span>
           )}
 
           <Link
             to="/customer/dashboard"
             style={{
-              fontSize: '0.85rem',
+              fontSize: '0.9rem',
               color: '#5F7A70',
               fontWeight: 700,
               textDecoration: 'none',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.3rem',
+              gap: '0.35rem',
             }}
           >
             Full Customer Dashboard &rarr;
@@ -269,6 +290,7 @@ function LiveQueuePreviewCard({ item, formatTime }) {
 }
 
 export function HomepageLiveQueueWidget() {
+  const [sectionRef, inView] = useInView({ threshold: 0.1 });
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -280,7 +302,7 @@ export function HomepageLiveQueueWidget() {
   const startXRef = useRef(0);
   const startYRef = useRef(0);
   const currentXRef = useRef(0);
-  const isScrollingRef = useRef(null); // null: undecided, true: vertical scroll, false: horizontal drag
+  const isScrollingRef = useRef(null);
   const cardContainerRef = useRef(null);
 
   const formatTime = (isoStr) => {
@@ -337,15 +359,14 @@ export function HomepageLiveQueueWidget() {
     const deltaX = clientX - startXRef.current;
     const deltaY = clientY - startYRef.current;
 
-    // Determine scroll direction intent (vertical scroll vs horizontal drag)
     if (isScrollingRef.current === null) {
       if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 5) {
-        isScrollingRef.current = true; // Vertical scroll -> cancel horizontal drag
+        isScrollingRef.current = true;
         setIsDragging(false);
         setDragOffset(0);
         return;
       } else if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 5) {
-        isScrollingRef.current = false; // Horizontal drag -> proceed
+        isScrollingRef.current = false;
       }
     }
 
@@ -364,14 +385,11 @@ export function HomepageLiveQueueWidget() {
     const finalOffset = currentXRef.current - startXRef.current;
 
     if (finalOffset <= -threshold && currentIndex < items.length - 1) {
-      // Swiped left -> advance to next card
       setCurrentIndex((prev) => prev + 1);
     } else if (finalOffset >= threshold && currentIndex > 0) {
-      // Swiped right -> go back to previous card
       setCurrentIndex((prev) => prev - 1);
     }
 
-    // Reset offset so smooth CSS track transition slides to exact target card
     setDragOffset(0);
     isScrollingRef.current = null;
   };
@@ -422,18 +440,29 @@ export function HomepageLiveQueueWidget() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: '768px', width: '100%', margin: '2rem auto', padding: '0 1.5rem' }}>
+      <div
+        ref={sectionRef}
+        style={{
+          maxWidth: '1150px',
+          width: '100%',
+          margin: '2.5rem auto 1.5rem auto',
+          padding: '0 1.5rem',
+          boxSizing: 'border-box',
+          opacity: inView ? 1 : 0,
+          transform: inView ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.98)',
+          transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
+      >
         <div
           style={{
             background: '#FFFFFF',
             border: '1px solid #E6E1D9',
-            borderRadius: '20px',
-            padding: '1.5rem',
+            borderRadius: '24px',
+            padding: '2.25rem',
             textAlign: 'center',
-            boxShadow: '0 4px 20px rgba(47, 37, 32, 0.04)',
+            boxShadow: '0 10px 35px rgba(47, 37, 32, 0.06)',
             minHeight: '380px',
             display: 'flex',
-            flexDirection: 'column',
             justify: 'center',
             alignItems: 'center',
           }}
@@ -447,27 +476,34 @@ export function HomepageLiveQueueWidget() {
   // Logged-in customer with 0 bookings
   if (items.length === 0) {
     return (
-      <div style={{ maxWidth: '768px', width: '100%', margin: '2rem auto', padding: '0 1.5rem' }}>
+      <div
+        ref={sectionRef}
+        style={{
+          maxWidth: '1150px',
+          width: '100%',
+          margin: '2.5rem auto 1.5rem auto',
+          padding: '0 1.5rem',
+          boxSizing: 'border-box',
+          opacity: inView ? 1 : 0,
+          transform: inView ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.98)',
+          transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
+      >
         <div
           style={{
             background: '#FFFFFF',
             border: '1px solid #E6E1D9',
-            borderRadius: '20px',
-            padding: '2rem 1.5rem',
+            borderRadius: '24px',
+            padding: '2.5rem 2.25rem',
             textAlign: 'center',
-            boxShadow: '0 4px 20px rgba(47, 37, 32, 0.04)',
-            minHeight: '280px',
-            display: 'flex',
-            flexDirection: 'column',
-            justify: 'center',
-            alignItems: 'center',
+            boxShadow: '0 10px 35px rgba(47, 37, 32, 0.06)',
           }}
         >
           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🗓️</div>
-          <h3 style={{ margin: '0 0 0.35rem 0', fontSize: '1.2rem', color: '#211C19', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
+          <h3 style={{ margin: '0 0 0.35rem 0', fontSize: '1.25rem', color: '#211C19', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
             You don't have any bookings yet.
           </h3>
-          <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.9rem', color: '#78716C', maxWidth: '420px', lineHeight: 1.4 }}>
+          <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.9rem', color: '#78716C', maxWidth: '420px', lineHeight: 1.4, marginInline: 'auto' }}>
             Book an appointment with a clinic or specialist to track your real-time queue position here.
           </p>
           <Link
@@ -496,20 +532,22 @@ export function HomepageLiveQueueWidget() {
 
   return (
     <div
+      ref={sectionRef}
       style={{
-        maxWidth: '768px',
+        maxWidth: '1150px',
         width: '100%',
-        margin: '2rem auto 2.5rem auto',
+        margin: '2.5rem auto 1.5rem auto',
         padding: '0 1.5rem',
         boxSizing: 'border-box',
+        opacity: inView ? 1 : 0,
+        transform: inView ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.98)',
+        transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
       {/* Widget Header Row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#5F7A70', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            🟢 Your Live Queue Preview
-          </span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#5F7A70', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <span>🟢</span> Your Live Queue Preview
         </div>
 
         {/* Subtle Indicator & Dots */}
@@ -542,7 +580,7 @@ export function HomepageLiveQueueWidget() {
         )}
       </div>
 
-      {/* Swipeable Viewport Container */}
+      {/* Swipeable Viewport Container - Single 1150px Width Card */}
       <div
         ref={cardContainerRef}
         onMouseDown={handleMouseDown}
@@ -556,8 +594,9 @@ export function HomepageLiveQueueWidget() {
           position: 'relative',
           touchAction: 'pan-y',
           overflow: 'hidden',
-          borderRadius: '20px',
+          borderRadius: '24px',
           cursor: isDragging ? 'grabbing' : 'grab',
+          width: '100%',
         }}
       >
         {/* Horizontal Multi-Card Flex Track */}

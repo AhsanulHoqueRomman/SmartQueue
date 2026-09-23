@@ -1062,14 +1062,14 @@ export const LandingPage = () => {
           </div>
         </div>
 
-        {/* Logged-in Customer Live Queue Preview Widget */}
-        {user && <HomepageLiveQueueWidget />}
-
         {/* Categories */}
         <CategoryDiscoverySection />
 
         {/* Availability Lookup Widget */}
         <AvailabilityDiscoveryWidget organizations={allOrgs} />
+
+        {/* Logged-in Customer Live Queue Preview Widget */}
+        {user && <HomepageLiveQueueWidget />}
 
         {/* Recently Viewed & Saved Clinics */}
         <LocalStorageDiscoveryWidgets />
