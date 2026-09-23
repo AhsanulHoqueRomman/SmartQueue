@@ -930,12 +930,19 @@ export const LandingPage = () => {
     }
   };
 
+  const handleLogoClick = (e) => {
+    if (location.pathname === '/' || window.location.pathname === '/') {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="lp-root">
       {/* ── Navbar ─────────────────────────────────────────────────────── */}
       <header className={`lp-nav ${scrolled ? 'lp-nav--scrolled' : ''}`}>
         <div className="lp-nav-inner">
-          <Link to="/" className="lp-brand">
+          <Link to="/" className="lp-brand" onClick={handleLogoClick}>
             <span className="lp-brand-mark">
               <IconZap />
             </span>
@@ -1208,7 +1215,7 @@ export const LandingPage = () => {
       <footer className="lp-footer">
         <div className="lp-footer-inner">
           <div className="lp-footer-brand">
-            <Link to="/" className="lp-brand">
+            <Link to="/" className="lp-brand" onClick={handleLogoClick}>
               <span className="lp-brand-mark lp-brand-mark--sm">
                 <IconZap />
               </span>

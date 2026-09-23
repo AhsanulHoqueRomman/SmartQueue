@@ -18,7 +18,17 @@ export const PublicNavbar = ({ activePage = '' }) => {
     <header className="lp-nav" style={{ position: 'sticky', top: 0, zIndex: 1000, width: '100%' }}>
       <div className="lp-nav-inner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         {/* Brand */}
-        <Link to="/" className="lp-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', textDecoration: 'none' }}>
+        <Link
+          to="/"
+          className="lp-brand"
+          onClick={(e) => {
+            if (window.location.pathname === '/') {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', textDecoration: 'none' }}
+        >
           <div className="lp-brand-mark" style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#2F2520', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FAF8F3' }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>

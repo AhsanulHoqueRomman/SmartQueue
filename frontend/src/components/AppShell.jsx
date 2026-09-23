@@ -117,7 +117,16 @@ export const AppShell = ({ children }) => {
           >
             ☰
           </button>
-          <Link to="/" className="navbar-brand">
+          <Link
+            to="/"
+            className="navbar-brand"
+            onClick={(e) => {
+              if (window.location.pathname === '/') {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+          >
             <span className="brand-icon">⚡</span>
             <span className="brand-title">SmartQueue</span>
           </Link>
