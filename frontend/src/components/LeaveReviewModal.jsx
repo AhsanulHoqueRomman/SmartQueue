@@ -83,6 +83,9 @@ export function LeaveReviewModal({
           animation: 'fadeIn 0.2s ease',
         }}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="leave-review-modal-title"
       >
         <div
           style={{
@@ -94,11 +97,13 @@ export function LeaveReviewModal({
             background: '#FAF8F3',
           }}
         >
-          <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#211C19', fontWeight: 700 }}>
+          <h3 id="leave-review-modal-title" style={{ margin: 0, fontSize: '1.15rem', color: '#211C19', fontWeight: 700 }}>
             Leave a Review
           </h3>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close modal"
             style={{
               background: 'none',
               border: 'none',
