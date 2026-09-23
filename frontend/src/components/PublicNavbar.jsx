@@ -61,15 +61,6 @@ export const PublicNavbar = ({ activePage = '' }) => {
           >
             Why SmartQueue
           </span>
-          <a
-            href={getApiDocsUrl()}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="lp-nav-link"
-            style={{ textDecoration: 'none', color: '#57534E', fontWeight: 600, fontSize: '0.9rem' }}
-          >
-            API Docs
-          </a>
         </nav>
 
         {/* CTA Buttons */}

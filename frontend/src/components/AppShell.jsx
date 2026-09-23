@@ -135,16 +135,6 @@ export const AppShell = ({ children }) => {
         <div className="flex items-center gap-md nav-actions-group">
           <OrgSelector />
           <NotificationBell onNewNotification={handleNewNotification} />
-          <a
-            href={getApiDocsUrl()}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-outline btn-sm"
-            style={{ textDecoration: 'none', fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
-            title="Open API Documentation (Swagger UI)"
-          >
-            📖 API Docs
-          </a>
 
           <div className="flex items-center gap-sm user-meta-group">
             <span
