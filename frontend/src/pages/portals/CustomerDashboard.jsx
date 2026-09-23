@@ -249,7 +249,7 @@ export const CustomerDashboard = () => {
             onAction={() => navigate('/customer/book')}
           />
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
             {liveQueueItems.map((item) => (
               <CustomerBookingCard
                 key={item.id}

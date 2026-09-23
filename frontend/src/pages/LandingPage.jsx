@@ -7,6 +7,7 @@ import reviewService from '../services/reviewService';
 import { getRecentlyViewedOrgs, getFavoriteOrgs, toggleFavoriteOrg, isFavoriteOrg } from '../utils/recentAndFavorites';
 import { getApiDocsUrl } from '../api/client';
 import '../styles/LandingPage.css';
+import { HomepageLiveQueueWidget } from '../components/HomepageLiveQueueWidget';
 
 /* ─── Tiny SVG Icon Components ─────────────────────────────────────────── */
 const IconZap = () => (
@@ -1060,6 +1061,9 @@ export const LandingPage = () => {
             </Link>
           </div>
         </div>
+
+        {/* Logged-in Customer Live Queue Preview Widget */}
+        {user && <HomepageLiveQueueWidget />}
 
         {/* Categories */}
         <CategoryDiscoverySection />
