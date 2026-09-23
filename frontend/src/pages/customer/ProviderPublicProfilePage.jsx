@@ -87,12 +87,23 @@ export function ProviderPublicProfilePage() {
       );
       setAvailability(data);
     } catch (err) {
-      setBookingError(
-        err.response?.data?.detail ||
-        err.response?.data?.date?.[0] ||
-        'Failed to load available slots.'
+      const detailMsg = err.response?.data?.detail;
+      const isValidationMismatch = detailMsg && (
+        detailMsg.includes('not assigned') ||
+        detailMsg.includes('does not offer') ||
+        detailMsg.includes('not operating')
       );
-      setAvailability(null);
+
+      if (isValidationMismatch) {
+        setAvailability(null);
+      } else {
+        setBookingError(
+          detailMsg ||
+          err.response?.data?.date?.[0] ||
+          'Failed to load available slots.'
+        );
+        setAvailability(null);
+      }
     } finally {
       setLoadingAvailability(false);
     }

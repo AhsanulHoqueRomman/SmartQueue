@@ -155,12 +155,23 @@ export function BookAppointmentPage() {
       );
       setAvailability(data);
     } catch (err) {
-      setError(
-        err.response?.data?.detail ||
-          err.response?.data?.date?.[0] ||
-          'Failed to load available slots.'
+      const detailMsg = err.response?.data?.detail;
+      const isValidationMismatch = detailMsg && (
+        detailMsg.includes('not assigned') ||
+        detailMsg.includes('does not offer') ||
+        detailMsg.includes('not operating')
       );
-      setAvailability(null);
+
+      if (isValidationMismatch) {
+        setAvailability(null);
+      } else {
+        setError(
+          detailMsg ||
+            err.response?.data?.date?.[0] ||
+            'Failed to load available slots.'
+        );
+        setAvailability(null);
+      }
     } finally {
       setLoadingAvailability(false);
     }
@@ -426,7 +437,7 @@ export function BookAppointmentPage() {
               ) : !availability ? (
                 <EmptyState
                   title="No Schedule Available"
-                  message={`Provider is not operating on ${selectedDate}. Try selecting a different date or provider.`}
+                  message={`Provider is not operating on ${selectedDate} or is not assigned to this service. Try selecting a different date or provider.`}
                 />
               ) : (
                 <div className="flex flex-col gap-md margin-top-sm">

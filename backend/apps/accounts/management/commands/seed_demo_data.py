@@ -183,7 +183,7 @@ class Command(BaseCommand):
                             {'name': 'Advanced Skin Care & Laser Certificate', 'issuer': 'AAS', 'year': '2018'},
                         ],
                         'specialties': ['Internal Medicine', 'Dermatology', 'Hypertension', 'Diabetes Management'],
-                        'service_names': ['General Medical Consultation', 'Specialist Follow-up Review', 'Full Skin & Laser Checkup'], # Multi-category provider!
+                        'service_names': ['General Medical Consultation', 'Specialist Follow-up Review', 'Full Skin & Laser Checkup', 'Pediatric Growth & Health Audit'], # Multi-category provider!
                     },
                     {
                         'user': ('Tanjila', 'Akter', 'dr.tanjila@dhakacare.example.com'),
@@ -245,7 +245,7 @@ class Command(BaseCommand):
                             {'name': 'MRI Specialist Certification', 'issuer': 'Asian Society of Radiology', 'year': '2015'},
                         ],
                         'specialties': ['Neuro MRI', 'CT Angiography', 'Musculoskeletal Ultrasound'],
-                        'service_names': ['High-Resolution Lumbar Spine MRI Scan'],
+                        'service_names': ['Comprehensive Health Screening Lab Panel', 'High-Resolution Lumbar Spine MRI Scan'],
                     }
                 ]
             },
@@ -296,7 +296,7 @@ class Command(BaseCommand):
                             {'name': 'High Court Division Permission', 'issuer': 'Supreme Court of Bangladesh', 'year': '2014'},
                         ],
                         'specialties': ['Corporate Governance', 'FDI Licensing', 'Property Vetting', 'Commercial Arbitration'],
-                        'service_names': ['Company RJSC Registration Consultation', 'Commercial Contract Review & Vetting', 'Land Deed & Title Legal Vetting'], # Multi-category legal practitioner!
+                        'service_names': ['Company RJSC Registration Consultation', 'Commercial Contract Review & Vetting', 'Land Deed & Title Legal Vetting', 'Family Settlement & Civil Consultation'], # Multi-category legal practitioner!
                     }
                 ]
             },
@@ -392,7 +392,7 @@ class Command(BaseCommand):
                             {'name': 'Dell Certified Hardware Expert', 'issuer': 'Dell Technologies', 'year': '2015'},
                         ],
                         'specialties': ['Micro Soldering', 'GPU BGA Reballing', 'iPhone Logic Board Repair', 'AC PCB Diagnostics'],
-                        'service_names': ['Laptop Motherboard & Chip Repair Audit', 'Smartphone Screen & Battery Replacement'], # Multi-category technician!
+                        'service_names': ['Laptop Motherboard & Chip Repair Audit', 'Smartphone Screen & Battery Replacement', 'Inverter AC Master Servicing & Gas Refill'], # Multi-category technician!
                     }
                 ]
             },
@@ -441,7 +441,7 @@ class Command(BaseCommand):
                             {'name': 'Certified Income Tax Practitioner (ITP)', 'issuer': 'National Board of Revenue (NBR)', 'year': '2012'},
                         ],
                         'specialties': ['Corporate Tax Audits', 'Financial Restructuring', 'Mergers & Acquisitions', 'NBR Disputes'],
-                        'service_names': ['Corporate Tax Planning & NBR Return Audit', 'Startup Growth & Financial Valuation Advisory'], # Multi-category consultant!
+                        'service_names': ['Corporate Tax Planning & NBR Return Audit', 'Startup Growth & Financial Valuation Advisory', 'Cloud Security & Software Architecture Audit'], # Multi-category consultant!
                     }
                 ]
             },
