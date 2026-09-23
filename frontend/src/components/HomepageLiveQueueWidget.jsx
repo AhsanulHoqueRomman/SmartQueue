@@ -9,9 +9,16 @@ export function HomepageLiveQueueWidget() {
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Touch gesture tracking for swipe navigation
-  const touchStartX = useRef(0);
-  const touchEndX = useRef(0);
+  // Swipe & Drag gesture state
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const startXRef = useRef(0);
+  const startYRef = useRef(0);
+  const currentXRef = useRef(0);
+  const isScrollingRef = useRef(null); // null: undecided, true: vertical scroll, false: horizontal drag
+  const cardContainerRef = useRef(null);
 
   const formatTime = (isoStr) => {
     if (!isoStr) return null;
@@ -37,7 +44,6 @@ export function HomepageLiveQueueWidget() {
       .then((data) => {
         if (!isMounted) return;
         const list = Array.isArray(data) ? data : data.results || [];
-        // Sort items by priority rank so most relevant booking is selected by default
         const sorted = [...list].sort((a, b) => getPriorityScore(a) - getPriorityScore(b));
         setItems(sorted);
       })
@@ -53,51 +59,138 @@ export function HomepageLiveQueueWidget() {
     };
   }, []);
 
-  const handleTouchStart = (e) => {
-    touchStartX.current = e.changedTouches[0].screenX;
+  // Gesture handling (Touch + Mouse Pointer)
+  const handleDragStart = (clientX, clientY) => {
+    if (items.length <= 1 || isTransitioning) return;
+    startXRef.current = clientX;
+    startYRef.current = clientY;
+    currentXRef.current = clientX;
+    isScrollingRef.current = null;
+    setIsDragging(true);
   };
 
-  const handleTouchEnd = (e) => {
-    touchEndX.current = e.changedTouches[0].screenX;
-    handleSwipe();
-  };
+  const handleDragMove = (clientX, clientY) => {
+    if (!isDragging) return;
+    const deltaX = clientX - startXRef.current;
+    const deltaY = clientY - startYRef.current;
 
-  const handleSwipe = () => {
-    const diff = touchStartX.current - touchEndX.current;
-    const minSwipeDistance = 50;
-    if (Math.abs(diff) > minSwipeDistance && items.length > 1) {
-      if (diff > 0) {
-        // Swiped left -> next
-        handleNext();
-      } else {
-        // Swiped right -> prev
-        handlePrev();
+    // First movement check: determine if user is scrolling page vertically or dragging carousel horizontally
+    if (isScrollingRef.current === null) {
+      if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 5) {
+        isScrollingRef.current = true; // Vertical scroll -> abort horizontal drag
+        setIsDragging(false);
+        setDragOffset(0);
+        return;
+      } else if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 5) {
+        isScrollingRef.current = false; // Horizontal drag -> proceed
       }
+    }
+
+    if (isScrollingRef.current === false) {
+      currentXRef.current = clientX;
+      setDragOffset(deltaX);
     }
   };
 
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % items.length);
+  const handleDragEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+
+    const containerWidth = cardContainerRef.current?.offsetWidth || 600;
+    const threshold = Math.min(120, Math.max(50, containerWidth * 0.18));
+    const finalOffset = currentXRef.current - startXRef.current;
+
+    if (Math.abs(finalOffset) >= threshold && items.length > 1) {
+      setIsTransitioning(true);
+      const direction = finalOffset < 0 ? 1 : -1; // -1: prev, 1: next
+      
+      // Animate card slide out
+      setDragOffset(direction > 0 ? -containerWidth * 0.5 : containerWidth * 0.5);
+
+      setTimeout(() => {
+        if (direction > 0) {
+          setCurrentIndex((prev) => (prev + 1) % items.length);
+        } else {
+          setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
+        }
+        setDragOffset(0);
+        setIsTransitioning(false);
+      }, 200);
+    } else {
+      // Snap back smoothly
+      setDragOffset(0);
+    }
+    isScrollingRef.current = null;
   };
 
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
+  // Touch Event Listeners
+  const handleTouchStart = (e) => {
+    const touch = e.touches[0];
+    handleDragStart(touch.clientX, touch.clientY);
+  };
+
+  const handleTouchMove = (e) => {
+    const touch = e.touches[0];
+    handleDragMove(touch.clientX, touch.clientY);
+  };
+
+  const handleTouchEnd = () => {
+    handleDragEnd();
+  };
+
+  // Mouse Pointer Event Listeners
+  const handleMouseDown = (e) => {
+    handleDragStart(e.clientX, e.clientY);
+  };
+
+  const handleMouseMove = (e) => {
+    if (isDragging) {
+      handleDragMove(e.clientX, e.clientY);
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (isDragging) {
+      handleDragEnd();
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (isDragging) {
+      handleDragEnd();
+    }
+  };
+
+  const goToIndex = (idx) => {
+    if (idx === currentIndex || isTransitioning) return;
+    setIsTransitioning(true);
+    setDragOffset(idx > currentIndex ? -100 : 100);
+    setTimeout(() => {
+      setCurrentIndex(idx);
+      setDragOffset(0);
+      setIsTransitioning(false);
+    }, 180);
   };
 
   if (loading) {
     return (
-      <div style={{ maxWidth: '640px', margin: '1.5rem auto', padding: '0 1rem' }}>
+      <div style={{ maxWidth: '768px', width: '100%', margin: '2rem auto', padding: '0 1.5rem' }}>
         <div
           style={{
             background: '#FFFFFF',
             border: '1px solid #E6E1D9',
-            borderRadius: '16px',
-            padding: '1.25rem',
+            borderRadius: '20px',
+            padding: '1.5rem',
             textAlign: 'center',
-            boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
+            boxShadow: '0 4px 20px rgba(47, 37, 32, 0.04)',
+            minHeight: '380px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
         >
-          <div style={{ fontSize: '0.85rem', color: '#78716C', fontWeight: 600 }}>Loading your live queue...</div>
+          <div style={{ fontSize: '0.9rem', color: '#78716C', fontWeight: 600 }}>Loading your live queue status...</div>
         </div>
       </div>
     );
@@ -106,23 +199,28 @@ export function HomepageLiveQueueWidget() {
   // Logged-in customer with 0 bookings
   if (items.length === 0) {
     return (
-      <div style={{ maxWidth: '640px', margin: '1.5rem auto', padding: '0 1rem' }}>
+      <div style={{ maxWidth: '768px', width: '100%', margin: '2rem auto', padding: '0 1.5rem' }}>
         <div
           style={{
             background: '#FFFFFF',
             border: '1px solid #E6E1D9',
-            borderRadius: '16px',
-            padding: '1.5rem',
+            borderRadius: '20px',
+            padding: '2rem 1.5rem',
             textAlign: 'center',
-            boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
+            boxShadow: '0 4px 20px rgba(47, 37, 32, 0.04)',
+            minHeight: '280px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
         >
-          <div style={{ fontSize: '1.5rem', marginBottom: '0.35rem' }}>🗓️</div>
-          <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: '#211C19', fontWeight: 700 }}>
+          <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🗓️</div>
+          <h3 style={{ margin: '0 0 0.35rem 0', fontSize: '1.2rem', color: '#211C19', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
             You don't have any bookings yet.
           </h3>
-          <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: '#78716C' }}>
-            Book an appointment to see your live queue status here.
+          <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.9rem', color: '#78716C', maxWidth: '420px', lineHeight: 1.4 }}>
+            Book an appointment with a clinic or specialist to track your real-time queue position here.
           </p>
           <Link
             to="/organizations"
@@ -130,14 +228,15 @@ export function HomepageLiveQueueWidget() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.4rem',
-              padding: '0.6rem 1.25rem',
+              padding: '0.7rem 1.5rem',
               background: '#5F7A70',
               color: '#FFFFFF',
-              borderRadius: '8px',
+              borderRadius: '10px',
               fontWeight: 600,
-              fontSize: '0.85rem',
+              fontSize: '0.9rem',
               textDecoration: 'none',
-              boxShadow: '0 2px 8px rgba(95, 122, 112, 0.2)',
+              boxShadow: '0 3px 12px rgba(95, 122, 112, 0.25)',
+              transition: 'background 0.2s ease',
             }}
           >
             Browse Services &amp; Clinics &rarr;
@@ -177,234 +276,303 @@ export function HomepageLiveQueueWidget() {
   const isLive = ['WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
 
   return (
-    <div style={{ maxWidth: '640px', margin: '1.75rem auto 2rem auto', padding: '0 1rem' }}>
-      {/* Widget Section Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-        <div>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#5F7A70', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+    <div
+      style={{
+        maxWidth: '768px',
+        width: '100%',
+        margin: '2rem auto 2.5rem auto',
+        padding: '0 1.5rem',
+        boxSizing: 'border-box',
+      }}
+    >
+      {/* Widget Header Row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#5F7A70', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             🟢 Your Live Queue Preview
           </span>
         </div>
+
+        {/* Subtle Indicator & Dots */}
         {items.length > 1 && (
-          <div style={{ fontSize: '0.8rem', color: '#78716C', fontWeight: 600 }}>
-            {currentIndex + 1} of {items.length}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+              {items.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => goToIndex(idx)}
+                  aria-label={`View booking ${idx + 1} of ${items.length}`}
+                  style={{
+                    width: idx === currentIndex ? '18px' : '7px',
+                    height: '7px',
+                    borderRadius: '999px',
+                    background: idx === currentIndex ? '#5F7A70' : '#D6D0C7',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
+                />
+              ))}
+            </div>
+            <span style={{ fontSize: '0.8rem', color: '#78716C', fontWeight: 600, minWidth: '38px', textAlign: 'right' }}>
+              {currentIndex + 1} of {items.length}
+            </span>
           </div>
         )}
       </div>
 
-      {/* Compact Telemetry Card */}
+      {/* Swipeable Viewport Container */}
       <div
+        ref={cardContainerRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         style={{
-          background: '#FFFFFF',
-          border: '1px solid #E6E1D9',
-          borderRadius: '16px',
-          padding: '1.25rem 1.5rem',
-          boxShadow: '0 4px 18px rgba(47, 37, 32, 0.05)',
-          transition: 'all 0.2s ease-out',
-          userSelect: 'none',
+          position: 'relative',
+          touchAction: 'pan-y',
+          overflow: 'hidden',
+          borderRadius: '20px',
+          cursor: isDragging ? 'grabbing' : 'grab',
         }}
       >
-        {/* Card Header: Org & Service */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+        {/* Telemetry Card - Fixed Min-Height to eliminate layout jumping */}
+        <div
+          style={{
+            background: '#FFFFFF',
+            border: '1px solid #E6E1D9',
+            borderRadius: '20px',
+            padding: '1.5rem 1.75rem',
+            boxShadow: '0 6px 24px rgba(47, 37, 32, 0.05)',
+            transform: `translateX(${dragOffset}px)`,
+            transition: isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
+            opacity: isTransitioning ? 0.7 : 1,
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            minHeight: '380px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            boxSizing: 'border-box',
+          }}
+        >
           <div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#5F7A70', textTransform: 'uppercase' }}>
-              {currentItem.organization_name}
-            </span>
-            <h4 style={{ margin: '0.1rem 0 0 0', fontSize: '1.1rem', color: '#211C19', fontWeight: 700 }}>
-              {currentItem.service_name || 'Consultation'}
-            </h4>
-          </div>
-          <StatusBadge status={qStatus} />
-        </div>
-
-        {/* Provider line */}
-        <div style={{ fontSize: '0.825rem', color: '#78716C', marginBottom: '1rem' }}>
-          Provider: <strong style={{ color: '#211C19' }}>{currentItem.provider_name || currentItem.provider_title || 'Specialist'}</strong>
-        </div>
-
-        {/* Status Callout Banner */}
-        {qStatus === 'IN_PROGRESS' && (
-          <div
-            style={{
-              background: '#2F2520',
-              color: '#FAF8F3',
-              borderRadius: '10px',
-              padding: '0.65rem 0.85rem',
-              marginBottom: '1rem',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <span>🩺 YOU ARE BEING SERVED</span>
-            <span style={{ fontSize: '0.75rem', color: '#86EFAC' }}>Active</span>
-          </div>
-        )}
-
-        {qStatus === 'CALLED' && (
-          <div
-            style={{
-              background: '#ECFDF5',
-              border: '1px solid #6EE7B7',
-              borderRadius: '10px',
-              padding: '0.65rem 0.85rem',
-              marginBottom: '1rem',
-              fontSize: '0.85rem',
-              color: '#065F46',
-              fontWeight: 700,
-            }}
-          >
-            ⚡ YOUR TURN — Please proceed to service area
-          </div>
-        )}
-
-        {/* Live Telemetry Block */}
-        {isLive ? (
-          <div
-            style={{
-              background: '#FAF8F3',
-              border: '1px solid #E6E1D9',
-              borderRadius: '12px',
-              padding: '0.85rem',
-              marginBottom: '1rem',
-            }}
-          >
-            {/* Telemetry numbers: Serial | Serving | People Ahead */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem', textAlign: 'center', marginBottom: '0.65rem' }}>
-              <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '8px', padding: '0.5rem 0.25rem' }}>
-                <div style={{ fontSize: '0.6rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700 }}>Your Serial</div>
-                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#2F2520' }}>
-                  #{currentItem.serial_number || qEntry?.token_number || '—'}
-                </div>
+            {/* Standardized Header: Org Name & Status Badge */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem', height: '2.5rem' }}>
+              <div style={{ flex: 1, paddingRight: '0.75rem', overflow: 'hidden' }}>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: '#5F7A70',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    display: 'block',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {currentItem.organization_name}
+                </span>
+                <h4
+                  style={{
+                    margin: '0.1rem 0 0 0',
+                    fontSize: '1.2rem',
+                    color: '#211C19',
+                    fontWeight: 700,
+                    fontFamily: 'Cinzel, serif',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {currentItem.service_name || 'Consultation Service'}
+                </h4>
               </div>
-
-              <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '8px', padding: '0.5rem 0.25rem' }}>
-                <div style={{ fontSize: '0.6rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700 }}>Now Serving</div>
-                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#5F7A70' }}>
-                  {nowServingSerial ? `#${nowServingSerial}` : 'None'}
-                </div>
-              </div>
-
-              <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '8px', padding: '0.5rem 0.25rem' }}>
-                <div style={{ fontSize: '0.6rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700 }}>Ahead</div>
-                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#B06D2E' }}>
-                  {qStatus === 'CALLED' || qStatus === 'IN_PROGRESS' ? '0' : peopleAhead}
-                </div>
-              </div>
+              <StatusBadge status={qStatus} />
             </div>
 
-            {/* Estimated Service & Recommended Arrival */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#57534E' }}>
-              <div>
-                <span>Est. Service: </span>
-                <strong style={{ color: '#211C19' }}>
-                  {estStartStr && estEndStr ? `${estStartStr} - ${estEndStr}` : estStartStr || 'Scheduled'}
-                </strong>
-              </div>
-              {recArrivalStr && (
-                <div>
-                  <span>Arrival: </span>
-                  <strong style={{ color: '#5F7A70' }}>{recArrivalStr}</strong>
+            {/* Standardized Provider Subheader Line */}
+            <div
+              style={{
+                fontSize: '0.85rem',
+                color: '#78716C',
+                marginBottom: '1rem',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              Provider: <strong style={{ color: '#211C19' }}>{currentItem.provider_name || currentItem.provider_title || 'Assigned Specialist'}</strong>
+            </div>
+
+            {/* Status Callout Banner - Fixed slot height */}
+            <div style={{ minHeight: '44px', marginBottom: '1rem' }}>
+              {qStatus === 'IN_PROGRESS' && (
+                <div
+                  style={{
+                    background: '#2F2520',
+                    color: '#FAF8F3',
+                    borderRadius: '10px',
+                    padding: '0.65rem 1rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span>🩺 YOU ARE BEING SERVED</span>
+                  <span style={{ fontSize: '0.75rem', color: '#86EFAC', fontWeight: 600 }}>Active</span>
+                </div>
+              )}
+
+              {qStatus === 'CALLED' && (
+                <div
+                  style={{
+                    background: '#ECFDF5',
+                    border: '1px solid #6EE7B7',
+                    borderRadius: '10px',
+                    padding: '0.65rem 1rem',
+                    fontSize: '0.85rem',
+                    color: '#065F46',
+                    fontWeight: 700,
+                  }}
+                >
+                  ⚡ YOUR TURN — Please proceed to service area
                 </div>
               )}
             </div>
-          </div>
-        ) : (
-          <div style={{ background: '#FAF8F3', border: '1px solid #E6E1D9', borderRadius: '10px', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.825rem', color: '#78716C' }}>
-            Scheduled for: <strong style={{ color: '#211C19' }}>{new Date(currentItem.start_datetime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</strong>
-          </div>
-        )}
 
-        {/* Readiness Badge & Action Link */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          {isLive ? (
-            <span
+            {/* Live Telemetry Block */}
+            {isLive ? (
+              <div
+                style={{
+                  background: '#FAF8F3',
+                  border: '1px solid #E6E1D9',
+                  borderRadius: '14px',
+                  padding: '1rem 1.25rem',
+                  marginBottom: '1rem',
+                }}
+              >
+                {/* 3 Telemetry Columns: Your Serial | Now Serving | People Ahead */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '0.6rem',
+                    textAlign: 'center',
+                    marginBottom: '0.85rem',
+                  }}
+                >
+                  <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Your Serial</div>
+                    <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#2F2520', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+                      #{currentItem.serial_number || qEntry?.token_number || '—'}
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Now Serving</div>
+                    <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#5F7A70', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+                      {nowServingSerial ? `#${nowServingSerial}` : 'None'}
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>People Ahead</div>
+                    <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#B06D2E', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+                      {qStatus === 'CALLED' || qStatus === 'IN_PROGRESS' ? '0' : peopleAhead}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Estimated Service & Recommended Arrival Row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.825rem', color: '#57534E', paddingTop: '0.4rem' }}>
+                  <div>
+                    <span>Est. Service: </span>
+                    <strong style={{ color: '#211C19' }}>
+                      {estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : estStartStr || 'Scheduled'}
+                    </strong>
+                  </div>
+                  {recArrivalStr && (
+                    <div>
+                      <span>Arrival: </span>
+                      <strong style={{ color: '#5F7A70' }}>{recArrivalStr}</strong>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  background: '#FAF8F3',
+                  border: '1px solid #E6E1D9',
+                  borderRadius: '14px',
+                  padding: '1rem',
+                  marginBottom: '1rem',
+                  fontSize: '0.85rem',
+                  color: '#78716C',
+                  minHeight: '120px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                Scheduled for: &nbsp;<strong style={{ color: '#211C19' }}>{new Date(currentItem.start_datetime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</strong>
+              </div>
+            )}
+          </div>
+
+          {/* Standardized Card Footer */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid #FAF8F3' }}>
+            {isLive ? (
+              <span
+                style={{
+                  background: readinessConfig.bg,
+                  color: readinessConfig.color,
+                  border: `1px solid ${readinessConfig.border}`,
+                  padding: '0.3rem 0.85rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                }}
+              >
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: readinessConfig.color }} />
+                {readinessConfig.label}
+              </span>
+            ) : (
+              <span style={{ fontSize: '0.8rem', color: '#78716C' }}>Status: {qStatus}</span>
+            )}
+
+            <Link
+              to="/customer/dashboard"
               style={{
-                background: readinessConfig.bg,
-                color: readinessConfig.color,
-                border: `1px solid ${readinessConfig.border}`,
-                padding: '0.25rem 0.65rem',
-                borderRadius: '6px',
-                fontSize: '0.75rem',
+                fontSize: '0.85rem',
+                color: '#5F7A70',
                 fontWeight: 700,
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.3rem',
               }}
             >
-              {readinessConfig.label}
-            </span>
-          ) : (
-            <span />
-          )}
-
-          <Link
-            to="/customer/dashboard"
-            style={{
-              fontSize: '0.8rem',
-              color: '#5F7A70',
-              fontWeight: 700,
-              textDecoration: 'none',
-            }}
-          >
-            Full Dashboard &rarr;
-          </Link>
+              Full Customer Dashboard &rarr;
+            </Link>
+          </div>
         </div>
       </div>
-
-      {/* Swipe / Navigation controls when multiple bookings exist */}
-      {items.length > 1 && (
-        <div
-          style={{
-            display: 'flex',
-            justify: 'space-between',
-            alignItems: 'center',
-            marginTop: '0.75rem',
-            padding: '0 0.25rem',
-          }}
-        >
-          <button
-            type="button"
-            onClick={handlePrev}
-            aria-label="Previous booking"
-            style={{
-              background: '#FFFFFF',
-              border: '1px solid #E6E1D9',
-              borderRadius: '8px',
-              padding: '0.35rem 0.75rem',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              color: '#57534E',
-              cursor: 'pointer',
-            }}
-          >
-            &larr; Previous
-          </button>
-
-          <span style={{ fontSize: '0.75rem', color: '#78716C', fontWeight: 500 }}>
-            &larr; Swipe to navigate &rarr;
-          </span>
-
-          <button
-            type="button"
-            onClick={handleNext}
-            aria-label="Next booking"
-            style={{
-              background: '#FFFFFF',
-              border: '1px solid #E6E1D9',
-              borderRadius: '8px',
-              padding: '0.35rem 0.75rem',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              color: '#57534E',
-              cursor: 'pointer',
-            }}
-          >
-            Next &rarr;
-          </button>
-        </div>
-      )}
     </div>
   );
 }
+
+export default HomepageLiveQueueWidget;

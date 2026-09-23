@@ -56,7 +56,9 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
         boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
+        justify: 'space-between',
+        width: '100%',
+        boxSizing: 'border-box',
         transition: 'transform 0.15s ease, box-shadow 0.15s ease',
       }}
     >
