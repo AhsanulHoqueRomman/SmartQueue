@@ -45,7 +45,8 @@ urlpatterns = [
         include('apps.analytics.urls', namespace='analytics'),
     ),
     path('api/v1/analytics/', include('apps.analytics.urls', namespace='analytics_root')),
-    
+    path('api/v1/contact/', include('apps.contact.urls')),
+
     # OpenAPI Schema & Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),

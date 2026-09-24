@@ -1179,47 +1179,395 @@ The final project should support this complete demonstration:
 
 ---
 
-# 25. Agent Execution Strategy
+# 25. Contact Us & Support Messaging Architecture & Specification
 
-Agents should work in **small phases**, not attempt the entire remaining project blindly.
-
-Recommended order:
-
-```text
-CURRENT → Finish/Audit M5
-↓
-M6
-↓
-M7
-↓
-M8
-↓
-M9
-↓
-M10
-↓
-M11
-```
-
-At the end of each phase:
-
-```text
-1. Run relevant tests
-2. Run full regression tests
-3. Run manage.py check
-4. Check migrations
-5. Inspect changed files
-6. Report implementation
-7. Update CURRENT STATUS in this document
-```
-
-Never start the next major phase while the current phase has known critical failures.
+> **Feature Note:** This section documents the architecture, database schema, API contracts, email notifications, admin workflows, and multi-phase implementation roadmap for the **Contact Us & Support Messaging** feature. It is documented as a new platform-level feature to be implemented sequentially after current work without modifying or invalidating completed milestones (M1–M9).
 
 ---
 
-# 25. CURRENT STATUS
+## 25.1 Public Contact Us — Product Decision & Submission Flow
 
-Update this section after every milestone.
+SmartQueue's Contact Us page must be **publicly accessible**. Authentication is **NOT required**.
+
+A visitor who has never registered or logged in must be able to submit a contact request.
+
+### Intended Architectural Flow
+
+```text
+Public Website
+      ↓
+Contact Us Page (/contact)
+      ↓
+Contact Form
+      ↓
+POST /api/v1/contact/
+      ↓
+Django REST Framework Validation
+      ↓
+PostgreSQL ContactMessage (Source of Record)
+```
+
+### Supported User Types
+
+1. **Logged-Out Visitor**: Anonymous submission without an account.
+2. **Logged-In Customer**: Prefilled name and email for convenience, but fields remain fully editable. Authentication is NOT required for submission.
+
+### Public Form Fields & Validation Rules
+
+| Field Name | Type | Required | Description / Validation Rules |
+| :--- | :--- | :--- | :--- |
+| `name` | String | **Yes** | Full name of the sender (max 255 chars). |
+| `email` | String | **Yes** | Valid email address format (`EmailField`). |
+| `phone` | String | No | Optional contact phone number (max 32 chars). |
+| `subject` | String | **Yes** | Subject title of the inquiry (max 255 chars). |
+| `message` | String | **Yes** | Detailed support message body (`TextField`). |
+
+> **Mandatory Rule:** Backend validation in DRF serializers is strictly mandatory even if frontend form validation exists.
+
+---
+
+## 25.2 ContactMessage Data Model Specification
+
+To be implemented in Django app `apps/contact` (or `apps/support` as configured in project architecture):
+
+```python
+# Planned Data Model Specification (Do NOT implement in Phase 1)
+class ContactStatus(models.TextChoices):
+    NEW = 'NEW', 'New'
+    IN_REVIEW = 'IN_REVIEW', 'In Review'
+    REPLIED = 'REPLIED', 'Replied'
+    CLOSED = 'CLOSED', 'Closed'
+
+class ContactMessage(models.Model):
+    id = models.BigAutoField(primary_key=True)  # or UUIDField matching project PK convention
+    name = models.CharField(max_length=255)
+    email = models.EmailField()
+    phone = models.CharField(max_length=32, blank=True, default='')
+    subject = models.CharField(max_length=255)
+    message = models.TextField()
+    status = models.CharField(
+        max_length=20,
+        choices=ContactStatus.choices,
+        default=ContactStatus.NEW,
+        db_index=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    replied_at = models.DateTimeField(null=True, blank=True)
+    replied_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='replied_contact_messages'
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Contact Message'
+        verbose_name_plural = 'Contact Messages'
+```
+
+---
+
+## 25.3 ContactMessage Status Lifecycle
+
+The system enforces these four exact statuses:
+
+* **`NEW`**: Newly submitted contact request that has not yet been reviewed by an admin.
+* **`IN_REVIEW`**: System Admin has opened or started handling the request in the Admin Contact Inbox.
+* **`REPLIED`**: System Admin has successfully dispatched a reply to the visitor via transactional email.
+* **`CLOSED`**: Support request has been resolved/closed by an admin.
+
+> **Rule:** Do not introduce unnecessary additional states (e.g., PENDING, ARCHIVED, SPAM) to keep the status machine clean and maintainable.
+
+---
+
+## 25.4 IMPORTANT — Architectural Decision: No Conversation History
+
+> **SmartQueue v1 will NOT implement conversation history or threaded contact conversations.**
+
+### Explicit Exclusions & Simplifications
+
+* Do **NOT** create a `ContactMessageReply` model.
+* Do **NOT** create reply threads, message threads, conversation history arrays, or multiple reply records per request.
+* For v1, each inquiry consists of **One `ContactMessage` record + One admin reply action**.
+* PostgreSQL stores the original contact request and metadata of the latest admin reply action:
+  * `replied_at` (timestamp)
+  * `replied_by` (admin user FK)
+  * `status = REPLIED`
+* The actual reply message body does **NOT** need to be stored as a separate conversation-history model record in v1. Keep the schema intentionally simple and portfolio-friendly.
+
+---
+
+## 25.5 Public Contact API Specification
+
+### Endpoint Contract
+
+```text
+POST /api/v1/contact/
+```
+
+### Access & Security Rules
+
+* **Permissions**: `AllowAny` (Anonymous users and authenticated customers can both submit).
+* **Payload Validation**: DRF serializer enforces required fields (`name`, `email`, `subject`, `message`) and sanitizes input.
+* **Write Protection**: Do **NOT** trust or accept client-controlled administrative fields (`status`, `replied_at`, `replied_by`, `id`, `created_at`). Client payloads attempting to pass status or reply fields must be stripped/ignored by the serializer.
+* **Abuse & Rate Protection**: Must use Django REST Framework's built-in throttling mechanism (`AnonRateThrottle` / `UserRateThrottle`) to prevent spam/abuse.
+* **Forbidden Dependencies**: Do **NOT** introduce Redis, Celery, WebSockets, Django Channels, microservices, or CAPTCHA dependencies unless a later real need explicitly arises.
+
+### Source of Record vs Email Delivery Rule
+
+```text
+ContactMessage database save ≠ Email delivery
+```
+
+* **PostgreSQL is the source of record.** The `ContactMessage` instance MUST be saved to the PostgreSQL database independently of transactional email dispatch.
+* **Brevo is only the delivery/notification layer.** If Brevo is unavailable or email sending encounters an error, the database transaction must NOT roll back. The inquiry remains safely stored in PostgreSQL with status `NEW`.
+
+---
+
+## 25.6 Admin Contact Inbox Specification
+
+Add a dedicated Contact Messages inbox under system admin navigation:
+
+```text
+Admin Navigation Architecture
+ ├── Dashboard
+ ├── Organizations
+ ├── Platform Users
+ ├── Contact Messages   ← NEW (Admin Contact Inbox)
+ └── Profile
+```
+
+### Functional Capabilities
+
+The Admin Contact Inbox allows an authorized System Admin (`is_staff` / `is_superuser`) to:
+
+1. **View List**: View incoming contact requests sorted chronologically (`-created_at`).
+2. **Filter by Status**:
+   * `All`
+   * `New` (`NEW`)
+   * `In Review` (`IN_REVIEW`)
+   * `Replied` (`REPLIED`)
+   * `Closed` (`CLOSED`)
+3. **Open Message Detail**: View full sender information (name, email, phone), subject, submission timestamp, and full message text.
+4. **Status Transitions**:
+   * Mark `NEW` → `IN_REVIEW` upon viewing or taking ownership.
+   * Send Admin Reply (automatically sets `status = REPLIED`, populates `replied_at` and `replied_by`).
+   * Mark status as `CLOSED` when resolved.
+5. **Portfolio-Friendly Scope**: Keep this a lightweight, clean admin feature. Do NOT build a full-fledged helpdesk/ticketing platform (Zendesk clone).
+
+---
+
+## 25.7 Admin Reply Architecture & Recipient Rules
+
+### Intended Admin Reply Flow
+
+```text
+Admin Contact Inbox
+        ↓
+Open ContactMessage Detail
+        ↓
+Fill Admin Reply Form
+        ↓
+POST /api/v1/admin/contact-messages/{id}/reply/
+        ↓
+Django Backend Service Layer
+        ↓
+Brevo Transactional Email Service
+        ↓
+Visitor's Submitted Email Address
+```
+
+### Key Rules
+
+1. **Recipient Address**: The email address submitted in the `ContactMessage` form (`email` field) is the recipient. The visitor does **NOT** need a SmartQueue account.
+2. **Sender Address**: All outgoing emails must be sent from a verified SmartQueue support/sender email address configured on Brevo (e.g., `support@smartqueue.com` or `noreply@smartqueue.com`).
+3. **No Header Spoofing**: Do **NOT** spoof the visitor's email as the `From` address.
+
+---
+
+## 25.8 Brevo Integration Architecture
+
+Brevo (formerly Sendinblue) is the official transactional email provider for SmartQueue.
+
+### Architecture Topology
+
+```text
+Django Backend (Service Layer)
+      ↓
+Brevo REST API (via HTTP client / official SDK)
+      ↓
+Customer / Visitor Email Inbox
+```
+
+### Configuration & Security Rules
+
+* **Backend Environment Variable**:
+  ```env
+  BREVO_API_KEY=your_brevo_api_key_here
+  ```
+* **Security Constraints**:
+  * `BREVO_API_KEY` must remain strictly backend-only.
+  * Do **NOT** expose `BREVO_API_KEY` to React, Vite (`VITE_`), or frontend environment variables.
+  * Do **NOT** commit actual API keys to Git repository or version control.
+
+---
+
+## 25.9 Transactional Email Flows
+
+### Flow A: Admin Notification (Upon Visitor Submission)
+
+When a visitor submits a Contact Us form:
+1. `ContactMessage` is saved to PostgreSQL.
+2. Django triggers Brevo transactional email to SmartQueue Admin / Support inbox (`support@smartqueue.com`).
+3. Notification email includes sender name, email, phone, subject, message preview, and link to Admin Contact Inbox.
+
+### Flow B: Customer / Visitor Submission Confirmation
+
+After a visitor successfully submits a message:
+1. `ContactMessage` is saved to PostgreSQL.
+2. Django triggers Brevo transactional email to the visitor's submitted email.
+3. Content: A simple confirmation message (e.g., *"We have received your message. Our support team will get back to you shortly."*). No account required.
+
+### Flow C: Admin Reply Delivery
+
+When an admin sends a reply from the Admin Contact Inbox:
+1. Admin enters reply text and submits form.
+2. Django invokes Brevo API to send email to visitor's submitted email address.
+3. Django updates `ContactMessage` record (`status = REPLIED`, `replied_at = now()`, `replied_by = request.user`).
+
+> **Rule:** Keep email processing simple. Do NOT add inbound email webhook parsing or automatic email-to-ticket conversion in v1.
+
+---
+
+## 25.10 Failure Handling & Persistence Decoupling Principle
+
+```text
+Database Persistence (PostgreSQL)  >>>  Email Delivery (Brevo)
+```
+
+* **Zero Data Loss Guarantee**: If Brevo API is down, network timeout occurs, or `BREVO_API_KEY` is misconfigured, the `ContactMessage` record in PostgreSQL **MUST NOT** be lost or rolled back.
+* **Handling Strategy**: Wrap email dispatch calls in try/except blocks inside service layers. Log failures with standard Python logger.
+* **No Async Queue Needed in v1**: Deliver emails synchronously within service handlers. Do not introduce Celery, Redis, or background task runners.
+
+---
+
+## 25.11 Security Requirements & Tenant Isolation Rules
+
+### Public Endpoint Security
+
+* `POST /api/v1/contact/` must sanitize all inputs.
+* Stricter rate-limiting applied via DRF Throttling to prevent email/DB spamming.
+* Administrative fields (`status`, `replied_at`, `replied_by`) cannot be set by public clients.
+
+### Admin Endpoint Security & Permissions
+
+* Admin Inbox endpoints (`/api/v1/admin/contact-messages/`) must enforce strict permission checks: `IsAdminUser` (`is_staff` or `is_superuser`).
+* Organization Managers, Providers, Staff, and Customers must receive `403 Forbidden` if attempting to access contact inbox endpoints.
+
+### Platform-Level Tenant Isolation Rule
+
+* **Contact Us is a platform-level public support feature.**
+* It is **NOT** tied to or scoped by organization membership or tenant ID.
+* Any visitor can submit a general support request to SmartQueue without belonging to any organization.
+
+---
+
+## 25.12 Public React Contact Us UI (`/contact`) & Styling Guidelines
+
+### Page Route
+
+```text
+/contact
+```
+
+Publicly accessible in React Router (`AppRoutes.jsx`).
+
+### Layout & UI Elements
+
+* Heading: **Contact SmartQueue Support**
+* Subheading: Send us a message and our team will get back to you.
+* Form Controls:
+  * Name * (text input)
+  * Email * (email input)
+  * Phone (tel input, optional)
+  * Subject * (text input)
+  * Message * (textarea)
+  * Send Message (submit button with pending/loading state)
+* Feedback Banners: Dynamic success notification upon submission and accessible error alerts.
+* Logged-in Customer Prefill: If user is authenticated (`useAuth()`), prefill `name` and `email` from user profile, but leave fields editable.
+
+### Theme & Styling Integration Rules
+
+* Future React UI implementation must strictly use existing SmartQueue design tokens (`index.css`) and global CSS variables (`--bg-primary`, `--text-primary`, `--accent-color`, etc.).
+* Light/Dark theme compatibility will be automatically maintained by consuming global CSS variables.
+* **Separation of Concerns**: Dark theme logic and implementation must remain completely separate from Contact Us feature logic.
+
+---
+
+## 25.13 Contact Us Implementation Roadmap
+
+```text
+Contact Us Implementation Roadmap
+
+Phase 1 — Architecture & Project Plan (COMPLETED - Documentation Only)
+    ↓
+Phase 2 — Backend ContactMessage System
+    ↓
+Phase 3 — Admin Contact Inbox & Reply API
+    ↓
+Phase 4 — Brevo Transactional Email Integration
+    ↓
+Phase 5 — Public React Contact Us UI
+    ↓
+Final — End-to-End Verification
+```
+
+### Phase Descriptions
+
+* **Phase 1 — Architecture & Project Plan**: (Documentation/Architecture Only) Update `SMARTQUEUE_PROJECT_PLAN.md` with complete specifications and workflow guidelines. Zero code/database changes.
+* **Phase 2 — Backend ContactMessage System**: Implement `ContactMessage` model, migration, serializer, public `POST /api/v1/contact/` API, validation, throttling/abuse protection, and backend tests (`test_contact_api.py`).
+* **Phase 3 — Admin Contact Inbox & Reply API**: Implement admin inbox endpoints, permissions (`IsAdminUser`), status management (`NEW` → `IN_REVIEW` → `REPLIED` → `CLOSED`), admin reply API, and frontend admin UI.
+* **Phase 4 — Brevo Transactional Email Integration**: Integrate Brevo API for admin notification, visitor confirmation, and admin reply delivery. Ensure DB persistence is decoupled from Brevo availability.
+* **Phase 5 — Public React Contact Us UI**: Build public `/contact` React page, navbar link, prefill support for logged-in users, submission state management, and API integration.
+* **Final — End-to-End Verification**: Execute full end-to-end verification checklist:
+  * Run `pytest` backend test suite
+  * Run `manage.py check` & check migrations
+  * Run `npm run build` frontend build verification
+  * Run browser smoke tests for anonymous submission & logged-in submission
+  * Run admin inbox review & admin reply email dispatch verification
+  * Verify security permission checks (`403 Forbidden` for non-admin users)
+
+---
+
+# 26. Agent Execution Strategy
+
+Agents should work in **small phases**, not attempt the entire remaining project blindly.
+
+### Recommended Execution Strategy for Contact Us Phases
+
+For every Contact Us implementation phase:
+
+```text
+1. Read SMARTQUEUE_PROJECT_PLAN.md
+2. Inspect existing implementation
+3. Make only the requested changes for the phase
+4. Run relevant tests
+5. Run regression tests where appropriate
+6. Inspect changed files
+7. Report PASS / PARTIAL / FAIL / NOT VERIFIED
+8. Update SMARTQUEUE_PROJECT_PLAN.md
+```
+
+Do not mark a phase COMPLETE simply because code was generated. Tests, migrations, permissions, tenant isolation, and business rules must also be verified.
+
+---
+
+# 27. CURRENT STATUS
+
+Update this section after every milestone/phase.
 
 ```text
 M1: COMPLETE
@@ -1233,24 +1581,17 @@ M8: COMPLETE
 M9: COMPLETE
 M10: IN PROGRESS
 M11: NOT STARTED
+Contact Us Phase 1: COMPLETE (Architecture & Project Plan Updated)
+Contact Us Phase 2: NOT STARTED (Backend System)
+Contact Us Phase 3: NOT STARTED (Admin Inbox)
+Contact Us Phase 4: NOT STARTED (Brevo Email Integration)
+Contact Us Phase 5: NOT STARTED (Public React UI)
+Contact Us Final: NOT STARTED (End-to-End Verification)
 ```
-
-### Current objective
-
-**Complete the M8 backend testing, security, and final audit without breaking M1–M7.**
-
-After M5 is genuinely verified, update:
-
-```text
-M8: COMPLETE
-M9: IN PROGRESS
-```
-
-Do not mark a milestone complete only because code was generated. Tests, migrations, permissions, tenant isolation, and business rules must also be verified.
 
 ---
 
-# 26. Important Final Instruction to AI Agents
+# 28. Important Final Instruction to AI Agents
 
 **Do not redesign SmartQueue. Continue the existing architecture.**
 
@@ -1264,6 +1605,20 @@ preserves security,
 and can be explained clearly in an interview.
 ```
 
+### Strictly Forbidden Technologies for Contact Us Feature
+
+Do **NOT** introduce any of the following for this feature:
+
+* Redis
+* Celery
+* WebSockets / Django Channels
+* Docker / Kubernetes
+* Microservices / Message Queues / Background Workers
+* Conversation Threading / `ContactMessageReply` model
+* Inbound Email Processing / Email-to-Ticket Conversion
+* External CAPTCHA dependencies
+
 The goal is:
 
-> **A complete, stable, professional, interview-explainable full-stack project — not a project overloaded with technologies.**
+> **A complete, stable, professional, interview-explainable full-stack project — not a project overloaded with unnecessary technologies.**
+

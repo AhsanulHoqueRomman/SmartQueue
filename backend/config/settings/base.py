@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'apps.notifications',
     'apps.audit',
     'apps.analytics',
+    'apps.contact',
 ]
 
 MIDDLEWARE = [
@@ -146,6 +147,9 @@ REST_FRAMEWORK = {
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ),
+    'DEFAULT_THROTTLE_RATES': {
+        'contact': '10/hour',
+    },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'config.exceptions.custom_exception_handler',
 }
