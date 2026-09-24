@@ -44,9 +44,9 @@ urlpatterns = [
         'api/v1/organizations/<uuid:organization_id>/analytics/',
         include('apps.analytics.urls', namespace='analytics'),
     ),
+    path('api/v1/analytics/', include('apps.analytics.urls', namespace='analytics_root')),
     path('api/v1/contact/', include('apps.contact.urls')),
     path('api/v1/admin/contact/', include('apps.contact.admin_urls')),
-    path('api/v1/admin/contact-messages/', include('apps.contact.admin_urls')),
 
     # OpenAPI Schema & Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

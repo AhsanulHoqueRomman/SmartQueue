@@ -26,11 +26,11 @@ def admin_user(db):
 
 
 @pytest.fixture
-def staff_admin_user(db):
+def system_staff_admin_user(db):
     return User.objects.create_user(
         email='staffadmin@smartqueue.com',
         password='Password123!',
-        first_name='Staff',
+        first_name='SystemStaff',
         last_name='Admin',
         is_staff=True,
     )
@@ -145,34 +145,70 @@ class TestAdminContactAPI:
     def test_customer_role_forbidden(self, api_client, customer_user, sample_messages):
         api_client.force_authenticate(user=customer_user)
         msg = sample_messages[0]
+        detail_url = f'{self.list_url}{msg.id}/'
+        reply_url = f'{self.list_url}{msg.id}/reply/'
+
         assert api_client.get(self.list_url).status_code == status.HTTP_403_FORBIDDEN
-        assert api_client.get(f'{self.list_url}{msg.id}/').status_code == status.HTTP_403_FORBIDDEN
-        assert api_client.patch(f'{self.list_url}{msg.id}/', {'status': 'CLOSED'}).status_code == status.HTTP_403_FORBIDDEN
-        assert api_client.post(f'{self.list_url}{msg.id}/reply/', {'message': 'Reply'}).status_code == status.HTTP_403_FORBIDDEN
+        assert api_client.get(detail_url).status_code == status.HTTP_403_FORBIDDEN
+        assert api_client.patch(detail_url, {'status': 'CLOSED'}).status_code == status.HTTP_403_FORBIDDEN
+        assert api_client.post(reply_url, {'message': 'Reply'}).status_code == status.HTTP_403_FORBIDDEN
 
     def test_manager_role_forbidden(self, api_client, manager_user, sample_messages):
         api_client.force_authenticate(user=manager_user)
+        msg = sample_messages[0]
+        detail_url = f'{self.list_url}{msg.id}/'
+        reply_url = f'{self.list_url}{msg.id}/reply/'
+
         assert api_client.get(self.list_url).status_code == status.HTTP_403_FORBIDDEN
+        assert api_client.get(detail_url).status_code == status.HTTP_403_FORBIDDEN
+        assert api_client.patch(detail_url, {'status': 'CLOSED'}).status_code == status.HTTP_403_FORBIDDEN
+        assert api_client.post(reply_url, {'message': 'Reply'}).status_code == status.HTTP_403_FORBIDDEN
 
     def test_provider_role_forbidden(self, api_client, provider_user, sample_messages):
         api_client.force_authenticate(user=provider_user)
+        msg = sample_messages[0]
+        detail_url = f'{self.list_url}{msg.id}/'
+        reply_url = f'{self.list_url}{msg.id}/reply/'
+
         assert api_client.get(self.list_url).status_code == status.HTTP_403_FORBIDDEN
+        assert api_client.get(detail_url).status_code == status.HTTP_403_FORBIDDEN
+        assert api_client.patch(detail_url, {'status': 'CLOSED'}).status_code == status.HTTP_403_FORBIDDEN
+        assert api_client.post(reply_url, {'message': 'Reply'}).status_code == status.HTTP_403_FORBIDDEN
 
     def test_staff_role_forbidden(self, api_client, staff_user, sample_messages):
         api_client.force_authenticate(user=staff_user)
-        assert api_client.get(self.list_url).status_code == status.HTTP_403_FORBIDDEN
+        msg = sample_messages[0]
+        detail_url = f'{self.list_url}{msg.id}/'
+        reply_url = f'{self.list_url}{msg.id}/reply/'
 
-    def test_system_admin_can_list_messages(self, api_client, admin_user, sample_messages):
+        assert api_client.get(self.list_url).status_code == status.HTTP_403_FORBIDDEN
+        assert api_client.get(detail_url).status_code == status.HTTP_403_FORBIDDEN
+        assert api_client.patch(detail_url, {'status': 'CLOSED'}).status_code == status.HTTP_403_FORBIDDEN
+        assert api_client.post(reply_url, {'message': 'Reply'}).status_code == status.HTTP_403_FORBIDDEN
+
+    def test_system_superuser_admin_can_list_messages(self, api_client, admin_user, sample_messages):
         api_client.force_authenticate(user=admin_user)
         response = api_client.get(self.list_url)
         assert response.status_code == status.HTTP_200_OK
         data = response.data if isinstance(response.data, list) else response.data.get('results', [])
         assert len(data) == 3
 
-    def test_staff_admin_can_list_messages(self, api_client, staff_admin_user, sample_messages):
-        api_client.force_authenticate(user=staff_admin_user)
+    def test_system_staff_admin_can_list_messages(self, api_client, system_staff_admin_user, sample_messages):
+        api_client.force_authenticate(user=system_staff_admin_user)
         response = api_client.get(self.list_url)
         assert response.status_code == status.HTTP_200_OK
+
+    def test_idor_protection_for_non_admin_users(self, api_client, customer_user, manager_user, provider_user, staff_user, sample_messages):
+        msg = sample_messages[0]
+        detail_url = f'{self.list_url}{msg.id}/'
+        reply_url = f'{self.list_url}{msg.id}/reply/'
+
+        for user in [customer_user, manager_user, provider_user, staff_user]:
+            api_client.force_authenticate(user=user)
+            # Knowing UUID must NOT grant access
+            assert api_client.get(detail_url).status_code == status.HTTP_403_FORBIDDEN
+            assert api_client.patch(detail_url, {'status': 'CLOSED'}).status_code == status.HTTP_403_FORBIDDEN
+            assert api_client.post(reply_url, {'message': 'IDOR Attempt'}).status_code == status.HTTP_403_FORBIDDEN
 
     def test_status_filtering(self, api_client, admin_user, sample_messages):
         api_client.force_authenticate(user=admin_user)
