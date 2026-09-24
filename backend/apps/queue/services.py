@@ -380,17 +380,23 @@ class QueueService:
             return {'readiness_state': 'SKIPPED', 'people_ahead': 0, 'estimated_wait_minutes': 0}
         if queue_entry.status in (QueueEntry.Status.CANCELLED, QueueEntry.Status.NO_SHOW):
             return {'readiness_state': queue_entry.status, 'people_ahead': 0, 'estimated_wait_minutes': 0}
+        service_dur = 15
+        if queue_entry.appointment and queue_entry.appointment.service:
+            service_dur = queue_entry.appointment.service.duration_minutes or 15
+
+        appt_start = queue_entry.appointment.start_datetime if queue_entry.appointment else None
+
         if queue_entry.status in (QueueEntry.Status.IN_PROGRESS, QueueEntry.Status.CALLED):
-            dur = 15
-            if queue_entry.appointment and queue_entry.appointment.service:
-                dur = queue_entry.appointment.service.duration_minutes or 15
+            est_start = appt_start or queue_entry.started_at or queue_entry.called_at or now
+            est_end = est_start + timedelta(minutes=service_dur)
+            rec_arrival = (appt_start - timedelta(minutes=15)) if appt_start else est_start
             return {
                 'readiness_state': QueueEntry.ReadinessState.TURN_NOW,
                 'people_ahead': 0,
                 'estimated_wait_minutes': 0,
-                'estimated_start_time': now.isoformat(),
-                'estimated_end_time': (now + timedelta(minutes=dur)).isoformat(),
-                'recommended_arrival_time': now.isoformat(),
+                'estimated_start_time': est_start.isoformat(),
+                'estimated_end_time': est_end.isoformat(),
+                'recommended_arrival_time': rec_arrival.isoformat(),
                 'now_serving_serial': queue_entry.serial_number,
             }
 
@@ -453,13 +459,18 @@ class QueueService:
         else:
             readiness = QueueEntry.ReadinessState.NOT_YET
 
-        service_dur = 15
-        if queue_entry.appointment and queue_entry.appointment.service:
-            service_dur = queue_entry.appointment.service.duration_minutes or 15
+        dynamic_start = now + timedelta(minutes=est_wait)
 
-        est_start = now + timedelta(minutes=est_wait)
+        if appt_start:
+            est_start = max(appt_start, dynamic_start)
+            rec_arrival = appt_start - timedelta(minutes=15)
+            if rec_arrival < now and est_start > now:
+                rec_arrival = min(now, est_start)
+        else:
+            est_start = dynamic_start
+            rec_arrival = now + timedelta(minutes=max(0, est_wait - 15))
+
         est_end = est_start + timedelta(minutes=service_dur)
-        rec_arrival = now + timedelta(minutes=max(0, est_wait - 15))
 
         return {
             'readiness_state': readiness,
