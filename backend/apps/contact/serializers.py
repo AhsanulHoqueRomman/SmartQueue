@@ -3,6 +3,11 @@ from .models import ContactMessage
 
 
 class ContactMessageSerializer(serializers.ModelSerializer):
+    """
+    Public serializer for Contact Us inquiries.
+    Explicitly excludes internal admin fields (replied_at, replied_by)
+    from serialized output to prevent public metadata exposure.
+    """
     class Meta:
         model = ContactMessage
         fields = [
@@ -15,16 +20,12 @@ class ContactMessageSerializer(serializers.ModelSerializer):
             'status',
             'created_at',
             'updated_at',
-            'replied_at',
-            'replied_by',
         ]
         read_only_fields = [
             'id',
             'status',
             'created_at',
             'updated_at',
-            'replied_at',
-            'replied_by',
         ]
 
     def validate_name(self, value):
