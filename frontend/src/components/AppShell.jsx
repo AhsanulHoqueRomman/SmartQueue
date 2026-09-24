@@ -41,6 +41,7 @@ export const AppShell = ({ children }) => {
           { label: 'System Overview', path: '/admin/dashboard', icon: '⚡' },
           { label: 'Organizations', path: '/admin/organizations', icon: '🏢' },
           { label: 'Platform Users', path: '/admin/users', icon: '👥' },
+          { label: 'Contact Messages', path: '/admin/contact', icon: '📬' },
         ];
       case 'MANAGER':
         return [

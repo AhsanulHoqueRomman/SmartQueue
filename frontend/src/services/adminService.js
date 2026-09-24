@@ -81,7 +81,39 @@ export const adminService = {
     const response = await apiClient.post(`/organizations/${orgId}/admin/unsuspend/`);
     return response.data;
   },
+
+  /**
+   * Fetch system-wide Contact Us inquiries (Admin only).
+   */
+  async getContactMessages(params = {}) {
+    const response = await apiClient.get('/admin/contact/', { params });
+    return response.data;
+  },
+
+  /**
+   * Fetch Contact Us message detail (Admin only).
+   */
+  async getContactMessageDetail(messageId, markReview = false) {
+    const params = markReview ? { mark_review: 'true' } : {};
+    const response = await apiClient.get(`/admin/contact/${messageId}/`, { params });
+    return response.data;
+  },
+
+  /**
+   * Update Contact Us message status (Admin only).
+   */
+  async updateContactStatus(messageId, status) {
+    const response = await apiClient.patch(`/admin/contact/${messageId}/`, { status });
+    return response.data;
+  },
+
+  /**
+   * Submit an admin reply to a Contact Us message (Admin only).
+   */
+  async replyToContactMessage(messageId, message) {
+    const response = await apiClient.post(`/admin/contact/${messageId}/reply/`, { message });
+    return response.data;
+  },
 };
 
 export default adminService;
-

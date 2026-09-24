@@ -63,6 +63,7 @@ import { StaffServicesPage } from '../pages/staff/StaffServicesPage';
 import { AdminDashboard } from '../pages/portals/AdminDashboard';
 import { AdminOrganizationsPage } from '../pages/admin/AdminOrganizationsPage';
 import { AdminUsersPage } from '../pages/admin/AdminUsersPage';
+import { AdminContactPage } from '../pages/admin/AdminContactPage';
 import { LandingPage } from '../pages/LandingPage';
 import { ProfilePage } from '../pages/ProfilePage';
 
@@ -574,6 +575,18 @@ export const AppRoutes = () => {
             <RoleRoute allowedRoles={['ADMIN']}>
               <AppShell>
                 <AdminUsersPage />
+              </AppShell>
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/contact"
+        element={
+          <ProtectedRoute>
+            <RoleRoute allowedRoles={['ADMIN']}>
+              <AppShell>
+                <AdminContactPage />
               </AppShell>
             </RoleRoute>
           </ProtectedRoute>
