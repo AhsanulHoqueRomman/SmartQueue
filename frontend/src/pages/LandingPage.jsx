@@ -1227,6 +1227,13 @@ export const LandingPage = () => {
           </div>
           <div className="lp-footer-links" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
             <a
+              href="/contact"
+              className="lp-footer-link"
+              style={{ fontWeight: 700, color: '#5F7A70' }}
+            >
+              Contact Us
+            </a>
+            <a
               href={getApiDocsUrl()}
               target="_blank"
               rel="noopener noreferrer"

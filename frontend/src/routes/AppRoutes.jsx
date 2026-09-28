@@ -28,6 +28,7 @@ import { OrganizationProfilePage } from '../pages/customer/OrganizationProfilePa
 import { ProviderPublicProfilePage } from '../pages/customer/ProviderPublicProfilePage';
 import { CustomerFavoritesPage } from '../pages/customer/CustomerFavoritesPage';
 import { GlobalSearchPage } from '../pages/public/GlobalSearchPage';
+import { ContactPage } from '../pages/public/ContactPage';
 
 // Manager Portal Pages
 import { ManagerDashboard } from '../pages/portals/ManagerDashboard';
@@ -87,6 +88,7 @@ export const AppRoutes = () => {
       {/* Root & Auth Routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/search" element={<GlobalSearchPage />} />
+      <Route path="/contact" element={<ContactPage />} />
       <Route path="/favorites" element={<CustomerFavoritesPage />} />
       <Route path="/organizations" element={<OrganizationsPage />} />
       <Route path="/organizations/:organizationId" element={<OrganizationProfilePage />} />

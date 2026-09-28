@@ -4,6 +4,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from apps.contact.email_service import EmailSendResult, send_contact_admin_reply
 from apps.contact.models import ContactMessage
 from apps.organizations.models import Organization, OrganizationMembership
 
@@ -14,6 +15,29 @@ User = get_user_model()
 def api_client():
     return APIClient()
 
+
+@pytest.fixture(autouse=True)
+def _no_real_emails(monkeypatch):
+    """Safety net: the entire contact test suite must never send a real email.
+
+    The existing admin tests (TestAdminContactAPI) exercise the reply view, which
+    now dispatches ``send_contact_admin_reply``. Without this fixture those tests
+    would reach the real Resend network using the loaded ``.env`` values.
+    """
+    monkeypatch.setattr(
+        'apps.contact.views.send_contact_admin_notification',
+        lambda message: EmailSendResult(success=True, email_id='mock-admin'),
+    )
+    monkeypatch.setattr(
+        'apps.contact.views.send_contact_customer_confirmation',
+        lambda message: EmailSendResult(success=True, email_id='mock-confirm'),
+    )
+    monkeypatch.setattr(
+        'apps.contact.views.send_contact_admin_reply',
+        lambda message, reply_text='', admin_name=None: EmailSendResult(
+            success=True, email_id='mock-reply'
+        ),
+    )
 
 @pytest.fixture
 def admin_user(db):
@@ -327,3 +351,113 @@ class TestAdminContactAPI:
         assert response.status_code == status.HTTP_201_CREATED
         assert 'replied_by' not in response.data
         assert 'replied_at' not in response.data
+
+
+@pytest.mark.django_db
+class TestAdminContactEmailWiring:
+    list_url = '/api/v1/admin/contact/'
+
+    @pytest.fixture(autouse=True)
+    def mail_mock(self, monkeypatch):
+        """Replace the reply dispatcher with a fake that records what it received.
+        No real email is ever sent and no network call is ever made."""
+        self.reply_called_with = None
+
+        def fake_reply(message, reply_text, admin_name=None):
+            assert message.status == ContactMessage.Status.REPLIED
+            assert message.replied_by_id is not None
+            assert reply_text
+            self.reply_called_with = {
+                'message_id': str(message.id),
+                'reply_text': reply_text,
+                'admin_name': admin_name,
+                'message_status': message.status,
+                'replied_by_id': str(message.replied_by_id),
+            }
+            return EmailSendResult(success=True, email_id='mock-reply')
+
+        monkeypatch.setattr('apps.contact.views.send_contact_admin_reply', fake_reply)
+
+    def test_admin_reply_dispatches_email(self, api_client, admin_user, sample_messages):
+        api_client.force_authenticate(user=admin_user)
+        msg = sample_messages[0]
+        payload = {'message': 'We have updated your appointment.'}
+
+        response = api_client.post(
+            f'{self.list_url}{msg.id}/reply/', payload, format='json'
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['status'] == ContactMessage.Status.REPLIED
+        assert response.data['replied_by'] == admin_user.id
+
+        assert self.reply_called_with is not None
+        assert self.reply_called_with['message_id'] == str(msg.id)
+        assert self.reply_called_with['reply_text'] == payload['message']
+        assert self.reply_called_with['admin_name'] == 'System Admin'
+
+        msg.refresh_from_db()
+        assert msg.status == ContactMessage.Status.REPLIED
+        assert msg.replied_by_id == admin_user.id
+
+    def test_admin_reply_succeeds_when_email_fails(self, api_client, admin_user, sample_messages, monkeypatch):
+        """A reply must still be persisted and return 200 even when the email fails."""
+        api_client.force_authenticate(user=admin_user)
+
+        def failing_reply(*args, **kwargs):
+            return EmailSendResult(success=False, error='Resend rejected the message')
+
+        monkeypatch.setattr(
+            'apps.contact.views.send_contact_admin_reply', failing_reply
+        )
+
+        msg = sample_messages[0]
+        payload = {'message': 'Critical reply that must still land.'}
+        response = api_client.post(
+            f'{self.list_url}{msg.id}/reply/', payload, format='json'
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['status'] == ContactMessage.Status.REPLIED
+        assert response.data['replied_by'] == admin_user.id
+
+        msg.refresh_from_db()
+        assert msg.status == ContactMessage.Status.REPLIED
+        assert msg.replied_at is not None
+        assert msg.replied_by_id == admin_user.id
+
+    def test_admin_reply_email_receives_unsaved_reply_text(self, api_client, admin_user, sample_messages):
+        api_client.force_authenticate(user=admin_user)
+        msg = sample_messages[0]
+        payload = {'message': 'Your booking has been rescheduled to Monday at 09:00.'}
+
+        api_client.post(
+            f'{self.list_url}{msg.id}/reply/', payload, format='json'
+        )
+
+        assert self.reply_called_with['reply_text'] == payload['message']
+
+    def test_admin_reply_preserves_lifecycle_fields_after_email_failure(
+        self, api_client, admin_user, sample_messages, monkeypatch
+    ):
+        """Lifecycle fields must survive even when the email layer returns failure."""
+        api_client.force_authenticate(user=admin_user)
+
+        def failing_reply(*args, **kwargs):
+            return EmailSendResult(success=False, error='email failure')
+
+        monkeypatch.setattr(
+            'apps.contact.views.send_contact_admin_reply', failing_reply
+        )
+
+        msg = sample_messages[1]
+        response = api_client.post(
+            f'{self.list_url}{msg.id}/reply/', {'message': 'reply'}, format='json'
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        msg.refresh_from_db()
+
+        assert msg.status == ContactMessage.Status.REPLIED
+        assert msg.replied_at is not None
+        assert msg.replied_by_id == admin_user.id

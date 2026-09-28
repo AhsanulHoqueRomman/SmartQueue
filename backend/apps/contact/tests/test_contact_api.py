@@ -4,6 +4,11 @@ from django.core.cache import cache
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from apps.contact.email_service import (
+    EmailSendResult,
+    send_contact_admin_notification,
+    send_contact_customer_confirmation,
+)
 from apps.contact.models import ContactMessage
 
 User = get_user_model()
@@ -30,6 +35,23 @@ def clear_cache():
     yield
     cache.clear()
 
+
+@pytest.fixture(autouse=True)
+def _no_real_emails(monkeypatch):
+    """Safety net: the entire contact test suite must never send a real email.
+
+    Individual wiring tests override specific functions with custom fakes; this
+    fixture only guarantees that un-mocked codepaths (for example the existing
+    admin tests that now exercise the reply view) cannot reach the network.
+    """
+    monkeypatch.setattr(
+        'apps.contact.views.send_contact_admin_notification',
+        lambda message: EmailSendResult(success=True, email_id='mock-admin'),
+    )
+    monkeypatch.setattr(
+        'apps.contact.views.send_contact_customer_confirmation',
+        lambda message: EmailSendResult(success=True, email_id='mock-confirm'),
+    )
 
 @pytest.mark.django_db
 class TestContactAPI:
@@ -273,3 +295,96 @@ class TestContactAPI:
         assert response.data['status'] == 'NEW'
         msg = ContactMessage.objects.get(id=response.data['id'])
         assert msg.status == ContactMessage.Status.NEW
+
+
+@pytest.mark.django_db
+class TestContactEmailWiring:
+    url = '/api/v1/contact/'
+
+    @pytest.fixture(autouse=True)
+    def mail_mock(self, monkeypatch):
+        """Replace both email-service wrappers with fakes that record calls. No
+        real email is ever sent and no network call is ever made."""
+        self.admin_notify_called = False
+        self.admin_notify_result = None
+        self.customer_confirm_called = False
+        self.customer_confirm_result = None
+
+        def fake_admin(message):
+            self.admin_notify_called = True
+            assert isinstance(message, ContactMessage)
+            return EmailSendResult(success=True, email_id='mock-admin')
+
+        def fake_confirm(message):
+            self.customer_confirm_called = True
+            assert isinstance(message, ContactMessage)
+            return EmailSendResult(success=True, email_id='mock-confirm')
+
+        monkeypatch.setattr('apps.contact.views.send_contact_admin_notification', fake_admin)
+        monkeypatch.setattr('apps.contact.views.send_contact_customer_confirmation', fake_confirm)
+
+    def test_submission_dispatches_both_emails(self, api_client):
+        payload = {
+            'name': 'Jane Customer',
+            'email': 'jane@example.com',
+            'subject': 'Help needed',
+            'message': 'I need help with my booking.',
+        }
+        response = api_client.post(self.url, payload, format='json')
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert self.admin_notify_called
+        assert self.customer_confirm_called
+
+        msg = ContactMessage.objects.get(id=response.data['id'])
+        assert msg.status == ContactMessage.Status.NEW
+
+    def test_submission_succeeds_when_confirmation_email_fails(self, api_client, monkeypatch):
+        """A failed customer confirmation must NOT invalidate the 201 response."""
+
+        def failing_confirm(message):
+            return EmailSendResult(success=False, error='Resend unavailable')
+
+        monkeypatch.setattr(
+            'apps.contact.views.send_contact_customer_confirmation', failing_confirm
+        )
+
+        payload = {
+            'name': 'Terry',
+            'email': 'terry@example.com',
+            'subject': 'Service Issue',
+            'message': 'Unavailable in production right now.',
+        }
+        response = api_client.post(self.url, payload, format='json')
+
+        assert response.status_code == status.HTTP_201_CREATED
+        msg = ContactMessage.objects.get(id=response.data['id'])
+        assert msg.status == ContactMessage.Status.NEW
+        assert msg.email == 'terry@example.com'
+        assert self.admin_notify_called
+
+    def test_subscriber_email_is_still_persisted_when_notification_fails(
+        self, api_client, monkeypatch
+    ):
+        """A failed admin notification must NOT roll back the saved message."""
+
+        def failing_notify(message):
+            return EmailSendResult(success=False, error='network failure')
+
+        monkeypatch.setattr(
+            'apps.contact.views.send_contact_admin_notification', failing_notify
+        )
+
+        payload = {
+            'name': 'Vulnerable Customer',
+            'email': 'vuln@example.com',
+            'subject': 'Urgent',
+            'message': 'Please help.',
+        }
+        response = api_client.post(self.url, payload, format='json')
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert ContactMessage.objects.filter(
+            email='vuln@example.com', status=ContactMessage.Status.NEW
+        ).exists()
+        assert self.customer_confirm_called

@@ -1,0 +1,26 @@
+/* ═══════════════════════════════════════════════════════════════
+   SmartQueue — Public Contact Us Page
+   Palette: Warm Sand & Espresso (matches LandingPage.css)
+     bg        #FAF8F3
+     surface   #FFFFFF
+     border    #E6E1D9
+     espresso  #2F2520
+     text      #211C19
+     muted     #78716C
+     sage      #5F7A70
+     danger    #B4534B
+     success   #4F7A5A
+   ═══════════════════════════════════════════════════════════════ */
+
+.cp-root {
+  min-height: 100vh;
+  background-color: #FAF8F3;
+  color: #211C19;
+  overflow-x: clip;
+}
+
+/* Ensure navbar links inside ContactPage behave like the landing page */
+.cp-root .lp-nav-link:hover {
+  color: #211C19;
+  background-color: #F3F0EA;
+}

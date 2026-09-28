@@ -15,6 +15,11 @@ from .serializers import (
     ContactMessageSerializer,
 )
 from .throttling import ContactRateThrottle
+from .email_service import (
+    send_contact_admin_notification,
+    send_contact_admin_reply,
+    send_contact_customer_confirmation,
+)
 
 
 class ContactMessageCreateView(APIView):
@@ -37,13 +42,20 @@ class ContactMessageCreateView(APIView):
     )
     def post(self, request):
         serializer = ContactMessageSerializer(data=request.data)
-        if serializer.is_valid():
-            contact_message = serializer.save()
-            return Response(
-                ContactMessageSerializer(contact_message).data,
-                status=status.HTTP_201_CREATED
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        contact_message = serializer.save()
+
+        # Transactional emails are fire-and-forget. They must never fail the
+        # request or invalidate the database write that has already succeeded.
+        send_contact_admin_notification(contact_message)
+        send_contact_customer_confirmation(contact_message)
+
+        return Response(
+            ContactMessageSerializer(contact_message).data,
+            status=status.HTTP_201_CREATED
+        )
 
 
 class AdminContactListView(APIView):
@@ -125,7 +137,7 @@ class AdminContactReplyView(APIView):
     """
     Admin API endpoint to submit a reply to a Contact Us inquiry.
     Sets status = REPLIED, replied_at = now(), replied_by = request.user.
-    Does NOT dispatch emails in Phase 3.
+    Dispatches the customer-facing reply email after the database write.
     """
     permission_classes = [permissions.IsAuthenticated, IsSystemAdmin]
     serializer_class = AdminContactReplySerializer
@@ -140,15 +152,36 @@ class AdminContactReplyView(APIView):
         summary="Submit an admin reply to a Contact Us inquiry (Admin only)"
     )
     def post(self, request, message_id):
-        message = get_object_or_404(ContactMessage.objects.select_related('replied_by'), id=message_id)
+        message = get_object_or_404(
+            ContactMessage.objects.select_related('replied_by'), id=message_id
+        )
         serializer = AdminContactReplySerializer(data=request.data)
-        if serializer.is_valid():
-            message.status = ContactMessage.Status.REPLIED
-            message.replied_at = timezone.now()
-            message.replied_by = request.user
-            message.save()
-            return Response(
-                AdminContactMessageSerializer(message).data,
-                status=status.HTTP_200_OK
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        message.status = ContactMessage.Status.REPLIED
+        message.replied_at = timezone.now()
+        message.replied_by = request.user
+        message.save()
+
+        # Deliver the customer-facing reply. A send failure is non-fatal and
+        # must never roll back the reply that has already been committed.
+        send_contact_admin_reply(
+            message,
+            reply_text=serializer.validated_data['message'],
+            admin_name=self._admin_display_name(request.user),
+        )
+
+        return Response(
+            AdminContactMessageSerializer(message).data,
+            status=status.HTTP_200_OK
+        )
+
+    @staticmethod
+    def _admin_display_name(user):
+        """Best-effort namesake for the reply email signature. """
+        name = (user.first_name or '').strip()
+        last = (user.last_name or '').strip()
+        if name or last:
+            return (name + ' ' + last).strip()
+        return None
