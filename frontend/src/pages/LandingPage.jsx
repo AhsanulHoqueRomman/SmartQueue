@@ -8,6 +8,7 @@ import { getRecentlyViewedOrgs, getFavoriteOrgs, toggleFavoriteOrg, isFavoriteOr
 import { getApiDocsUrl } from '../api/client';
 import '../styles/LandingPage.css';
 import { HomepageLiveQueueWidget } from '../components/HomepageLiveQueueWidget';
+import { PublicNavbar } from '../components/PublicNavbar';
 
 /* ─── Tiny SVG Icon Components ─────────────────────────────────────────── */
 const IconZap = () => (
@@ -895,19 +896,12 @@ export const LandingPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [scrolled, setScrolled] = useState(false);
   const [heroSearchQuery, setHeroSearchQuery] = useState('');
   const [allOrgs, setAllOrgs] = useState([]);
   const [heroRef, heroIn] = useInView({ threshold: 0.05 });
   const [howItWorksRef, howItWorksIn] = useInView({ threshold: 0.1 });
   const [whyUsRef, whyUsIn] = useInView({ threshold: 0.1 });
   const [ctaRef, ctaIn] = useInView();
-
-  useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 30);
-    window.addEventListener('scroll', handler, { passive: true });
-    return () => window.removeEventListener('scroll', handler);
-  }, []);
 
   useEffect(() => {
     if (location.hash) {
@@ -940,36 +934,7 @@ export const LandingPage = () => {
   return (
     <div className="lp-root">
       {/* ── Navbar ─────────────────────────────────────────────────────── */}
-      <header className={`lp-nav ${scrolled ? 'lp-nav--scrolled' : ''}`}>
-        <div className="lp-nav-inner">
-          <Link to="/" className="lp-brand" onClick={handleLogoClick}>
-            <span className="lp-brand-mark">
-              <IconZap />
-            </span>
-            <span className="lp-brand-name">SmartQueue</span>
-          </Link>
-
-          <nav className="lp-nav-links">
-            <Link to="/organizations" className="lp-nav-link">Organizations</Link>
-            <Link to="/search" className="lp-nav-link">Search</Link>
-            <a href="#how-it-works" className="lp-nav-link">How it works</a>
-            <a href="#why-smartqueue" className="lp-nav-link">Why SmartQueue</a>
-          </nav>
-
-          <div className="lp-nav-cta">
-            {user ? (
-              <Link to="/dashboard" className="lp-btn-primary">
-                Dashboard <IconArrow />
-              </Link>
-            ) : (
-              <>
-                <Link to="/login" className="lp-btn-ghost">Sign in</Link>
-                <Link to="/register" className="lp-btn-primary">Get started</Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <PublicNavbar activePage="" />
 
       {/* ── Hero ───────────────────────────────────────────────────────── */}
       <section className="lp-hero" ref={heroRef}>

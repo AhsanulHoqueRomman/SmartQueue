@@ -1,63 +1,67 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getApiDocsUrl } from '../api/client';
 import '../styles/LandingPage.css';
 
 export const PublicNavbar = ({ activePage = '' }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const handleAnchorClick = (anchor) => {
-    setMobileMenuOpen(false);
-    navigate(`/${anchor}`);
+    if (location.pathname !== '/') {
+      navigate(`/${anchor}`);
+    } else {
+      const el = document.querySelector(anchor);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
-    <header className="lp-nav" style={{ position: 'sticky', top: 0, zIndex: 1000, width: '100%' }}>
-      <div className="lp-nav-inner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <header className={`lp-nav ${scrolled ? 'lp-nav--scrolled' : ''}`}>
+      <div className="lp-nav-inner">
         {/* Brand */}
         <Link
           to="/"
           className="lp-brand"
           onClick={(e) => {
-            if (window.location.pathname === '/') {
+            if (location.pathname === '/') {
               e.preventDefault();
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }
           }}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', textDecoration: 'none' }}
         >
-          <div className="lp-brand-mark" style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#2F2520', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FAF8F3' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
+          <span className="lp-brand-mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '15px', height: '15px' }}>
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
-          </div>
-          <span className="lp-brand-name" style={{ fontFamily: 'Cinzel, serif', fontSize: '1.2rem', fontWeight: 800, color: '#211C19' }}>
-            SmartQueue
           </span>
+          <span className="lp-brand-name">SmartQueue</span>
         </Link>
 
         {/* Desktop Nav Links */}
-        <nav className="lp-nav-links" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <Link to="/organizations" className="lp-nav-link" style={{ textDecoration: 'none', color: '#57534E', fontWeight: 600, fontSize: '0.9rem' }}>
-            Organizations
-          </Link>
-          <Link to="/search" className="lp-nav-link" style={{ textDecoration: 'none', color: '#57534E', fontWeight: 600, fontSize: '0.9rem' }}>
-            Search
-          </Link>
+        <nav className="lp-nav-links">
+          <Link to="/organizations" className="lp-nav-link">Organizations</Link>
+          <Link to="/search" className="lp-nav-link">Search</Link>
           <span
             onClick={() => handleAnchorClick('#how-it-works')}
             className="lp-nav-link"
-            style={{ cursor: 'pointer', color: '#57534E', fontWeight: 600, fontSize: '0.9rem' }}
+            style={{ cursor: 'pointer' }}
           >
             How it works
           </span>
           <span
             onClick={() => handleAnchorClick('#why-smartqueue')}
             className="lp-nav-link"
-            style={{ cursor: 'pointer', color: '#57534E', fontWeight: 600, fontSize: '0.9rem' }}
+            style={{ cursor: 'pointer' }}
           >
             Why SmartQueue
           </span>
@@ -65,11 +69,8 @@ export const PublicNavbar = ({ activePage = '' }) => {
             to="/contact"
             className="lp-nav-link"
             style={{
-              textDecoration: 'none',
-              color: activePage === 'contact' ? '#2F2520' : '#57534E',
-              fontWeight: activePage === 'contact' ? 700 : 600,
-              fontSize: '0.9rem',
-              background: activePage === 'contact' ? '#F3F0EA' : 'transparent',
+              fontWeight: activePage === 'contact' ? 700 : undefined,
+              background: activePage === 'contact' ? '#F3F0EA' : undefined,
             }}
           >
             Contact Us
@@ -77,56 +78,15 @@ export const PublicNavbar = ({ activePage = '' }) => {
         </nav>
 
         {/* CTA Buttons */}
-        <div className="lp-nav-cta" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div className="lp-nav-cta">
           {user ? (
-            <Link
-              to="/dashboard"
-              className="lp-btn-primary"
-              style={{
-                textDecoration: 'none',
-                background: '#2F2520',
-                color: '#FAF8F3',
-                padding: '0.5rem 1.1rem',
-                borderRadius: '10px',
-                fontWeight: 600,
-                fontSize: '0.875rem',
-              }}
-            >
+            <Link to="/dashboard" className="lp-btn-primary">
               Dashboard →
             </Link>
           ) : (
             <>
-              {activePage !== 'login' && (
-                <Link
-                  to="/login"
-                  style={{
-                    textDecoration: 'none',
-                    color: '#2F2520',
-                    fontWeight: 600,
-                    fontSize: '0.9rem',
-                    padding: '0.5rem 1rem',
-                  }}
-                >
-                  Sign in
-                </Link>
-              )}
-              {activePage !== 'register' && (
-                <Link
-                  to="/register"
-                  style={{
-                    textDecoration: 'none',
-                    background: '#2F2520',
-                    color: '#FAF8F3',
-                    padding: '0.55rem 1.15rem',
-                    borderRadius: '10px',
-                    fontWeight: 600,
-                    fontSize: '0.875rem',
-                    boxShadow: '0 4px 12px rgba(47, 37, 32, 0.15)',
-                  }}
-                >
-                  {activePage === 'login' ? 'Create Account' : 'Register'}
-                </Link>
-              )}
+              <Link to="/login" className="lp-btn-ghost">Sign in</Link>
+              <Link to="/register" className="lp-btn-primary" style={{ color: '#FAF8F3' }}>Get Started</Link>
             </>
           )}
         </div>

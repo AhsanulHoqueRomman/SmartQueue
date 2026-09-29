@@ -284,7 +284,9 @@ export function ContactPage() {
                     setTouched({});
                   }}
                 >
-                  Send another message
+                  <span style={{ display: 'inline-flex', alignItems: 'center', color: '#2F2520', fontWeight: 600, fontSize: '0.9rem' }}>
+                    Send another message
+                  </span>
                 </button>
                 <a href="/" className="lp-btn-outline-light">
                   Back to home
@@ -677,7 +679,7 @@ export function ContactPage() {
         <div className="lp-footer-inner">
           <div className="lp-footer-brand">
             <a href="/" className="lp-brand">
-              <span className="lp-brand-mark lp-brand-mark--sm">
+              <span className="lp-brand-mark lp-brand-mark--sm" style={{ color: '#FAF8F3' }}>
                 <IconEnvelope />
               </span>
               <span className="lp-brand-name">SmartQueue</span>
