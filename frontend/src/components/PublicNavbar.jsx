@@ -61,6 +61,19 @@ export const PublicNavbar = ({ activePage = '' }) => {
           >
             Why SmartQueue
           </span>
+          <Link
+            to="/contact"
+            className="lp-nav-link"
+            style={{
+              textDecoration: 'none',
+              color: activePage === 'contact' ? '#2F2520' : '#57534E',
+              fontWeight: activePage === 'contact' ? 700 : 600,
+              fontSize: '0.9rem',
+              background: activePage === 'contact' ? '#F3F0EA' : 'transparent',
+            }}
+          >
+            Contact Us
+          </Link>
         </nav>
 
         {/* CTA Buttons */}

@@ -134,7 +134,7 @@ export function AdminContactPage() {
       const updated = await adminService.replyToContactMessage(selectedMessage.id, replyText.trim());
       setSelectedMessage(updated);
       setReplyText('');
-      showSuccess('Reply saved successfully. Email delivery will be available after email integration is configured.');
+      showSuccess('Reply saved successfully. Email delivery is handled via Resend.');
       fetchMessages();
     } catch (err) {
       console.error('Failed to submit reply:', err);
@@ -653,7 +653,7 @@ export function AdminContactPage() {
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
                       <span style={{ fontSize: '0.75rem', color: '#78716C', fontStyle: 'italic' }}>
-                        Note: Reply will update inquiry status to REPLIED. Email delivery will be active after Brevo integration.
+                        Note: Reply will update inquiry status to REPLIED. Email delivery is handled via Resend.
                       </span>
 
                       <button

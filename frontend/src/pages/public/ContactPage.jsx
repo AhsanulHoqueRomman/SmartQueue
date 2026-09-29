@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { contactService } from '../../services/contactService';
+import { PublicNavbar } from '../../components/PublicNavbar';
 import '../../styles/ContactPage.css';
 
 /* ─── Tiny SVG Icon Components ─────────────────────────────────────────── */
@@ -183,47 +184,9 @@ export function ContactPage() {
   const fieldError = (field) => touched[field] ? globalErrors[field] : null;
 
   return (
-    <div className="cp-root">
-      {/* ── Top Navigation ─────────────────────────────────────────── */}
-      <header className="lp-nav">
-        <div className="lp-nav-inner">
-          <a
-            href="/"
-            className="lp-brand"
-            onClick={(e) => {
-              if (window.location.pathname === '/contact') {
-                e.preventDefault();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }
-            }}
-          >
-            <span className="lp-brand-mark">
-              <IconEnvelope />
-            </span>
-            <span className="lp-brand-name">SmartQueue</span>
-          </a>
-
-          <nav className="lp-nav-links">
-            <a href="/organizations" className="lp-nav-link">Organizations</a>
-            <a href="/search" className="lp-nav-link">Search</a>
-            <a href="/#how-it-works" className="lp-nav-link">How it works</a>
-            <a href="/#why-smartqueue" className="lp-nav-link">Why SmartQueue</a>
-          </nav>
-
-          <div className="lp-nav-cta">
-            {user ? (
-              <a href="/dashboard" className="lp-btn-primary">
-                Dashboard →
-              </a>
-            ) : (
-              <>
-                <a href="/login" className="lp-btn-ghost">Sign in</a>
-                <a href="/register" className="lp-btn-primary">Get started</a>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+    <div className="contact-page">
+      {/* ── Top Navigation (shared public navbar) ──────────────────── */}
+      <PublicNavbar activePage="contact" />
 
       {/* ── Page Content ──────────────────────────────────────────────── */}
       <main

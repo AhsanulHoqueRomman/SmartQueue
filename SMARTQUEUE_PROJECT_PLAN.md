@@ -1323,7 +1323,7 @@ ContactMessage database save ≠ Email delivery
 ```
 
 * **PostgreSQL is the source of record.** The `ContactMessage` instance MUST be saved to the PostgreSQL database independently of transactional email dispatch.
-* **Brevo is only the delivery/notification layer.** If Brevo is unavailable or email sending encounters an error, the database transaction must NOT roll back. The inquiry remains safely stored in PostgreSQL with status `NEW`.
+* **Resend is only the delivery/notification layer.** If Resend is unavailable or email sending encounters an error, the database transaction must NOT roll back. The inquiry remains safely stored in PostgreSQL with status `NEW`.
 
 ---
 
@@ -1375,7 +1375,7 @@ POST /api/v1/admin/contact-messages/{id}/reply/
         ↓
 Django Backend Service Layer
         ↓
-Brevo Transactional Email Service
+Resend Transactional Email Service
         ↓
 Visitor's Submitted Email Address
 ```
@@ -1383,21 +1383,21 @@ Visitor's Submitted Email Address
 ### Key Rules
 
 1. **Recipient Address**: The email address submitted in the `ContactMessage` form (`email` field) is the recipient. The visitor does **NOT** need a SmartQueue account.
-2. **Sender Address**: All outgoing emails must be sent from a verified SmartQueue support/sender email address configured on Brevo (e.g., `support@smartqueue.com` or `noreply@smartqueue.com`).
+2. **Sender Address**: All outgoing emails must be sent from a verified SmartQueue support/sender email address configured on Resend (e.g., `support@smartqueue.com` or `noreply@smartqueue.com`).
 3. **No Header Spoofing**: Do **NOT** spoof the visitor's email as the `From` address.
 
 ---
 
-## 25.8 Brevo Integration Architecture
+## 25.8 Resend Integration Architecture
 
-Brevo (formerly Sendinblue) is the official transactional email provider for SmartQueue.
+Resend is the official transactional email provider for SmartQueue.
 
 ### Architecture Topology
 
 ```text
 Django Backend (Service Layer)
       ↓
-Brevo REST API (via HTTP client / official SDK)
+Resend REST API (via Python SDK)
       ↓
 Customer / Visitor Email Inbox
 ```
@@ -1406,10 +1406,10 @@ Customer / Visitor Email Inbox
 
 * **Backend Environment Variable**:
   ```env
-  BREVO_API_KEY=your_brevo_api_key_here
+  RESEND_API_KEY=re_your_resend_api_key_here
   ```
 * **Security Constraints**:
-  * `BREVO_API_KEY` must remain strictly backend-only.
+  * `RESEND_API_KEY` must remain strictly backend-only.
   * Do **NOT** expose `BREVO_API_KEY` to React, Vite (`VITE_`), or frontend environment variables.
   * Do **NOT** commit actual API keys to Git repository or version control.
 
@@ -1421,21 +1421,21 @@ Customer / Visitor Email Inbox
 
 When a visitor submits a Contact Us form:
 1. `ContactMessage` is saved to PostgreSQL.
-2. Django triggers Brevo transactional email to SmartQueue Admin / Support inbox (`support@smartqueue.com`).
+2. Django triggers Resend transactional email to SmartQueue Admin / Support inbox (`support@smartqueue.com`).
 3. Notification email includes sender name, email, phone, subject, message preview, and link to Admin Contact Inbox.
 
 ### Flow B: Customer / Visitor Submission Confirmation
 
 After a visitor successfully submits a message:
 1. `ContactMessage` is saved to PostgreSQL.
-2. Django triggers Brevo transactional email to the visitor's submitted email.
+2. Django triggers Resend transactional email to the visitor's submitted email.
 3. Content: A simple confirmation message (e.g., *"We have received your message. Our support team will get back to you shortly."*). No account required.
 
 ### Flow C: Admin Reply Delivery
 
 When an admin sends a reply from the Admin Contact Inbox:
 1. Admin enters reply text and submits form.
-2. Django invokes Brevo API to send email to visitor's submitted email address.
+2. Django invokes Resend API to send email to visitor's submitted email address.
 3. Django updates `ContactMessage` record (`status = REPLIED`, `replied_at = now()`, `replied_by = request.user`).
 
 > **Rule:** Keep email processing simple. Do NOT add inbound email webhook parsing or automatic email-to-ticket conversion in v1.
@@ -1445,10 +1445,10 @@ When an admin sends a reply from the Admin Contact Inbox:
 ## 25.10 Failure Handling & Persistence Decoupling Principle
 
 ```text
-Database Persistence (PostgreSQL)  >>>  Email Delivery (Brevo)
+Database Persistence (PostgreSQL)  >>>  Email Delivery (Resend)
 ```
 
-* **Zero Data Loss Guarantee**: If Brevo API is down, network timeout occurs, or `BREVO_API_KEY` is misconfigured, the `ContactMessage` record in PostgreSQL **MUST NOT** be lost or rolled back.
+* **Zero Data Loss Guarantee**: If Resend API is down, network timeout occurs, or `RESEND_API_KEY` is misconfigured, the `ContactMessage` record in PostgreSQL **MUST NOT** be lost or rolled back.
 * **Handling Strategy**: Wrap email dispatch calls in try/except blocks inside service layers. Log failures with standard Python logger.
 * **No Async Queue Needed in v1**: Deliver emails synchronously within service handlers. Do not introduce Celery, Redis, or background task runners.
 
@@ -1518,7 +1518,7 @@ Phase 2 — Backend ContactMessage System
     ↓
 Phase 3 — Admin Contact Inbox & Reply API
     ↓
-Phase 4 — Brevo Transactional Email Integration
+Phase 4 — Resend Transactional Email Integration
     ↓
 Phase 5 — Public React Contact Us UI
     ↓
@@ -1530,7 +1530,7 @@ Final — End-to-End Verification
 * **Phase 1 — Architecture & Project Plan**: (Documentation/Architecture Only) Update `SMARTQUEUE_PROJECT_PLAN.md` with complete specifications and workflow guidelines. Zero code/database changes.
 * **Phase 2 — Backend ContactMessage System**: Implement `ContactMessage` model, migration, serializer, public `POST /api/v1/contact/` API, validation, throttling/abuse protection, and backend tests (`test_contact_api.py`).
 * **Phase 3 — Admin Contact Inbox & Reply API**: Implement admin inbox endpoints, permissions (`IsAdminUser`), status management (`NEW` → `IN_REVIEW` → `REPLIED` → `CLOSED`), admin reply API, and frontend admin UI.
-* **Phase 4 — Brevo Transactional Email Integration**: Integrate Brevo API for admin notification, visitor confirmation, and admin reply delivery. Ensure DB persistence is decoupled from Brevo availability.
+* **Phase 4 — Resend Transactional Email Integration**: Integrate Resend API for admin notification, visitor confirmation, and admin reply delivery. Ensure DB persistence is decoupled from Resend availability.
 * **Phase 5 — Public React Contact Us UI**: Build public `/contact` React page, navbar link, prefill support for logged-in users, submission state management, and API integration.
 * **Final — End-to-End Verification**: Execute full end-to-end verification checklist:
   * Run `pytest` backend test suite
@@ -1584,7 +1584,7 @@ M11: NOT STARTED
 Contact Us Phase 1: COMPLETE (Architecture & Project Plan Updated)
 Contact Us Phase 2: COMPLETE (Backend System Implemented & Tested)
 Contact Us Phase 3: COMPLETE (Admin Contact Inbox + Admin Reply API/UI Implemented & Tested)
-Contact Us Phase 4: NOT STARTED (Brevo Email Integration)
+Contact Us Phase 4: COMPLETE (Resend Email Integration Implemented & Tested)
 Contact Us Phase 5: NOT STARTED (Public React UI)
 Contact Us Final: NOT STARTED (End-to-End Verification)
 ```
