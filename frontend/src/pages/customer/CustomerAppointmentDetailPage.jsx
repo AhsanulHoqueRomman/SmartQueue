@@ -138,6 +138,30 @@ export function CustomerAppointmentDetailPage() {
   const peopleAhead = qEntry?.readiness_info?.people_ahead ?? 0;
   const nowServingSerial = qEntry?.readiness_info?.now_serving_serial;
 
+  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
+  const [newDate, setNewDate] = useState('');
+  const [rescheduling, setRescheduling] = useState(false);
+
+  const handleRescheduleSubmit = async (e) => {
+    e.preventDefault();
+    if (!newDate) return;
+    const orgId = appointment.organization_id || appointment.organization;
+    setRescheduling(true);
+    try {
+      await appointmentService.rescheduleAppointment(orgId, appointment.id, {
+        appointment_date: newDate,
+      });
+      showSuccess('Appointment rescheduled successfully! New queue serial allocated.');
+      setRescheduleModalOpen(false);
+      await fetchDetail();
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.response?.data?.appointment_date?.[0] || 'Reschedule failed. Please select an operational date for this provider.';
+      showError(msg);
+    } finally {
+      setRescheduling(false);
+    }
+  };
+
   return (
     <div className="animate-page-entrance" style={{ maxWidth: '850px', margin: '0 auto' }}>
       {/* Top back navigation */}
@@ -327,6 +351,27 @@ export function CustomerAppointmentDetailPage() {
             </button>
           )}
 
+          {canCancel && (
+            <button
+              onClick={() => {
+                setNewDate(appointment.appointment_date || new Date().toISOString().slice(0, 10));
+                setRescheduleModalOpen(true);
+              }}
+              style={{
+                padding: '0.75rem 1.25rem',
+                background: '#F5EFE6',
+                color: '#5F7A70',
+                border: '1px solid #E6E1D9',
+                borderRadius: '8px',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+              }}
+            >
+              📅 Reschedule Date
+            </button>
+          )}
+
           {isLive && qId && (
             <button
               onClick={() => navigate(`/customer/queue/${qId}`)}
@@ -382,6 +427,40 @@ export function CustomerAppointmentDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Reschedule Modal */}
+      {rescheduleModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '1.75rem', maxWidth: '450px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', color: '#211C19' }}>Reschedule Queue Appointment</h3>
+            <p style={{ fontSize: '0.875rem', color: '#78716C', marginBottom: '1.25rem' }}>
+              Select a new date. The system will atomically allocate your new serial position for that date.
+            </p>
+            <form onSubmit={handleRescheduleSubmit}>
+              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                <label className="form-label" htmlFor="reschedule-date">New Appointment Date</label>
+                <input
+                  type="date"
+                  id="reschedule-date"
+                  className="form-control"
+                  min={new Date().toISOString().slice(0, 10)}
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button type="button" className="btn btn-outline" onClick={() => setRescheduleModalOpen(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={rescheduling}>
+                  {rescheduling ? 'Allocating New Serial...' : 'Confirm Reschedule'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Cancel Modal */}
       {cancelModalOpen && (

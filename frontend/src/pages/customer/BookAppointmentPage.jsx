@@ -189,8 +189,8 @@ export function BookAppointmentPage() {
 
   const handleBookAppointment = async (e) => {
     e.preventDefault();
-    if (!selectedSlot) {
-      setError('Please select an available time slot.');
+    if (!selectedDate) {
+      setError('Please select an appointment date.');
       return;
     }
 
@@ -202,7 +202,7 @@ export function BookAppointmentPage() {
       const appointment = await appointmentService.bookAppointment(selectedOrgId, {
         provider_id: selectedProviderId,
         service_id: selectedServiceId,
-        start_datetime: selectedSlot.start,
+        appointment_date: selectedDate,
         notes: notes,
       });
 
@@ -454,51 +454,15 @@ export function BookAppointmentPage() {
                     </div>
                   </div>
 
-                  {/* Target Arrival Window Preference Selector */}
-                  <div className="form-group margin-top-sm">
-                    <label className="form-label" htmlFor="arrival-preference-select">
-                      Preferred Target Arrival Window (Optional)
-                    </label>
-                    <p className="subtitle" style={{ fontSize: '0.825rem', marginBottom: '0.5rem' }}>
-                      Select a preferred arrival target during operating hours. This helps estimate your serial position while live queue movement determines exact service order.
-                    </p>
-                    {availability.slots && availability.slots.length > 0 ? (
-                      <div className="grid-responsive grid-cols-3 gap-sm">
-                        {availability.slots.map((slot, idx) => {
-                          const isSelected = selectedSlot?.start === slot.start;
-                          return (
-                            <button
-                              key={idx}
-                              type="button"
-                              className={`btn ${isSelected ? 'btn-primary' : 'btn-outline'}`}
-                              style={{ padding: '0.75rem 0.5rem', whiteSpace: 'nowrap' }}
-                              onClick={() => handleSelectSlot(slot)}
-                            >
-                              Arrive ~{formatSlotTime(slot.start)}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        className={`btn ${selectedSlot ? 'btn-primary' : 'btn-outline'}`}
-                        style={{ padding: '0.85rem 1.25rem', textAlign: 'left' }}
-                        onClick={() => handleSelectSlot({ start: `${selectedDate}T09:00:00` })}
-                      >
-                        Book Next Available Serial on {selectedDate}
-                      </button>
-                    )}
-                  </div>
                 </div>
               )}
 
-              {selectedSlot && (
+              {availability && (
                 <form onSubmit={handleBookAppointment} style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--color-border)' }}>
                   <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--color-primary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Step 4</div>
                   <h3>Confirm Serial Booking</h3>
                   <p className="subtitle" style={{ marginBottom: '1rem' }}>
-                    Target Arrival: <strong>{new Date(selectedSlot.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({selectedDate})</strong>
+                    Booking for Date: <strong>{selectedDate}</strong>
                   </p>
 
                   <div className="form-group">

@@ -141,7 +141,7 @@ export function OrganizationsPage() {
       <PublicNavbar activePage="organizations" />
 
       {/* Main Page Container */}
-      <div style={{ padding: '2rem 1rem 3rem 1rem', maxWidth: '1280px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ padding: '6rem 1rem 3rem 1rem', maxWidth: '1280px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         {/* Page Header */}
         <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
           <div>

@@ -46,11 +46,14 @@ def m6_setup(db):
 
 
 def make_appointment(s, *, customer=None, status=Appointment.Status.COMPLETED, hour=10):
-    start = timezone.make_aware(datetime(2030, 1, 7, hour, 0), timezone=TZ)
+    from datetime import time
+    from apps.queue.services import current_business_date
+    today = current_business_date()
+    start = timezone.make_aware(datetime.combine(today, time(hour, 0)), timezone=TZ)
     return Appointment.objects.create(
         organization=s['org'], customer=customer or s['customer'], provider=s['provider'],
         service=s['service'], start_datetime=start, end_datetime=start + timedelta(minutes=30),
-        status=status,
+        appointment_date=today, serial_number=1, status=status,
     )
 
 

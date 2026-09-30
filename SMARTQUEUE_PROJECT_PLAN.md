@@ -13,7 +13,7 @@ A multi-tenant appointment and queue management platform for clinics, salons, co
 
 ### Core flow
 
-Customer registers → selects organization → service → provider → available slot → books appointment → checks in → receives queue token → provider manages queue → service completed → customer reviews.
+Patient books a serial for a date → system assigns serial number → system estimates service time/ETA → patient gets recommended arrival/readiness → patient arrives & checks in → patient enters active queue → provider calls next → provider serves patient → appointment completes → optional review.
 
 ---
 

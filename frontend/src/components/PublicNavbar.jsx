@@ -86,7 +86,7 @@ export const PublicNavbar = ({ activePage = '' }) => {
           ) : (
             <>
               <Link to="/login" className="lp-btn-ghost">Sign in</Link>
-              <Link to="/register" className="lp-btn-primary" style={{ color: '#FAF8F3' }}>Get Started</Link>
+              <Link to="/register" className="lp-btn-primary">Get Started</Link>
             </>
           )}
         </div>

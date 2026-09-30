@@ -14,7 +14,7 @@ from apps.appointments.services import AppointmentService
 from apps.organizations.models import Organization, OrganizationMembership
 from apps.providers.models import ProviderProfile, ProviderService, WeeklySchedule
 from apps.queue.models import QueueEntry
-from apps.queue.services import QueueService
+from apps.queue.services import QueueService, current_business_date
 from apps.services.models import Category, Service
 
 TZ = ZoneInfo(settings.TIME_ZONE)
@@ -145,7 +145,8 @@ class TestPhase6MultiOrgCustomerData:
 class TestPhase6ETARangeAndOrdering:
     def test_eta_range_calculation_and_ordering(self, multi_org_setup):
         s = multi_org_setup
-        start_time = timezone.make_aware(datetime(2030, 3, 3, 10, 0), timezone=TZ)
+        today = current_business_date()
+        start_time = timezone.make_aware(datetime.combine(today, time(10, 0)), timezone=TZ)
 
         appt_1 = AppointmentService.book_appointment(
             organization_id=s['org_1'].id, customer=s['customer_a'],

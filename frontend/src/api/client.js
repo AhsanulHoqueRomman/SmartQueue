@@ -29,7 +29,9 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor: Handles 401 Unauthorized via one-time token refresh
+let refreshPromise = null;
+
+// Response Interceptor: Handles 401 Unauthorized via deduplicated shared token refresh
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -47,22 +49,32 @@ apiClient.interceptors.response.use(
       const refreshToken = tokenService.getRefreshToken();
 
       if (refreshToken) {
+        if (!refreshPromise) {
+          refreshPromise = axios
+            .post(`${baseURL}/auth/token/refresh/`, {
+              refresh: refreshToken,
+            })
+            .then((res) => {
+              const newAccess = res.data.access;
+              const newRefresh = res.data.refresh || refreshToken;
+              tokenService.setTokens(newAccess, newRefresh);
+              return newAccess;
+            })
+            .catch((err) => {
+              tokenService.clearTokens();
+              window.dispatchEvent(new Event('sq:auth:unauthorized'));
+              throw err;
+            })
+            .finally(() => {
+              refreshPromise = null;
+            });
+        }
+
         try {
-          // Direct call to refresh endpoint using base axios instance to prevent loop
-          const refreshResponse = await axios.post(`${baseURL}/auth/token/refresh/`, {
-            refresh: refreshToken,
-          });
-
-          const newAccess = refreshResponse.data.access;
-          const newRefresh = refreshResponse.data.refresh || refreshToken;
-
-          tokenService.setTokens(newAccess, newRefresh);
-
+          const newAccess = await refreshPromise;
           originalRequest.headers.Authorization = `Bearer ${newAccess}`;
           return apiClient(originalRequest);
         } catch (refreshError) {
-          tokenService.clearTokens();
-          window.dispatchEvent(new Event('sq:auth:unauthorized'));
           return Promise.reject(refreshError);
         }
       } else {

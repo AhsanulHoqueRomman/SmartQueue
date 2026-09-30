@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -10,11 +10,12 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.appointments.models import Appointment
+from apps.appointments.services import AppointmentService
 from apps.organizations.models import Organization, OrganizationMembership
 from apps.providers.models import ProviderProfile
 from apps.services.models import Service
 from apps.queue.models import QueueEntry
-from apps.queue.services import QueueService
+from apps.queue.services import QueueService, InvalidCheckInException, current_business_date
 
 TZ = ZoneInfo(settings.TIME_ZONE)
 
@@ -51,12 +52,20 @@ def queue_setup(db):
 
 
 def _appointment(s, customer=None, provider=None, start=None, status=Appointment.Status.CONFIRMED):
-    start = start or timezone.make_aware(datetime(2030, 1, 7, 9, 0), timezone=TZ)
-    return Appointment.objects.create(
-        organization=s['org'], customer=customer or s['customer'],
-        provider=provider or s['provider'], service=s['service'],
-        start_datetime=start, end_datetime=start + timedelta(minutes=30), status=status,
+    today = current_business_date()
+    start = start or timezone.make_aware(datetime.combine(today, time(9, 0)), timezone=TZ)
+    appt = AppointmentService.book_appointment(
+        organization_id=s['org'].id,
+        customer=customer or s['customer'],
+        provider_id=(provider or s['provider']).id,
+        service_id=s['service'].id,
+        appointment_date=start.date(),
+        start_datetime=start,
     )
+    if status != Appointment.Status.CONFIRMED:
+        appt.status = status
+        appt.save(update_fields=['status'])
+    return appt
 
 
 def _login(client, user):
@@ -73,27 +82,36 @@ class TestQueueService:
         )
         assert first.token_number == 1
         assert second.token_number == 2
-        assert first.queue_date == date(2030, 1, 7)
+        assert first.queue_date == current_business_date()
         assert first.status == QueueEntry.Status.WAITING
         assert first.appointment.status == Appointment.Status.CHECKED_IN
 
     def test_token_restarts_for_next_day_and_provider(self, queue_setup):
         s = queue_setup
         first = QueueService.check_in_appointment(appointment=_appointment(s))
-        next_day = timezone.make_aware(datetime(2030, 1, 8, 9, 0), timezone=TZ)
-        second = QueueService.check_in_appointment(
-            appointment=_appointment(s, customer=User.objects.create_user(email='second@queue.test'), start=next_day)
-        )
+        
+        # Checking in on a different date raises InvalidCheckInException
+        next_day = timezone.make_aware(datetime.combine(current_business_date() + timedelta(days=1), time(9, 0)), timezone=TZ)
+        with pytest.raises(InvalidCheckInException):
+            QueueService.check_in_appointment(
+                appointment=_appointment(s, customer=User.objects.create_user(email='second@queue.test'), start=next_day)
+            )
+
         other_user = User.objects.create_user(email='other-provider@queue.test')
         other_membership = OrganizationMembership.objects.create(user=other_user, organization=s['org'], role='PROVIDER')
+        from apps.providers.models import ProviderService, WeeklySchedule
         other_provider = ProviderProfile.objects.create(
             membership=other_membership,
             application_status=ProviderProfile.ApplicationStatus.APPROVED
         )
+        for d in range(7):
+            WeeklySchedule.objects.create(provider=other_provider, day_of_week=d, start_time=time(0,0), end_time=time(23,59), is_working_day=True)
+        ProviderService.objects.create(provider=other_provider, service=s['service'])
+
         third = QueueService.check_in_appointment(
             appointment=_appointment(s, customer=User.objects.create_user(email='third@queue.test'), provider=other_provider)
         )
-        assert first.token_number == second.token_number == third.token_number == 1
+        assert first.token_number == third.token_number == 1
 
     def test_lifecycle_and_appointment_sync(self, queue_setup):
         s = queue_setup
@@ -200,18 +218,20 @@ class TestQueueAPI:
 
     def test_phase5_call_next_requires_checked_in_patient(self, queue_setup):
         s = queue_setup
-        from apps.appointments.services import AppointmentService
-        start_time = timezone.make_aware(datetime(2030, 2, 2, 10, 0), timezone=TZ)
+        today = current_business_date()
+        start_time = timezone.make_aware(datetime.combine(today, time(10, 0)), timezone=TZ)
 
         appt1 = AppointmentService.book_appointment(
             organization_id=s['org'].id, customer=s['customer'],
             provider_id=s['provider'].id, service_id=s['service'].id,
+            appointment_date=today,
             start_datetime=start_time,
         )
         user2 = User.objects.create_user(email='user2@queue.test')
         appt2 = AppointmentService.book_appointment(
             organization_id=s['org'].id, customer=user2,
             provider_id=s['provider'].id, service_id=s['service'].id,
+            appointment_date=today,
             start_datetime=start_time + timedelta(minutes=30),
         )
 
@@ -230,15 +250,19 @@ class TestQueueAPI:
         from apps.appointments.services import AppointmentService
         start_time = timezone.make_aware(datetime(2030, 2, 3, 10, 0), timezone=TZ)
 
+        today = current_business_date()
+        start_time = timezone.make_aware(datetime.combine(today, time(10, 0)), timezone=TZ)
         appt1 = AppointmentService.book_appointment(
             organization_id=s['org'].id, customer=s['customer'],
             provider_id=s['provider'].id, service_id=s['service'].id,
+            appointment_date=today,
             start_datetime=start_time,
         )
         user2 = User.objects.create_user(email='user2@queue.test')
         appt2 = AppointmentService.book_appointment(
             organization_id=s['org'].id, customer=user2,
             provider_id=s['provider'].id, service_id=s['service'].id,
+            appointment_date=today,
             start_datetime=start_time + timedelta(minutes=30),
         )
 
@@ -271,11 +295,13 @@ class TestQueueAPI:
     def test_phase5_readiness_state_and_eta_calculation(self, queue_setup):
         s = queue_setup
         from apps.appointments.services import AppointmentService
-        start_time = timezone.make_aware(datetime(2030, 2, 4, 10, 0), timezone=TZ)
+        today = current_business_date()
+        start_time = timezone.make_aware(datetime.combine(today, time(10, 0)), timezone=TZ)
 
         appt1 = AppointmentService.book_appointment(
             organization_id=s['org'].id, customer=s['customer'],
             provider_id=s['provider'].id, service_id=s['service'].id,
+            appointment_date=today,
             start_datetime=start_time,
         )
         q1 = QueueService.check_in_appointment(appointment=appt1)
@@ -287,10 +313,12 @@ class TestQueueAPI:
     def test_phase5_cancellation_sync(self, queue_setup):
         s = queue_setup
         from apps.appointments.services import AppointmentService
-        start_time = timezone.make_aware(datetime(2030, 2, 5, 10, 0), timezone=TZ)
+        today = current_business_date()
+        start_time = timezone.make_aware(datetime.combine(today, time(10, 0)), timezone=TZ)
         appt = AppointmentService.book_appointment(
             organization_id=s['org'].id, customer=s['customer'],
             provider_id=s['provider'].id, service_id=s['service'].id,
+            appointment_date=today,
             start_datetime=start_time,
         )
         entry = QueueService.check_in_appointment(appointment=appt)
@@ -309,17 +337,20 @@ class TestQueueAPI:
     def test_phase5_urgent_eta_calculation(self, queue_setup):
         s = queue_setup
         from apps.appointments.services import AppointmentService
-        start_time = timezone.make_aware(datetime(2030, 2, 6, 10, 0), timezone=TZ)
+        today = current_business_date()
+        start_time = timezone.make_aware(datetime.combine(today, time(10, 0)), timezone=TZ)
 
         appt1 = AppointmentService.book_appointment(
             organization_id=s['org'].id, customer=s['customer'],
             provider_id=s['provider'].id, service_id=s['service'].id,
+            appointment_date=today,
             start_datetime=start_time,
         )
         user2 = User.objects.create_user(email='user2_eta@queue.test')
         appt2 = AppointmentService.book_appointment(
             organization_id=s['org'].id, customer=user2,
             provider_id=s['provider'].id, service_id=s['service'].id,
+            appointment_date=today,
             start_datetime=start_time + timedelta(minutes=30),
         )
 
@@ -337,17 +368,20 @@ class TestQueueAPI:
     def test_phase5_active_consultation_elapsed_time_deduction(self, queue_setup):
         s = queue_setup
         from apps.appointments.services import AppointmentService
-        start_time = timezone.make_aware(datetime(2030, 2, 7, 10, 0), timezone=TZ)
+        today = current_business_date()
+        start_time = timezone.make_aware(datetime.combine(today, time(10, 0)), timezone=TZ)
 
         appt1 = AppointmentService.book_appointment(
             organization_id=s['org'].id, customer=s['customer'],
             provider_id=s['provider'].id, service_id=s['service'].id,
+            appointment_date=today,
             start_datetime=start_time,
         )
         user2 = User.objects.create_user(email='user2_elapsed@queue.test')
         appt2 = AppointmentService.book_appointment(
             organization_id=s['org'].id, customer=user2,
             provider_id=s['provider'].id, service_id=s['service'].id,
+            appointment_date=today,
             start_datetime=start_time + timedelta(minutes=30),
         )
 
@@ -367,10 +401,12 @@ class TestQueueAPI:
     def test_phase5_db_unique_constraint_provider_date_serial(self, queue_setup):
         s = queue_setup
         from apps.appointments.services import AppointmentService
-        start_time = timezone.make_aware(datetime(2030, 2, 8, 10, 0), timezone=TZ)
+        today = current_business_date()
+        start_time = timezone.make_aware(datetime.combine(today, time(10, 0)), timezone=TZ)
         appt1 = AppointmentService.book_appointment(
             organization_id=s['org'].id, customer=s['customer'],
             provider_id=s['provider'].id, service_id=s['service'].id,
+            appointment_date=today,
             start_datetime=start_time,
         )
 
@@ -407,11 +443,12 @@ class TestQueueAPI:
         other_staff = User.objects.create_user(email='otherstaff@queue.test', password='Password123!')
         OrganizationMembership.objects.create(user=other_staff, organization=other_org, role='STAFF')
 
-        from apps.appointments.services import AppointmentService
-        start_time = timezone.make_aware(datetime(2030, 2, 9, 10, 0), timezone=TZ)
+        today = current_business_date()
+        start_time = timezone.make_aware(datetime.combine(today, time(10, 0)), timezone=TZ)
         appt = AppointmentService.book_appointment(
             organization_id=s['org'].id, customer=s['customer'],
             provider_id=s['provider'].id, service_id=s['service'].id,
+            appointment_date=today,
             start_datetime=start_time,
         )
         entry = QueueService.check_in_appointment(appointment=appt)

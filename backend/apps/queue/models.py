@@ -107,6 +107,10 @@ class QueueEntry(models.Model):
                 fields=['provider', 'queue_date', 'token_number'],
                 name='unique_provider_date_token',
             ),
+            models.UniqueConstraint(
+                fields=['provider', 'queue_date', 'serial_number'],
+                name='unique_provider_queue_date_serial',
+            ),
             models.CheckConstraint(
                 condition=models.Q(token_number__gt=0),
                 name='queue_token_positive',

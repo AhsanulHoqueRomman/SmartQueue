@@ -226,7 +226,7 @@ export function OrganizationProfilePage() {
       const appointment = await appointmentService.bookAppointment(organizationId, {
         provider_id: selectedProviderId,
         service_id: selectedServiceId,
-        start_datetime: selectedSlot.start,
+        appointment_date: selectedDate,
         notes: notes,
       });
 

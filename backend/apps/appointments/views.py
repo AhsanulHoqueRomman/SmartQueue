@@ -152,17 +152,17 @@ class AppointmentListCreateView(APIView):
     )
     def post(self, request, organization_id):
         serializer = AppointmentCreateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
 
         appointment = AppointmentService.book_appointment(
             organization_id=organization_id,
             customer=request.user,
             provider_id=serializer.validated_data['provider_id'],
             service_id=serializer.validated_data['service_id'],
-            start_datetime=serializer.validated_data['start_datetime'],
-            booking_channel=serializer.validated_data.get('booking_channel', Appointment.BookingChannel.ONLINE),
-            arrival_type=serializer.validated_data.get('arrival_type', Appointment.ArrivalType.SCHEDULED),
+            appointment_date=serializer.validated_data.get('appointment_date'),
+            start_datetime=serializer.validated_data.get('start_datetime'),
+            booking_channel=Appointment.BookingChannel.ONLINE,
+            arrival_type=Appointment.ArrivalType.SCHEDULED,
             notes=serializer.validated_data.get('notes', ''),
         )
         return Response(
@@ -178,7 +178,7 @@ class AppointmentListCreateView(APIView):
 class AppointmentDetailView(APIView):
     """
     GET   — Retrieve an appointment (tenant + role scoped).
-    PATCH — Reschedule (new start_datetime only).
+    PATCH — Reschedule (new appointment_date / start_datetime).
     """
 
     def get_permissions(self):
@@ -216,7 +216,7 @@ class AppointmentDetailView(APIView):
             404: OpenApiResponse(description='Not Found'),
             409: OpenApiResponse(description='DOUBLE_BOOKING_CONFLICT'),
         },
-        summary='Reschedule an appointment (recalculates end_datetime)',
+        summary='Reschedule an appointment (reallocates serial and recalculates operational datetimes)',
     )
     def patch(self, request, organization_id, appointment_id):
         appointment = _get_appointment(organization_id, appointment_id)
@@ -240,7 +240,8 @@ class AppointmentDetailView(APIView):
 
         updated = AppointmentService.reschedule_appointment(
             appointment=appointment,
-            start_datetime=serializer.validated_data['start_datetime'],
+            appointment_date=serializer.validated_data.get('appointment_date'),
+            start_datetime=serializer.validated_data.get('start_datetime'),
         )
         return Response(AppointmentSerializer(updated).data)
 

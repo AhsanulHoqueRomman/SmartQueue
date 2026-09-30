@@ -61,13 +61,17 @@ export const LoginPage = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '2.5rem 1rem',
+          padding: '6.5rem 1rem 3rem 1rem',
         }}
       >
         <div className="card" style={{ width: '100%', maxWidth: '440px', padding: '2.5rem', boxShadow: '0 12px 40px rgba(47, 37, 32, 0.06)', borderRadius: '24px', border: '1px solid #E6E1D9', backgroundColor: '#FFFFFF' }}>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <Link to="/" className="navbar-brand" style={{ justifyContent: 'center', marginBottom: '1.25rem', textDecoration: 'none' }}>
-              <span className="brand-icon">⚡</span>
+            <Link to="/" className="navbar-brand" style={{ justifyContent: 'center', marginBottom: '1.25rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+              <span className="lp-brand-mark" style={{ width: '34px', height: '34px', borderRadius: '9px' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+              </span>
               <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: '#211C19' }}>SmartQueue</span>
             </Link>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '0.35rem', fontFamily: 'Cinzel, serif', color: '#211C19', fontWeight: 700 }}>Welcome back</h2>

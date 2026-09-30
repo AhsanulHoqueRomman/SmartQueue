@@ -193,7 +193,7 @@ export function ContactPage() {
         style={{
           background: SK.bg,
           minHeight: '100vh',
-          paddingTop: '5.5rem',
+          paddingTop: '6.5rem',
           paddingBottom: '4rem',
           overflowX: 'clip',
         }}
@@ -284,7 +284,7 @@ export function ContactPage() {
                     setTouched({});
                   }}
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', color: '#2F2520', fontWeight: 600, fontSize: '0.9rem' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', color: '#FAF8F3', fontWeight: 600, fontSize: '0.9rem' }}>
                     Send another message
                   </span>
                 </button>
@@ -679,8 +679,10 @@ export function ContactPage() {
         <div className="lp-footer-inner">
           <div className="lp-footer-brand">
             <a href="/" className="lp-brand">
-              <span className="lp-brand-mark lp-brand-mark--sm" style={{ color: '#FAF8F3' }}>
-                <IconEnvelope />
+              <span className="lp-brand-mark lp-brand-mark--sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '13px', height: '13px' }}>
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
               </span>
               <span className="lp-brand-name">SmartQueue</span>
             </a>

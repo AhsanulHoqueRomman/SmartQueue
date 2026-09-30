@@ -94,6 +94,20 @@ export const appointmentService = {
   },
 
   /**
+   * Reschedule an appointment.
+   * @param {string} orgId
+   * @param {string} appointmentId
+   * @param {Object} data - { appointment_date }
+   */
+  async rescheduleAppointment(orgId, appointmentId, data) {
+    const response = await apiClient.patch(
+      `/organizations/${orgId}/appointments/${appointmentId}/`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
    * Fetch review for a completed appointment.
    */
   async getReview(orgId, appointmentId) {

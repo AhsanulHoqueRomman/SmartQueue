@@ -780,7 +780,8 @@ class TestAppointmentPermissions:
 @pytest.mark.django_db
 class TestCancelRescheduleCheckIn:
     def _make_appt(self, s, status=Appointment.Status.CONFIRMED, hour=10):
-        start = _aware(s['work_date'], time(hour, 0))
+        today = timezone.localdate()
+        start = _aware(today, time(hour, 0))
         return Appointment.objects.create(
             organization=s['org'],
             customer=s['customer'],
@@ -788,6 +789,8 @@ class TestCancelRescheduleCheckIn:
             service=s['service'],
             start_datetime=start,
             end_datetime=start + timedelta(minutes=30),
+            appointment_date=today,
+            serial_number=1,
             status=status,
         )
 

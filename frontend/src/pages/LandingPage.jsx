@@ -383,49 +383,27 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
           <div style={{ fontSize: '0.925rem', fontWeight: 700, color: '#211C19', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span>⚡</span>
             {slots.length > 0
-              ? `Found ${slots.length} Open Slot${slots.length > 1 ? 's' : ''} for ${date}`
-              : `No open slots available for the selected parameters on ${date}.`}
+              ? `Serial Queue Appointments Available for ${date}`
+              : `No appointments available for the selected parameters on ${date}.`}
           </div>
           {slots.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.75rem' }}>
-              {slots.slice(0, 12).map((slot, i) => {
-                const startIso = slot.start || slot.start_datetime;
-                const timeStr = new Date(startIso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                return (
-                  <button
-                    key={i}
-                    onClick={() => navigate(`/organizations/${selectedOrgId}?serviceId=${selectedServiceId}&providerId=${slot.provider_id || ''}&slot=${encodeURIComponent(startIso)}`)}
-                    style={{
-                      padding: '0.65rem 0.75rem',
-                      background: '#FFFFFF',
-                      border: '1.5px solid #5F7A70',
-                      color: '#5F7A70',
-                      borderRadius: '10px',
-                      fontSize: '0.875rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      textAlign: 'center'
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = '#5F7A70';
-                      e.currentTarget.style.color = '#FFFFFF';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = '#FFFFFF';
-                      e.currentTarget.style.color = '#5F7A70';
-                    }}
-                  >
-                    {timeStr}
-                    {slot.provider_name && (
-                      <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: 600, opacity: 0.85, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {slot.provider_name.split('(')[0]}
-                      </span>
-                    )}
-                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 500, opacity: 0.95, marginTop: '2px' }}>Book →</span>
-                  </button>
-                );
-              })}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
+              <button
+                onClick={() => navigate(`/customer/book?service_id=${selectedServiceId}&provider_id=${selectedProviderId || ''}&date=${date}`)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  background: '#5F7A70',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  textAlign: 'center'
+                }}
+              >
+                Book Queue Serial for {date} →
+              </button>
             </div>
           )}
         </div>

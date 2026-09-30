@@ -49,7 +49,7 @@ export const RegisterPage = () => {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '2.5rem 1.5rem',
+          padding: '6rem 1.5rem 3rem 1.5rem',
         }}
       >
       <div style={{ maxWidth: '960px', width: '100%' }}>
@@ -60,12 +60,16 @@ export const RegisterPage = () => {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.5rem',
+              gap: '0.625rem',
               textDecoration: 'none',
               marginBottom: '1.25rem',
             }}
           >
-            <span style={{ fontSize: '1.75rem' }}>⚡</span>
+            <span className="lp-brand-mark" style={{ width: '36px', height: '36px', borderRadius: '10px' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}>
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+            </span>
             <span
               style={{
                 fontFamily: 'Cinzel, serif',

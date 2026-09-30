@@ -167,6 +167,14 @@ class QueueService:
                     message=f'Cannot check in an appointment in status {appointment.status}.'
                 )
 
+            # Check-in business date validation
+            appt_date = appointment.appointment_date or business_date_for_appointment(appointment)
+            today_date = current_business_date()
+            if appt_date != today_date:
+                raise InvalidCheckInException(
+                    message=f'Cannot check in today ({today_date}). Appointment is scheduled for {appt_date}.'
+                )
+
             # Look for existing QueueEntry
             entry = QueueEntry.objects.filter(appointment=appointment).first()
             now = timezone.now()
@@ -178,7 +186,7 @@ class QueueService:
                 entry.checked_in_at = now
                 entry.save(update_fields=['is_checked_in', 'checked_in_at', 'updated_at'])
             else:
-                queue_date = business_date_for_appointment(appointment)
+                queue_date = appt_date
                 serial_num = appointment.serial_number
                 if not serial_num:
                     max_serial = (
@@ -358,13 +366,13 @@ class QueueService:
                 }
             )
 
-            start_dt = timezone.now() + timedelta(seconds=5)
+            today = current_business_date()
             appt = AppointmentService.book_appointment(
                 organization_id=organization_id,
                 customer=user,
                 provider_id=provider_id,
                 service_id=service_id,
-                start_datetime=start_dt,
+                appointment_date=today,
                 booking_channel=Appointment.BookingChannel.FRONT_DESK,
                 arrival_type=Appointment.ArrivalType.WALK_IN,
                 notes=notes,

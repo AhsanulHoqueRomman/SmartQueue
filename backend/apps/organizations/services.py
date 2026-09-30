@@ -420,7 +420,7 @@ class OrganizationService:
             entity_id=invitation.id,
             organization_id=organization.id,
             actor=actor,
-            metadata={'email': email_clean, 'invitation_token': invitation.token}
+            metadata={'email': email_clean}
         )
         return invitation
 
@@ -583,7 +583,7 @@ class OrganizationService:
             entity_id=invitation.id,
             organization_id=organization.id,
             actor=actor,
-            metadata={'email': email_clean, 'invitation_token': invitation.token}
+            metadata={'email': email_clean}
         )
         return invitation
 

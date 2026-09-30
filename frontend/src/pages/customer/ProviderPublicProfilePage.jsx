@@ -149,7 +149,7 @@ export function ProviderPublicProfilePage() {
       const appointment = await appointmentService.bookAppointment(organizationId, {
         provider_id: providerId,
         service_id: selectedServiceId,
-        start_datetime: selectedSlot.start,
+        appointment_date: selectedDate,
         notes: notes,
       });
 

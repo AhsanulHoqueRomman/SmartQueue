@@ -71,30 +71,55 @@ class AppointmentListSerializer(serializers.ModelSerializer):
 class AppointmentCreateSerializer(serializers.Serializer):
     """
     Client-controlled booking fields only.
-    customer / organization / end_datetime / status are server-owned.
+    Customer selects provider, service, appointment_date, and notes.
+    customer / organization / end_datetime / status / serial_number are server-owned.
     """
     provider_id = serializers.UUIDField()
     service_id = serializers.UUIDField()
-    start_datetime = serializers.DateTimeField()
-    booking_channel = serializers.CharField(required=False, default=Appointment.BookingChannel.ONLINE)
-    arrival_type = serializers.CharField(required=False, default=Appointment.ArrivalType.SCHEDULED)
+    appointment_date = serializers.DateField(required=False)
+    start_datetime = serializers.DateTimeField(required=False)
     notes = serializers.CharField(required=False, allow_blank=True, default='')
 
-    def validate_start_datetime(self, value):
+    def validate(self, data):
         from django.utils import timezone
-        if timezone.is_naive(value):
-            raise serializers.ValidationError('start_datetime must be timezone-aware.')
-        return value
+        from .services import get_project_tz
+
+        today = timezone.localtime(timezone.now(), get_project_tz()).date()
+
+        if not data.get('appointment_date') and not data.get('start_datetime'):
+            raise serializers.ValidationError({'appointment_date': 'appointment_date is required for serial booking.'})
+
+        if data.get('appointment_date'):
+            appt_date = data['appointment_date']
+        else:
+            appt_date = timezone.localtime(data['start_datetime'], get_project_tz()).date()
+
+        data['appointment_date'] = appt_date
+        return data
 
 
 class AppointmentRescheduleSerializer(serializers.Serializer):
-    start_datetime = serializers.DateTimeField()
+    appointment_date = serializers.DateField(required=False)
+    start_datetime = serializers.DateTimeField(required=False)
 
-    def validate_start_datetime(self, value):
+    def validate(self, data):
         from django.utils import timezone
-        if timezone.is_naive(value):
-            raise serializers.ValidationError('start_datetime must be timezone-aware.')
-        return value
+        from .services import get_project_tz
+
+        if not data.get('appointment_date') and not data.get('start_datetime'):
+            raise serializers.ValidationError({'appointment_date': 'Either appointment_date or start_datetime is required for rescheduling.'})
+
+        today = timezone.localtime(timezone.now(), get_project_tz()).date()
+        if data.get('appointment_date'):
+            appt_date = data['appointment_date']
+        else:
+            appt_date = timezone.localtime(data['start_datetime'], get_project_tz()).date()
+
+        if appt_date < today:
+            raise serializers.ValidationError({'appointment_date': 'Cannot reschedule an appointment to a past date.'})
+
+        data['appointment_date'] = appt_date
+        return data
 
 
 class AppointmentCancelSerializer(serializers.Serializer):
