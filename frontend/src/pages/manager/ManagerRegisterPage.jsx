@@ -124,7 +124,7 @@ export const ManagerRegisterPage = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '2.5rem 1.25rem',
+          padding: '6rem 1.25rem 3rem 1.25rem',
         }}
       >
       <div

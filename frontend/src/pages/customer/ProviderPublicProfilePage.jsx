@@ -206,7 +206,7 @@ export function ProviderPublicProfilePage() {
     return (
       <div className="lp-root" style={{ background: 'var(--lp-bg)', minHeight: '100vh', color: 'var(--lp-text)' }}>
         <PublicNavbar />
-        <div style={{ maxWidth: '640px', margin: '3rem auto', textAlign: 'center', backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '2rem', boxShadow: '0 8px 30px var(--shadow-sm)' }}>
+        <div style={{ maxWidth: '640px', margin: '6rem auto 3rem auto', textAlign: 'center', backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '2rem', boxShadow: '0 8px 30px var(--shadow-sm)' }}>
           <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1.25rem' }}>
             ✓
           </div>
@@ -268,7 +268,7 @@ export function ProviderPublicProfilePage() {
     <div className="lp-root" style={{ background: 'var(--lp-bg)', minHeight: '100vh', width: '100%', overflowX: 'hidden', color: 'var(--lp-text)' }}>
       <PublicNavbar />
 
-      <div style={{ padding: '2rem 1rem 3rem 1rem', maxWidth: '1040px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ padding: '6rem 1rem 3rem 1rem', maxWidth: '1040px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         {/* Back Link */}
         <div style={{ marginBottom: '1rem' }}>
           <Link

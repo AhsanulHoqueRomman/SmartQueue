@@ -104,7 +104,7 @@ export const AcceptInvitationPage = () => {
     return (
       <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <PublicNavbar activePage="login" />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 1.25rem' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6rem 1.25rem 3rem 1.25rem' }}>
           <div
             style={{
               width: '100%',
@@ -150,7 +150,7 @@ export const AcceptInvitationPage = () => {
     return (
       <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <PublicNavbar activePage="login" />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 1.25rem' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6rem 1.25rem 3rem 1.25rem' }}>
           <div
             style={{
               width: '100%',
@@ -197,7 +197,7 @@ export const AcceptInvitationPage = () => {
   return (
     <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PublicNavbar activePage="login" />
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 1.25rem' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6rem 1.25rem 3rem 1.25rem' }}>
         <div
           style={{
             width: '100%',
