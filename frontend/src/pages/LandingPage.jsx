@@ -101,17 +101,18 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
   // Filter organizations by selected category
   const filteredOrgs = React.useMemo(() => {
     const list = allOrgsList.length > 0 ? allOrgsList : (organizations || []);
-    if (selectedCategory === 'ALL') return list;
-    return list.filter(o => {
-      const cat = (o.category || '').toUpperCase();
+    if (selectedCategory === 'ALL' || !list.length) return list;
+    const matches = list.filter(o => {
+      const catText = `${o.category || ''} ${o.industry_type || ''} ${o.industry_label || ''} ${o.name || ''} ${o.description || ''}`.toUpperCase();
       const sel = selectedCategory.toUpperCase();
-      if (sel === 'HEALTHCARE') return cat.includes('HEALTHCARE') || cat.includes('MEDICAL');
-      if (sel === 'SALON') return cat.includes('SALON') || cat.includes('BEAUTY') || cat.includes('WELLNESS');
-      if (sel === 'DENTAL') return cat.includes('DENTAL') || cat.includes('ORTHODONTIC');
-      if (sel === 'DIAGNOSTIC') return cat.includes('DIAGNOSTIC') || cat.includes('LAB');
-      if (sel === 'CONSULTING') return cat.includes('CONSULTING') || cat.includes('LEGAL') || cat.includes('PROFESSIONAL');
-      return cat === sel;
+      if (sel === 'HEALTHCARE') return catText.includes('HEALTHCARE') || catText.includes('MEDICAL') || catText.includes('CLINIC') || catText.includes('HEALTH') || catText.includes('DOCTOR');
+      if (sel === 'SALON') return catText.includes('SALON') || catText.includes('BEAUTY') || catText.includes('WELLNESS') || catText.includes('HAIR') || catText.includes('SPA');
+      if (sel === 'DENTAL') return catText.includes('DENTAL') || catText.includes('ORTHODONTIC') || catText.includes('TEETH');
+      if (sel === 'DIAGNOSTIC') return catText.includes('DIAGNOSTIC') || catText.includes('LAB') || catText.includes('IMAGING') || catText.includes('TEST') || catText.includes('SCREENING');
+      if (sel === 'CONSULTING') return catText.includes('CONSULTING') || catText.includes('LEGAL') || catText.includes('PROFESSIONAL') || catText.includes('REPAIR') || catText.includes('SERVICE') || catText.includes('SUPPORT');
+      return catText.includes(sel);
     });
+    return matches.length > 0 ? matches : list;
   }, [allOrgsList, organizations, selectedCategory]);
 
   useEffect(() => {
