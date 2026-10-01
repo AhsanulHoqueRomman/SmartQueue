@@ -278,7 +278,7 @@ export function BookAppointmentPage() {
           </div>
         </div>
 
-        <div className="card" style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '1rem', textAlign: 'left', marginBottom: '1.5rem', fontSize: '0.875rem', color: '#166534' }}>
+        <div className="card" style={{ backgroundColor: 'var(--color-success-light)', border: '1px solid var(--color-success)', padding: '1rem', textAlign: 'left', marginBottom: '1.5rem', fontSize: '0.875rem', color: 'var(--color-success)' }}>
           💡 <strong>Dynamic ETA Notice:</strong> Your actual consultation time will adapt continuously based on live queue movement. Please check in on your live queue tracker upon physical arrival.
         </div>
 

@@ -142,23 +142,23 @@ export function CustomerAppointmentsPage() {
       {/* Header Banner */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #2F2520 0%, #211C19 100%)',
-          color: '#FAF8F3',
+          background: 'linear-gradient(135deg, var(--lp-btn-bg) 0%, #1c1815 100%)',
+          color: 'var(--lp-btn-text)',
           borderRadius: '20px',
           padding: '2rem',
-          boxShadow: '0 8px 30px rgba(47, 37, 32, 0.12)',
+          boxShadow: 'var(--lp-shadow-sm)',
           marginBottom: '1.75rem',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(230, 225, 217, 0.15)', color: '#E6E1D9', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.15)', color: 'var(--lp-btn-text)', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.75rem' }}>
               📋 Appointment Lifecycle Center
             </div>
-            <h1 style={{ fontSize: '1.85rem', fontWeight: 700, margin: '0 0 0.4rem 0', fontFamily: 'Cinzel, serif', color: '#FAF8F3' }}>
+            <h1 style={{ fontSize: '1.85rem', fontWeight: 700, margin: '0 0 0.4rem 0', fontFamily: 'Cinzel, serif', color: 'var(--lp-btn-text)' }}>
               My Appointments & Consultations
             </h1>
-            <p style={{ color: '#E6E1D9', margin: 0, fontSize: '0.95rem', opacity: 0.9 }}>
+            <p style={{ color: 'var(--lp-btn-text)', opacity: 0.9, margin: 0, fontSize: '0.95rem' }}>
               Track your appointments, check in online, view live telemetry, and review past care.
             </p>
           </div>
@@ -170,7 +170,7 @@ export function CustomerAppointmentsPage() {
               style={{
                 padding: '0.75rem 1rem',
                 background: 'rgba(255, 255, 255, 0.12)',
-                color: '#FAF8F3',
+                color: 'var(--lp-btn-text)',
                 border: '1px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: '10px',
                 fontWeight: 600,
@@ -184,8 +184,8 @@ export function CustomerAppointmentsPage() {
               onClick={() => navigate('/customer/book')}
               style={{
                 padding: '0.75rem 1.25rem',
-                background: '#5F7A70',
-                color: '#FFFFFF',
+                background: 'var(--lp-accent)',
+                color: 'var(--lp-btn-text)',
                 border: 'none',
                 borderRadius: '10px',
                 fontWeight: 600,
@@ -207,7 +207,7 @@ export function CustomerAppointmentsPage() {
         style={{
           display: 'flex',
           gap: '0.5rem',
-          borderBottom: '2px solid #E6E1D9',
+          borderBottom: '2px solid var(--lp-border)',
           marginBottom: '1.75rem',
           overflowX: 'auto',
           paddingBottom: '2px',
@@ -229,8 +229,8 @@ export function CustomerAppointmentsPage() {
                 padding: '0.75rem 1.25rem',
                 background: 'none',
                 border: 'none',
-                borderBottom: isActive ? '3px solid #5F7A70' : '3px solid transparent',
-                color: isActive ? '#211C19' : '#78716C',
+                borderBottom: isActive ? '3px solid var(--lp-accent)' : '3px solid transparent',
+                color: isActive ? 'var(--lp-text)' : 'var(--lp-text-subtle)',
                 fontWeight: isActive ? 700 : 500,
                 fontSize: '0.95rem',
                 cursor: 'pointer',
@@ -282,14 +282,14 @@ export function CustomerAppointmentsPage() {
               <div
                 key={appt.id}
                 style={{
-                  background: '#FFFFFF',
+                  background: 'var(--lp-surface)',
                   borderRadius: '16px',
-                  border: '1px solid #E6E1D9',
+                  border: '1px solid var(--lp-border)',
                   padding: '1.5rem',
                   display: 'flex',
                   flexDirection: 'column',
                   justify: 'space-between',
-                  boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
+                  boxShadow: 'var(--lp-shadow-sm)',
                   transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                 }}
               >
@@ -297,10 +297,10 @@ export function CustomerAppointmentsPage() {
                   {/* Header: Organization & Category Badge */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                     <div>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#5F7A70', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         {appt.organization_category || 'CLINIC'} &bull; {appt.organization_name || 'Organization'}
                       </span>
-                      <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1.2rem', color: '#211C19', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
+                      <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1.2rem', color: 'var(--lp-text)', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
                         {appt.service_name || 'Service Consultation'}
                       </h3>
                     </div>
@@ -308,20 +308,20 @@ export function CustomerAppointmentsPage() {
                   </div>
 
                   {/* Subheader: Provider */}
-                  <div style={{ fontSize: '0.85rem', color: '#78716C', marginBottom: '1rem' }}>
-                    Provider: <strong style={{ color: '#211C19' }}>{appt.provider_name || appt.provider_title || 'Assigned Specialist'}</strong>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginBottom: '1rem' }}>
+                    Provider: <strong style={{ color: 'var(--lp-text)' }}>{appt.provider_name || appt.provider_title || 'Assigned Specialist'}</strong>
                   </div>
 
                   {/* Schedule Card Info */}
                   <div
                     style={{
-                      background: '#FAF8F3',
-                      border: '1px solid #E6E1D9',
+                      background: 'var(--lp-bg-subtle)',
+                      border: '1px solid var(--lp-border)',
                       borderRadius: '10px',
                       padding: '0.85rem',
                       marginBottom: '1rem',
                       fontSize: '0.85rem',
-                      color: '#211C19',
+                      color: 'var(--lp-text)',
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
@@ -330,7 +330,7 @@ export function CustomerAppointmentsPage() {
                     </div>
 
                     {appt.serial_number && (
-                      <div style={{ fontSize: '0.8rem', color: '#2F2520', fontWeight: 700, marginTop: '0.25rem', paddingTop: '0.35rem', borderTop: '1px solid #E6E1D9' }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--lp-text)', fontWeight: 700, marginTop: '0.25rem', paddingTop: '0.35rem', borderTop: '1px solid var(--lp-border)' }}>
                         Serial Number: <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.1rem' }}>#{appt.serial_number}</span>
                       </div>
                     )}
@@ -338,14 +338,14 @@ export function CustomerAppointmentsPage() {
                 </div>
 
                 {/* Footer Action Controls */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'flex-end', paddingTop: '0.75rem', borderTop: '1px solid #FAF8F3' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'flex-end', paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)' }}>
                   {canCheckIn && !isTerminal && (
                     <button
                       onClick={() => handleCheckIn(orgId, appt.id)}
                       disabled={checkingInId === appt.id}
                       style={{
                         padding: '0.55rem 0.9rem',
-                        background: '#B06D2E',
+                        background: 'var(--color-warning)',
                         color: '#FFFFFF',
                         border: 'none',
                         borderRadius: '8px',
@@ -363,8 +363,8 @@ export function CustomerAppointmentsPage() {
                       onClick={() => navigate(`/customer/queue/${qEntry.id}`)}
                       style={{
                         padding: '0.55rem 0.9rem',
-                        background: '#2F2520',
-                        color: '#FAF8F3',
+                        background: 'var(--lp-btn-bg)',
+                        color: 'var(--lp-btn-text)',
                         border: 'none',
                         borderRadius: '8px',
                         fontWeight: 600,
@@ -380,9 +380,9 @@ export function CustomerAppointmentsPage() {
                     onClick={() => navigate(`/customer/appointments/${appt.id}`)}
                     style={{
                       padding: '0.55rem 0.9rem',
-                      background: '#FAF8F3',
-                      color: '#5F7A70',
-                      border: '1px solid #E6E1D9',
+                      background: 'var(--lp-bg-subtle)',
+                      color: 'var(--lp-accent)',
+                      border: '1px solid var(--lp-border)',
                       borderRadius: '8px',
                       fontWeight: 600,
                       fontSize: '0.85rem',
@@ -397,9 +397,9 @@ export function CustomerAppointmentsPage() {
                       onClick={() => handleOpenReviewModal(appt)}
                       style={{
                         padding: '0.55rem 0.9rem',
-                        background: '#F5EFE6',
-                        color: '#B06D2E',
-                        border: '1px solid #E6E1D9',
+                        background: 'var(--lp-bg-subtle)',
+                        color: 'var(--color-warning)',
+                        border: '1px solid var(--lp-border)',
                         borderRadius: '8px',
                         fontWeight: 600,
                         fontSize: '0.85rem',
@@ -415,9 +415,9 @@ export function CustomerAppointmentsPage() {
                       onClick={() => handleOpenCancelModal(appt)}
                       style={{
                         padding: '0.55rem 0.9rem',
-                        background: '#FFF1F0',
-                        color: '#B4534B',
-                        border: '1px solid #FCA5A5',
+                        background: 'var(--color-danger-light)',
+                        color: 'var(--color-danger)',
+                        border: '1px solid var(--color-danger)',
                         borderRadius: '8px',
                         fontWeight: 600,
                         fontSize: '0.85rem',

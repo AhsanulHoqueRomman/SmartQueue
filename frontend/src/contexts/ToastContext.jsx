@@ -50,30 +50,30 @@ export const ToastProvider = ({ children }) => {
         }}
       >
         {toasts.map((toast) => {
-          let bg = '#FAF8F3';
-          let border = '#E6E1D9';
-          let textColor = '#211C19';
+          let bg = 'var(--color-surface)';
+          let border = 'var(--color-border)';
+          let textColor = 'var(--color-text-main)';
           let icon = '✨';
 
           if (toast.type === 'success') {
-            bg = '#F0F7F2';
-            border = '#B2D8BC';
-            textColor = '#275232';
+            bg = 'var(--color-success-bg)';
+            border = 'var(--color-success-border)';
+            textColor = 'var(--color-success)';
             icon = '✓';
           } else if (toast.type === 'error') {
-            bg = '#FDF2F2';
-            border = '#F5C6C6';
-            textColor = '#8C2B2B';
+            bg = 'var(--color-error-bg)';
+            border = 'var(--color-error-border)';
+            textColor = 'var(--color-error)';
             icon = '✕';
           } else if (toast.type === 'warning') {
-            bg = '#FFFDF0';
-            border = '#F0E2AF';
-            textColor = '#7A5410';
+            bg = 'var(--color-warning-bg)';
+            border = 'var(--color-warning-border)';
+            textColor = 'var(--color-warning)';
             icon = '⚠️';
           } else if (toast.type === 'info') {
-            bg = '#F2F7FA';
-            border = '#BCD4E6';
-            textColor = '#284C66';
+            bg = 'var(--color-info-bg)';
+            border = 'var(--color-info-border)';
+            textColor = 'var(--color-info)';
             icon = 'ℹ️';
           }
 
@@ -87,7 +87,7 @@ export const ToastProvider = ({ children }) => {
                 color: textColor,
                 padding: '0.75rem 1rem',
                 borderRadius: '12px',
-                boxShadow: '0 8px 24px rgba(47, 37, 32, 0.12)',
+                boxShadow: 'var(--shadow-lg)',
                 fontSize: '0.875rem',
                 fontWeight: 600,
                 display: 'flex',

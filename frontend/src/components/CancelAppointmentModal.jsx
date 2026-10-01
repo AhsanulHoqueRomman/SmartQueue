@@ -59,10 +59,10 @@ export function CancelAppointmentModal({
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'var(--color-overlay)',
         display: 'flex',
         alignItems: 'center',
-        justify: 'center',
+        justifyContent: 'center',
         zIndex: 1000,
         padding: '1rem',
         backdropFilter: 'blur(3px)',
@@ -71,12 +71,12 @@ export function CancelAppointmentModal({
     >
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--color-surface)',
           borderRadius: '16px',
-          border: '1px solid #E6E1D9',
+          border: '1px solid var(--color-border)',
           maxWidth: '480px',
           width: '100%',
-          boxShadow: '0 20px 40px rgba(47, 37, 32, 0.15)',
+          boxShadow: 'var(--shadow-xl)',
           overflow: 'hidden',
           animation: 'fadeIn 0.2s ease',
         }}
@@ -88,20 +88,20 @@ export function CancelAppointmentModal({
         <div
           style={{
             padding: '1.25rem 1.5rem',
-            borderBottom: '1px solid #E6E1D9',
+            borderBottom: '1px solid var(--color-border)',
             display: 'flex',
-            justify: 'space-between',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            background: '#FAF8F3',
+            background: 'var(--color-bg-subtle)',
           }}
         >
-          <h3 id="cancel-modal-title" style={{ margin: 0, fontSize: '1.15rem', color: '#211C19', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
+          <h3 id="cancel-modal-title" style={{ margin: 0, fontSize: '1.15rem', color: 'var(--color-text-main)', fontWeight: 700 }}>
             Cancel Appointment
           </h3>
           <button
             type="button"
             onClick={onClose}
-            style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#78716C' }}
+            style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--color-text-muted)' }}
             aria-label="Close modal"
           >
             &times;
@@ -109,23 +109,23 @@ export function CancelAppointmentModal({
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: '1.5rem' }}>
-          <p style={{ margin: '0 0 1rem 0', color: '#5C544E', fontSize: '0.95rem', lineHeight: 1.5 }}>
+          <p style={{ margin: '0 0 1rem 0', color: 'var(--color-text-secondary)', fontSize: '0.95rem', lineHeight: 1.5 }}>
             Are you sure you want to cancel your appointment for{' '}
-            <strong>{appointment.service_name || 'Service Consultation'}</strong> at{' '}
-            <strong>{appointment.organization_name || 'the clinic'}</strong> on{' '}
-            <strong>{formattedDate} at {formattedTime}</strong>?
+            <strong style={{ color: 'var(--color-text-main)' }}>{appointment.service_name || 'Service Consultation'}</strong> at{' '}
+            <strong style={{ color: 'var(--color-text-main)' }}>{appointment.organization_name || 'the clinic'}</strong> on{' '}
+            <strong style={{ color: 'var(--color-text-main)' }}>{formattedDate} at {formattedTime}</strong>?
           </p>
 
           {error && (
             <div
               style={{
-                background: '#FEE2E2',
-                color: '#991B1B',
+                background: 'var(--color-error-bg)',
+                color: 'var(--color-error)',
                 padding: '0.75rem 1rem',
                 borderRadius: '8px',
                 fontSize: '0.85rem',
                 marginBottom: '1rem',
-                border: '1px solid #FCA5A5',
+                border: '1px solid var(--color-error-border)',
               }}
             >
               {error}
@@ -133,7 +133,7 @@ export function CancelAppointmentModal({
           )}
 
           <div style={{ marginBottom: '1.5rem' }}>
-            <label htmlFor="cancellation-reason" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+            <label htmlFor="cancellation-reason" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.35rem' }}>
               Reason for cancellation (optional)
             </label>
             <textarea
@@ -147,7 +147,9 @@ export function CancelAppointmentModal({
                 width: '100%',
                 padding: '0.75rem',
                 borderRadius: '8px',
-                border: '1px solid #E6E1D9',
+                border: '1px solid var(--color-border)',
+                backgroundColor: 'var(--color-surface)',
+                color: 'var(--color-text-main)',
                 fontSize: '0.9rem',
                 fontFamily: 'inherit',
                 resize: 'vertical',
@@ -163,9 +165,9 @@ export function CancelAppointmentModal({
               disabled={submitting}
               style={{
                 padding: '0.65rem 1.25rem',
-                background: '#FAF8F3',
-                color: '#5C544E',
-                border: '1px solid #E6E1D9',
+                background: 'var(--color-surface)',
+                color: 'var(--color-text-main)',
+                border: '1px solid var(--color-border)',
                 borderRadius: '8px',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -179,7 +181,7 @@ export function CancelAppointmentModal({
               style={{
                 minWidth: '150px',
                 padding: '0.65rem 1.25rem',
-                background: submitting ? '#78716C' : '#B4534B',
+                background: submitting ? 'var(--color-completed)' : 'var(--color-error)',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: '8px',

@@ -14,13 +14,13 @@
 
 .contact-page {
   min-height: 100vh;
-  background-color: #FAF8F3;
-  color: #211C19;
+  background-color: var(--lp-bg, var(--color-bg));
+  color: var(--lp-text, var(--color-text-main));
   overflow-x: clip;
 }
 
 /* Ensure navbar links inside ContactPage behave like the landing page */
 .contact-page .lp-nav-link:hover {
-  color: #211C19;
-  background-color: #F3F0EA;
+  color: var(--lp-text, var(--color-text-main));
+  background-color: var(--lp-bg-subtle, var(--color-bg-subtle));
 }

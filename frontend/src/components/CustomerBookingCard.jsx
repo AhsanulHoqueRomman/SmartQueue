@@ -35,11 +35,11 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
   const nowServingSerial = qEntry?.readiness_info?.now_serving_serial;
 
   const readinessConfig = {
-    TURN_NOW: { label: 'Your Turn', bg: '#DCFCE7', color: '#166534', border: '#86EFAC', note: 'Please proceed inside' },
-    BE_READY: { label: 'Be Ready', bg: '#FEF3C7', color: '#92400E', border: '#FDE68A', note: 'You are next in line' },
-    GET_READY: { label: 'Get Ready', bg: '#FEF9C3', color: '#854D0E', border: '#FEF08A', note: 'Turn approaching soon' },
-    NOT_YET: { label: 'Not Yet', bg: '#F3F4F6', color: '#4B5563', border: '#E5E7EB', note: 'Relaxed waiting' },
-  }[readinessState] || { label: 'Waiting', bg: '#FAF8F3', color: '#5F7A70', border: '#E6E1D9', note: '' };
+    TURN_NOW: { label: 'Your Turn', bg: 'var(--color-success-light)', color: 'var(--color-success)', border: 'var(--color-success)', note: 'Please proceed inside' },
+    BE_READY: { label: 'Be Ready', bg: 'var(--color-warning-light)', color: 'var(--color-warning)', border: 'var(--color-warning)', note: 'You are next in line' },
+    GET_READY: { label: 'Get Ready', bg: 'var(--color-warning-light)', color: 'var(--color-warning)', border: 'var(--color-warning)', note: 'Turn approaching soon' },
+    NOT_YET: { label: 'Not Yet', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', border: 'var(--lp-border)', note: 'Relaxed waiting' },
+  }[readinessState] || { label: 'Waiting', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: 'var(--lp-border)', note: '' };
 
   const isLive = ['WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
   const isTerminal = ['COMPLETED', 'SKIPPED', 'CANCELLED', 'NO_SHOW'].includes(qStatus);
@@ -49,11 +49,11 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
     <div
       className="card animate-section"
       style={{
-        background: '#FFFFFF',
-        border: '1px solid #E6E1D9',
+        background: 'var(--lp-surface)',
+        border: '1px solid var(--lp-border)',
         borderRadius: '16px',
         padding: '1.5rem',
-        boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
+        boxShadow: 'var(--card-shadow)',
         display: 'flex',
         flexDirection: 'column',
         justify: 'space-between',
@@ -66,10 +66,10 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
         {/* Header: Organization & Category Badge */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
           <div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#5F7A70', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {item.organization_category || 'CLINIC'} &bull; {item.organization_name}
             </span>
-            <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1.2rem', color: '#211C19', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
+            <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1.2rem', color: 'var(--lp-text)', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
               {item.service_name || 'Service Consultation'}
             </h3>
           </div>
@@ -77,8 +77,8 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
         </div>
 
         {/* Subheader: Provider & Category */}
-        <div style={{ fontSize: '0.85rem', color: '#78716C', marginBottom: '1.25rem' }}>
-          Provider: <strong style={{ color: '#211C19' }}>{item.provider_name || item.provider_title || 'Assigned Specialist'}</strong>
+        <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginBottom: '1.25rem' }}>
+          Provider: <strong style={{ color: 'var(--lp-text)' }}>{item.provider_name || item.provider_title || 'Assigned Specialist'}</strong>
           {item.category_name && <span> &bull; {item.category_name}</span>}
         </div>
 
@@ -86,8 +86,8 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
         {qStatus === 'IN_PROGRESS' && (
           <div
             style={{
-              background: '#2F2520',
-              color: '#FAF8F3',
+              background: 'var(--lp-btn-bg, #2F2520)',
+              color: 'var(--lp-btn-text, #FAF8F3)',
               borderRadius: '12px',
               padding: '0.85rem 1rem',
               marginBottom: '1.25rem',
@@ -97,22 +97,22 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
             }}
           >
             <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>🩺 YOU ARE BEING SERVED</div>
-            <span style={{ fontSize: '0.75rem', color: '#86EFAC', fontWeight: 600 }}>Active Service</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-success)', fontWeight: 600 }}>Active Service</span>
           </div>
         )}
 
         {qStatus === 'CALLED' && (
           <div
             style={{
-              background: '#ECFDF5',
-              border: '1px solid #6EE7B7',
+              background: 'var(--color-success-bg, rgba(79, 122, 90, 0.12))',
+              border: '1px solid var(--color-success-border, rgba(79, 122, 90, 0.25))',
               borderRadius: '12px',
               padding: '0.85rem 1rem',
               marginBottom: '1.25rem',
             }}
           >
-            <div style={{ fontWeight: 700, color: '#065F46', fontSize: '0.95rem' }}>⚡ YOUR TURN — Please proceed to service area</div>
-            <div style={{ fontSize: '0.8rem', color: '#047857', marginTop: '0.15rem' }}>
+            <div style={{ fontWeight: 700, color: 'var(--color-success)', fontSize: '0.95rem' }}>⚡ YOUR TURN — Please proceed to service area</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--color-success)', marginTop: '0.15rem' }}>
               The provider is waiting for you now.
             </div>
           </div>
@@ -122,8 +122,8 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
         {isLive && (
           <div
             style={{
-              background: '#FAF8F3',
-              border: '1px solid #E6E1D9',
+              background: 'var(--lp-bg-subtle)',
+              border: '1px solid var(--lp-border)',
               borderRadius: '12px',
               padding: '1rem',
               marginBottom: '1.25rem',
@@ -131,41 +131,41 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
           >
             {/* Primary Telemetry Grid: Serial, Now Serving, People Ahead */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginBottom: '0.85rem', textAlign: 'center' }}>
-              <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
-                <span style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Your Serial</span>
-                <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#2F2520', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
+                <span style={{ fontSize: '0.65rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Your Serial</span>
+                <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
                   #{item.serial_number || qEntry?.token_number || '—'}
                 </div>
               </div>
 
-              <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
-                <span style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Now Serving</span>
-                <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#5F7A70', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
+                <span style={{ fontSize: '0.65rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Now Serving</span>
+                <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
                   {nowServingSerial ? `#${nowServingSerial}` : 'Not started'}
                 </div>
               </div>
 
-              <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
-                <span style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>People Ahead</span>
-                <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#B06D2E', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
+                <span style={{ fontSize: '0.65rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>People Ahead</span>
+                <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--color-warning)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
                   {qStatus === 'CALLED' || qStatus === 'IN_PROGRESS' ? '0' : peopleAhead}
                 </div>
               </div>
             </div>
 
             {/* Service Range & Recommended Arrival */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #E6E1D9' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)' }}>
               <div>
-                <div style={{ fontSize: '0.7rem', color: '#78716C', fontWeight: 600, textTransform: 'uppercase' }}>Estimated Service</div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#211C19', marginTop: '0.1rem' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--lp-text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Estimated Service</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-text)', marginTop: '0.1rem' }}>
                   {estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : estStartStr || 'Scheduled'}
                 </div>
               </div>
 
               {recArrivalStr && (
                 <div>
-                  <div style={{ fontSize: '0.7rem', color: '#78716C', fontWeight: 600, textTransform: 'uppercase' }}>Recommended Arrival</div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#5F7A70', marginTop: '0.1rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--lp-text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Recommended Arrival</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-accent)', marginTop: '0.1rem' }}>
                     {recArrivalStr}
                   </div>
                 </div>
@@ -193,12 +193,12 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
               </div>
 
               {qEntry && !qEntry.is_checked_in && !isTerminal && (
-                <span style={{ fontSize: '0.75rem', color: '#B06D2E', fontWeight: 600 }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-warning)', fontWeight: 600 }}>
                   ⏳ Check-In Pending
                 </span>
               )}
               {qEntry && qEntry.is_checked_in && (
-                <span style={{ fontSize: '0.75rem', color: '#4F7A5A', fontWeight: 600 }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-success)', fontWeight: 600 }}>
                   ✓ Checked In
                 </span>
               )}
@@ -208,7 +208,7 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
 
         {/* Scheduled appointment info for upcoming non-active */}
         {!isLive && (
-          <div style={{ background: '#FAF8F3', border: '1px solid #E6E1D9', borderRadius: '12px', padding: '0.85rem', marginBottom: '1.25rem', fontSize: '0.85rem', color: '#211C19' }}>
+          <div style={{ background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '12px', padding: '0.85rem', marginBottom: '1.25rem', fontSize: '0.85rem', color: 'var(--lp-text)' }}>
             📅 Date: <strong>{new Date(item.start_datetime).toLocaleDateString()}</strong> &bull; Time: <strong>{estStartStr || 'Scheduled'}</strong>
           </div>
         )}
@@ -224,7 +224,7 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
               flex: 1,
               minWidth: '130px',
               padding: '0.6rem 1rem',
-              background: isCheckingIn ? '#78716C' : '#B06D2E',
+              background: isCheckingIn ? 'var(--lp-text-subtle)' : 'var(--color-warning)',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: '8px',
@@ -245,8 +245,8 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
               flex: 1,
               minWidth: '130px',
               padding: '0.6rem 1rem',
-              background: '#2F2520',
-              color: '#FAF8F3',
+              background: 'var(--lp-btn-bg, #2F2520)',
+              color: 'var(--lp-btn-text, #FAF8F3)',
               border: 'none',
               borderRadius: '8px',
               fontWeight: 600,
@@ -262,9 +262,9 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
           onClick={() => navigate(`/customer/appointments/${apptId}`)}
           style={{
             padding: '0.6rem 0.9rem',
-            background: '#FAF8F3',
-            color: '#5F7A70',
-            border: '1px solid #E6E1D9',
+            background: 'var(--lp-bg-subtle)',
+            color: 'var(--lp-accent)',
+            border: '1px solid var(--lp-border)',
             borderRadius: '8px',
             fontWeight: 600,
             fontSize: '0.85rem',
@@ -279,9 +279,9 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
             onClick={() => navigate('/customer/reviews')}
             style={{
               padding: '0.6rem 0.9rem',
-              background: '#F5EFE6',
-              color: '#B06D2E',
-              border: '1px solid #E6E1D9',
+              background: 'var(--lp-bg-subtle)',
+              color: 'var(--color-warning)',
+              border: '1px solid var(--lp-border)',
               borderRadius: '8px',
               fontWeight: 600,
               fontSize: '0.85rem',

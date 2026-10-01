@@ -39,7 +39,7 @@ export const RegisterPage = () => {
   ];
 
   return (
-    <div style={{ backgroundColor: '#FAF8F3', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PublicNavbar activePage="register" />
       <div
         className="animate-page-entrance"
@@ -75,7 +75,7 @@ export const RegisterPage = () => {
                 fontFamily: 'Cinzel, serif',
                 fontSize: '1.75rem',
                 fontWeight: 700,
-                color: '#211C19',
+                color: 'var(--lp-text)',
                 letterSpacing: '-0.02em',
               }}
             >
@@ -87,14 +87,14 @@ export const RegisterPage = () => {
             style={{
               fontSize: '2.25rem',
               fontWeight: 800,
-              color: '#211C19',
+              color: 'var(--lp-text)',
               margin: '0 0 0.5rem 0',
               fontFamily: 'Cinzel, serif',
             }}
           >
             Create your SmartQueue account
           </h1>
-          <p style={{ fontSize: '1.1rem', color: '#78716C', margin: 0, fontWeight: 500 }}>
+          <p style={{ fontSize: '1.1rem', color: 'var(--lp-text-subtle)', margin: 0, fontWeight: 500 }}>
             Choose how you'll use SmartQueue.
           </p>
         </div>
@@ -113,9 +113,9 @@ export const RegisterPage = () => {
               key={opt.id}
               onClick={() => navigate(opt.path)}
               style={{
-                backgroundColor: '#FFFFFF',
+                backgroundColor: 'var(--lp-surface)',
                 borderRadius: '20px',
-                border: '1px solid #E6E1D9',
+                border: '1px solid var(--lp-border)',
                 padding: '2.25rem 1.75rem',
                 display: 'flex',
                 flexDirection: 'column',
@@ -135,8 +135,8 @@ export const RegisterPage = () => {
                       width: '48px',
                       height: '48px',
                       borderRadius: '14px',
-                      backgroundColor: '#FAF8F3',
-                      border: '1px solid #E6E1D9',
+                      backgroundColor: 'var(--lp-bg-subtle)',
+                      border: '1px solid var(--lp-border)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -152,20 +152,20 @@ export const RegisterPage = () => {
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em',
                       color: opt.accentColor,
-                      backgroundColor: '#FAF8F3',
+                      backgroundColor: 'var(--lp-bg-subtle)',
                       padding: '0.25rem 0.65rem',
                       borderRadius: '9999px',
-                      border: '1px solid #E6E1D9',
+                      border: '1px solid var(--lp-border)',
                     }}
                   >
                     {opt.badge}
                   </span>
                 </div>
 
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#211C19', margin: '0 0 0.65rem 0' }}>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.65rem 0' }}>
                   {opt.title}
                 </h3>
-                <p style={{ fontSize: '0.95rem', color: '#78716C', lineHeight: 1.5, margin: 0 }}>
+                <p style={{ fontSize: '0.95rem', color: 'var(--lp-text-subtle)', lineHeight: 1.5, margin: 0 }}>
                   {opt.description}
                 </p>
               </div>
@@ -194,14 +194,14 @@ export const RegisterPage = () => {
         </div>
 
         {/* Footer Link */}
-        <div style={{ textAlign: 'center', borderTop: '1px solid #E6E1D9', paddingTop: '2rem' }}>
-          <p style={{ fontSize: '0.95rem', color: '#78716C', margin: '0 0 0.75rem 0' }}>
+        <div style={{ textAlign: 'center', borderTop: '1px solid var(--lp-border)', paddingTop: '2rem' }}>
+          <p style={{ fontSize: '0.95rem', color: 'var(--lp-text-subtle)', margin: '0 0 0.75rem 0' }}>
             Already have an account?{' '}
-            <Link to="/login" style={{ color: '#2F2520', fontWeight: 700, textDecoration: 'none' }}>
+            <Link to="/login" style={{ color: 'var(--lp-accent)', fontWeight: 700, textDecoration: 'none' }}>
               Sign in
             </Link>
           </p>
-          <Link to="/" style={{ color: '#A8A29E', fontSize: '0.85rem', textDecoration: 'none' }}>
+          <Link to="/" style={{ color: 'var(--lp-text-subtle)', fontSize: '0.85rem', textDecoration: 'none' }}>
             ← Back to Home Page
           </Link>
         </div>

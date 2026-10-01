@@ -45,11 +45,11 @@ function LiveQueuePreviewCard({ item, formatTime }) {
   const nowServingSerial = qEntry?.readiness_info?.now_serving_serial;
 
   const readinessConfig = {
-    TURN_NOW: { label: 'Your Turn', bg: '#DCFCE7', color: '#166534', border: '#86EFAC' },
-    BE_READY: { label: 'Be Ready', bg: '#FEF3C7', color: '#92400E', border: '#FDE68A' },
-    GET_READY: { label: 'Get Ready', bg: '#FEF9C3', color: '#854D0E', border: '#FEF08A' },
-    NOT_YET: { label: 'Not Yet', bg: '#F3F4F6', color: '#4B5563', border: '#E5E7EB' },
-  }[readinessState] || { label: 'Waiting', bg: '#FAF8F3', color: '#5F7A70', border: '#E6E1D9' };
+    TURN_NOW: { label: 'Your Turn', bg: 'var(--color-success-light)', color: 'var(--color-success)', border: 'var(--color-success)' },
+    BE_READY: { label: 'Be Ready', bg: 'var(--color-warning-light)', color: 'var(--color-warning)', border: 'var(--color-warning)' },
+    GET_READY: { label: 'Get Ready', bg: 'var(--color-warning-light)', color: 'var(--color-warning)', border: 'var(--color-warning)' },
+    NOT_YET: { label: 'Not Yet', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', border: 'var(--lp-border)' },
+  }[readinessState] || { label: 'Waiting', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: 'var(--lp-border)' };
 
   const isLive = ['WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
 
@@ -63,190 +63,198 @@ function LiveQueuePreviewCard({ item, formatTime }) {
     >
       <div
         style={{
-          background: '#FFFFFF',
-          border: '1px solid #E6E1D9',
+          background: 'var(--lp-surface)',
+          border: '1px solid var(--lp-border)',
           borderRadius: '24px',
           padding: '2.25rem',
-          boxShadow: '0 10px 35px rgba(47, 37, 32, 0.06)',
-          minHeight: '380px',
+          boxShadow: 'var(--lp-shadow-sm)',
+          height: '420px',
           display: 'flex',
           flexDirection: 'column',
-          justify: 'space-between',
+          justifyContent: 'space-between',
           boxSizing: 'border-box',
           width: '100%',
         }}
       >
-        <div>
-          {/* Header: Organization & Service */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem', height: '2.5rem' }}>
-            <div style={{ flex: 1, paddingRight: '0.75rem', overflow: 'hidden' }}>
-              <span
-                style={{
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  color: '#5F7A70',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  display: 'block',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {item.organization_name}
-              </span>
-              <h4
-                style={{
-                  margin: '0.1rem 0 0 0',
-                  fontSize: '1.3rem',
-                  color: '#211C19',
-                  fontWeight: 700,
-                  fontFamily: 'Cinzel, serif',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {item.service_name || 'Consultation Service'}
-              </h4>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            {/* Header: Organization & Service */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem', height: '2.5rem' }}>
+              <div style={{ flex: 1, paddingRight: '0.75rem', overflow: 'hidden' }}>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: 'var(--lp-accent)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    display: 'block',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {item.organization_name}
+                </span>
+                <h4
+                  style={{
+                    margin: '0.1rem 0 0 0',
+                    fontSize: '1.3rem',
+                    color: 'var(--lp-text)',
+                    fontWeight: 700,
+                    fontFamily: 'Cinzel, serif',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {item.service_name || 'Consultation Service'}
+                </h4>
+              </div>
+              <StatusBadge status={qStatus} />
             </div>
-            <StatusBadge status={qStatus} />
-          </div>
 
-          {/* Provider Subheader */}
-          <div
-            style={{
-              fontSize: '0.875rem',
-              color: '#78716C',
-              marginBottom: '1.25rem',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            Provider: <strong style={{ color: '#211C19' }}>{item.provider_name || item.provider_title || 'Assigned Specialist'}</strong>
-          </div>
-
-          {/* Status Callout Banner */}
-          <div style={{ minHeight: '44px', marginBottom: '1.25rem' }}>
-            {qStatus === 'IN_PROGRESS' && (
-              <div
-                style={{
-                  background: '#2F2520',
-                  color: '#FAF8F3',
-                  borderRadius: '12px',
-                  padding: '0.75rem 1.25rem',
-                  fontSize: '0.9rem',
-                  fontWeight: 700,
-                  display: 'flex',
-                  justify: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <span>🩺 YOU ARE BEING SERVED</span>
-                <span style={{ fontSize: '0.75rem', color: '#86EFAC', fontWeight: 600 }}>Active</span>
-              </div>
-            )}
-
-            {qStatus === 'CALLED' && (
-              <div
-                style={{
-                  background: '#ECFDF5',
-                  border: '1px solid #6EE7B7',
-                  borderRadius: '12px',
-                  padding: '0.75rem 1.25rem',
-                  fontSize: '0.9rem',
-                  color: '#065F46',
-                  fontWeight: 700,
-                }}
-              >
-                ⚡ YOUR TURN — Please proceed to service area
-              </div>
-            )}
-          </div>
-
-          {/* Live Telemetry Block */}
-          {isLive ? (
+            {/* Provider Subheader */}
             <div
               style={{
-                background: '#FAF8F3',
-                border: '1px solid #E6E1D9',
-                borderRadius: '16px',
-                padding: '1.25rem 1.5rem',
-                marginBottom: '1.25rem',
+                fontSize: '0.875rem',
+                color: 'var(--lp-text-subtle)',
+                marginBottom: '1rem',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
             >
-              {/* 3 Telemetry Columns: Your Serial | Now Serving | People Ahead */}
+              Provider: <strong style={{ color: 'var(--lp-text)' }}>{item.provider_name || item.provider_title || 'Assigned Specialist'}</strong>
+            </div>
+
+            {/* Status Callout Banner */}
+            <div style={{ minHeight: '44px', marginBottom: '1rem' }}>
+              {qStatus === 'IN_PROGRESS' && (
+                <div
+                  style={{
+                    background: 'var(--lp-btn-bg)',
+                    color: 'var(--lp-btn-text)',
+                    borderRadius: '12px',
+                    padding: '0.75rem 1.25rem',
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span>🩺 YOU ARE BEING SERVED</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-success)', fontWeight: 600 }}>Active</span>
+                </div>
+              )}
+
+              {qStatus === 'CALLED' && (
+                <div
+                  style={{
+                    background: 'var(--color-success-bg, var(--lp-sage-bg, rgba(79, 122, 90, 0.12)))',
+                    border: '1px solid var(--color-success-border, var(--lp-sage-border, rgba(79, 122, 90, 0.25)))',
+                    borderRadius: '12px',
+                    padding: '0.75rem 1.25rem',
+                    fontSize: '0.9rem',
+                    color: 'var(--color-success, var(--lp-sage))',
+                    fontWeight: 700,
+                  }}
+                >
+                  ⚡ YOUR TURN — Please proceed to service area
+                </div>
+              )}
+            </div>
+
+            {/* Live Telemetry Block / Non-Live Block */}
+            {isLive ? (
               <div
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '1rem',
-                  textAlign: 'center',
+                  background: 'var(--lp-bg-subtle)',
+                  border: '1px solid var(--lp-border)',
+                  borderRadius: '16px',
+                  padding: '1.25rem 1.5rem',
                   marginBottom: '1rem',
                 }}
               >
-                <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '12px', padding: '0.75rem 0.5rem' }}>
-                  <div style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>Your Serial</div>
-                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#2F2520', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
-                    #{item.serial_number || qEntry?.token_number || '—'}
+                {/* 3 Telemetry Columns: Your Serial | Now Serving | People Ahead */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '1rem',
+                    textAlign: 'center',
+                    marginBottom: '1rem',
+                  }}
+                >
+                  <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '12px', padding: '0.75rem 0.5rem' }}>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>Your Serial</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--lp-btn-bg)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+                      #{item.serial_number || qEntry?.token_number || '—'}
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '12px', padding: '0.75rem 0.5rem' }}>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>Now Serving</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+                      {nowServingSerial ? `#${nowServingSerial}` : 'None'}
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '12px', padding: '0.75rem 0.5rem' }}>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>People Ahead</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-warning)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+                      {qStatus === 'CALLED' || qStatus === 'IN_PROGRESS' ? '0' : peopleAhead}
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '12px', padding: '0.75rem 0.5rem' }}>
-                  <div style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>Now Serving</div>
-                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#5F7A70', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
-                    {nowServingSerial ? `#${nowServingSerial}` : 'None'}
-                  </div>
-                </div>
-
-                <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '12px', padding: '0.75rem 0.5rem' }}>
-                  <div style={{ fontSize: '0.65rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>People Ahead</div>
-                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#B06D2E', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
-                    {qStatus === 'CALLED' || qStatus === 'IN_PROGRESS' ? '0' : peopleAhead}
-                  </div>
-                </div>
-              </div>
-
-              {/* Estimated Service & Recommended Arrival Row */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.875rem', color: '#57534E', paddingTop: '0.5rem' }}>
-                <div>
-                  <span>Est. Service: </span>
-                  <strong style={{ color: '#211C19' }}>
-                    {estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : estStartStr || 'Scheduled'}
-                  </strong>
-                </div>
-                {recArrivalStr && (
+                {/* Estimated Service & Recommended Arrival Row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.875rem', color: 'var(--lp-text-subtle)', paddingTop: '0.25rem' }}>
                   <div>
-                    <span>Arrival: </span>
-                    <strong style={{ color: '#5F7A70' }}>{recArrivalStr}</strong>
+                    <span>Est. Service: </span>
+                    <strong style={{ color: 'var(--lp-text)' }}>
+                      {estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : estStartStr || 'Scheduled'}
+                    </strong>
                   </div>
-                )}
+                  {recArrivalStr && (
+                    <div>
+                      <span>Arrival: </span>
+                      <strong style={{ color: 'var(--lp-accent)' }}>{recArrivalStr}</strong>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ) : (
-            <div
-              style={{
-                background: '#FAF8F3',
-                border: '1px solid #E6E1D9',
-                borderRadius: '16px',
-                padding: '1.25rem',
-                marginBottom: '1.25rem',
-                fontSize: '0.9rem',
-                color: '#78716C',
-                minHeight: '120px',
-                display: 'flex',
-                alignItems: 'center',
-                justify: 'center',
-              }}
-            >
-              Scheduled for: &nbsp;<strong style={{ color: '#211C19' }}>{new Date(item.start_datetime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</strong>
-            </div>
-          )}
+            ) : (
+              <div
+                style={{
+                  background: 'var(--lp-bg-subtle)',
+                  border: '1px solid var(--lp-border)',
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  marginBottom: '1rem',
+                  minHeight: '170px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                }}
+              >
+                <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em', marginBottom: '0.35rem' }}>
+                  Appointment Overview
+                </div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
+                  Scheduled for: &nbsp;<strong>{new Date(item.start_datetime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</strong>
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)' }}>
+                  Queue Status: <strong style={{ color: 'var(--lp-text)' }}>{qStatus}</strong>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Card Footer */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid #FAF8F3' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid var(--lp-border)' }}>
           {isLive ? (
             <span
               style={{
@@ -266,14 +274,14 @@ function LiveQueuePreviewCard({ item, formatTime }) {
               {readinessConfig.label}
             </span>
           ) : (
-            <span style={{ fontSize: '0.85rem', color: '#78716C' }}>Status: {qStatus}</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)' }}>Status: {qStatus}</span>
           )}
 
           <Link
             to="/customer/dashboard"
             style={{
               fontSize: '0.9rem',
-              color: '#5F7A70',
+              color: 'var(--lp-accent)',
               fontWeight: 700,
               textDecoration: 'none',
               display: 'inline-flex',
@@ -455,19 +463,19 @@ export function HomepageLiveQueueWidget() {
       >
         <div
           style={{
-            background: '#FFFFFF',
-            border: '1px solid #E6E1D9',
+            background: 'var(--lp-surface)',
+            border: '1px solid var(--lp-border)',
             borderRadius: '24px',
             padding: '2.25rem',
             textAlign: 'center',
-            boxShadow: '0 10px 35px rgba(47, 37, 32, 0.06)',
+            boxShadow: 'var(--lp-shadow-sm)',
             minHeight: '380px',
             display: 'flex',
             justify: 'center',
             alignItems: 'center',
           }}
         >
-          <div style={{ fontSize: '0.9rem', color: '#78716C', fontWeight: 600 }}>Loading your live queue status...</div>
+          <div style={{ fontSize: '0.9rem', color: 'var(--lp-text-subtle)', fontWeight: 600 }}>Loading your live queue status...</div>
         </div>
       </div>
     );
@@ -491,19 +499,19 @@ export function HomepageLiveQueueWidget() {
       >
         <div
           style={{
-            background: '#FFFFFF',
-            border: '1px solid #E6E1D9',
+            background: 'var(--lp-surface)',
+            border: '1px solid var(--lp-border)',
             borderRadius: '24px',
             padding: '2.5rem 2.25rem',
             textAlign: 'center',
-            boxShadow: '0 10px 35px rgba(47, 37, 32, 0.06)',
+            boxShadow: 'var(--lp-shadow-sm)',
           }}
         >
           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🗓️</div>
-          <h3 style={{ margin: '0 0 0.35rem 0', fontSize: '1.25rem', color: '#211C19', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
+          <h3 style={{ margin: '0 0 0.35rem 0', fontSize: '1.25rem', color: 'var(--lp-text)', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
             You don't have any bookings yet.
           </h3>
-          <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.9rem', color: '#78716C', maxWidth: '420px', lineHeight: 1.4, marginInline: 'auto' }}>
+          <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.9rem', color: 'var(--lp-text-subtle)', maxWidth: '420px', lineHeight: 1.4, marginInline: 'auto' }}>
             Book an appointment with a clinic or specialist to track your real-time queue position here.
           </p>
           <Link
@@ -513,8 +521,8 @@ export function HomepageLiveQueueWidget() {
               alignItems: 'center',
               gap: '0.4rem',
               padding: '0.7rem 1.5rem',
-              background: '#5F7A70',
-              color: '#FFFFFF',
+              background: 'var(--lp-accent)',
+              color: 'var(--lp-btn-text)',
               borderRadius: '10px',
               fontWeight: 600,
               fontSize: '0.9rem',
@@ -546,7 +554,7 @@ export function HomepageLiveQueueWidget() {
     >
       {/* Widget Header Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.85rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#5F7A70', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--lp-accent)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           <span>🟢</span> Your Live Queue Preview
         </div>
 
@@ -564,7 +572,7 @@ export function HomepageLiveQueueWidget() {
                     width: idx === currentIndex ? '18px' : '7px',
                     height: '7px',
                     borderRadius: '999px',
-                    background: idx === currentIndex ? '#5F7A70' : '#D6D0C7',
+                    background: idx === currentIndex ? 'var(--lp-accent)' : 'var(--lp-border)',
                     border: 'none',
                     padding: 0,
                     cursor: 'pointer',
@@ -573,7 +581,7 @@ export function HomepageLiveQueueWidget() {
                 />
               ))}
             </div>
-            <span style={{ fontSize: '0.8rem', color: '#78716C', fontWeight: 600, minWidth: '38px', textAlign: 'right' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)', fontWeight: 600, minWidth: '38px', textAlign: 'right' }}>
               {currentIndex + 1} of {items.length}
             </span>
           </div>

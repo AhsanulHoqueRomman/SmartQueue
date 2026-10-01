@@ -8,8 +8,8 @@ const BookmarkIcon = ({ active = true, size = 18 }) => (
     width={size}
     height={size}
     viewBox="0 0 24 24"
-    fill={active ? '#5F7A70' : 'none'}
-    stroke={active ? '#5F7A70' : '#78716C'}
+    fill={active ? 'var(--lp-accent)' : 'none'}
+    stroke={active ? 'var(--lp-accent)' : 'var(--lp-text-subtle)'}
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
@@ -35,10 +35,10 @@ export function CustomerFavoritesPage() {
   return (
     <div className="animate-page-entrance" style={{ maxWidth: '950px', margin: '0 auto' }}>
       <div style={{ marginBottom: '1.75rem' }}>
-        <h1 style={{ fontSize: '1.75rem', marginBottom: '0.25rem', fontFamily: 'Cinzel, serif', color: '#211C19' }}>
+        <h1 style={{ fontSize: '1.75rem', marginBottom: '0.25rem', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)' }}>
           Saved Clinics & Favorites
         </h1>
-        <p style={{ color: '#78716C', margin: 0 }}>
+        <p style={{ color: 'var(--lp-text-subtle)', margin: 0 }}>
           Your bookmarked partner facilities for fast repeat appointments.
         </p>
       </div>
@@ -56,11 +56,11 @@ export function CustomerFavoritesPage() {
             <div
               key={org.id}
               style={{
-                background: '#FFFFFF',
+                background: 'var(--lp-surface)',
                 borderRadius: '16px',
-                border: '1px solid #E6E1D9',
+                border: '1px solid var(--lp-border)',
                 padding: '1.5rem',
-                boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
+                boxShadow: 'var(--lp-shadow-sm)',
                 display: 'flex',
                 flexDirection: 'column',
                 justify: 'space-between',
@@ -68,7 +68,7 @@ export function CustomerFavoritesPage() {
             >
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <span style={{ background: '#FAF8F3', color: '#5F7A70', border: '1px solid #E6E1D9', fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                  <span style={{ background: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: '1px solid var(--lp-border)', fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
                     {org.category || 'HEALTHCARE'}
                   </span>
                   <button
@@ -80,11 +80,11 @@ export function CustomerFavoritesPage() {
                   </button>
                 </div>
 
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#211C19', marginBottom: '0.35rem' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                   {org.name}
                 </h3>
 
-                <p style={{ color: '#78716C', fontSize: '0.85rem', margin: '0 0 1rem 0' }}>
+                <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.85rem', margin: '0 0 1rem 0' }}>
                   ★ {org.rating || '4.9'} ({org.reviews_count || 12} reviews)
                 </p>
               </div>
@@ -95,8 +95,8 @@ export function CustomerFavoritesPage() {
                   display: 'block',
                   textAlign: 'center',
                   padding: '0.65rem',
-                  background: '#5F7A70',
-                  color: '#FFFFFF',
+                  background: 'var(--lp-accent)',
+                  color: 'var(--lp-btn-text)',
                   borderRadius: '8px',
                   fontWeight: 600,
                   fontSize: '0.9rem',

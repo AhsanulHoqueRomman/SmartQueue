@@ -106,23 +106,24 @@ export const CustomerDashboard = () => {
       {/* Header Banner */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #2F2520 0%, #211C19 100%)',
-          color: '#FAF8F3',
+          background: 'var(--lp-surface)',
+          color: 'var(--lp-text)',
+          border: '1px solid var(--lp-border)',
           borderRadius: '20px',
           padding: '2rem',
-          boxShadow: '0 8px 30px rgba(47, 37, 32, 0.12)',
+          boxShadow: 'var(--card-shadow)',
           marginBottom: '1.75rem',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(230, 225, 217, 0.15)', color: '#E6E1D9', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'var(--lp-sage-bg)', color: 'var(--lp-sage)', border: '1px solid var(--lp-sage-border)', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.75rem' }}>
               👤 Customer Schedule Command Center
             </div>
-            <h1 style={{ fontSize: '1.85rem', fontWeight: 700, margin: '0 0 0.4rem 0', fontFamily: 'Cinzel, serif', color: '#FAF8F3' }}>
+            <h1 style={{ fontSize: '1.85rem', fontWeight: 700, margin: '0 0 0.4rem 0', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)' }}>
               Welcome back, {user?.first_name || user?.email?.split('@')[0]}!
             </h1>
-            <p style={{ color: '#E6E1D9', margin: 0, fontSize: '0.95rem', opacity: 0.9 }}>
+            <p style={{ color: 'var(--lp-muted)', margin: 0, fontSize: '0.95rem' }}>
               Supervise your live queue positions, upcoming consultations, and saved providers across SmartQueue.
             </p>
           </div>
@@ -133,9 +134,9 @@ export const CustomerDashboard = () => {
               disabled={refreshing}
               style={{
                 padding: '0.75rem 1rem',
-                background: 'rgba(255, 255, 255, 0.12)',
-                color: '#FAF8F3',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
+                background: 'var(--lp-bg-subtle)',
+                color: 'var(--lp-text)',
+                border: '1px solid var(--lp-border)',
                 borderRadius: '10px',
                 fontWeight: 600,
                 fontSize: '0.85rem',
@@ -148,9 +149,9 @@ export const CustomerDashboard = () => {
               onClick={() => navigate('/organizations')}
               style={{
                 padding: '0.75rem 1.25rem',
-                background: 'rgba(255, 255, 255, 0.12)',
-                color: '#FAF8F3',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
+                background: 'var(--lp-bg-subtle)',
+                color: 'var(--lp-text)',
+                border: '1px solid var(--lp-border)',
                 borderRadius: '10px',
                 fontWeight: 600,
                 fontSize: '0.9rem',
@@ -163,14 +164,14 @@ export const CustomerDashboard = () => {
               onClick={() => navigate('/customer/book')}
               style={{
                 padding: '0.75rem 1.25rem',
-                background: '#5F7A70',
-                color: '#FFFFFF',
+                background: 'var(--lp-btn-primary-bg)',
+                color: 'var(--lp-btn-primary-text)',
                 border: 'none',
                 borderRadius: '10px',
                 fontWeight: 600,
                 fontSize: '0.9rem',
                 cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(95, 122, 112, 0.3)',
+                boxShadow: 'var(--shadow-sm)',
               }}
             >
               ✨ Book Appointment
@@ -181,46 +182,46 @@ export const CustomerDashboard = () => {
 
       {/* Summary Metrics Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>
-        <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px', padding: '1.25rem', boxShadow: '0 4px 16px rgba(47, 37, 32, 0.03)' }}>
-          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#5F7A70', textTransform: 'uppercase' }}>
+        <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '1.25rem', boxShadow: 'var(--card-shadow)' }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--lp-sage)', textTransform: 'uppercase' }}>
             Live Queue Sessions
           </div>
-          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#5F7A70', marginTop: '0.25rem', fontFamily: 'Outfit, sans-serif' }}>
+          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--lp-accent)', marginTop: '0.25rem', fontFamily: 'Outfit, sans-serif' }}>
             {liveQueueItems.length}
           </div>
-          <div style={{ fontSize: '0.8rem', color: '#78716C' }}>Active sessions</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)' }}>Active sessions</div>
         </div>
 
-        <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px', padding: '1.25rem', boxShadow: '0 4px 16px rgba(47, 37, 32, 0.03)' }}>
-          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#78716C', textTransform: 'uppercase' }}>
+        <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '1.25rem', boxShadow: 'var(--card-shadow)' }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--lp-text-subtle)', textTransform: 'uppercase' }}>
             Upcoming Bookings
           </div>
-          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#211C19', marginTop: '0.25rem', fontFamily: 'Outfit, sans-serif' }}>
+          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--lp-text)', marginTop: '0.25rem', fontFamily: 'Outfit, sans-serif' }}>
             {upcomingItems.length}
           </div>
-          <Link to="/customer/appointments" style={{ fontSize: '0.8rem', color: '#5F7A70', fontWeight: 600, textDecoration: 'none' }}>
+          <Link to="/customer/appointments" style={{ fontSize: '0.8rem', color: 'var(--lp-accent)', fontWeight: 600, textDecoration: 'none' }}>
             View schedule →
           </Link>
         </div>
 
-        <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px', padding: '1.25rem', boxShadow: '0 4px 16px rgba(47, 37, 32, 0.03)' }}>
-          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#78716C', textTransform: 'uppercase' }}>
+        <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '1.25rem', boxShadow: 'var(--card-shadow)' }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--lp-text-subtle)', textTransform: 'uppercase' }}>
             Today's Schedule
           </div>
-          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#B06D2E', marginTop: '0.25rem', fontFamily: 'Outfit, sans-serif' }}>
+          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-warning)', marginTop: '0.25rem', fontFamily: 'Outfit, sans-serif' }}>
             {todayApptsCount}
           </div>
-          <span style={{ fontSize: '0.8rem', color: '#78716C' }}>Bookings for today</span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)' }}>Bookings for today</span>
         </div>
 
-        <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px', padding: '1.25rem', boxShadow: '0 4px 16px rgba(47, 37, 32, 0.03)' }}>
-          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#78716C', textTransform: 'uppercase' }}>
+        <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '1.25rem', boxShadow: 'var(--card-shadow)' }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--lp-text-subtle)', textTransform: 'uppercase' }}>
             Completed Care
           </div>
-          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#4F7A5A', marginTop: '0.25rem', fontFamily: 'Outfit, sans-serif' }}>
+          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-success)', marginTop: '0.25rem', fontFamily: 'Outfit, sans-serif' }}>
             {completedCount}
           </div>
-          <Link to="/customer/reviews" style={{ fontSize: '0.8rem', color: '#4F7A5A', fontWeight: 600, textDecoration: 'none' }}>
+          <Link to="/customer/reviews" style={{ fontSize: '0.8rem', color: 'var(--color-success)', fontWeight: 600, textDecoration: 'none' }}>
             Write reviews →
           </Link>
         </div>
@@ -230,10 +231,10 @@ export const CustomerDashboard = () => {
       <div style={{ marginBottom: '2.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#211C19', margin: 0, fontFamily: 'Cinzel, serif' }}>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--lp-text)', margin: 0, fontFamily: 'Cinzel, serif' }}>
               🟢 Live Queue Telemetry Cards ({liveQueueItems.length})
             </h2>
-            <p style={{ fontSize: '0.85rem', color: '#78716C', margin: '0.2rem 0 0 0' }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', margin: '0.2rem 0 0 0' }}>
               Real-time serial telemetry and ETA windows across all your active bookings.
             </p>
           </div>
@@ -265,18 +266,18 @@ export const CustomerDashboard = () => {
       {/* SECTION 2: UPCOMING SCHEDULE & QUICK ACTIONS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
         {/* Upcoming Bookings Grid */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid #FAF8F3' }}>
-            <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#211C19', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
+        <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '1.5rem', boxShadow: 'var(--card-shadow)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--lp-border)' }}>
+            <h3 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--lp-text)', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
               Upcoming Schedule ({upcomingItems.length})
             </h3>
-            <Link to="/customer/appointments" style={{ fontSize: '0.8rem', color: '#5F7A70', fontWeight: 600, textDecoration: 'none' }}>
+            <Link to="/customer/appointments" style={{ fontSize: '0.8rem', color: 'var(--lp-accent)', fontWeight: 600, textDecoration: 'none' }}>
               View all →
             </Link>
           </div>
 
           {upcomingItems.length === 0 ? (
-            <p style={{ color: '#78716C', fontSize: '0.85rem', margin: 0 }}>
+            <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.85rem', margin: 0 }}>
               No upcoming appointments scheduled for future dates.
             </p>
           ) : (
@@ -294,67 +295,67 @@ export const CustomerDashboard = () => {
         </div>
 
         {/* Quick Navigation Shortcuts */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '1.5rem', boxShadow: 'var(--card-shadow)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
-            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.15rem', color: '#211C19', fontWeight: 700, fontFamily: 'Cinzel, serif', paddingBottom: '0.75rem', borderBottom: '1px solid #FAF8F3' }}>
+            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.15rem', color: 'var(--lp-text)', fontWeight: 700, fontFamily: 'Cinzel, serif', paddingBottom: '0.75rem', borderBottom: '1px solid var(--lp-border)' }}>
               Quick Actions
             </h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div
                 onClick={() => navigate('/organizations')}
-                style={{ padding: '0.85rem', background: '#FAF8F3', borderRadius: '10px', border: '1px solid #E6E1D9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.15s ease' }}
+                style={{ padding: '0.85rem', background: 'var(--lp-bg-subtle)', borderRadius: '10px', border: '1px solid var(--lp-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.15s ease' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <span style={{ fontSize: '1.2rem' }}>🏥</span>
                   <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#211C19' }}>Explore Clinics & Services</div>
-                    <div style={{ fontSize: '0.75rem', color: '#78716C' }}>Find verified partner providers</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--lp-text)' }}>Explore Clinics & Services</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)' }}>Find verified partner providers</div>
                   </div>
                 </div>
-                <span style={{ color: '#5F7A70', fontWeight: 700 }}>→</span>
+                <span style={{ color: 'var(--lp-accent)', fontWeight: 700 }}>→</span>
               </div>
 
               <div
                 onClick={() => navigate('/customer/appointments')}
-                style={{ padding: '0.85rem', background: '#FAF8F3', borderRadius: '10px', border: '1px solid #E6E1D9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.15s ease' }}
+                style={{ padding: '0.85rem', background: 'var(--lp-bg-subtle)', borderRadius: '10px', border: '1px solid var(--lp-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.15s ease' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <span style={{ fontSize: '1.2rem' }}>📋</span>
                   <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#211C19' }}>My Appointments</div>
-                    <div style={{ fontSize: '0.75rem', color: '#78716C' }}>Full appointment & queue history</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--lp-text)' }}>My Appointments</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)' }}>Full appointment & queue history</div>
                   </div>
                 </div>
-                <span style={{ color: '#5F7A70', fontWeight: 700 }}>→</span>
+                <span style={{ color: 'var(--lp-accent)', fontWeight: 700 }}>→</span>
               </div>
 
               <div
                 onClick={() => navigate('/customer/notifications')}
-                style={{ padding: '0.85rem', background: '#FAF8F3', borderRadius: '10px', border: '1px solid #E6E1D9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.15s ease' }}
+                style={{ padding: '0.85rem', background: 'var(--lp-bg-subtle)', borderRadius: '10px', border: '1px solid var(--lp-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.15s ease' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <span style={{ fontSize: '1.2rem' }}>🔔</span>
                   <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#211C19' }}>Notifications Center</div>
-                    <div style={{ fontSize: '0.75rem', color: '#78716C' }}>Queue call-outs & reminders</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--lp-text)' }}>Notifications Center</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)' }}>Queue call-outs & reminders</div>
                   </div>
                 </div>
-                <span style={{ color: '#5F7A70', fontWeight: 700 }}>→</span>
+                <span style={{ color: 'var(--lp-accent)', fontWeight: 700 }}>→</span>
               </div>
 
               <div
                 onClick={() => navigate('/customer/reviews')}
-                style={{ padding: '0.85rem', background: '#FAF8F3', borderRadius: '10px', border: '1px solid #E6E1D9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.15s ease' }}
+                style={{ padding: '0.85rem', background: 'var(--lp-bg-subtle)', borderRadius: '10px', border: '1px solid var(--lp-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.15s ease' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <span style={{ fontSize: '1.2rem' }}>★</span>
                   <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#211C19' }}>My Reviews</div>
-                    <div style={{ fontSize: '0.75rem', color: '#78716C' }}>Rate completed consultations</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--lp-text)' }}>My Reviews</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)' }}>Rate completed consultations</div>
                   </div>
                 </div>
-                <span style={{ color: '#5F7A70', fontWeight: 700 }}>→</span>
+                <span style={{ color: 'var(--lp-accent)', fontWeight: 700 }}>→</span>
               </div>
             </div>
           </div>
@@ -364,18 +365,18 @@ export const CustomerDashboard = () => {
       {/* Saved & Recently Viewed Clinics Section */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '1.75rem' }}>
         {/* Saved Favorites Widget */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid #FAF8F3' }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#211C19', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
+        <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '1.5rem', boxShadow: 'var(--card-shadow)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--lp-border)' }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--lp-text)', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
               ❤️ Saved Clinics ({savedFavorites.length})
             </h3>
-            <Link to="/favorites" style={{ fontSize: '0.8rem', color: '#5F7A70', fontWeight: 600, textDecoration: 'none' }}>
+            <Link to="/favorites" style={{ fontSize: '0.8rem', color: 'var(--lp-accent)', fontWeight: 600, textDecoration: 'none' }}>
               View all →
             </Link>
           </div>
 
           {savedFavorites.length === 0 ? (
-            <p style={{ color: '#78716C', fontSize: '0.85rem', margin: 0 }}>
+            <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.85rem', margin: 0 }}>
               No bookmarked clinics yet. Click heart icons on clinic profiles to save them here.
             </p>
           ) : (
@@ -384,13 +385,13 @@ export const CustomerDashboard = () => {
                 <div
                   key={org.id}
                   onClick={() => navigate(`/organizations/${org.id}`)}
-                  style={{ padding: '0.75rem', background: '#FAF8F3', borderRadius: '10px', border: '1px solid #E6E1D9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                  style={{ padding: '0.75rem', background: 'var(--lp-bg-subtle)', borderRadius: '10px', border: '1px solid var(--lp-border)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 >
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#211C19' }}>{org.name}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#78716C' }}>{org.category || 'HEALTHCARE'} • ★ {org.rating || '4.9'}</div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--lp-text)' }}>{org.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)' }}>{org.category || 'HEALTHCARE'} • ★ {org.rating || '4.9'}</div>
                   </div>
-                  <span style={{ fontSize: '0.85rem', color: '#5F7A70', fontWeight: 600 }}>Book →</span>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--lp-accent)', fontWeight: 600 }}>Book →</span>
                 </div>
               ))}
             </div>
@@ -398,16 +399,16 @@ export const CustomerDashboard = () => {
         </div>
 
         {/* Recently Viewed Widget */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid #FAF8F3' }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#211C19', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
+        <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '1.5rem', boxShadow: 'var(--card-shadow)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--lp-border)' }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--lp-text)', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
               🕒 Recently Viewed Clinics
             </h3>
-            <span style={{ fontSize: '0.8rem', color: '#78716C' }}>History</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)' }}>History</span>
           </div>
 
           {recentlyViewed.length === 0 ? (
-            <p style={{ color: '#78716C', fontSize: '0.85rem', margin: 0 }}>
+            <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.85rem', margin: 0 }}>
               No recently viewed clinics. Explore clinics to keep track of your browsing history.
             </p>
           ) : (
@@ -416,13 +417,13 @@ export const CustomerDashboard = () => {
                 <div
                   key={org.id}
                   onClick={() => navigate(`/organizations/${org.id}`)}
-                  style={{ padding: '0.75rem', background: '#FAF8F3', borderRadius: '10px', border: '1px solid #E6E1D9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                  style={{ padding: '0.75rem', background: 'var(--lp-bg-subtle)', borderRadius: '10px', border: '1px solid var(--lp-border)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 >
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#211C19' }}>{org.name}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#78716C' }}>{org.category || 'HEALTHCARE'}</div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--lp-text)' }}>{org.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)' }}>{org.category || 'HEALTHCARE'}</div>
                   </div>
-                  <span style={{ fontSize: '0.85rem', color: '#5F7A70', fontWeight: 600 }}>View →</span>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--lp-accent)', fontWeight: 600 }}>View →</span>
                 </div>
               ))}
             </div>

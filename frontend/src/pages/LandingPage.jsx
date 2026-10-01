@@ -36,8 +36,8 @@ const BookmarkIcon = ({ active = false, size = 18 }) => (
     width={size}
     height={size}
     viewBox="0 0 24 24"
-    fill={active ? '#5F7A70' : 'none'}
-    stroke={active ? '#5F7A70' : '#78716C'}
+    fill={active ? 'var(--lp-sage)' : 'none'}
+    stroke={active ? 'var(--lp-sage)' : 'var(--lp-muted)'}
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
@@ -46,7 +46,6 @@ const BookmarkIcon = ({ active = false, size = 18 }) => (
     <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
   </svg>
 );
-
 
 /* ─── Intersection Observer Hook for scroll-triggered animations ─────── */
 function useInView(options = {}) {
@@ -222,41 +221,41 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
     <div
       ref={ref}
       style={{
-        background: '#FAF8F3',
+        background: 'var(--lp-surface)',
         borderRadius: '24px',
-        border: '1px solid #E6E1D9',
+        border: '1px solid var(--lp-border)',
         padding: '2.25rem',
         margin: '2.5rem auto 1.5rem auto',
         maxWidth: '1150px',
         width: '100%',
-        boxShadow: '0 10px 35px rgba(47, 37, 32, 0.06)',
+        boxShadow: 'var(--shadow-md)',
         opacity: inView ? 1 : 0,
         transform: inView ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.98)',
         transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#5F7A70', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--lp-sage)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           <span>📅</span> Instant Availability Lookup
         </div>
-        <span style={{ fontSize: '0.75rem', color: '#78716C', background: '#FFFFFF', padding: '0.2rem 0.65rem', borderRadius: '999px', border: '1px solid #E6E1D9' }}>
+        <span style={{ fontSize: '0.75rem', color: 'var(--lp-muted)', background: 'var(--lp-bg-subtle)', padding: '0.2rem 0.65rem', borderRadius: '999px', border: '1px solid var(--lp-border)' }}>
           Live Telemetry Sync
         </span>
       </div>
 
-      <h3 style={{ fontSize: '1.45rem', color: '#211C19', margin: '0 0 1.5rem 0', fontFamily: 'Cinzel, serif', fontWeight: 700 }}>
+      <h3 style={{ fontSize: '1.45rem', color: 'var(--lp-text)', margin: '0 0 1.5rem 0', fontWeight: 700 }}>
         Need an appointment today? Check live open slots across clinics
       </h3>
 
       <form onSubmit={handleCheckSlots} className="lp-availability-form">
         <div>
-          <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: '#78716C', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
+          <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: 'var(--lp-muted)', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
             Category
           </label>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E6E1D9', background: '#FFFFFF', fontSize: '0.875rem', color: '#211C19', outline: 'none' }}
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--lp-border)', background: 'var(--lp-bg)', fontSize: '0.875rem', color: 'var(--lp-text)', outline: 'none' }}
           >
             <option value="ALL">All Categories</option>
             <option value="HEALTHCARE">Healthcare</option>
@@ -268,13 +267,13 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: '#78716C', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
+          <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: 'var(--lp-muted)', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
             Select Clinic / Store
           </label>
           <select
             value={selectedOrgId}
             onChange={(e) => setSelectedOrgId(e.target.value)}
-            style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E6E1D9', background: '#FFFFFF', fontSize: '0.875rem', color: '#211C19', outline: 'none' }}
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--lp-border)', background: 'var(--lp-bg)', fontSize: '0.875rem', color: 'var(--lp-text)', outline: 'none' }}
           >
             {filteredOrgs.length === 0 ? (
               <option value="">No clinics available</option>
@@ -287,13 +286,13 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: '#78716C', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
+          <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: 'var(--lp-muted)', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
             Select Service
           </label>
           <select
             value={selectedServiceId}
             onChange={(e) => setSelectedServiceId(e.target.value)}
-            style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E6E1D9', background: '#FFFFFF', fontSize: '0.875rem', color: '#211C19', outline: 'none' }}
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--lp-border)', background: 'var(--lp-bg)', fontSize: '0.875rem', color: 'var(--lp-text)', outline: 'none' }}
           >
             {services.length === 0 ? (
               <option value="">No services available</option>
@@ -306,13 +305,13 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: '#78716C', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
+          <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: 'var(--lp-muted)', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
             Specialist / Doctor
           </label>
           <select
             value={selectedProviderId}
             onChange={(e) => setSelectedProviderId(e.target.value)}
-            style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E6E1D9', background: '#FFFFFF', fontSize: '0.875rem', color: '#211C19', outline: 'none' }}
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--lp-border)', background: 'var(--lp-bg)', fontSize: '0.875rem', color: 'var(--lp-text)', outline: 'none' }}
           >
             <option value="ANY">Any Specialist / Doctor</option>
             {providers.map(p => {
@@ -327,13 +326,13 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: '#78716C', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
+          <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: 'var(--lp-muted)', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
             Time Preference
           </label>
           <select
             value={timePref}
             onChange={(e) => setTimePref(e.target.value)}
-            style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E6E1D9', background: '#FFFFFF', fontSize: '0.875rem', color: '#211C19', outline: 'none' }}
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--lp-border)', background: 'var(--lp-bg)', fontSize: '0.875rem', color: 'var(--lp-text)', outline: 'none' }}
           >
             <option value="ANY">Any Time Slot</option>
             <option value="MORNING">Morning (8 AM - 12 PM)</option>
@@ -343,7 +342,7 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: '#78716C', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
+          <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: 'var(--lp-muted)', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
             Appointment Date
           </label>
           <input
@@ -351,7 +350,7 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
             value={date}
             onChange={(e) => setDate(e.target.value)}
             min={new Date().toISOString().split('T')[0]}
-            style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E6E1D9', background: '#FFFFFF', fontSize: '0.875rem', color: '#211C19', outline: 'none' }}
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--lp-border)', background: 'var(--lp-bg)', fontSize: '0.875rem', color: 'var(--lp-text)', outline: 'none' }}
           />
         </div>
 
@@ -362,7 +361,7 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
             style={{
               width: '100%',
               padding: '0.85rem 1.5rem',
-              background: loading ? '#8FA39C' : '#5F7A70',
+              background: loading ? 'var(--lp-muted)' : 'var(--lp-sage)',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: '12px',
@@ -379,8 +378,8 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
       </form>
 
       {searched && (
-        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #E6E1D9' }}>
-          <div style={{ fontSize: '0.925rem', fontWeight: 700, color: '#211C19', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--lp-border)' }}>
+          <div style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span>⚡</span>
             {slots.length > 0
               ? `Serial Queue Appointments Available for ${date}`
@@ -392,7 +391,7 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
                 onClick={() => navigate(`/customer/book?service_id=${selectedServiceId}&provider_id=${selectedProviderId || ''}&date=${date}`)}
                 style={{
                   padding: '0.75rem 1rem',
-                  background: '#5F7A70',
+                  background: 'var(--lp-sage)',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: '10px',
@@ -429,10 +428,10 @@ const CategoryDiscoverySection = () => {
       ref={ref}
       style={{ margin: '3.5rem auto 2rem auto', maxWidth: '1150px', padding: '0 1.5rem', textAlign: 'center' }}
     >
-      <span style={{ color: '#5F7A70', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <span style={{ color: 'var(--lp-sage)', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         Service Categorization
       </span>
-      <h2 style={{ fontFamily: 'Cinzel, serif', fontSize: '2rem', color: '#211C19', marginTop: '0.25rem', marginBottom: '1.75rem' }}>
+      <h2 style={{ fontSize: '2rem', color: 'var(--lp-text)', marginTop: '0.25rem', marginBottom: '1.75rem' }}>
         Browse by Service Category
       </h2>
 
@@ -451,17 +450,16 @@ const CategoryDiscoverySection = () => {
             key={cat.title}
             to={`/organizations?category=${encodeURIComponent(cat.title)}`}
             style={{
-              background: '#FFFFFF',
+              background: 'var(--lp-surface)',
               borderRadius: '16px',
-              border: '1px solid #E6E1D9',
+              border: '1px solid var(--lp-border)',
               padding: '1.5rem 0.75rem',
               textDecoration: 'none',
-              color: '#211C19',
+              color: 'var(--lp-text)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              boxShadow: '0 4px 16px rgba(47, 37, 32, 0.03)',
-              // Entrance animation re-triggered every time scrolled into view
+              boxShadow: 'var(--shadow-xs)',
               opacity: inView ? 1 : 0,
               transform: inView ? 'translateY(0) scale(1)' : 'translateY(35px) scale(0.92)',
               transition: `opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 0.08}s, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 0.08}s, box-shadow 0.25s ease`,
@@ -469,19 +467,19 @@ const CategoryDiscoverySection = () => {
             onMouseEnter={e => {
               if (inView) {
                 e.currentTarget.style.transform = 'translateY(-6px) scale(1.03)';
-                e.currentTarget.style.boxShadow = '0 12px 28px rgba(47, 37, 32, 0.12)';
+                e.currentTarget.style.boxShadow = 'var(--shadow-md)';
               }
             }}
             onMouseLeave={e => {
               if (inView) {
                 e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                e.currentTarget.style.boxShadow = '0 4px 16px rgba(47, 37, 32, 0.03)';
+                e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
               }
             }}
           >
             <span style={{ fontSize: '2.4rem', marginBottom: '0.5rem', display: 'inline-block', transition: 'transform 0.3s ease' }}>{cat.icon}</span>
             <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1.05rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{cat.title}</h4>
-            <span style={{ fontSize: '0.75rem', color: '#78716C', lineHeight: 1.3 }}>{cat.count}</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--lp-muted)', lineHeight: 1.3 }}>{cat.count}</span>
           </Link>
         ))}
       </div>
@@ -519,14 +517,14 @@ const TestimonialsSection = () => {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', textAlign: 'left' }}>
           {reviews.map((rev) => (
-            <div key={rev.id} style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E6E1D9', padding: '1.75rem', boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)' }}>
-              <div style={{ display: 'flex', color: '#B06D2E', fontSize: '1.1rem', marginBottom: '0.75rem' }}>
+            <div key={rev.id} style={{ background: 'var(--lp-surface)', borderRadius: '16px', border: '1px solid var(--lp-border)', padding: '1.75rem', boxShadow: 'var(--shadow-xs)' }}>
+              <div style={{ display: 'flex', color: 'var(--color-warning)', fontSize: '1.1rem', marginBottom: '0.75rem' }}>
                 {[1, 2, 3, 4, 5].map(s => <span key={s}>{s <= rev.rating ? '★' : '☆'}</span>)}
               </div>
-              <p style={{ color: '#211C19', fontSize: '0.95rem', lineHeight: 1.5, margin: '0 0 1rem 0' }}>
+              <p style={{ color: 'var(--lp-text)', fontSize: '0.95rem', lineHeight: 1.5, margin: '0 0 1rem 0' }}>
                 "{rev.comment || 'Smooth check-in experience and minimal wait time.'}"
               </p>
-              <div style={{ fontSize: '0.8rem', color: '#78716C', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--lp-muted)', fontWeight: 600 }}>
                 {rev.customer_email ? rev.customer_email.split('@')[0] : 'Verified Customer'}
               </div>
             </div>
@@ -587,12 +585,12 @@ const LocalStorageDiscoveryWidgets = () => {
     >
       <div
         style={{
-          background: '#FAF8F3',
+          background: 'var(--lp-surface)',
           borderRadius: '24px',
-          border: '1px solid #E6E1D9',
+          border: '1px solid var(--lp-border)',
           padding: '2rem 2.25rem',
           width: '100%',
-          boxShadow: '0 10px 35px rgba(47, 37, 32, 0.05)',
+          boxShadow: 'var(--shadow-md)',
           opacity: inView ? 1 : 0,
           transform: inView ? 'translateY(0)' : 'translateY(35px)',
           transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
@@ -600,14 +598,14 @@ const LocalStorageDiscoveryWidgets = () => {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div style={{ textAlign: 'left' }}>
-            <span style={{ color: '#5F7A70', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.25rem' }}>
+            <span style={{ color: 'var(--lp-sage)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.25rem' }}>
               ⚡ Instant Quick Access
             </span>
-            <h3 style={{ margin: 0, fontSize: '1.4rem', color: '#211C19', fontWeight: 700, fontFamily: 'Cinzel, serif', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <h3 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--lp-text)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <span>🕒</span> Recently Viewed Clinics & Organizations
             </h3>
           </div>
-          <span style={{ fontSize: '0.8rem', color: '#78716C', background: '#FFFFFF', padding: '0.3rem 0.85rem', borderRadius: '999px', border: '1px solid #E6E1D9', fontWeight: 600 }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--lp-muted)', background: 'var(--lp-bg-subtle)', padding: '0.3rem 0.85rem', borderRadius: '999px', border: '1px solid var(--lp-border)', fontWeight: 600 }}>
             {recentItems.length} Clinic{recentItems.length > 1 ? 's' : ''} Listed
           </span>
         </div>
@@ -627,16 +625,16 @@ const LocalStorageDiscoveryWidgets = () => {
               key={item.id}
               to={`/organizations/${item.id}`}
               style={{
-                background: '#FFFFFF',
+                background: 'var(--lp-bg)',
                 padding: '1.25rem 1.5rem',
                 borderRadius: '16px',
-                border: '1px solid #E6E1D9',
+                border: '1px solid var(--lp-border)',
                 textDecoration: 'none',
-                color: '#211C19',
+                color: 'var(--lp-text)',
                 display: 'flex',
                 justify: 'space-between',
                 alignItems: 'center',
-                boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
+                boxShadow: 'var(--shadow-xs)',
                 opacity: inView ? 1 : 0,
                 transform: inView ? 'translateY(0) scale(1)' : 'translateY(25px) scale(0.95)',
                 transition: `opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 0.1}s, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 0.1}s, box-shadow 0.25s ease, border-color 0.25s ease`
@@ -644,27 +642,27 @@ const LocalStorageDiscoveryWidgets = () => {
               onMouseEnter={e => {
                 if (inView) {
                   e.currentTarget.style.transform = 'translateY(-4px) scale(1.015)';
-                  e.currentTarget.style.boxShadow = '0 12px 28px rgba(47, 37, 32, 0.12)';
-                  e.currentTarget.style.borderColor = '#5F7A70';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                  e.currentTarget.style.borderColor = 'var(--lp-sage)';
                 }
               }}
               onMouseLeave={e => {
                 if (inView) {
                   e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(47, 37, 32, 0.04)';
-                  e.currentTarget.style.borderColor = '#E6E1D9';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
+                  e.currentTarget.style.borderColor = 'var(--lp-border)';
                 }
               }}
             >
               <div>
-                <strong style={{ fontSize: '1.05rem', display: 'block', marginBottom: '0.3rem', color: '#211C19', fontFamily: 'Outfit, sans-serif' }}>
+                <strong style={{ fontSize: '1.05rem', display: 'block', marginBottom: '0.3rem', color: 'var(--lp-text)' }}>
                   {item.name}
                 </strong>
-                <span style={{ fontSize: '0.8rem', color: '#78716C', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ color: '#B06D2E', fontWeight: 700 }}>★ {item.rating || '4.9'}</span> · {item.category || 'HEALTHCARE'}
+                <span style={{ fontSize: '0.8rem', color: 'var(--lp-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ color: 'var(--color-warning)', fontWeight: 700 }}>★ {item.rating || '4.9'}</span> · {item.category || 'HEALTHCARE'}
                 </span>
               </div>
-              <span style={{ color: '#5F7A70', fontWeight: 700, fontSize: '0.9rem', background: '#F5EFE6', padding: '0.45rem 0.9rem', borderRadius: '8px', whiteSpace: 'nowrap' }}>
+              <span style={{ color: 'var(--lp-sage)', fontWeight: 700, fontSize: '0.9rem', background: 'var(--lp-sage-bg)', padding: '0.45rem 0.9rem', borderRadius: '8px', whiteSpace: 'nowrap' }}>
                 Book →
               </span>
             </Link>
@@ -723,23 +721,23 @@ const FeaturedOrganizationsSection = ({ onOrgLoaded }) => {
         textAlign: 'center'
       }}
     >
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#F5EFE6', color: '#5F7A70', padding: '0.35rem 0.85rem', borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'var(--lp-sage-bg)', color: 'var(--lp-sage)', padding: '0.35rem 0.85rem', borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem' }}>
         <span>🏥</span> Verified Partner Network
       </div>
-      <h2 style={{ fontFamily: 'Cinzel, serif', fontSize: '2rem', color: '#211C19', marginBottom: '0.5rem' }}>
+      <h2 style={{ fontSize: '2rem', color: 'var(--lp-text)', marginBottom: '0.5rem' }}>
         Popular Care Providers & Clinics
       </h2>
-      <p style={{ color: '#78716C', maxWidth: '600px', margin: '0 auto 2.5rem auto', fontSize: '0.95rem' }}>
+      <p style={{ color: 'var(--lp-muted)', maxWidth: '600px', margin: '0 auto 2.5rem auto', fontSize: '0.95rem' }}>
         Explore top-rated medical centers, diagnostic clinics, and wellness facilities offering instant online booking and live queue telemetry.
       </p>
 
       {loading ? (
         <div className="lp-featured-grid">
           {[1, 2, 3].map(i => (
-            <div key={i} style={{ background: '#FAF8F3', borderRadius: '16px', border: '1px solid #E6E1D9', padding: '1.75rem', height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#E6E1D9', marginBottom: '1rem', animation: 'pulse 1.5s infinite' }} />
-              <div style={{ width: '60%', height: '16px', background: '#E6E1D9', borderRadius: '4px', marginBottom: '0.5rem' }} />
-              <div style={{ width: '40%', height: '12px', background: '#E6E1D9', borderRadius: '4px' }} />
+            <div key={i} style={{ background: 'var(--lp-surface)', borderRadius: '16px', border: '1px solid var(--lp-border)', padding: '1.75rem', height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--lp-border)', marginBottom: '1rem', animation: 'pulse 1.5s infinite' }} />
+              <div style={{ width: '60%', height: '16px', background: 'var(--lp-border)', borderRadius: '4px', marginBottom: '0.5rem' }} />
+              <div style={{ width: '40%', height: '12px', background: 'var(--lp-border)', borderRadius: '4px' }} />
             </div>
           ))}
         </div>
@@ -756,14 +754,14 @@ const FeaturedOrganizationsSection = ({ onOrgLoaded }) => {
               <div
                 key={org.id}
                 style={{
-                  background: '#FFFFFF',
+                  background: 'var(--lp-surface)',
                   borderRadius: '16px',
-                  border: '1px solid #E6E1D9',
+                  border: '1px solid var(--lp-border)',
                   padding: '1.75rem',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
+                  boxShadow: 'var(--shadow-xs)',
                   opacity: inView ? 1 : 0,
                   transform: inView ? 'translateY(0) scale(1)' : 'translateY(35px) scale(0.95)',
                   transition: `opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 0.12}s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 0.12}s, box-shadow 0.25s ease`,
@@ -773,24 +771,24 @@ const FeaturedOrganizationsSection = ({ onOrgLoaded }) => {
                 onMouseEnter={e => {
                   if (inView) {
                     e.currentTarget.style.transform = 'translateY(-6px) scale(1.02)';
-                    e.currentTarget.style.boxShadow = '0 14px 32px rgba(47, 37, 32, 0.12)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
                   }
                 }}
                 onMouseLeave={e => {
                   if (inView) {
                     e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(47, 37, 32, 0.04)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
                   }
                 }}
               >
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                    <span style={{ background: '#FAF8F3', color: '#5F7A70', border: '1px solid #E6E1D9', fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem 0.6rem', borderRadius: '6px' }}>
+                    <span style={{ background: 'var(--lp-bg-subtle)', color: 'var(--lp-sage)', border: '1px solid var(--lp-border)', fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem 0.6rem', borderRadius: '6px' }}>
                       {org.category || 'HEALTHCARE'}
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', fontWeight: 700, color: '#B06D2E' }}>
-                        ★ {rating} <span style={{ fontWeight: 400, color: '#78716C', fontSize: '0.75rem' }}>({reviewsCount})</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-warning)' }}>
+                        ★ {rating} <span style={{ fontWeight: 400, color: 'var(--lp-muted)', fontSize: '0.75rem' }}>({reviewsCount})</span>
                       </span>
                       <button
                         onClick={(e) => handleToggleFav(e, org)}
@@ -802,17 +800,17 @@ const FeaturedOrganizationsSection = ({ onOrgLoaded }) => {
                     </div>
                   </div>
 
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#211C19', marginBottom: '0.4rem', fontFamily: 'Outfit, sans-serif' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.4rem' }}>
                     {org.name}
                   </h3>
 
-                  <p style={{ color: '#78716C', fontSize: '0.85rem', lineHeight: '1.4', marginBottom: '1rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  <p style={{ color: 'var(--lp-muted)', fontSize: '0.85rem', lineHeight: '1.4', marginBottom: '1rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     {org.description || 'Providing world-class medical and wellness services with online queue management.'}
                   </p>
                 </div>
 
                 <div>
-                  <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 0', borderTop: '1px solid #FAF8F3', borderBottom: '1px solid #FAF8F3', marginBottom: '1.25rem', fontSize: '0.8rem', color: '#5C544E' }}>
+                  <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 0', borderTop: '1px solid var(--lp-border-subtle)', borderBottom: '1px solid var(--lp-border-subtle)', marginBottom: '1.25rem', fontSize: '0.8rem', color: 'var(--lp-text-sec)' }}>
                     <span>⚡ <strong>{servicesCount}</strong> Services</span>
                     <span>👨‍⚕️ <strong>{providersCount}</strong> Doctors</span>
                   </div>
@@ -826,7 +824,7 @@ const FeaturedOrganizationsSection = ({ onOrgLoaded }) => {
                       gap: '0.4rem',
                       width: '100%',
                       padding: '0.7rem',
-                      background: '#5F7A70',
+                      background: 'var(--lp-sage)',
                       color: '#FFFFFF',
                       borderRadius: '8px',
                       fontWeight: 600,
@@ -852,13 +850,13 @@ const FeaturedOrganizationsSection = ({ onOrgLoaded }) => {
             alignItems: 'center',
             gap: '0.5rem',
             padding: '0.85rem 1.75rem',
-            background: '#2F2520',
-            color: '#FAF8F3',
+            background: 'var(--lp-btn-primary-bg)',
+            color: 'var(--lp-btn-primary-text)',
             borderRadius: '10px',
             fontWeight: 600,
             fontSize: '0.95rem',
             textDecoration: 'none',
-            boxShadow: '0 4px 12px rgba(47, 37, 32, 0.15)',
+            boxShadow: 'var(--shadow-md)',
             transition: 'all 0.2s ease'
           }}
         >
@@ -958,30 +956,20 @@ export const LandingPage = () => {
           {/* Hero Search Bar */}
           <form
             onSubmit={handleHeroSearch}
-            style={{
-              display: 'flex',
-              maxWidth: '560px',
-              margin: '1.75rem auto 1.5rem auto',
-              background: '#FFFFFF',
-              borderRadius: '9999px',
-              padding: '0.35rem 0.35rem 0.35rem 1.25rem',
-              boxShadow: '0 12px 32px rgba(47, 37, 32, 0.12)',
-              border: '1px solid #E6E1D9',
-              alignItems: 'center',
-            }}
+            className="lp-hero-search-form"
           >
-            <span style={{ color: '#78716C', display: 'flex', alignItems: 'center' }}><IconSearch /></span>
+            <span style={{ color: 'var(--lp-muted)', display: 'flex', alignItems: 'center' }}><IconSearch /></span>
             <input
               type="text"
               placeholder="Search clinics, services, or doctors..."
               value={heroSearchQuery}
               onChange={(e) => setHeroSearchQuery(e.target.value)}
-              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', padding: '0.65rem 0.75rem', fontSize: '0.95rem', color: '#211C19' }}
+              className="lp-hero-search-input"
             />
             <button
               type="submit"
               style={{
-                background: '#5F7A70',
+                background: 'var(--lp-sage)',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: '9999px',

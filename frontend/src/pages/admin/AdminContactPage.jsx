@@ -6,17 +6,17 @@ import { useToast } from '../../contexts/ToastContext';
 
 const STATUS_TABS = [
   { key: 'ALL', label: 'All Inquiries' },
-  { key: 'NEW', label: 'New', badgeBg: '#FEF3C7', badgeColor: '#B45309' },
-  { key: 'IN_REVIEW', label: 'In Review', badgeBg: '#DBEAFE', badgeColor: '#1E40AF' },
-  { key: 'REPLIED', label: 'Replied', badgeBg: 'rgba(95, 122, 112, 0.15)', badgeColor: '#5F7A70' },
-  { key: 'CLOSED', label: 'Closed', badgeBg: '#F3F4F6', badgeColor: '#4B5563' },
+  { key: 'NEW', label: 'New' },
+  { key: 'IN_REVIEW', label: 'In Review' },
+  { key: 'REPLIED', label: 'Replied' },
+  { key: 'CLOSED', label: 'Closed' },
 ];
 
 const STATUS_BADGE_STYLE = {
-  NEW: { bg: '#FEF3C7', color: '#B45309', label: 'New' },
-  IN_REVIEW: { bg: '#DBEAFE', color: '#1E40AF', label: 'In Review' },
-  REPLIED: { bg: 'rgba(95, 122, 112, 0.15)', color: '#5F7A70', label: 'Replied' },
-  CLOSED: { bg: '#F3F4F6', color: '#4B5563', label: 'Closed' },
+  NEW: { bg: 'var(--color-warning-bg, rgba(245, 158, 11, 0.15))', color: 'var(--color-warning)', label: 'New' },
+  IN_REVIEW: { bg: 'var(--color-info-bg, rgba(14, 165, 233, 0.15))', color: 'var(--color-info, #0284c7)', label: 'In Review' },
+  REPLIED: { bg: 'var(--color-success-bg, rgba(34, 197, 94, 0.15))', color: 'var(--color-success)', label: 'Replied' },
+  CLOSED: { bg: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', label: 'Closed' },
 };
 
 export function AdminContactPage() {
@@ -157,28 +157,28 @@ export function AdminContactPage() {
   };
 
   return (
-    <div className="animate-page-entrance" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="app-container animate-page-entrance">
       {/* Header Banner */}
       <div style={{ marginBottom: '1.75rem' }}>
-        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', marginBottom: '0.25rem', letterSpacing: '0.05em' }}>
+        <span className="badge badge-danger" style={{ marginBottom: '0.4rem' }}>
           ⚡ Platform Support & Governance
-        </div>
-        <h1 style={{ fontSize: '1.75rem', color: '#211C19', margin: '0 0 0.4rem 0', fontFamily: 'Cinzel, serif' }}>
+        </span>
+        <h1 style={{ marginTop: '0.25rem' }}>
           Admin Contact Inbox
         </h1>
-        <p style={{ color: '#78716C', margin: 0, fontSize: '0.95rem' }}>
+        <p className="subtitle" style={{ marginTop: '0.25rem' }}>
           System-wide customer support inquiries and visitor feedback management.
         </p>
       </div>
 
       {/* Main Inbox Container */}
       <div
+        className="card"
         style={{
-          background: '#FFFFFF',
-          border: '1px solid #E6E1D9',
-          borderRadius: '16px',
-          boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
+          backgroundColor: 'var(--color-surface)',
+          borderColor: 'var(--color-border)',
           overflow: 'hidden',
+          padding: 0,
         }}
       >
         {/* Status Tabs */}
@@ -188,8 +188,8 @@ export function AdminContactPage() {
             alignItems: 'center',
             gap: '0.5rem',
             padding: '1rem 1.5rem',
-            borderBottom: '1px solid #E6E1D9',
-            backgroundColor: '#FAF8F5',
+            borderBottom: '1px solid var(--color-border)',
+            backgroundColor: 'var(--color-bg-subtle)',
             overflowX: 'auto',
           }}
         >
@@ -204,10 +204,10 @@ export function AdminContactPage() {
                 }}
                 style={{
                   padding: '0.5rem 1rem',
-                  borderRadius: '9999px',
-                  border: isActive ? '1px solid #2F2520' : '1px solid #E6E1D9',
-                  background: isActive ? '#2F2520' : '#FFFFFF',
-                  color: isActive ? '#FAF8F3' : '#44403C',
+                  borderRadius: 'var(--radius-full)',
+                  border: isActive ? '1px solid var(--lp-accent)' : '1px solid var(--color-border)',
+                  background: isActive ? 'var(--lp-accent)' : 'var(--color-surface)',
+                  color: isActive ? 'var(--color-surface)' : 'var(--lp-text-subtle)',
                   fontSize: '0.85rem',
                   fontWeight: isActive ? 700 : 500,
                   cursor: 'pointer',
@@ -225,9 +225,9 @@ export function AdminContactPage() {
         </div>
 
         {/* Search & Filter Controls */}
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #F0ECE1', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ position: 'relative', minWidth: '280px', flex: 1 }}>
-            <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#A8A29E' }}>
+            <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--lp-text-subtle)' }}>
               🔍
             </span>
             <input
@@ -242,17 +242,17 @@ export function AdminContactPage() {
                 width: '100%',
                 padding: '0.55rem 0.85rem 0.55rem 2.4rem',
                 fontSize: '0.875rem',
-                border: '1px solid #E6E1D9',
-                borderRadius: '8px',
-                background: '#FFFFFF',
-                color: '#211C19',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--color-bg-subtle)',
+                color: 'var(--lp-text)',
                 outline: 'none',
               }}
             />
           </div>
 
-          <div style={{ fontSize: '0.85rem', color: '#78716C', fontWeight: 600 }}>
-            Total Inquiries: <span style={{ color: '#211C19', fontWeight: 800 }}>{totalCount}</span>
+          <div className="text-xs text-muted font-semibold">
+            Total Inquiries: <strong>{totalCount}</strong>
           </div>
         </div>
 
@@ -262,7 +262,7 @@ export function AdminContactPage() {
             <LoadingState message="Loading contact messages..." />
           </div>
         ) : error ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#DC2626' }}>
+          <div className="error-banner" style={{ padding: '2rem', textAlign: 'center' }}>
             <p>{error}</p>
             <button className="btn btn-outline btn-sm" onClick={fetchMessages}>
               Retry Loading
@@ -289,46 +289,38 @@ export function AdminContactPage() {
             />
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+          <div className="table-container">
+            <table className="table">
               <thead>
-                <tr style={{ background: '#FAF8F5', borderBottom: '1px solid #E6E1D9', color: '#78716C', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>
-                  <th style={{ padding: '0.85rem 1.5rem', fontWeight: 700 }}>Sender</th>
-                  <th style={{ padding: '0.85rem 1.5rem', fontWeight: 700 }}>Subject & Message</th>
-                  <th style={{ padding: '0.85rem 1.5rem', fontWeight: 700 }}>Status</th>
-                  <th style={{ padding: '0.85rem 1.5rem', fontWeight: 700 }}>Date</th>
-                  <th style={{ padding: '0.85rem 1.5rem', fontWeight: 700, textAlign: 'right' }}>Action</th>
+                <tr>
+                  <th>Sender</th>
+                  <th>Subject & Message</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th style={{ textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {messages.map((msg) => {
-                  const badge = STATUS_BADGE_STYLE[msg.status] || { bg: '#F3F4F6', color: '#4B5563', label: msg.status };
+                  const badge = STATUS_BADGE_STYLE[msg.status] || { bg: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', label: msg.status };
                   return (
-                    <tr
-                      key={msg.id}
-                      style={{
-                        borderBottom: '1px solid #F0ECE1',
-                        transition: 'background 0.15s ease',
-                      }}
-                      className="hover-row"
-                    >
-                      <td style={{ padding: '1rem 1.5rem', verticalAlign: 'top' }}>
-                        <div style={{ fontWeight: 700, color: '#211C19' }}>{msg.name}</div>
-                        <div style={{ color: '#5F7A70', fontSize: '0.8rem', fontWeight: 500 }}>{msg.email}</div>
+                    <tr key={msg.id}>
+                      <td style={{ verticalAlign: 'top' }}>
+                        <div className="font-semibold">{msg.name}</div>
+                        <div className="text-xs font-semibold" style={{ color: 'var(--lp-accent)' }}>{msg.email}</div>
                         {msg.phone && (
-                          <div style={{ color: '#78716C', fontSize: '0.75rem', marginTop: '0.1rem' }}>
+                          <div className="text-xs text-muted" style={{ marginTop: '0.1rem' }}>
                             📞 {msg.phone}
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: '1rem 1.5rem', verticalAlign: 'top', maxWidth: '380px' }}>
-                        <div style={{ fontWeight: 700, color: '#211C19', marginBottom: '0.2rem' }}>
+                      <td style={{ verticalAlign: 'top', maxWidth: '380px' }}>
+                        <div className="font-semibold" style={{ marginBottom: '0.2rem' }}>
                           {msg.subject}
                         </div>
                         <div
+                          className="text-xs text-muted"
                           style={{
-                            color: '#57534E',
-                            fontSize: '0.825rem',
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical',
@@ -339,7 +331,7 @@ export function AdminContactPage() {
                           {msg.message}
                         </div>
                       </td>
-                      <td style={{ padding: '1rem 1.5rem', verticalAlign: 'top' }}>
+                      <td style={{ verticalAlign: 'top' }}>
                         <span
                           style={{
                             display: 'inline-block',
@@ -355,20 +347,13 @@ export function AdminContactPage() {
                           {badge.label}
                         </span>
                       </td>
-                      <td style={{ padding: '1rem 1.5rem', verticalAlign: 'top', color: '#78716C', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                      <td className="text-xs text-muted" style={{ verticalAlign: 'top', whiteSpace: 'nowrap' }}>
                         {formatDate(msg.created_at)}
                       </td>
-                      <td style={{ padding: '1rem 1.5rem', verticalAlign: 'top', textAlign: 'right' }}>
+                      <td style={{ verticalAlign: 'top', textAlign: 'right' }}>
                         <button
                           className="btn btn-outline btn-sm"
                           onClick={() => handleOpenDetail(msg)}
-                          style={{
-                            fontSize: '0.8rem',
-                            padding: '0.35rem 0.75rem',
-                            borderColor: '#D6D1C7',
-                            color: '#2F2520',
-                            fontWeight: 600,
-                          }}
                         >
                           View & Handle
                         </button>
@@ -386,15 +371,15 @@ export function AdminContactPage() {
           <div
             style={{
               padding: '1rem 1.5rem',
-              borderTop: '1px solid #E6E1D9',
-              background: '#FAF8F5',
+              borderTop: '1px solid var(--color-border)',
+              background: 'var(--color-bg-subtle)',
               display: 'flex',
               alignItems: 'center',
-              justify: 'space-between',
+              justifyContent: 'space-between',
             }}
           >
-            <span style={{ fontSize: '0.85rem', color: '#78716C' }}>Page {page}</span>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <span className="text-xs text-muted font-semibold">Page {page}</span>
+            <div className="flex gap-xs">
               <button
                 className="btn btn-outline btn-sm"
                 disabled={!hasPrevPage && page === 1}
@@ -420,26 +405,28 @@ export function AdminContactPage() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(33, 28, 25, 0.55)',
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
             backdropFilter: 'blur(3px)',
             display: 'flex',
             alignItems: 'center',
-            justify: 'center',
+            justifyContent: 'center',
             zIndex: 1000,
             padding: '1.5rem',
           }}
           onClick={() => setSelectedMessage(null)}
         >
           <div
+            className="card"
             style={{
-              background: '#FFFFFF',
-              borderRadius: '16px',
+              backgroundColor: 'var(--color-surface)',
+              borderRadius: 'var(--radius-lg)',
               maxWidth: '650px',
               width: '100%',
               maxHeight: '90vh',
               overflowY: 'auto',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-              border: '1px solid #E6E1D9',
+              boxShadow: 'var(--shadow-lg)',
+              border: '1px solid var(--color-border)',
+              padding: 0,
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -447,18 +434,18 @@ export function AdminContactPage() {
             <div
               style={{
                 padding: '1.25rem 1.75rem',
-                borderBottom: '1px solid #E6E1D9',
+                borderBottom: '1px solid var(--color-border)',
                 display: 'flex',
                 alignItems: 'center',
-                justify: 'space-between',
-                background: '#FAF8F5',
+                justifyContent: 'space-between',
+                background: 'var(--color-bg-subtle)',
               }}
             >
               <div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#5F7A70', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <span className="badge badge-info" style={{ marginBottom: '0.2rem' }}>
                   Support Inquiry Detail
                 </span>
-                <h3 style={{ margin: '0.1rem 0 0 0', color: '#211C19', fontSize: '1.2rem', fontFamily: 'Cinzel, serif' }}>
+                <h3 style={{ margin: '0.1rem 0 0 0', fontSize: '1.2rem' }}>
                   {selectedMessage.subject}
                 </h3>
               </div>
@@ -468,7 +455,7 @@ export function AdminContactPage() {
                   background: 'none',
                   border: 'none',
                   fontSize: '1.5rem',
-                  color: '#78716C',
+                  color: 'var(--lp-text-subtle)',
                   cursor: 'pointer',
                   padding: '0.2rem',
                 }}
@@ -486,9 +473,9 @@ export function AdminContactPage() {
                   {/* Sender Metadata Box */}
                   <div
                     style={{
-                      background: '#FAF8F5',
-                      border: '1px solid #E6E1D9',
-                      borderRadius: '12px',
+                      background: 'var(--color-bg-subtle)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: 'var(--radius-md)',
                       padding: '1.25rem',
                       marginBottom: '1.5rem',
                       display: 'grid',
@@ -497,26 +484,26 @@ export function AdminContactPage() {
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: '0.75rem', color: '#78716C', fontWeight: 600, textTransform: 'uppercase' }}>Sender Name</div>
-                      <div style={{ fontWeight: 700, color: '#211C19', fontSize: '0.95rem', marginTop: '0.1rem' }}>{selectedMessage.name}</div>
+                      <div className="text-xs text-muted font-semibold uppercase">Sender Name</div>
+                      <div className="font-semibold" style={{ marginTop: '0.1rem' }}>{selectedMessage.name}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.75rem', color: '#78716C', fontWeight: 600, textTransform: 'uppercase' }}>Email Address</div>
-                      <div style={{ fontWeight: 600, color: '#5F7A70', fontSize: '0.9rem', marginTop: '0.1rem' }}>
-                        <a href={`mailto:${selectedMessage.email}`} style={{ color: '#5F7A70', textDecoration: 'none' }}>
+                      <div className="text-xs text-muted font-semibold uppercase">Email Address</div>
+                      <div className="font-semibold" style={{ marginTop: '0.1rem', color: 'var(--lp-accent)' }}>
+                        <a href={`mailto:${selectedMessage.email}`} style={{ color: 'var(--lp-accent)', textDecoration: 'none' }}>
                           {selectedMessage.email}
                         </a>
                       </div>
                     </div>
                     {selectedMessage.phone && (
                       <div>
-                        <div style={{ fontSize: '0.75rem', color: '#78716C', fontWeight: 600, textTransform: 'uppercase' }}>Phone Number</div>
-                        <div style={{ fontWeight: 600, color: '#211C19', fontSize: '0.9rem', marginTop: '0.1rem' }}>{selectedMessage.phone}</div>
+                        <div className="text-xs text-muted font-semibold uppercase">Phone Number</div>
+                        <div className="font-semibold" style={{ marginTop: '0.1rem' }}>{selectedMessage.phone}</div>
                       </div>
                     )}
                     <div>
-                      <div style={{ fontSize: '0.75rem', color: '#78716C', fontWeight: 600, textTransform: 'uppercase' }}>Submitted At</div>
-                      <div style={{ color: '#44403C', fontSize: '0.85rem', marginTop: '0.1rem' }}>{formatDate(selectedMessage.created_at)}</div>
+                      <div className="text-xs text-muted font-semibold uppercase">Submitted At</div>
+                      <div className="text-xs text-muted" style={{ marginTop: '0.1rem' }}>{formatDate(selectedMessage.created_at)}</div>
                     </div>
                   </div>
 
@@ -525,16 +512,16 @@ export function AdminContactPage() {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      justify: 'space-between',
+                      justifyContent: 'space-between',
                       marginBottom: '1.5rem',
                       flexWrap: 'wrap',
                       gap: '0.75rem',
                       paddingBottom: '1rem',
-                      borderBottom: '1px solid #F0ECE1',
+                      borderBottom: '1px solid var(--color-border)',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontSize: '0.85rem', color: '#78716C', fontWeight: 600 }}>Current Status:</span>
+                      <span className="text-xs text-muted font-semibold">Current Status:</span>
                       <span
                         style={{
                           padding: '0.25rem 0.75rem',
@@ -581,16 +568,15 @@ export function AdminContactPage() {
 
                   {/* Message Body Box */}
                   <div style={{ marginBottom: '1.75rem' }}>
-                    <h4 style={{ fontSize: '0.875rem', color: '#78716C', margin: '0 0 0.5rem 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <h4 className="text-xs text-muted font-semibold uppercase" style={{ marginBottom: '0.5rem' }}>
                       Inquiry Message Body
                     </h4>
                     <div
                       style={{
-                        background: '#FFFFFF',
-                        border: '1px solid #E6E1D9',
-                        borderRadius: '8px',
+                        background: 'var(--color-bg-subtle)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 'var(--radius-md)',
                         padding: '1.25rem',
-                        color: '#211C19',
                         fontSize: '0.925rem',
                         lineHeight: 1.6,
                         whiteSpace: 'pre-wrap',
@@ -604,17 +590,17 @@ export function AdminContactPage() {
                   {selectedMessage.status === 'REPLIED' && selectedMessage.replied_at && (
                     <div
                       style={{
-                        background: 'rgba(95, 122, 112, 0.08)',
-                        border: '1px solid rgba(95, 122, 112, 0.2)',
-                        borderRadius: '10px',
+                        background: 'var(--color-success-bg, rgba(34, 197, 94, 0.12))',
+                        border: '1px solid var(--color-success-border, rgba(34, 197, 94, 0.3))',
+                        borderRadius: 'var(--radius-md)',
                         padding: '1rem',
                         marginBottom: '1.5rem',
                       }}
                     >
-                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#5F7A70', textTransform: 'uppercase', marginBottom: '0.2rem' }}>
+                      <div className="text-xs font-semibold uppercase" style={{ color: 'var(--color-success)', marginBottom: '0.2rem' }}>
                         ✓ Admin Reply Recorded
                       </div>
-                      <div style={{ fontSize: '0.85rem', color: '#211C19' }}>
+                      <div className="text-xs" style={{ color: 'var(--lp-text)' }}>
                         Replied by <strong>{selectedMessage.replied_by_detail?.name || selectedMessage.replied_by_detail?.email || 'Admin'}</strong> on {formatDate(selectedMessage.replied_at)}.
                       </div>
                     </div>
@@ -623,10 +609,10 @@ export function AdminContactPage() {
                   {/* Reply Form */}
                   <form onSubmit={handleSendReply}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                      <label style={{ fontSize: '0.875rem', fontWeight: 700, color: '#211C19' }}>
+                      <label className="form-label font-semibold" style={{ marginBottom: 0 }}>
                         Submit Admin Reply
                       </label>
-                      <span style={{ fontSize: '0.75rem', color: '#78716C' }}>
+                      <span className="text-xs text-muted">
                         {replyText.length} / 5000 chars
                       </span>
                     </div>
@@ -642,17 +628,18 @@ export function AdminContactPage() {
                         width: '100%',
                         padding: '0.85rem',
                         fontSize: '0.875rem',
-                        border: '1px solid #E6E1D9',
-                        borderRadius: '8px',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'var(--color-bg-subtle)',
                         outline: 'none',
                         resize: 'vertical',
-                        color: '#211C19',
+                        color: 'var(--lp-text)',
                         marginBottom: '0.75rem',
                       }}
                     />
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#78716C', fontStyle: 'italic' }}>
+                      <span className="text-xs text-muted" style={{ fontStyle: 'italic' }}>
                         Note: Reply will update inquiry status to REPLIED. Email delivery is handled via Resend.
                       </span>
 

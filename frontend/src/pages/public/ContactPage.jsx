@@ -36,15 +36,15 @@ const IconAlert = () => (
 );
 
 const SK = {
-  bg: '#FAF8F3',
-  surface: '#FFFFFF',
-  border: '#E6E1D9',
-  espresso: '#2F2520',
-  text: '#211C19',
-  muted: '#78716C',
-  sage: '#5F7A70',
-  danger: '#B4534B',
-  success: '#4F7A5A',
+  bg: 'var(--lp-bg, var(--color-bg))',
+  surface: 'var(--lp-surface, var(--color-surface))',
+  border: 'var(--lp-border, var(--color-border))',
+  espresso: 'var(--lp-text, var(--color-text-main))',
+  text: 'var(--lp-text, var(--color-text-main))',
+  muted: 'var(--lp-muted, var(--color-text-muted))',
+  sage: 'var(--lp-sage, var(--color-secondary-accent))',
+  danger: 'var(--color-error)',
+  success: 'var(--color-success)',
 };
 
 const SUBJECT_OPTIONS = [
@@ -284,7 +284,7 @@ export function ContactPage() {
                     setTouched({});
                   }}
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', color: '#FAF8F3', fontWeight: 600, fontSize: '0.9rem' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--color-primary-text)', fontWeight: 600, fontSize: '0.9rem' }}>
                     Send another message
                   </span>
                 </button>
@@ -306,7 +306,7 @@ export function ContactPage() {
                 borderRadius: '16px',
                 border: `1px solid ${SK.border}`,
                 padding: '2rem',
-                boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
+                boxShadow: 'var(--shadow-md)',
               }}
             >
               {/* Submit error banner */}
@@ -320,16 +320,16 @@ export function ContactPage() {
                     alignItems: 'center',
                     gap: '0.6rem',
                     padding: '0.75rem 1rem',
-                    background: '#FDF2F2',
-                    border: '1px solid #F5C6C6',
+                    background: 'var(--color-error-bg)',
+                    border: '1px solid var(--color-error-border)',
                     borderRadius: '10px',
-                    color: '#8C2B2B',
+                    color: 'var(--color-error)',
                     fontSize: '0.85rem',
                     fontWeight: 600,
                     marginBottom: '1.25rem',
                   }}
                 >
-                  <span style={{ color: '#B4534B', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--color-error)', display: 'flex', alignItems: 'center' }}>
                     <IconAlert />
                   </span>
                   {submitError}
@@ -619,7 +619,7 @@ export function ContactPage() {
                   justifyContent: 'center',
                   padding: '0.85rem 1.5rem',
                   background: isSubmitting ? SK.muted : SK.espresso,
-                  color: SK.surface,
+                  color: 'var(--color-primary-text)',
                   border: 'none',
                   borderRadius: '10px',
                   fontSize: '0.95rem',

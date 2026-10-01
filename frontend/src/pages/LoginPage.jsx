@@ -52,7 +52,7 @@ export const LoginPage = () => {
   };
 
   return (
-    <div style={{ backgroundColor: '#FAF8F3', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PublicNavbar activePage="login" />
       <div
         className="animate-page-entrance"
@@ -64,7 +64,7 @@ export const LoginPage = () => {
           padding: '6.5rem 1rem 3rem 1rem',
         }}
       >
-        <div className="card" style={{ width: '100%', maxWidth: '440px', padding: '2.5rem', boxShadow: '0 12px 40px rgba(47, 37, 32, 0.06)', borderRadius: '24px', border: '1px solid #E6E1D9', backgroundColor: '#FFFFFF' }}>
+        <div className="card" style={{ width: '100%', maxWidth: '440px', padding: '2.5rem', boxShadow: 'var(--card-shadow)', borderRadius: '24px', border: '1px solid var(--lp-border)', backgroundColor: 'var(--lp-surface)' }}>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <Link to="/" className="navbar-brand" style={{ justifyContent: 'center', marginBottom: '1.25rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
               <span className="lp-brand-mark" style={{ width: '34px', height: '34px', borderRadius: '9px' }}>
@@ -72,10 +72,10 @@ export const LoginPage = () => {
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                 </svg>
               </span>
-              <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: '#211C19' }}>SmartQueue</span>
+              <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: 'var(--lp-text)' }}>SmartQueue</span>
             </Link>
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.35rem', fontFamily: 'Cinzel, serif', color: '#211C19', fontWeight: 700 }}>Welcome back</h2>
-            <p className="subtitle" style={{ color: '#78716C', fontSize: '0.9rem', margin: 0 }}>Sign in to your SmartQueue account</p>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.35rem', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)', fontWeight: 700 }}>Welcome back</h2>
+            <p className="subtitle" style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem', margin: 0 }}>Sign in to your SmartQueue account</p>
           </div>
 
         {error && (

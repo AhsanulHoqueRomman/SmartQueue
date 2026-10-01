@@ -33,16 +33,16 @@ export const RegistrationProgress = ({ steps = [], currentStep = 1 }) => {
                     fontSize: '0.85rem',
                     transition: 'all 0.3s ease',
                     background: isCompleted
-                      ? '#5F7A70'
+                      ? 'var(--lp-accent)'
                       : isActive
-                      ? '#2F2520'
-                      : '#F3F0EA',
-                    color: isCompleted || isActive ? '#FAF8F3' : '#78716C',
+                      ? 'var(--lp-btn-bg, #2F2520)'
+                      : 'var(--lp-bg-subtle)',
+                    color: isCompleted || isActive ? '#FAF8F3' : 'var(--lp-text-subtle)',
                     border: isActive
-                      ? '2px solid #2F2520'
+                      ? '2px solid var(--lp-btn-bg, #2F2520)'
                       : isCompleted
-                      ? '2px solid #5F7A70'
-                      : '2px solid #E6E1D9',
+                      ? '2px solid var(--lp-accent)'
+                      : '2px solid var(--lp-border)',
                     boxShadow: isActive ? '0 4px 12px rgba(47, 37, 32, 0.2)' : 'none'
                   }}
                 >
@@ -52,7 +52,7 @@ export const RegistrationProgress = ({ steps = [], currentStep = 1 }) => {
                   style={{
                     fontSize: '0.85rem',
                     fontWeight: isActive ? 700 : isCompleted ? 600 : 500,
-                    color: isActive ? '#211C19' : isCompleted ? '#5F7A70' : '#78716C',
+                    color: isActive ? 'var(--lp-text)' : isCompleted ? 'var(--lp-accent)' : 'var(--lp-text-subtle)',
                     display: 'none',
                     whiteSpace: 'nowrap'
                   }}
@@ -68,7 +68,7 @@ export const RegistrationProgress = ({ steps = [], currentStep = 1 }) => {
                   style={{
                     flex: 1,
                     height: '2px',
-                    background: stepNum < currentStep ? '#5F7A70' : '#E6E1D9',
+                    background: stepNum < currentStep ? 'var(--lp-accent)' : 'var(--lp-border)',
                     transition: 'background 0.3s ease'
                   }}
                 />
@@ -77,7 +77,7 @@ export const RegistrationProgress = ({ steps = [], currentStep = 1 }) => {
           );
         })}
       </div>
-      <div style={{ textAlign: 'center', marginTop: '0.75rem', fontSize: '0.85rem', fontWeight: 600, color: '#5F7A70' }}>
+      <div style={{ textAlign: 'center', marginTop: '0.75rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-accent)' }}>
         Step {currentStep} of {steps.length}: {steps[currentStep - 1]}
       </div>
     </div>

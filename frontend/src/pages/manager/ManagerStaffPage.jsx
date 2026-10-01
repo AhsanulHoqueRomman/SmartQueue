@@ -105,36 +105,23 @@ export function ManagerStaffPage() {
   }
 
   return (
-    <div style={{ padding: '1.5rem 2rem' }}>
+    <div className="app-container animate-page-entrance">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#211C19', margin: 0, fontFamily: 'Cinzel, serif' }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
             Staff & Team Management
           </h1>
-          <p style={{ color: '#78716C', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+          <p className="subtitle" style={{ marginTop: '0.25rem' }}>
             Invite operational staff, manage active team memberships, and toggle access controls.
           </p>
         </div>
         <button
+          className="btn btn-primary"
           onClick={() => {
             setInviteModalOpen(true);
             setCreatedInviteToken(null);
             setInviteEmail('');
-          }}
-          style={{
-            padding: '0.75rem 1.5rem',
-            backgroundColor: '#B06D2E',
-            color: '#FAF8F3',
-            border: 'none',
-            borderRadius: '12px',
-            fontWeight: 600,
-            fontSize: '0.9rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            boxShadow: '0 4px 12px rgba(176, 109, 46, 0.2)',
           }}
         >
           <span>➕</span> Invite Staff Member
@@ -142,21 +129,21 @@ export function ManagerStaffPage() {
       </div>
 
       {error && (
-        <div style={{ padding: '1rem', backgroundColor: '#FDF2F2', color: '#B4534B', border: '1px solid #F87171', borderRadius: '12px', marginBottom: '1.5rem' }}>
+        <div style={{ padding: '1rem', backgroundColor: 'var(--color-error-bg)', color: 'var(--color-error)', border: '1px solid var(--color-error-border)', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem' }}>
           {error}
         </div>
       )}
 
       {/* Tabs Header */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #E6E1D9', marginBottom: '1.5rem', gap: '1rem' }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', marginBottom: '1.5rem', gap: '1rem', flexWrap: 'wrap' }}>
         <button
           onClick={() => setActiveTab('active')}
           style={{
             padding: '0.75rem 1.25rem',
             background: 'none',
             border: 'none',
-            borderBottom: activeTab === 'active' ? '3px solid #B06D2E' : '3px solid transparent',
-            color: activeTab === 'active' ? '#B06D2E' : '#78716C',
+            borderBottom: activeTab === 'active' ? '3px solid var(--lp-accent)' : '3px solid transparent',
+            color: activeTab === 'active' ? 'var(--lp-accent)' : 'var(--lp-text-subtle)',
             fontWeight: activeTab === 'active' ? 700 : 500,
             cursor: 'pointer',
             fontSize: '0.95rem',
@@ -170,8 +157,8 @@ export function ManagerStaffPage() {
             padding: '0.75rem 1.25rem',
             background: 'none',
             border: 'none',
-            borderBottom: activeTab === 'inactive' ? '3px solid #B06D2E' : '3px solid transparent',
-            color: activeTab === 'inactive' ? '#B06D2E' : '#78716C',
+            borderBottom: activeTab === 'inactive' ? '3px solid var(--lp-accent)' : '3px solid transparent',
+            color: activeTab === 'inactive' ? 'var(--lp-accent)' : 'var(--lp-text-subtle)',
             fontWeight: activeTab === 'inactive' ? 700 : 500,
             cursor: 'pointer',
             fontSize: '0.95rem',
@@ -185,8 +172,8 @@ export function ManagerStaffPage() {
             padding: '0.75rem 1.25rem',
             background: 'none',
             border: 'none',
-            borderBottom: activeTab === 'invitations' ? '3px solid #B06D2E' : '3px solid transparent',
-            color: activeTab === 'invitations' ? '#B06D2E' : '#78716C',
+            borderBottom: activeTab === 'invitations' ? '3px solid var(--lp-accent)' : '3px solid transparent',
+            color: activeTab === 'invitations' ? 'var(--lp-accent)' : 'var(--lp-text-subtle)',
             fontWeight: activeTab === 'invitations' ? 700 : 500,
             cursor: 'pointer',
             fontSize: '0.95rem',
@@ -206,49 +193,40 @@ export function ManagerStaffPage() {
               message="You haven't added any active staff members yet. Invite a team member to get started."
             />
           ) : (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #E6E1D9', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <div className="table-container">
+              <table className="table">
                 <thead>
-                  <tr style={{ backgroundColor: '#FAF8F3', borderBottom: '1px solid #E6E1D9' }}>
-                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#78716C', fontWeight: 600 }}>STAFF MEMBER</th>
-                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#78716C', fontWeight: 600 }}>EMAIL</th>
-                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#78716C', fontWeight: 600 }}>ROLE</th>
-                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#78716C', fontWeight: 600 }}>STATUS</th>
-                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#78716C', fontWeight: 600, textAlign: 'right' }}>ACTIONS</th>
+                  <tr>
+                    <th>STAFF MEMBER</th>
+                    <th>EMAIL</th>
+                    <th>ROLE</th>
+                    <th>STATUS</th>
+                    <th style={{ textAlign: 'right' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {activeStaff.map((member) => (
-                    <tr key={member.id} style={{ borderBottom: '1px solid #F0ECE1' }}>
-                      <td style={{ padding: '1.25rem 1.5rem', fontWeight: 600, color: '#211C19' }}>
+                    <tr key={member.id}>
+                      <td className="font-semibold">
                         {member.user_first_name || member.user_last_name
                           ? `${member.user_first_name} ${member.user_last_name}`.trim()
                           : 'Staff Member'}
                       </td>
-                      <td style={{ padding: '1.25rem 1.5rem', color: '#554F4A', fontSize: '0.9rem' }}>
+                      <td className="text-muted text-xs">
                         {member.user_email}
                       </td>
-                      <td style={{ padding: '1.25rem 1.5rem' }}>
-                        <span style={{ backgroundColor: '#EBF6F0', color: '#5F7A70', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 700 }}>
+                      <td>
+                        <span className="badge badge-info" style={{ fontSize: '0.8rem', fontWeight: 700 }}>
                           STAFF
                         </span>
                       </td>
-                      <td style={{ padding: '1.25rem 1.5rem' }}>
+                      <td>
                         <StatusBadge status="ACTIVE" />
                       </td>
-                      <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right' }}>
                         <button
+                          className="btn btn-danger btn-sm"
                           onClick={() => handleDeactivate(member.id, member.user_email)}
-                          style={{
-                            padding: '0.45rem 1rem',
-                            backgroundColor: '#FDF2F2',
-                            color: '#B4534B',
-                            border: '1px solid #F87171',
-                            borderRadius: '8px',
-                            fontWeight: 600,
-                            fontSize: '0.8rem',
-                            cursor: 'pointer',
-                          }}
                         >
                           Deactivate Access
                         </button>
@@ -272,49 +250,40 @@ export function ManagerStaffPage() {
               message="All registered staff members are currently active."
             />
           ) : (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #E6E1D9', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <div className="table-container">
+              <table className="table">
                 <thead>
-                  <tr style={{ backgroundColor: '#FAF8F3', borderBottom: '1px solid #E6E1D9' }}>
-                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#78716C', fontWeight: 600 }}>STAFF MEMBER</th>
-                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#78716C', fontWeight: 600 }}>EMAIL</th>
-                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#78716C', fontWeight: 600 }}>ROLE</th>
-                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#78716C', fontWeight: 600 }}>STATUS</th>
-                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#78716C', fontWeight: 600, textAlign: 'right' }}>ACTIONS</th>
+                  <tr>
+                    <th>STAFF MEMBER</th>
+                    <th>EMAIL</th>
+                    <th>ROLE</th>
+                    <th>STATUS</th>
+                    <th style={{ textAlign: 'right' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {inactiveStaff.map((member) => (
-                    <tr key={member.id} style={{ borderBottom: '1px solid #F0ECE1' }}>
-                      <td style={{ padding: '1.25rem 1.5rem', fontWeight: 600, color: '#78716C' }}>
+                    <tr key={member.id}>
+                      <td className="font-semibold text-muted">
                         {member.user_first_name || member.user_last_name
                           ? `${member.user_first_name} ${member.user_last_name}`.trim()
                           : 'Staff Member'}
                       </td>
-                      <td style={{ padding: '1.25rem 1.5rem', color: '#78716C', fontSize: '0.9rem' }}>
+                      <td className="text-muted text-xs">
                         {member.user_email}
                       </td>
-                      <td style={{ padding: '1.25rem 1.5rem' }}>
-                        <span style={{ backgroundColor: '#F0ECE1', color: '#78716C', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 700 }}>
+                      <td>
+                        <span className="badge badge-neutral" style={{ fontSize: '0.8rem', fontWeight: 700 }}>
                           STAFF
                         </span>
                       </td>
-                      <td style={{ padding: '1.25rem 1.5rem' }}>
+                      <td>
                         <StatusBadge status="INACTIVE" />
                       </td>
-                      <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right' }}>
                         <button
+                          className="btn btn-success btn-sm"
                           onClick={() => handleActivate(member.id, member.user_email)}
-                          style={{
-                            padding: '0.45rem 1rem',
-                            backgroundColor: '#EBF6F0',
-                            color: '#5F7A70',
-                            border: '1px solid #A3CCA8',
-                            borderRadius: '8px',
-                            fontWeight: 600,
-                            fontSize: '0.8rem',
-                            cursor: 'pointer',
-                          }}
                         >
                           Re-Activate Access
                         </button>
@@ -338,47 +307,38 @@ export function ManagerStaffPage() {
               message="There are currently no active staff invitation links waiting for acceptance."
             />
           ) : (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #E6E1D9', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <div className="table-container">
+              <table className="table">
                 <thead>
-                  <tr style={{ backgroundColor: '#FAF8F3', borderBottom: '1px solid #E6E1D9' }}>
-                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#78716C', fontWeight: 600 }}>RECIPIENT EMAIL</th>
-                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#78716C', fontWeight: 600 }}>ROLE</th>
-                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#78716C', fontWeight: 600 }}>SENT DATE</th>
-                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#78716C', fontWeight: 600 }}>EXPIRES</th>
-                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#78716C', fontWeight: 600, textAlign: 'right' }}>ACTIONS</th>
+                  <tr>
+                    <th>RECIPIENT EMAIL</th>
+                    <th>ROLE</th>
+                    <th>SENT DATE</th>
+                    <th>EXPIRES</th>
+                    <th style={{ textAlign: 'right' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pendingInvitations.map((inv) => (
-                    <tr key={inv.id} style={{ borderBottom: '1px solid #F0ECE1' }}>
-                      <td style={{ padding: '1.25rem 1.5rem', fontWeight: 600, color: '#211C19' }}>
+                    <tr key={inv.id}>
+                      <td className="font-semibold">
                         {inv.email}
                       </td>
-                      <td style={{ padding: '1.25rem 1.5rem' }}>
-                        <span style={{ backgroundColor: '#EBF6F0', color: '#5F7A70', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 700 }}>
+                      <td>
+                        <span className="badge badge-info" style={{ fontSize: '0.8rem', fontWeight: 700 }}>
                           {inv.role}
                         </span>
                       </td>
-                      <td style={{ padding: '1.25rem 1.5rem', color: '#554F4A', fontSize: '0.85rem' }}>
+                      <td className="text-muted text-xs">
                         {new Date(inv.created_at).toLocaleDateString()}
                       </td>
-                      <td style={{ padding: '1.25rem 1.5rem', color: '#554F4A', fontSize: '0.85rem' }}>
+                      <td className="text-muted text-xs">
                         {new Date(inv.expires_at).toLocaleDateString()}
                       </td>
-                      <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right' }}>
                         <button
+                          className="btn btn-danger btn-sm"
                           onClick={() => handleCancelInvite(inv.id)}
-                          style={{
-                            padding: '0.45rem 1rem',
-                            backgroundColor: '#FDF2F2',
-                            color: '#B4534B',
-                            border: '1px solid #F87171',
-                            borderRadius: '8px',
-                            fontWeight: 600,
-                            fontSize: '0.8rem',
-                            cursor: 'pointer',
-                          }}
                         >
                           Cancel Invitation
                         </button>
@@ -394,18 +354,18 @@ export function ManagerStaffPage() {
 
       {/* Invite Modal */}
       {inviteModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: '24px', width: '100%', maxWidth: '500px', padding: '2rem', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#211C19', marginTop: 0, marginBottom: '0.5rem', fontFamily: 'Cinzel, serif' }}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div className="card" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '500px', padding: '2rem', boxShadow: 'var(--shadow-lg)' }}>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginTop: 0, marginBottom: '0.5rem' }}>
               Invite Staff Member
             </h2>
-            <p style={{ color: '#78716C', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+            <p className="subtitle" style={{ fontSize: '0.9rem', marginBottom: '1.5rem' }}>
               Send an email invitation for a new staff member to join <strong>{currentOrg?.name}</strong>.
             </p>
 
             {createdInviteToken ? (
               <div>
-                <div style={{ padding: '1rem', backgroundColor: '#EBF6F0', color: '#5F7A70', border: '1px solid #A3CCA8', borderRadius: '12px', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                <div style={{ padding: '1rem', backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success)', border: '1px solid var(--color-success-border)', borderRadius: 'var(--radius-md)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
                   <strong>Invitation Link Generated!</strong>
                   <p style={{ margin: '0.5rem 0 0 0', wordBreak: 'break-all', fontSize: '0.85rem' }}>
                     {`${window.location.origin}/invitations/staff/${createdInviteToken}`}
@@ -413,17 +373,9 @@ export function ManagerStaffPage() {
                 </div>
                 <button
                   type="button"
+                  className="btn btn-primary"
                   onClick={() => setInviteModalOpen(false)}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    backgroundColor: '#2F2520',
-                    color: '#FAF8F3',
-                    border: 'none',
-                    borderRadius: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
+                  style={{ width: '100%' }}
                 >
                   Close Window
                 </button>
@@ -431,7 +383,7 @@ export function ManagerStaffPage() {
             ) : (
               <form onSubmit={handleSendInvite}>
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.5rem' }}>
+                  <label className="form-label">
                     Staff Member Email Address *
                   </label>
                   <input
@@ -447,31 +399,15 @@ export function ManagerStaffPage() {
                 <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                   <button
                     type="button"
+                    className="btn btn-outline"
                     onClick={() => setInviteModalOpen(false)}
-                    style={{
-                      padding: '0.75rem 1.25rem',
-                      backgroundColor: 'transparent',
-                      color: '#78716C',
-                      border: '1px solid #E6E1D9',
-                      borderRadius: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
+                    className="btn btn-primary"
                     disabled={inviting}
-                    style={{
-                      padding: '0.75rem 1.5rem',
-                      backgroundColor: '#B06D2E',
-                      color: '#FAF8F3',
-                      border: 'none',
-                      borderRadius: '12px',
-                      fontWeight: 600,
-                      cursor: inviting ? 'not-allowed' : 'pointer',
-                    }}
                   >
                     {inviting ? 'Generating Link...' : 'Send Staff Invitation'}
                   </button>

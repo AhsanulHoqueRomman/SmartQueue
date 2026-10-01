@@ -4,15 +4,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import organizationService from '../../services/organizationService';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
+import PublicNavbar from '../../components/PublicNavbar';
 import '../../styles/LandingPage.css';
 
 /* ─── Tiny SVG Icon Components ─────────────────────────────────────────── */
-const IconZap = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}>
-    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-  </svg>
-);
-
 const IconSearch = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}>
     <circle cx="11" cy="11" r="8"/>
@@ -85,13 +80,6 @@ export function GlobalSearchPage() {
   const [popularOrgs, setPopularOrgs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 30);
-    window.addEventListener('scroll', handler, { passive: true });
-    return () => window.removeEventListener('scroll', handler);
-  }, []);
 
   // Fetch initial popular organizations for quick discovery
   useEffect(() => {
@@ -157,49 +145,20 @@ export function GlobalSearchPage() {
   };
 
   return (
-    <div className="lp-root" style={{ background: '#FAF8F3', minHeight: '100vh' }}>
+    <div className="lp-root" style={{ background: 'var(--lp-bg)', minHeight: '100vh', color: 'var(--lp-text)' }}>
       {/* ── Top Navigation Header ────────────────────────────────────────── */}
-      <header className={`lp-nav ${scrolled ? 'lp-nav--scrolled' : ''}`}>
-        <div className="lp-nav-inner">
-          <Link to="/" className="lp-brand">
-            <span className="lp-brand-mark">
-              <IconZap />
-            </span>
-            <span className="lp-brand-name">SmartQueue</span>
-          </Link>
-
-          <nav className="lp-nav-links">
-            <Link to="/organizations" className="lp-nav-link">Organizations</Link>
-            <Link to="/search" className="lp-nav-link" style={{ fontWeight: 700, color: '#5F7A70' }}>Search</Link>
-            <Link to="/#how-it-works" className="lp-nav-link">How it works</Link>
-            <Link to="/#why-smartqueue" className="lp-nav-link">Why SmartQueue</Link>
-          </nav>
-
-          <div className="lp-nav-cta">
-            {user ? (
-              <Link to="/dashboard" className="lp-btn-primary">
-                Dashboard →
-              </Link>
-            ) : (
-              <>
-                <Link to="/login" className="lp-btn-ghost">Sign in</Link>
-                <Link to="/register" className="lp-btn-primary">Get started</Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <PublicNavbar activePage="search" />
 
       {/* Main Page Container */}
-      <div className="container animate-page-entrance" style={{ padding: '5.5rem 1.5rem 3rem 1.5rem', maxWidth: '1150px', margin: '0 auto' }}>
+      <div className="container animate-page-entrance" style={{ padding: '6rem 1.5rem 3rem 1.5rem', maxWidth: '1150px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <span style={{ color: '#5F7A70', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <span style={{ color: 'var(--lp-accent)', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Instant Network Search
           </span>
-          <h1 style={{ fontSize: '2.2rem', fontFamily: 'Cinzel, serif', color: '#211C19', marginTop: '0.25rem', marginBottom: '0.5rem' }}>
+          <h1 style={{ fontSize: '2.2rem', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)', marginTop: '0.25rem', marginBottom: '0.5rem' }}>
             Global SmartQueue Search
           </h1>
-          <p style={{ color: '#78716C', fontSize: '0.975rem', maxWidth: '640px', margin: '0 auto' }}>
+          <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.975rem', maxWidth: '640px', margin: '0 auto' }}>
             Find verified clinics, specialized services, doctors, and diagnostic centers across the SmartQueue network.
           </p>
 
@@ -210,34 +169,34 @@ export function GlobalSearchPage() {
               display: 'flex',
               maxWidth: '680px',
               margin: '1.75rem auto 1rem auto',
-              background: '#FFFFFF',
+              background: 'var(--lp-surface)',
               borderRadius: '9999px',
               padding: '0.4rem 0.4rem 0.4rem 1.25rem',
-              boxShadow: '0 12px 32px rgba(47, 37, 32, 0.08)',
-              border: '1px solid #E6E1D9',
+              boxShadow: '0 12px 32px var(--shadow-sm)',
+              border: '1px solid var(--lp-border)',
               alignItems: 'center',
             }}
           >
-            <span style={{ color: '#78716C', display: 'flex', alignItems: 'center' }}><IconSearch /></span>
+            <span style={{ color: 'var(--lp-text-subtle)', display: 'flex', alignItems: 'center' }}><IconSearch /></span>
             <input
               type="text"
               placeholder="Search by clinic name, service (e.g. Dental, Consultation), or category..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', padding: '0.65rem 0.75rem', fontSize: '0.95rem', color: '#211C19' }}
+              className="lp-hero-search-input"
             />
             <button
               type="submit"
               style={{
-                background: '#5F7A70',
-                color: '#FFFFFF',
+                background: 'var(--lp-btn-primary-bg)',
+                color: 'var(--lp-btn-primary-text)',
                 border: 'none',
                 borderRadius: '9999px',
                 padding: '0.75rem 1.75rem',
                 fontWeight: 600,
                 fontSize: '0.95rem',
                 cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(95, 122, 112, 0.25)'
+                boxShadow: '0 4px 12px var(--shadow-sm)'
               }}
             >
               Search
@@ -246,7 +205,7 @@ export function GlobalSearchPage() {
 
           {/* Popular Search Suggestion Chips */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center', maxWidth: '750px', margin: '0 auto' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#78716C', alignSelf: 'center', marginRight: '0.25rem' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--lp-text-subtle)', alignSelf: 'center', marginRight: '0.25rem' }}>
               Popular:
             </span>
             {POPULAR_SEARCH_TAGS.map((tag) => (
@@ -255,9 +214,9 @@ export function GlobalSearchPage() {
                 type="button"
                 onClick={() => handleTagClick(tag)}
                 style={{
-                  background: query.toLowerCase() === tag.toLowerCase() ? '#5F7A70' : '#FFFFFF',
-                  color: query.toLowerCase() === tag.toLowerCase() ? '#FFFFFF' : '#211C19',
-                  border: '1px solid #E6E1D9',
+                  background: query.toLowerCase() === tag.toLowerCase() ? 'var(--lp-btn-primary-bg)' : 'var(--lp-surface)',
+                  color: query.toLowerCase() === tag.toLowerCase() ? 'var(--lp-btn-primary-text)' : 'var(--lp-text)',
+                  border: '1px solid var(--lp-border)',
                   borderRadius: '9999px',
                   padding: '0.25rem 0.75rem',
                   fontSize: '0.8rem',
@@ -285,7 +244,7 @@ export function GlobalSearchPage() {
         ) : searched && organizations.length > 0 ? (
           <div style={{ marginBottom: '2.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#5F7A70', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Search Results ({organizations.length} Clinic{organizations.length > 1 ? 's' : ''} Found)
               </div>
               <button
@@ -295,7 +254,7 @@ export function GlobalSearchPage() {
                   setSearched(false);
                   setOrganizations([]);
                 }}
-                style={{ background: 'none', border: 'none', color: '#EF4444', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: 'var(--color-error)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
               >
                 Clear Search ✕
               </button>
@@ -311,54 +270,46 @@ export function GlobalSearchPage() {
                   <div
                     key={org.id}
                     style={{
-                      background: '#FFFFFF',
+                      background: 'var(--lp-surface)',
                       borderRadius: '16px',
-                      border: '1px solid #E6E1D9',
+                      border: '1px solid var(--lp-border)',
                       padding: '1.5rem',
-                      boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
+                      boxShadow: '0 4px 16px var(--shadow-sm)',
                       display: 'flex',
                       flexDirection: 'column',
-                      justify: 'space-between',
+                      justifyContent: 'space-between',
                       transition: 'transform 0.2s ease, boxShadow 0.2s ease'
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.transform = 'translateY(-4px)';
-                      e.currentTarget.style.boxShadow = '0 10px 24px rgba(47, 37, 32, 0.08)';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(47, 37, 32, 0.04)';
                     }}
                   >
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                        <span style={{ background: '#FAF8F3', color: '#5F7A70', border: '1px solid #E6E1D9', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.55rem', borderRadius: '6px' }}>
+                        <span style={{ background: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: '1px solid var(--lp-border)', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.55rem', borderRadius: '6px' }}>
                           {org.category || 'HEALTHCARE'}
                         </span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#B06D2E' }}>
-                          ★ {rating} <span style={{ color: '#78716C', fontWeight: 400, fontSize: '0.75rem' }}>({reviewsCount})</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-warning)' }}>
+                          ★ {rating} <span style={{ color: 'var(--lp-text-subtle)', fontWeight: 400, fontSize: '0.75rem' }}>({reviewsCount})</span>
                         </span>
                       </div>
 
-                      <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#211C19', marginBottom: '0.35rem', fontFamily: 'Outfit, sans-serif' }}>
+                      <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem', fontFamily: 'Outfit, sans-serif' }}>
                         {org.name}
                       </h3>
 
-                      <p style={{ color: '#78716C', fontSize: '0.85rem', lineHeight: 1.4, margin: '0 0 1rem 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.85rem', lineHeight: 1.4, margin: '0 0 1rem 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                         📍 {org.address || 'Verified partner facility with online booking.'}
                       </p>
                     </div>
 
-                    <div style={{ paddingTop: '0.75rem', borderTop: '1px solid #FAF8F3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.8rem', color: '#5F7A70', fontWeight: 600 }}>
+                    <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--lp-sage)', fontWeight: 600 }}>
                         ⚡ {servicesCount} Services
                       </span>
                       <Link
                         to={`/organizations/${org.id}`}
                         style={{
                           padding: '0.45rem 0.9rem',
-                          background: '#5F7A70',
-                          color: '#FFFFFF',
+                          background: 'var(--lp-btn-primary-bg)',
+                          color: 'var(--lp-btn-primary-text)',
                           borderRadius: '6px',
                           fontWeight: 600,
                           fontSize: '0.85rem',
@@ -380,14 +331,14 @@ export function GlobalSearchPage() {
             <div style={{ marginBottom: '3rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                 <div>
-                  <span style={{ color: '#5F7A70', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>
+                  <span style={{ color: 'var(--lp-accent)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>
                     Top Destinations
                   </span>
-                  <h2 style={{ fontSize: '1.45rem', fontWeight: 700, color: '#211C19', margin: 0, fontFamily: 'Cinzel, serif' }}>
+                  <h2 style={{ fontSize: '1.45rem', fontWeight: 700, color: 'var(--lp-text)', margin: 0, fontFamily: 'Cinzel, serif' }}>
                     🏥 Popular Care Providers & Clinics
                   </h2>
                 </div>
-                <Link to="/organizations" style={{ color: '#5F7A70', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>
+                <Link to="/organizations" style={{ color: 'var(--lp-accent)', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>
                   Browse All 28 Clinics →
                 </Link>
               </div>
@@ -401,54 +352,46 @@ export function GlobalSearchPage() {
                     <div
                       key={org.id}
                       style={{
-                        background: '#FFFFFF',
+                        background: 'var(--lp-surface)',
                         borderRadius: '16px',
-                        border: '1px solid #E6E1D9',
+                        border: '1px solid var(--lp-border)',
                         padding: '1.5rem',
-                        boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
+                        boxShadow: '0 4px 16px var(--shadow-sm)',
                         display: 'flex',
                         flexDirection: 'column',
                         justify: 'space-between',
                         transition: 'transform 0.2s ease, boxShadow 0.2s ease'
                       }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.transform = 'translateY(-4px)';
-                        e.currentTarget.style.boxShadow = '0 10px 24px rgba(47, 37, 32, 0.08)';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 4px 16px rgba(47, 37, 32, 0.04)';
-                      }}
                     >
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                          <span style={{ background: '#FAF8F3', color: '#5F7A70', border: '1px solid #E6E1D9', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.55rem', borderRadius: '6px' }}>
+                          <span style={{ background: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: '1px solid var(--lp-border)', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.55rem', borderRadius: '6px' }}>
                             {org.category || 'HEALTHCARE'}
                           </span>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#B06D2E' }}>
-                            ★ {rating} <span style={{ color: '#78716C', fontWeight: 400, fontSize: '0.75rem' }}>({reviewsCount})</span>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-warning)' }}>
+                            ★ {rating} <span style={{ color: 'var(--lp-text-subtle)', fontWeight: 400, fontSize: '0.75rem' }}>({reviewsCount})</span>
                           </span>
                         </div>
 
-                        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#211C19', marginBottom: '0.35rem', fontFamily: 'Outfit, sans-serif' }}>
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem', fontFamily: 'Outfit, sans-serif' }}>
                           {org.name}
                         </h3>
 
-                        <p style={{ color: '#78716C', fontSize: '0.85rem', lineHeight: 1.4, margin: '0 0 1rem 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.85rem', lineHeight: 1.4, margin: '0 0 1rem 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                           📍 {org.address || 'Verified medical & care facility.'}
                         </p>
                       </div>
 
-                      <div style={{ paddingTop: '0.75rem', borderTop: '1px solid #FAF8F3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#5F7A70', fontWeight: 600 }}>
+                      <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--lp-sage)', fontWeight: 600 }}>
                           ⚡ {org.services_count || 4} Services
                         </span>
                         <Link
                           to={`/organizations/${org.id}`}
                           style={{
                             padding: '0.45rem 0.9rem',
-                            background: '#5F7A70',
-                            color: '#FFFFFF',
+                            background: 'var(--lp-btn-primary-bg)',
+                            color: 'var(--lp-btn-primary-text)',
                             borderRadius: '6px',
                             fontWeight: 600,
                             fontSize: '0.85rem',
@@ -467,10 +410,10 @@ export function GlobalSearchPage() {
             {/* Section 2: Frequently Searched Services & Catalog */}
             <div>
               <div style={{ marginBottom: '1.25rem' }}>
-                <span style={{ color: '#5F7A70', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>
+                <span style={{ color: 'var(--lp-accent)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>
                   Frequently Requested
                 </span>
-                <h2 style={{ fontSize: '1.45rem', fontWeight: 700, color: '#211C19', margin: 0, fontFamily: 'Cinzel, serif' }}>
+                <h2 style={{ fontSize: '1.45rem', fontWeight: 700, color: 'var(--lp-text)', margin: 0, fontFamily: 'Cinzel, serif' }}>
                   ⚡ Popular Services & Procedures
                 </h2>
               </div>
@@ -481,50 +424,40 @@ export function GlobalSearchPage() {
                     key={svc.name}
                     onClick={() => handleTagClick(svc.query)}
                     style={{
-                      background: '#FFFFFF',
+                      background: 'var(--lp-surface)',
                       borderRadius: '16px',
-                      border: '1px solid #E6E1D9',
+                      border: '1px solid var(--lp-border)',
                       padding: '1.5rem',
-                      boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
+                      boxShadow: '0 4px 16px var(--shadow-sm)',
                       cursor: 'pointer',
                       display: 'flex',
                       flexDirection: 'column',
                       justify: 'space-between',
                       transition: 'transform 0.2s ease, boxShadow 0.2s ease, border-color 0.2s ease'
                     }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.transform = 'translateY(-4px)';
-                      e.currentTarget.style.boxShadow = '0 10px 24px rgba(47, 37, 32, 0.08)';
-                      e.currentTarget.style.borderColor = '#5F7A70';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(47, 37, 32, 0.04)';
-                      e.currentTarget.style.borderColor = '#E6E1D9';
-                    }}
                   >
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                         <span style={{ fontSize: '1.8rem' }}>{svc.icon}</span>
-                        <span style={{ background: '#FAF8F3', color: '#5F7A70', border: '1px solid #E6E1D9', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.55rem', borderRadius: '6px' }}>
+                        <span style={{ background: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: '1px solid var(--lp-border)', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.55rem', borderRadius: '6px' }}>
                           {svc.category}
                         </span>
                       </div>
 
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#211C19', marginBottom: '0.35rem', fontFamily: 'Outfit, sans-serif' }}>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem', fontFamily: 'Outfit, sans-serif' }}>
                         {svc.name}
                       </h3>
 
-                      <p style={{ color: '#78716C', fontSize: '0.85rem', lineHeight: 1.4, margin: '0 0 1rem 0' }}>
+                      <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.85rem', lineHeight: 1.4, margin: '0 0 1rem 0' }}>
                         {svc.desc}
                       </p>
                     </div>
 
-                    <div style={{ paddingTop: '0.75rem', borderTop: '1px solid #FAF8F3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.8rem', color: '#78716C', fontWeight: 600 }}>
+                    <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)', fontWeight: 600 }}>
                         ⏱️ Est. {svc.duration}
                       </span>
-                      <span style={{ fontSize: '0.85rem', color: '#5F7A70', fontWeight: 700 }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--lp-accent)', fontWeight: 700 }}>
                         Search Clinics →
                       </span>
                     </div>
@@ -540,3 +473,4 @@ export function GlobalSearchPage() {
 }
 
 export default GlobalSearchPage;
+

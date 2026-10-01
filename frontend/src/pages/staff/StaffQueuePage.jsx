@@ -316,7 +316,7 @@ export function StaffQueuePage() {
                   </thead>
                   <tbody>
                     {waitingEntries.map((entry) => (
-                      <tr key={entry.id} style={{ background: entry.is_urgent ? '#FEF2F2' : 'transparent' }}>
+                      <tr key={entry.id} style={{ background: entry.is_urgent ? 'var(--color-danger-bg, rgba(239, 68, 68, 0.12))' : 'transparent' }}>
                         <td>
                           <span className="badge badge-info" style={{ fontSize: '0.85rem', fontWeight: 700 }}>
                             #{entry.serial_number || entry.token_number}
@@ -324,7 +324,7 @@ export function StaffQueuePage() {
                         </td>
                         <td className="font-semibold">{entry.customer_name || entry.customer_email || 'Patient'}</td>
                         <td>
-                          <span className="badge" style={{ fontSize: '0.75rem', background: entry.arrival_type === 'WALK_IN' ? '#F5EFE6' : '#E0F2FE', color: entry.arrival_type === 'WALK_IN' ? '#B06D2E' : '#0369A1' }}>
+                          <span className="badge" style={{ fontSize: '0.75rem', background: entry.arrival_type === 'WALK_IN' ? 'var(--lp-bg-subtle)' : 'var(--color-info-bg, rgba(14, 165, 233, 0.12))', color: entry.arrival_type === 'WALK_IN' ? 'var(--lp-accent)' : 'var(--color-info, #0284c7)' }}>
                             {entry.arrival_type === 'WALK_IN' ? '🚶 Walk-In' : '📅 Scheduled'}
                           </span>
                         </td>

@@ -88,10 +88,10 @@ export const AcceptInvitationPage = () => {
 
   if (loading) {
     return (
-      <div style={{ backgroundColor: '#FAF8F3', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <PublicNavbar activePage="login" />
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-          <div style={{ textAlign: 'center', color: '#78716C' }}>
+          <div style={{ textAlign: 'center', color: 'var(--lp-text-subtle)' }}>
             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
             <p style={{ fontSize: '1rem', fontWeight: 600 }}>Validating invitation link...</p>
           </div>
@@ -102,28 +102,28 @@ export const AcceptInvitationPage = () => {
 
   if (invitationError) {
     return (
-      <div style={{ backgroundColor: '#FAF8F3', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <PublicNavbar activePage="login" />
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 1.25rem' }}>
           <div
             style={{
               width: '100%',
               maxWidth: '520px',
-              backgroundColor: '#FFFFFF',
+              backgroundColor: 'var(--lp-surface)',
               borderRadius: '24px',
-              border: '1px solid #E6E1D9',
+              border: '1px solid var(--lp-border)',
               padding: '3rem 2.5rem',
-              boxShadow: '0 12px 40px rgba(47, 37, 32, 0.06)',
+              boxShadow: 'var(--card-shadow)',
               textAlign: 'center',
             }}
           >
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#FDF2F2', color: '#B4534B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1.5rem auto' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--color-danger-light)', color: 'var(--color-danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1.5rem auto' }}>
               ⚠️
             </div>
-            <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: '#211C19', marginBottom: '0.75rem', fontFamily: 'Cinzel, serif' }}>
+            <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.75rem', fontFamily: 'Cinzel, serif' }}>
               Invitation Link Invalid
             </h2>
-            <p style={{ color: '#78716C', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+            <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '2rem' }}>
               {invitationError}
             </p>
             <Link
@@ -131,8 +131,8 @@ export const AcceptInvitationPage = () => {
               style={{
                 display: 'inline-block',
                 padding: '0.85rem 2rem',
-                backgroundColor: '#2F2520',
-                color: '#FAF8F3',
+                backgroundColor: 'var(--lp-btn-bg, #2F2520)',
+                color: 'var(--lp-btn-text, #FAF8F3)',
                 borderRadius: '12px',
                 fontWeight: 600,
                 textDecoration: 'none',
@@ -148,28 +148,28 @@ export const AcceptInvitationPage = () => {
 
   if (success) {
     return (
-      <div style={{ backgroundColor: '#FAF8F3', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <PublicNavbar activePage="login" />
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 1.25rem' }}>
           <div
             style={{
               width: '100%',
               maxWidth: '540px',
-              backgroundColor: '#FFFFFF',
+              backgroundColor: 'var(--lp-surface)',
               borderRadius: '24px',
-              border: '1px solid #E6E1D9',
+              border: '1px solid var(--lp-border)',
               padding: '3rem 2.5rem',
-              boxShadow: '0 12px 40px rgba(47, 37, 32, 0.06)',
+              boxShadow: 'var(--card-shadow)',
               textAlign: 'center',
             }}
           >
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#EBF6F0', color: '#5F7A70', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1.5rem auto' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--color-success-light)', color: 'var(--color-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1.5rem auto' }}>
               🎉
             </div>
-            <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: '#211C19', marginBottom: '0.75rem', fontFamily: 'Cinzel, serif' }}>
+            <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.75rem', fontFamily: 'Cinzel, serif' }}>
               Welcome to {invitation?.organization_name}!
             </h2>
-            <p style={{ color: '#78716C', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '1.75rem' }}>
+            <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '1.75rem' }}>
               Your provider account has been successfully created and approved.<br />
               You are now an active provider member of <strong>{invitation?.organization_name}</strong>.
             </p>
@@ -178,7 +178,7 @@ export const AcceptInvitationPage = () => {
               style={{
                 display: 'inline-block',
                 padding: '0.85rem 2rem',
-                backgroundColor: '#B06D2E',
+                backgroundColor: 'var(--color-warning)',
                 color: '#FAF8F3',
                 borderRadius: '12px',
                 fontWeight: 600,
@@ -195,34 +195,34 @@ export const AcceptInvitationPage = () => {
   }
 
   return (
-    <div style={{ backgroundColor: '#FAF8F3', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PublicNavbar activePage="login" />
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 1.25rem' }}>
         <div
           style={{
             width: '100%',
             maxWidth: '560px',
-            backgroundColor: '#FFFFFF',
+            backgroundColor: 'var(--lp-surface)',
             borderRadius: '24px',
-            border: '1px solid #E6E1D9',
+            border: '1px solid var(--lp-border)',
             padding: '2.5rem',
-            boxShadow: '0 12px 40px rgba(47, 37, 32, 0.06)',
+            boxShadow: 'var(--card-shadow)',
           }}
         >
           <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-            <div style={{ display: 'inline-block', backgroundColor: '#EBF6F0', border: '1px solid #A3CCA8', borderRadius: '9999px', padding: '0.2rem 0.85rem', fontSize: '0.8rem', fontWeight: 700, color: '#5F7A70', marginBottom: '0.75rem' }}>
+            <div style={{ display: 'inline-block', backgroundColor: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '9999px', padding: '0.2rem 0.85rem', fontSize: '0.8rem', fontWeight: 700, color: 'var(--lp-accent)', marginBottom: '0.75rem' }}>
               📩 Manager Invitation
             </div>
-            <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: '#211C19', margin: '0 0 0.5rem 0', fontFamily: 'Cinzel, serif' }}>
+            <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.5rem 0', fontFamily: 'Cinzel, serif' }}>
               Join {invitation?.organization_name}
             </h2>
-            <p style={{ color: '#78716C', fontSize: '0.9rem', margin: 0 }}>
+            <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem', margin: 0 }}>
               You were invited to join as a Service Provider for <strong>{invitation?.email}</strong>.
             </p>
           </div>
 
           {submitError && (
-            <div style={{ padding: '0.85rem 1rem', backgroundColor: '#FDF2F2', color: '#B4534B', border: '1px solid #F87171', borderRadius: '12px', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+            <div style={{ padding: '0.85rem 1rem', backgroundColor: 'var(--color-danger-light)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', borderRadius: '12px', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
               {submitError}
             </div>
           )}
@@ -230,7 +230,7 @@ export const AcceptInvitationPage = () => {
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                   First Name *
                 </label>
                 <input
@@ -243,14 +243,14 @@ export const AcceptInvitationPage = () => {
                   required
                 />
                 {fieldErrors.first_name && (
-                  <div style={{ color: '#B4534B', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                     {fieldErrors.first_name.join(' ')}
                   </div>
                 )}
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                   Last Name *
                 </label>
                 <input
@@ -263,7 +263,7 @@ export const AcceptInvitationPage = () => {
                   required
                 />
                 {fieldErrors.last_name && (
-                  <div style={{ color: '#B4534B', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                     {fieldErrors.last_name.join(' ')}
                   </div>
                 )}
@@ -271,7 +271,7 @@ export const AcceptInvitationPage = () => {
             </div>
 
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                 Email Address
               </label>
               <input
@@ -279,19 +279,19 @@ export const AcceptInvitationPage = () => {
                 className="form-control"
                 value={invitation?.email || ''}
                 disabled
-                style={{ backgroundColor: '#FAF8F3', color: '#78716C', cursor: 'not-allowed' }}
+                style={{ backgroundColor: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', cursor: 'not-allowed' }}
               />
             </div>
 
             <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#211C19' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)' }}>
                   Create Password *
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{ background: 'none', border: 'none', color: '#5F7A70', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ background: 'none', border: 'none', color: 'var(--lp-accent)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
                 >
                   {showPassword ? 'Hide' : 'Show'}
                 </button>
@@ -306,14 +306,14 @@ export const AcceptInvitationPage = () => {
                 required
               />
               {fieldErrors.password && (
-                <div style={{ color: '#B4534B', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                   {fieldErrors.password.join(' ')}
                 </div>
               )}
             </div>
 
             <div style={{ marginBottom: '1.75rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                 Confirm Password *
               </label>
               <input
@@ -326,7 +326,7 @@ export const AcceptInvitationPage = () => {
                 required
               />
               {fieldErrors.password_confirm && (
-                <div style={{ color: '#B4534B', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                   {fieldErrors.password_confirm.join(' ')}
                 </div>
               )}
@@ -338,7 +338,7 @@ export const AcceptInvitationPage = () => {
               style={{
                 width: '100%',
                 padding: '0.85rem',
-                backgroundColor: '#B06D2E',
+                backgroundColor: 'var(--color-warning)',
                 color: '#FAF8F3',
                 border: 'none',
                 borderRadius: '12px',

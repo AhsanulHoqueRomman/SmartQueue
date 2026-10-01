@@ -127,7 +127,7 @@ export const ProviderRegisterPage = () => {
 
   if (submittedPending) {
     return (
-      <div style={{ backgroundColor: '#FAF8F3', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <PublicNavbar activePage="register" />
         <div
           className="animate-page-entrance"
@@ -143,11 +143,11 @@ export const ProviderRegisterPage = () => {
             style={{
               width: '100%',
               maxWidth: '560px',
-              backgroundColor: '#FFFFFF',
+              backgroundColor: 'var(--lp-surface)',
               borderRadius: '24px',
-              border: '1px solid #E6E1D9',
+              border: '1px solid var(--lp-border)',
               padding: '3rem 2.5rem',
-              boxShadow: '0 12px 40px rgba(47, 37, 32, 0.06)',
+              boxShadow: 'var(--card-shadow)',
               textAlign: 'center',
             }}
           >
@@ -156,8 +156,8 @@ export const ProviderRegisterPage = () => {
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                backgroundColor: '#FEF3C7',
-                color: '#B06D2E',
+                backgroundColor: 'var(--color-warning-light)',
+                color: 'var(--color-warning)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -167,22 +167,22 @@ export const ProviderRegisterPage = () => {
             >
               ⏳
             </div>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#211C19', margin: '0 0 0.75rem 0', fontFamily: 'Cinzel, serif' }}>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.75rem 0', fontFamily: 'Cinzel, serif' }}>
               Application Submitted
             </h2>
-            <p style={{ color: '#78716C', fontSize: '1rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+            <p style={{ color: 'var(--lp-text-subtle)', fontSize: '1rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
               Your provider profile has been created.<br />
               Your organization membership for <strong>{selectedOrgObj?.name || 'the selected organization'}</strong> is waiting for approval.
             </p>
-            <div style={{ backgroundColor: '#FAF8F3', borderRadius: '12px', border: '1px solid #E6E1D9', padding: '1rem', fontSize: '0.875rem', color: '#5F7A70', marginBottom: '2rem' }}>
+            <div style={{ backgroundColor: 'var(--lp-bg-subtle)', borderRadius: '12px', border: '1px solid var(--lp-border)', padding: '1rem', fontSize: '0.875rem', color: 'var(--lp-accent)', marginBottom: '2rem' }}>
               ℹ️ You'll be able to access provider tools once your membership is approved by the organization manager.
             </div>
             <button
               onClick={() => navigate('/provider/dashboard')}
               style={{
                 padding: '0.85rem 2rem',
-                backgroundColor: '#2F2520',
-                color: '#FAF8F3',
+                backgroundColor: 'var(--lp-btn-bg, #2F2520)',
+                color: 'var(--lp-btn-text, #FAF8F3)',
                 border: 'none',
                 borderRadius: '12px',
                 fontWeight: 600,
@@ -199,7 +199,7 @@ export const ProviderRegisterPage = () => {
   }
 
   return (
-    <div style={{ backgroundColor: '#FAF8F3', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PublicNavbar activePage="register" />
       <div
         className="animate-page-entrance"
@@ -215,11 +215,11 @@ export const ProviderRegisterPage = () => {
         style={{
           width: '100%',
           maxWidth: '640px',
-          backgroundColor: '#FFFFFF',
+          backgroundColor: 'var(--lp-surface)',
           borderRadius: '24px',
-          border: '1px solid #E6E1D9',
+          border: '1px solid var(--lp-border)',
           padding: '2.5rem',
-          boxShadow: '0 12px 40px rgba(47, 37, 32, 0.06)',
+          boxShadow: 'var(--card-shadow)',
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
@@ -234,17 +234,17 @@ export const ProviderRegisterPage = () => {
             }}
           >
             <span style={{ fontSize: '1.5rem' }}>⚡</span>
-            <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: '#211C19' }}>
+            <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: 'var(--lp-text)' }}>
               SmartQueue
             </span>
           </Link>
-          <div style={{ display: 'inline-block', backgroundColor: '#FAF8F3', border: '1px solid #E6E1D9', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: 700, color: '#B06D2E', marginBottom: '0.5rem' }}>
+          <div style={{ display: 'inline-block', backgroundColor: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-warning)', marginBottom: '0.5rem' }}>
             🩺 Provider Registration
           </div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: '#211C19', margin: '0 0 0.35rem 0', fontFamily: 'Cinzel, serif' }}>
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.35rem 0', fontFamily: 'Cinzel, serif' }}>
             Join as a Service Provider
           </h2>
-          <p style={{ color: '#78716C', fontSize: '0.9rem', margin: 0 }}>
+          <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem', margin: 0 }}>
             Manage appointments, service schedules, and queue telemetry.
           </p>
         </div>
@@ -255,9 +255,9 @@ export const ProviderRegisterPage = () => {
           <div
             style={{
               padding: '0.85rem 1rem',
-              backgroundColor: '#FDF2F2',
-              color: '#B4534B',
-              border: '1px solid #F87171',
+              backgroundColor: 'var(--color-danger-light)',
+              color: 'var(--color-danger)',
+              border: '1px solid var(--color-danger)',
               borderRadius: '12px',
               fontSize: '0.875rem',
               marginBottom: '1.5rem',
@@ -273,7 +273,7 @@ export const ProviderRegisterPage = () => {
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                     First Name *
                   </label>
                   <input
@@ -286,14 +286,14 @@ export const ProviderRegisterPage = () => {
                     required
                   />
                   {fieldErrors.first_name && (
-                    <div style={{ color: '#B4534B', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                    <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                       {fieldErrors.first_name.join(' ')}
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                     Last Name *
                   </label>
                   <input
@@ -306,7 +306,7 @@ export const ProviderRegisterPage = () => {
                     required
                   />
                   {fieldErrors.last_name && (
-                    <div style={{ color: '#B4534B', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                    <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                       {fieldErrors.last_name.join(' ')}
                     </div>
                   )}
@@ -314,7 +314,7 @@ export const ProviderRegisterPage = () => {
               </div>
 
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                   Email Address *
                 </label>
                 <input
@@ -327,14 +327,14 @@ export const ProviderRegisterPage = () => {
                   required
                 />
                 {fieldErrors.email && (
-                  <div style={{ color: '#B4534B', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                     {fieldErrors.email.join(' ')}
                   </div>
                 )}
               </div>
 
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                   Phone Number
                 </label>
                 <input
@@ -349,13 +349,13 @@ export const ProviderRegisterPage = () => {
 
               <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#211C19' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)' }}>
                     Password *
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    style={{ background: 'none', border: 'none', color: '#5F7A70', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ background: 'none', border: 'none', color: 'var(--lp-accent)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
                   >
                     {showPassword ? 'Hide' : 'Show'} password
                   </button>
@@ -370,14 +370,14 @@ export const ProviderRegisterPage = () => {
                   required
                 />
                 {fieldErrors.password && (
-                  <div style={{ color: '#B4534B', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                     {fieldErrors.password.join(' ')}
                   </div>
                 )}
               </div>
 
               <div style={{ marginBottom: '1.75rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                   Confirm Password *
                 </label>
                 <input
@@ -390,7 +390,7 @@ export const ProviderRegisterPage = () => {
                   required
                 />
                 {fieldErrors.password_confirm && (
-                  <div style={{ color: '#B4534B', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                     {fieldErrors.password_confirm.join(' ')}
                   </div>
                 )}
@@ -402,7 +402,7 @@ export const ProviderRegisterPage = () => {
           {step === 2 && (
             <div>
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                   Professional Title
                 </label>
                 <input
@@ -416,7 +416,7 @@ export const ProviderRegisterPage = () => {
               </div>
 
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                   Professional Bio / Specialization Summary
                 </label>
                 <textarea
@@ -434,7 +434,7 @@ export const ProviderRegisterPage = () => {
           {/* STEP 3 — Organization Selection */}
           {step === 3 && (
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                 Select Organization to Apply / Join (Optional)
               </label>
               <input
@@ -450,10 +450,10 @@ export const ProviderRegisterPage = () => {
                 style={{
                   maxHeight: '220px',
                   overflowY: 'auto',
-                  border: '1px solid #E6E1D9',
+                  border: '1px solid var(--lp-border)',
                   borderRadius: '12px',
                   padding: '0.5rem',
-                  backgroundColor: '#FAF8F3',
+                  backgroundColor: 'var(--lp-bg-subtle)',
                   marginBottom: '1.25rem',
                 }}
               >
@@ -463,15 +463,15 @@ export const ProviderRegisterPage = () => {
                     padding: '0.75rem 1rem',
                     borderRadius: '8px',
                     cursor: 'pointer',
-                    backgroundColor: formData.organization_id === '' ? '#FFFFFF' : 'transparent',
-                    border: formData.organization_id === '' ? '1.5px solid #B06D2E' : '1px solid transparent',
+                    backgroundColor: formData.organization_id === '' ? 'var(--lp-surface)' : 'transparent',
+                    border: formData.organization_id === '' ? '1.5px solid var(--color-warning)' : '1px solid transparent',
                     marginBottom: '0.35rem',
                   }}
                 >
-                  <strong style={{ display: 'block', color: '#211C19', fontSize: '0.9rem' }}>
+                  <strong style={{ display: 'block', color: 'var(--lp-text)', fontSize: '0.9rem' }}>
                     🌐 Skip Organization Selection for Now
                   </strong>
-                  <span style={{ fontSize: '0.8rem', color: '#78716C' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)' }}>
                     You can join or be invited to an organization after account creation.
                   </span>
                 </div>
@@ -484,15 +484,15 @@ export const ProviderRegisterPage = () => {
                       padding: '0.75rem 1rem',
                       borderRadius: '8px',
                       cursor: 'pointer',
-                      backgroundColor: String(formData.organization_id) === String(org.id) ? '#FFFFFF' : 'transparent',
-                      border: String(formData.organization_id) === String(org.id) ? '1.5px solid #B06D2E' : '1px solid transparent',
+                      backgroundColor: String(formData.organization_id) === String(org.id) ? 'var(--lp-surface)' : 'transparent',
+                      border: String(formData.organization_id) === String(org.id) ? '1.5px solid var(--color-warning)' : '1px solid transparent',
                       marginBottom: '0.35rem',
                     }}
                   >
-                    <strong style={{ display: 'block', color: '#211C19', fontSize: '0.9rem' }}>
+                    <strong style={{ display: 'block', color: 'var(--lp-text)', fontSize: '0.9rem' }}>
                       🏥 {org.name}
                     </strong>
-                    <span style={{ fontSize: '0.8rem', color: '#78716C' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)' }}>
                       {org.address || 'SmartQueue Registered Partner'}
                     </span>
                   </div>
@@ -504,28 +504,28 @@ export const ProviderRegisterPage = () => {
           {/* STEP 4 — Review */}
           {step === 4 && (
             <div>
-              <div style={{ backgroundColor: '#FAF8F3', borderRadius: '16px', border: '1px solid #E6E1D9', padding: '1.25rem', marginBottom: '1.5rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: '#B06D2E', marginBottom: '0.5rem' }}>
+              <div style={{ backgroundColor: 'var(--lp-bg-subtle)', borderRadius: '16px', border: '1px solid var(--lp-border)', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-warning)', marginBottom: '0.5rem' }}>
                   Account Information
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.9rem', color: '#211C19', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.9rem', color: 'var(--lp-text)', marginBottom: '1.25rem' }}>
                   <div><strong>Name:</strong> {formData.first_name} {formData.last_name}</div>
                   <div><strong>Email:</strong> {formData.email}</div>
                   <div><strong>Phone:</strong> {formData.phone_number || 'N/A'}</div>
                 </div>
 
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: '#B06D2E', marginBottom: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #E6E1D9' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-warning)', marginBottom: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)' }}>
                   Professional Profile
                 </div>
-                <div style={{ fontSize: '0.9rem', color: '#211C19', marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.9rem', color: 'var(--lp-text)', marginBottom: '1.25rem' }}>
                   <div><strong>Title:</strong> {formData.title || 'Service Provider'}</div>
                   <div style={{ marginTop: '0.35rem' }}><strong>Bio:</strong> {formData.bio || 'None provided'}</div>
                 </div>
 
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: '#B06D2E', marginBottom: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #E6E1D9' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-warning)', marginBottom: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)' }}>
                   Selected Organization Application
                 </div>
-                <div style={{ fontSize: '0.9rem', color: '#211C19' }}>
+                <div style={{ fontSize: '0.9rem', color: 'var(--lp-text)' }}>
                   <div>
                     <strong>Organization:</strong>{' '}
                     {selectedOrgObj ? selectedOrgObj.name : 'None selected (Independent Account)'}
@@ -543,9 +543,9 @@ export const ProviderRegisterPage = () => {
                 onClick={handleBack}
                 style={{
                   padding: '0.85rem 1.25rem',
-                  backgroundColor: '#FAF8F3',
-                  color: '#211C19',
-                  border: '1px solid #E6E1D9',
+                  backgroundColor: 'var(--lp-bg-subtle)',
+                  color: 'var(--lp-text)',
+                  border: '1px solid var(--lp-border)',
                   borderRadius: '12px',
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -562,7 +562,7 @@ export const ProviderRegisterPage = () => {
                 style={{
                   marginLeft: 'auto',
                   padding: '0.85rem 1.75rem',
-                  backgroundColor: '#B06D2E',
+                  backgroundColor: 'var(--color-warning)',
                   color: '#FAF8F3',
                   border: 'none',
                   borderRadius: '12px',
@@ -578,7 +578,7 @@ export const ProviderRegisterPage = () => {
                 style={{
                   width: '100%',
                   padding: '0.85rem',
-                  backgroundColor: '#B06D2E',
+                  backgroundColor: 'var(--color-warning)',
                   color: '#FAF8F3',
                   border: 'none',
                   borderRadius: '12px',
@@ -595,13 +595,13 @@ export const ProviderRegisterPage = () => {
           </div>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.875rem', color: '#78716C', paddingTop: '1.5rem', borderTop: '1px solid #E6E1D9' }}>
+        <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.875rem', color: 'var(--lp-text-subtle)', paddingTop: '1.5rem', borderTop: '1px solid var(--lp-border)' }}>
           Already have an account?{' '}
-          <Link to="/login" style={{ color: '#2F2520', fontWeight: 700, textDecoration: 'none' }}>
+          <Link to="/login" style={{ color: 'var(--lp-accent)', fontWeight: 700, textDecoration: 'none' }}>
             Sign In
           </Link>
           <div style={{ marginTop: '0.75rem' }}>
-            <Link to="/register" style={{ color: '#5F7A70', fontSize: '0.825rem', textDecoration: 'none', fontWeight: 600 }}>
+            <Link to="/register" style={{ color: 'var(--lp-accent)', fontSize: '0.825rem', textDecoration: 'none', fontWeight: 600 }}>
               ← Change Account Type
             </Link>
           </div>

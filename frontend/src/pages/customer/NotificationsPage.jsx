@@ -113,12 +113,12 @@ export function NotificationsPage() {
               fontSize: '1.75rem',
               marginBottom: '0.25rem',
               fontFamily: 'Cinzel, serif',
-              color: '#211C19',
+              color: 'var(--lp-text)',
             }}
           >
             Notifications Center
           </h1>
-          <p style={{ color: '#78716C', margin: 0, fontSize: '0.95rem' }}>
+          <p style={{ color: 'var(--lp-text-subtle)', margin: 0, fontSize: '0.95rem' }}>
             Cross-clinic updates for your appointments, queue calls, and booking status.
           </p>
         </div>
@@ -129,8 +129,8 @@ export function NotificationsPage() {
             disabled={markingAll}
             style={{
               padding: '0.55rem 1.15rem',
-              background: '#5F7A70',
-              color: '#FFFFFF',
+              background: 'var(--lp-accent)',
+              color: 'var(--lp-btn-text)',
               border: 'none',
               borderRadius: '10px',
               fontWeight: 600,
@@ -151,7 +151,7 @@ export function NotificationsPage() {
           display: 'flex',
           gap: '0.5rem',
           marginBottom: '1.5rem',
-          borderBottom: '1px solid #E6E1D9',
+          borderBottom: '1px solid var(--lp-border)',
           paddingBottom: '0.75rem',
         }}
       >
@@ -160,9 +160,9 @@ export function NotificationsPage() {
           style={{
             padding: '0.4rem 1rem',
             borderRadius: '20px',
-            border: filterTab === 'ALL' ? 'none' : '1px solid #E6E1D9',
-            background: filterTab === 'ALL' ? '#5F7A70' : '#FFFFFF',
-            color: filterTab === 'ALL' ? '#FFFFFF' : '#78716C',
+            border: filterTab === 'ALL' ? 'none' : '1px solid var(--lp-border)',
+            background: filterTab === 'ALL' ? 'var(--lp-accent)' : 'var(--lp-surface)',
+            color: filterTab === 'ALL' ? 'var(--lp-btn-text)' : 'var(--lp-text-subtle)',
             fontWeight: 600,
             fontSize: '0.85rem',
             cursor: 'pointer',
@@ -175,9 +175,9 @@ export function NotificationsPage() {
           style={{
             padding: '0.4rem 1rem',
             borderRadius: '20px',
-            border: filterTab === 'UNREAD' ? 'none' : '1px solid #E6E1D9',
-            background: filterTab === 'UNREAD' ? '#5F7A70' : '#FFFFFF',
-            color: filterTab === 'UNREAD' ? '#FFFFFF' : '#78716C',
+            border: filterTab === 'UNREAD' ? 'none' : '1px solid var(--lp-border)',
+            background: filterTab === 'UNREAD' ? 'var(--lp-accent)' : 'var(--lp-surface)',
+            color: filterTab === 'UNREAD' ? 'var(--lp-btn-text)' : 'var(--lp-text-subtle)',
             fontWeight: 600,
             fontSize: '0.85rem',
             cursor: 'pointer',
@@ -190,9 +190,9 @@ export function NotificationsPage() {
           style={{
             padding: '0.4rem 1rem',
             borderRadius: '20px',
-            border: filterTab === 'READ' ? 'none' : '1px solid #E6E1D9',
-            background: filterTab === 'READ' ? '#5F7A70' : '#FFFFFF',
-            color: filterTab === 'READ' ? '#FFFFFF' : '#78716C',
+            border: filterTab === 'READ' ? 'none' : '1px solid var(--lp-border)',
+            background: filterTab === 'READ' ? 'var(--lp-accent)' : 'var(--lp-surface)',
+            color: filterTab === 'READ' ? 'var(--lp-btn-text)' : 'var(--lp-text-subtle)',
             fontWeight: 600,
             fontSize: '0.85rem',
             cursor: 'pointer',
@@ -228,15 +228,15 @@ export function NotificationsPage() {
                 key={n.id}
                 onClick={() => handleCardClick(n)}
                 style={{
-                  background: isUnread ? '#FFFFFF' : '#FAF8F3',
+                  background: isUnread ? 'var(--lp-surface)' : 'var(--lp-bg-subtle)',
                   borderRadius: '14px',
-                  border: isUnread ? '1.5px solid #5F7A70' : '1px solid #E6E1D9',
+                  border: isUnread ? '1.5px solid var(--lp-accent)' : '1px solid var(--lp-border)',
                   padding: '1.25rem',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'flex-start',
                   gap: '1rem',
-                  boxShadow: isUnread ? '0 4px 16px rgba(95, 122, 112, 0.1)' : 'none',
+                  boxShadow: isUnread ? 'var(--lp-shadow-sm)' : 'none',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                 }}
@@ -249,16 +249,16 @@ export function NotificationsPage() {
                           width: '8px',
                           height: '8px',
                           borderRadius: '50%',
-                          background: '#5F7A70',
+                          background: 'var(--lp-accent)',
                           display: 'inline-block',
                         }}
                       />
                     )}
                     <span
                       style={{
-                        background: '#FAF8F3',
-                        color: '#5F7A70',
-                        border: '1px solid #E6E1D9',
+                        background: 'var(--lp-bg-subtle)',
+                        color: 'var(--lp-accent)',
+                        border: '1px solid var(--lp-border)',
                         fontSize: '0.7rem',
                         fontWeight: 700,
                         padding: '0.15rem 0.5rem',
@@ -273,8 +273,8 @@ export function NotificationsPage() {
                         style={{
                           fontSize: '0.75rem',
                           fontWeight: 700,
-                          color: '#211C19',
-                          background: '#F5EFE6',
+                          color: 'var(--lp-text)',
+                          background: 'var(--lp-bg-subtle)',
                           padding: '0.15rem 0.5rem',
                           borderRadius: '4px',
                         }}
@@ -282,7 +282,7 @@ export function NotificationsPage() {
                         🏥 {n.organization_name}
                       </span>
                     )}
-                    <span style={{ fontSize: '0.75rem', color: '#78716C' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)' }}>
                       {new Date(n.created_at).toLocaleString([], {
                         month: 'short',
                         day: 'numeric',
@@ -292,11 +292,11 @@ export function NotificationsPage() {
                     </span>
                   </div>
 
-                  <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1.05rem', color: '#211C19', fontWeight: 700 }}>
+                  <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1.05rem', color: 'var(--lp-text)', fontWeight: 700 }}>
                     {n.title || 'Notification Update'}
                   </h4>
 
-                  <p style={{ margin: 0, color: '#5C544E', fontSize: '0.9rem', lineHeight: 1.45 }}>
+                  <p style={{ margin: 0, color: 'var(--lp-text-subtle)', fontSize: '0.9rem', lineHeight: 1.45 }}>
                     {n.message}
                   </p>
                 </div>
@@ -309,9 +309,9 @@ export function NotificationsPage() {
                       style={{
                         padding: '0.35rem 0.75rem',
                         background: 'none',
-                        border: '1px solid #E6E1D9',
+                        border: '1px solid var(--lp-border)',
                         borderRadius: '6px',
-                        color: '#5F7A70',
+                        color: 'var(--lp-accent)',
                         fontSize: '0.8rem',
                         fontWeight: 600,
                         cursor: 'pointer',
@@ -321,7 +321,7 @@ export function NotificationsPage() {
                       {markingId === n.id ? 'Marking...' : 'Mark as Read'}
                     </button>
                   )}
-                  <span style={{ fontSize: '0.8rem', color: '#5F7A70', fontWeight: 700 }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--lp-accent)', fontWeight: 700 }}>
                     View details →
                   </span>
                 </div>

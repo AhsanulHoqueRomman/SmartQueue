@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTenant } from '../contexts/TenantContext';
 import { OrgSelector } from './OrgSelector';
 import { NotificationBell } from './NotificationBell';
+import { ThemeToggle } from './ThemeToggle';
 import { useToast } from '../contexts/ToastContext';
 import { getApiDocsUrl } from '../api/client';
 
@@ -97,7 +98,7 @@ export const AppShell = ({ children }) => {
   const getRoleBadgeStyle = () => {
     switch (effectiveRole) {
       case 'ADMIN': return { bg: 'var(--color-error-bg)', color: 'var(--color-error)', border: 'var(--color-error-border)' };
-      case 'MANAGER': return { bg: 'var(--color-primary-light)', color: 'var(--color-primary-text)', border: 'var(--color-primary-border)' };
+      case 'MANAGER': return { bg: 'var(--color-primary-light)', color: 'var(--color-primary)', border: 'var(--color-primary-border)' };
       case 'STAFF': return { bg: 'var(--color-warning-bg)', color: 'var(--color-warning)', border: 'var(--color-warning-border)' };
       case 'PROVIDER': return { bg: 'var(--color-info-bg)', color: 'var(--color-info)', border: 'var(--color-info-border)' };
       default: return { bg: 'var(--color-bg-subtle)', color: 'var(--color-text-secondary)', border: 'var(--color-border)' };
@@ -135,6 +136,7 @@ export const AppShell = ({ children }) => {
 
         <div className="flex items-center gap-md nav-actions-group">
           <OrgSelector />
+          <ThemeToggle />
           <NotificationBell onNewNotification={handleNewNotification} />
 
           <div className="flex items-center gap-sm user-meta-group">
@@ -192,7 +194,7 @@ export const AppShell = ({ children }) => {
                     borderRadius: 'var(--radius-md)',
                     fontSize: '0.85rem',
                     fontWeight: isActive ? 600 : 500,
-                    color: isActive ? '#FFFFFF' : 'var(--color-text-main)',
+                    color: isActive ? 'var(--color-primary-text)' : 'var(--color-text-main)',
                     backgroundColor: isActive ? 'var(--color-primary)' : 'transparent',
                     textDecoration: 'none',
                     transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)',

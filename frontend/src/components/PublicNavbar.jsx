@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { ThemeToggle } from './ThemeToggle';
 import '../styles/LandingPage.css';
 
 export const PublicNavbar = ({ activePage = '' }) => {
@@ -70,15 +71,16 @@ export const PublicNavbar = ({ activePage = '' }) => {
             className="lp-nav-link"
             style={{
               fontWeight: activePage === 'contact' ? 700 : undefined,
-              background: activePage === 'contact' ? '#F3F0EA' : undefined,
+              background: activePage === 'contact' ? 'var(--lp-bg-subtle)' : undefined,
             }}
           >
             Contact Us
           </Link>
         </nav>
 
-        {/* CTA Buttons */}
+        {/* CTA Buttons & Theme Toggle */}
         <div className="lp-nav-cta">
+          <ThemeToggle />
           {user ? (
             <Link to="/dashboard" className="lp-btn-primary">
               Dashboard →

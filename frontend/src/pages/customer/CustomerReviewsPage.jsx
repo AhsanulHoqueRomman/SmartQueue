@@ -39,10 +39,10 @@ export function CustomerReviewsPage() {
   return (
     <div className="animate-page-entrance" style={{ maxWidth: '850px', margin: '0 auto' }}>
       <div style={{ marginBottom: '1.75rem' }}>
-        <h1 style={{ fontSize: '1.75rem', marginBottom: '0.25rem', fontFamily: 'Cinzel, serif', color: '#211C19' }}>
+        <h1 style={{ fontSize: '1.75rem', marginBottom: '0.25rem', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)' }}>
           My Reviews & Ratings
         </h1>
-        <p style={{ color: '#78716C', margin: 0 }}>
+        <p style={{ color: 'var(--lp-text-subtle)', margin: 0 }}>
           View your submitted feedback for completed service appointments in {currentOrg?.name || 'SmartQueue'}.
         </p>
       </div>
@@ -67,11 +67,11 @@ export function CustomerReviewsPage() {
             <div
               key={rev.id}
               style={{
-                background: '#FFFFFF',
+                background: 'var(--lp-surface)',
                 borderRadius: '16px',
-                border: '1px solid #E6E1D9',
+                border: '1px solid var(--lp-border)',
                 padding: '1.5rem',
-                boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
+                boxShadow: 'var(--lp-shadow-sm)',
                 display: 'flex',
                 flexDirection: 'column',
                 justify: 'space-between',
@@ -79,22 +79,22 @@ export function CustomerReviewsPage() {
             >
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <div style={{ display: 'flex', gap: '0.2rem', color: '#B06D2E', fontSize: '1.2rem' }}>
+                  <div style={{ display: 'flex', gap: '0.2rem', color: 'var(--color-warning)', fontSize: '1.2rem' }}>
                     {[1, 2, 3, 4, 5].map((star) => (
                       <span key={star}>{star <= rev.rating ? '★' : '☆'}</span>
                     ))}
                   </div>
-                  <span style={{ fontSize: '0.8rem', color: '#78716C' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)' }}>
                     {new Date(rev.created_at).toLocaleDateString()}
                   </span>
                 </div>
 
-                <p style={{ color: '#211C19', fontSize: '0.95rem', lineHeight: 1.5, margin: '0 0 1rem 0', fontStyle: rev.comment ? 'normal' : 'italic' }}>
+                <p style={{ color: 'var(--lp-text)', fontSize: '0.95rem', lineHeight: 1.5, margin: '0 0 1rem 0', fontStyle: rev.comment ? 'normal' : 'italic' }}>
                   "{rev.comment || 'No written feedback provided.'}"
                 </p>
               </div>
 
-              <div style={{ paddingTop: '0.75rem', borderTop: '1px solid #FAF8F3', fontSize: '0.8rem', color: '#5C544E' }}>
+              <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)', fontSize: '0.8rem', color: 'var(--lp-text-subtle)' }}>
                 <div>🏢 <strong>{currentOrg?.name}</strong></div>
               </div>
             </div>

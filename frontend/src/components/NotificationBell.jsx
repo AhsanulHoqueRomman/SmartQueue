@@ -187,10 +187,10 @@ export const NotificationBell = ({ onNewNotification }) => {
             right: '0',
             width: '350px',
             maxWidth: '90vw',
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #E6E1D9',
+            backgroundColor: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
             borderRadius: '16px',
-            boxShadow: '0 12px 36px rgba(47, 37, 32, 0.12)',
+            boxShadow: 'var(--shadow-xl)',
             zIndex: 1000,
             overflow: 'hidden',
             animation: 'toastSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
@@ -200,17 +200,17 @@ export const NotificationBell = ({ onNewNotification }) => {
           <div
             style={{
               padding: '0.85rem 1rem',
-              backgroundColor: '#FAF8F3',
-              borderBottom: '1px solid #E6E1D9',
+              backgroundColor: 'var(--color-bg-subtle)',
+              borderBottom: '1px solid var(--color-border)',
               display: 'flex',
-              justifyContent: 'space-between',
+              justify: 'space-between',
               alignItems: 'center',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <strong style={{ fontSize: '0.9rem', color: '#211C19' }}>Notifications</strong>
+              <strong style={{ fontSize: '0.9rem', color: 'var(--color-text-main)' }}>Notifications</strong>
               {unreadCount > 0 && (
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#5F7A70', background: '#F5EFE6', padding: '0.1rem 0.4rem', borderRadius: '6px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-secondary-accent)', background: 'var(--color-primary-light)', padding: '0.1rem 0.4rem', borderRadius: '6px' }}>
                   {unreadCount} new
                 </span>
               )}
@@ -222,7 +222,7 @@ export const NotificationBell = ({ onNewNotification }) => {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#5F7A70',
+                  color: 'var(--color-secondary-accent)',
                   fontSize: '0.75rem',
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -236,7 +236,7 @@ export const NotificationBell = ({ onNewNotification }) => {
           {/* Body List */}
           <div style={{ maxHeight: '340px', overflowY: 'auto' }}>
             {notifications.length === 0 ? (
-              <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#78716C', fontSize: '0.85rem' }}>
+              <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
                 No notifications received yet.
               </div>
             ) : (
@@ -248,16 +248,16 @@ export const NotificationBell = ({ onNewNotification }) => {
                     onClick={() => handleItemClick(n)}
                     style={{
                       padding: '0.75rem 1rem',
-                      borderBottom: '1px solid #FAF8F3',
-                      backgroundColor: isUnread ? '#FAF8F3' : '#FFFFFF',
+                      borderBottom: '1px solid var(--color-border-subtle)',
+                      backgroundColor: isUnread ? 'var(--color-bg-subtle)' : 'var(--color-surface)',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'flex-start',
                       gap: '0.65rem',
                       transition: 'background 0.15s ease',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F5EFE6')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = isUnread ? '#FAF8F3' : '#FFFFFF')}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = isUnread ? 'var(--color-bg-subtle)' : 'var(--color-surface)')}
                   >
                     <div style={{ marginTop: '3px' }}>
                       <span
@@ -265,19 +265,19 @@ export const NotificationBell = ({ onNewNotification }) => {
                           width: '8px',
                           height: '8px',
                           borderRadius: '50%',
-                          backgroundColor: isUnread ? '#5F7A70' : 'transparent',
+                          backgroundColor: isUnread ? 'var(--color-secondary-accent)' : 'transparent',
                           display: 'inline-block',
                         }}
                       />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: isUnread ? 700 : 600, color: '#211C19', marginBottom: '0.15rem' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: isUnread ? 700 : 600, color: 'var(--color-text-main)', marginBottom: '0.15rem' }}>
                         {n.title}
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: '#78716C', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                         {n.message}
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: '#A8A29E', marginTop: '0.25rem' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--color-text-tertiary)', marginTop: '0.25rem' }}>
                         {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
@@ -291,8 +291,8 @@ export const NotificationBell = ({ onNewNotification }) => {
           <div
             style={{
               padding: '0.65rem',
-              backgroundColor: '#FAF8F3',
-              borderTop: '1px solid #E6E1D9',
+              backgroundColor: 'var(--color-bg-subtle)',
+              borderTop: '1px solid var(--color-border)',
               textAlign: 'center',
             }}
           >
@@ -305,7 +305,7 @@ export const NotificationBell = ({ onNewNotification }) => {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#5F7A70',
+                color: 'var(--color-secondary-accent)',
                 fontSize: '0.8rem',
                 fontWeight: 700,
                 cursor: 'pointer',

@@ -204,38 +204,38 @@ export function ProviderPublicProfilePage() {
   // Booking Confirmation View
   if (bookedAppointment) {
     return (
-      <div className="lp-root" style={{ background: '#FAF8F3', minHeight: '100vh' }}>
+      <div className="lp-root" style={{ background: 'var(--lp-bg)', minHeight: '100vh', color: 'var(--lp-text)' }}>
         <PublicNavbar />
-        <div style={{ maxWidth: '640px', margin: '3rem auto', textAlign: 'center', backgroundColor: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px', padding: '2rem', boxShadow: '0 8px 30px rgba(47, 37, 32, 0.08)' }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#4F7A5A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1.25rem' }}>
+        <div style={{ maxWidth: '640px', margin: '3rem auto', textAlign: 'center', backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '2rem', boxShadow: '0 8px 30px var(--shadow-sm)' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1.25rem' }}>
             ✓
           </div>
-          <h2 style={{ fontSize: '1.65rem', fontWeight: '800', marginBottom: '0.35rem', color: '#2F2520', fontFamily: 'Cinzel, serif' }}>
+          <h2 style={{ fontSize: '1.65rem', fontWeight: '800', marginBottom: '0.35rem', color: 'var(--lp-text)', fontFamily: 'Cinzel, serif' }}>
             Appointment Booked!
           </h2>
-          <p style={{ color: '#78716C', marginBottom: '1.75rem', fontSize: '0.95rem' }}>
+          <p style={{ color: 'var(--lp-text-subtle)', marginBottom: '1.75rem', fontSize: '0.95rem' }}>
             Your appointment with {profile.provider_name} has been confirmed.
           </p>
 
-          <div style={{ backgroundColor: '#FAF8F3', border: '1px solid #E6E1D9', borderRadius: '12px', textAlign: 'left', marginBottom: '1.75rem', padding: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.65rem', borderBottom: '1px solid #E6E1D9' }}>
-              <span style={{ color: '#78716C', fontSize: '0.9rem' }}>Professional:</span>
-              <strong style={{ color: '#211C19' }}>{profile.provider_name} ({profile.title || 'Provider'})</strong>
+          <div style={{ backgroundColor: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '12px', textAlign: 'left', marginBottom: '1.75rem', padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.65rem', borderBottom: '1px solid var(--lp-border)' }}>
+              <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Professional:</span>
+              <strong style={{ color: 'var(--lp-text)' }}>{profile.provider_name} ({profile.title || 'Provider'})</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.65rem 0', borderBottom: '1px solid #E6E1D9' }}>
-              <span style={{ color: '#78716C', fontSize: '0.9rem' }}>Organization:</span>
-              <strong style={{ color: '#211C19' }}>{profile.organization_name}</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.65rem 0', borderBottom: '1px solid var(--lp-border)' }}>
+              <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Organization:</span>
+              <strong style={{ color: 'var(--lp-text)' }}>{profile.organization_name}</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.65rem 0', borderBottom: '1px solid #E6E1D9' }}>
-              <span style={{ color: '#78716C', fontSize: '0.9rem' }}>Service:</span>
-              <strong style={{ color: '#211C19' }}>{bookedAppointment.service_name || selectedService?.name}</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.65rem 0', borderBottom: '1px solid var(--lp-border)' }}>
+              <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Service:</span>
+              <strong style={{ color: 'var(--lp-text)' }}>{bookedAppointment.service_name || selectedService?.name}</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.65rem 0', borderBottom: '1px solid #E6E1D9' }}>
-              <span style={{ color: '#78716C', fontSize: '0.9rem' }}>Date & Time:</span>
-              <strong style={{ color: '#211C19' }}>{new Date(bookedAppointment.start_datetime).toLocaleString()}</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.65rem 0', borderBottom: '1px solid var(--lp-border)' }}>
+              <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Date & Time:</span>
+              <strong style={{ color: 'var(--lp-text)' }}>{new Date(bookedAppointment.start_datetime).toLocaleString()}</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.65rem' }}>
-              <span style={{ color: '#78716C', fontSize: '0.9rem' }}>Status:</span>
+              <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Status:</span>
               <StatusBadge status={bookedAppointment.status} />
             </div>
           </div>
@@ -243,7 +243,7 @@ export function ProviderPublicProfilePage() {
           <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
             <button
               onClick={() => navigate('/customer/appointments')}
-              style={{ padding: '0.75rem 1.5rem', background: '#2F2520', color: '#FAF8F3', border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }}
+              style={{ padding: '0.75rem 1.5rem', background: 'var(--lp-btn-primary-bg)', color: 'var(--lp-btn-primary-text)', border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }}
             >
               View My Appointments
             </button>
@@ -254,7 +254,7 @@ export function ProviderPublicProfilePage() {
                 setNotes('');
                 fetchAvailability();
               }}
-              style={{ padding: '0.75rem 1.5rem', background: '#FAF8F3', color: '#2F2520', border: '1px solid #E6E1D9', borderRadius: '10px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}
+              style={{ padding: '0.75rem 1.5rem', background: 'var(--lp-bg-subtle)', color: 'var(--lp-text)', border: '1px solid var(--lp-border)', borderRadius: '10px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}
             >
               Book Another
             </button>
@@ -265,7 +265,7 @@ export function ProviderPublicProfilePage() {
   }
 
   return (
-    <div className="lp-root" style={{ background: '#FAF8F3', minHeight: '100vh', width: '100%', overflowX: 'hidden' }}>
+    <div className="lp-root" style={{ background: 'var(--lp-bg)', minHeight: '100vh', width: '100%', overflowX: 'hidden', color: 'var(--lp-text)' }}>
       <PublicNavbar />
 
       <div style={{ padding: '2rem 1rem 3rem 1rem', maxWidth: '1040px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
@@ -273,7 +273,7 @@ export function ProviderPublicProfilePage() {
         <div style={{ marginBottom: '1rem' }}>
           <Link
             to={`/organizations/${organizationId}`}
-            style={{ color: '#5F7A70', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none' }}
+            style={{ color: 'var(--lp-accent)', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none' }}
           >
             ← Back to {profile.organization_name}
           </Link>
@@ -284,10 +284,10 @@ export function ProviderPublicProfilePage() {
           style={{
             padding: '2rem',
             marginBottom: '2rem',
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #E6E1D9',
+            backgroundColor: 'var(--lp-surface)',
+            border: '1px solid var(--lp-border)',
             borderRadius: '20px',
-            boxShadow: '0 4px 20px rgba(47, 37, 32, 0.05)'
+            boxShadow: '0 4px 20px var(--shadow-sm)'
           }}
         >
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '1.5rem' }}>
@@ -296,10 +296,10 @@ export function ProviderPublicProfilePage() {
               <img
                 src={profile.profile_photo}
                 alt={profile.provider_name}
-                style={{ width: '96px', height: '96px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #E6E1D9' }}
+                style={{ width: '96px', height: '96px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--lp-border)' }}
               />
             ) : (
-              <div style={{ width: '96px', height: '96px', borderRadius: '50%', backgroundColor: '#2F2520', color: '#FAF8F3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 'bold' }}>
+              <div style={{ width: '96px', height: '96px', borderRadius: '50%', backgroundColor: 'var(--lp-btn-primary-bg)', color: 'var(--lp-btn-primary-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 'bold' }}>
                 👤
               </div>
             )}
@@ -307,33 +307,33 @@ export function ProviderPublicProfilePage() {
             {/* Info */}
             <div style={{ flex: '1 1 280px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
-                <h1 style={{ fontSize: '1.85rem', fontWeight: '800', color: '#2F2520', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
+                <h1 style={{ fontSize: '1.85rem', fontWeight: '800', color: 'var(--lp-text)', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
                   {profile.provider_name}
                 </h1>
                 {profile.experience_years > 0 && (
-                  <span style={{ fontSize: '0.75rem', fontWeight: '700', padding: '0.2rem 0.6rem', borderRadius: '6px', backgroundColor: '#F3F0EA', color: '#5F7A70', border: '1px solid #E6E1D9' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '700', padding: '0.2rem 0.6rem', borderRadius: '6px', backgroundColor: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: '1px solid var(--lp-border)' }}>
                     {profile.experience_years} Years Exp.
                   </span>
                 )}
               </div>
 
               {profile.title && (
-                <p style={{ fontSize: '1rem', fontWeight: 600, color: '#5F7A70', margin: '0 0 0.5rem 0' }}>
+                <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--lp-accent)', margin: '0 0 0.5rem 0' }}>
                   {profile.title}
                 </p>
               )}
 
-              <p style={{ fontSize: '0.875rem', color: '#78716C', margin: '0 0 0.75rem 0' }}>
-                🏢 <Link to={`/organizations/${organizationId}`} style={{ color: '#211C19', fontWeight: 600, textDecoration: 'underline' }}>{profile.organization_name}</Link>
+              <p style={{ fontSize: '0.875rem', color: 'var(--lp-text-subtle)', margin: '0 0 0.75rem 0' }}>
+                🏢 <Link to={`/organizations/${organizationId}`} style={{ color: 'var(--lp-text)', fontWeight: 600, textDecoration: 'underline' }}>{profile.organization_name}</Link>
               </p>
 
               {/* Rating & Reviews */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-                <span style={{ color: '#B06D2E', fontWeight: 'bold', fontSize: '1.1rem' }}>★</span>
-                <span style={{ fontWeight: '800', color: '#211C19' }}>
+                <span style={{ color: 'var(--color-warning)', fontWeight: 'bold', fontSize: '1.1rem' }}>★</span>
+                <span style={{ fontWeight: '800', color: 'var(--lp-text)' }}>
                   {profile.rating ? profile.rating.toFixed(1) : '4.9'}
                 </span>
-                <span style={{ color: '#78716C' }}>
+                <span style={{ color: 'var(--lp-text-subtle)' }}>
                   ({profile.reviews_count || 12} reviews)
                 </span>
               </div>
@@ -347,14 +347,14 @@ export function ProviderPublicProfilePage() {
               }}
               style={{
                 padding: '0.75rem 1.5rem',
-                background: '#2F2520',
-                color: '#FAF8F3',
+                background: 'var(--lp-btn-primary-bg)',
+                color: 'var(--lp-btn-primary-text)',
                 border: 'none',
                 borderRadius: '10px',
                 fontWeight: 700,
                 fontSize: '0.9rem',
                 cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(47, 37, 32, 0.15)'
+                boxShadow: '0 4px 12px var(--shadow-sm)'
               }}
             >
               📅 Book Appointment
@@ -364,11 +364,11 @@ export function ProviderPublicProfilePage() {
 
         {/* Bio / About */}
         {profile.bio && (
-          <div style={{ padding: '1.5rem', marginBottom: '1.5rem', backgroundColor: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#2F2520', marginBottom: '0.5rem', fontFamily: 'Outfit, sans-serif' }}>
+          <div style={{ padding: '1.5rem', marginBottom: '1.5rem', backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--lp-text)', marginBottom: '0.5rem', fontFamily: 'Outfit, sans-serif' }}>
               About & Professional Summary
             </h2>
-            <p style={{ color: '#78716C', fontSize: '0.95rem', lineHeight: '1.6', margin: 0 }}>
+            <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.95rem', lineHeight: '1.6', margin: 0 }}>
               {profile.bio}
             </p>
           </div>
@@ -376,8 +376,8 @@ export function ProviderPublicProfilePage() {
 
         {/* Specialties & Derived Categories */}
         {((profile.specialties && profile.specialties.length > 0) || (profile.categories && profile.categories.length > 0)) && (
-          <div style={{ padding: '1.5rem', marginBottom: '1.5rem', backgroundColor: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#2F2520', marginBottom: '0.75rem', fontFamily: 'Outfit, sans-serif' }}>
+          <div style={{ padding: '1.5rem', marginBottom: '1.5rem', backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--lp-text)', marginBottom: '0.75rem', fontFamily: 'Outfit, sans-serif' }}>
               Specialties & Expertise
             </h2>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -387,9 +387,9 @@ export function ProviderPublicProfilePage() {
                   style={{
                     padding: '0.4rem 0.8rem',
                     borderRadius: '9999px',
-                    background: '#FAF8F3',
-                    border: '1px solid #E6E1D9',
-                    color: '#211C19',
+                    background: 'var(--lp-bg-subtle)',
+                    border: '1px solid var(--lp-border)',
+                    color: 'var(--lp-text)',
                     fontSize: '0.825rem',
                     fontWeight: 600
                   }}
@@ -403,9 +403,9 @@ export function ProviderPublicProfilePage() {
                   style={{
                     padding: '0.4rem 0.8rem',
                     borderRadius: '9999px',
-                    background: '#F5EFE6',
-                    border: '1px solid #E6E1D9',
-                    color: '#5F7A70',
+                    background: 'var(--lp-bg-subtle)',
+                    border: '1px solid var(--lp-border)',
+                    color: 'var(--lp-accent)',
                     fontSize: '0.825rem',
                     fontWeight: 600
                   }}
@@ -419,17 +419,17 @@ export function ProviderPublicProfilePage() {
 
         {/* Education Section */}
         {profile.education && profile.education.length > 0 && (
-          <div style={{ padding: '1.5rem', marginBottom: '1.5rem', backgroundColor: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#2F2520', marginBottom: '1rem', fontFamily: 'Outfit, sans-serif' }}>
+          <div style={{ padding: '1.5rem', marginBottom: '1.5rem', backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--lp-text)', marginBottom: '1rem', fontFamily: 'Outfit, sans-serif' }}>
               🎓 Education & Training
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {profile.education.map((edu, idx) => (
-                <div key={idx} style={{ padding: '0.85rem 1rem', background: '#FAF8F3', border: '1px solid #E6E1D9', borderRadius: '10px' }}>
-                  <div style={{ fontWeight: 700, color: '#211C19', fontSize: '0.95rem' }}>
+                <div key={idx} style={{ padding: '0.85rem 1rem', background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '10px' }}>
+                  <div style={{ fontWeight: 700, color: 'var(--lp-text)', fontSize: '0.95rem' }}>
                     {edu.degree} {edu.field ? `in ${edu.field}` : ''}
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: '#5F7A70', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--lp-accent)', fontWeight: 600 }}>
                     {edu.institution} {edu.year ? `(${edu.year})` : ''}
                   </div>
                 </div>
@@ -440,22 +440,22 @@ export function ProviderPublicProfilePage() {
 
         {/* Experience History Section */}
         {profile.experience_history && profile.experience_history.length > 0 && (
-          <div style={{ padding: '1.5rem', marginBottom: '1.5rem', backgroundColor: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#2F2520', marginBottom: '1rem', fontFamily: 'Outfit, sans-serif' }}>
+          <div style={{ padding: '1.5rem', marginBottom: '1.5rem', backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--lp-text)', marginBottom: '1rem', fontFamily: 'Outfit, sans-serif' }}>
               💼 Professional History
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {profile.experience_history.map((exp, idx) => (
-                <div key={idx} style={{ padding: '0.85rem 1rem', background: '#FAF8F3', border: '1px solid #E6E1D9', borderRadius: '10px' }}>
+                <div key={idx} style={{ padding: '0.85rem 1rem', background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '10px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: 700, color: '#211C19', fontSize: '0.95rem' }}>{exp.role}</span>
-                    {exp.period && <span style={{ fontSize: '0.8rem', color: '#78716C', fontWeight: 600 }}>{exp.period}</span>}
+                    <span style={{ fontWeight: 700, color: 'var(--lp-text)', fontSize: '0.95rem' }}>{exp.role}</span>
+                    {exp.period && <span style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)', fontWeight: 600 }}>{exp.period}</span>}
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: '#5F7A70', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--lp-accent)', fontWeight: 600, marginBottom: '0.35rem' }}>
                     {exp.organization}
                   </div>
                   {exp.description && (
-                    <p style={{ fontSize: '0.825rem', color: '#78716C', margin: 0, lineHeight: 1.4 }}>
+                    <p style={{ fontSize: '0.825rem', color: 'var(--lp-text-subtle)', margin: 0, lineHeight: 1.4 }}>
                       {exp.description}
                     </p>
                   )}
@@ -467,15 +467,15 @@ export function ProviderPublicProfilePage() {
 
         {/* Certifications Section */}
         {profile.certifications && profile.certifications.length > 0 && (
-          <div style={{ padding: '1.5rem', marginBottom: '1.5rem', backgroundColor: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#2F2520', marginBottom: '1rem', fontFamily: 'Outfit, sans-serif' }}>
+          <div style={{ padding: '1.5rem', marginBottom: '1.5rem', backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--lp-text)', marginBottom: '1rem', fontFamily: 'Outfit, sans-serif' }}>
               📜 Certifications & Accreditation
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.75rem' }}>
               {profile.certifications.map((cert, idx) => (
-                <div key={idx} style={{ padding: '0.75rem 0.9rem', background: '#FAF8F3', border: '1px solid #E6E1D9', borderRadius: '10px' }}>
-                  <div style={{ fontWeight: 700, color: '#211C19', fontSize: '0.9rem' }}>{cert.name}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#5F7A70' }}>
+                <div key={idx} style={{ padding: '0.75rem 0.9rem', background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '10px' }}>
+                  <div style={{ fontWeight: 700, color: 'var(--lp-text)', fontSize: '0.9rem' }}>{cert.name}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--lp-accent)' }}>
                     {cert.issuing_organization} {cert.year ? `(${cert.year})` : ''}
                   </div>
                 </div>
@@ -486,7 +486,7 @@ export function ProviderPublicProfilePage() {
 
         {/* Offered Services Section */}
         <div style={{ marginBottom: '2rem' }}>
-          <h2 style={{ fontSize: '1.35rem', fontWeight: '800', color: '#2F2520', marginBottom: '0.75rem', fontFamily: 'Outfit, sans-serif' }}>
+          <h2 style={{ fontSize: '1.35rem', fontWeight: '800', color: 'var(--lp-text)', marginBottom: '0.75rem', fontFamily: 'Outfit, sans-serif' }}>
             Services Offered by {profile.provider_name}
           </h2>
 
@@ -499,8 +499,8 @@ export function ProviderPublicProfilePage() {
                     key={svc.id}
                     style={{
                       padding: '1.25rem',
-                      backgroundColor: '#FFFFFF',
-                      border: `1.5px solid ${isSelected ? '#5F7A70' : '#E6E1D9'}`,
+                      backgroundColor: 'var(--lp-surface)',
+                      border: `1.5px solid ${isSelected ? 'var(--lp-accent)' : 'var(--lp-border)'}`,
                       borderRadius: '14px',
                       display: 'flex',
                       flexDirection: 'column',
@@ -509,21 +509,21 @@ export function ProviderPublicProfilePage() {
                   >
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.35rem' }}>
-                        <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#211C19', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
+                        <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--lp-text)', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
                           {svc.name}
                         </h3>
                         {svc.price && (
-                          <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#5F7A70' }}>
+                          <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--lp-accent)' }}>
                             ৳{svc.price}
                           </span>
                         )}
                       </div>
                       {svc.category_name && (
-                        <span style={{ fontSize: '0.75rem', color: '#78716C', background: '#FAF8F3', padding: '0.15rem 0.5rem', borderRadius: '4px', border: '1px solid #E6E1D9', display: 'inline-block', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', background: 'var(--lp-bg-subtle)', padding: '0.15rem 0.5rem', borderRadius: '4px', border: '1px solid var(--lp-border)', display: 'inline-block', marginBottom: '0.5rem' }}>
                           {svc.category_name}
                         </span>
                       )}
-                      <div style={{ fontSize: '0.8rem', color: '#78716C', fontWeight: 600 }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)', fontWeight: 600 }}>
                         ⏱️ {svc.duration_minutes} min duration
                       </div>
                     </div>
@@ -535,9 +535,9 @@ export function ProviderPublicProfilePage() {
                         marginTop: '0.85rem',
                         padding: '0.5rem',
                         borderRadius: '8px',
-                        border: isSelected ? 'none' : '1px solid #E6E1D9',
-                        background: isSelected ? '#5F7A70' : '#FAF8F3',
-                        color: isSelected ? '#FFFFFF' : '#211C19',
+                        border: isSelected ? 'none' : '1px solid var(--lp-border)',
+                        background: isSelected ? 'var(--lp-btn-primary-bg)' : 'var(--lp-bg-subtle)',
+                        color: isSelected ? 'var(--lp-btn-primary-text)' : 'var(--lp-text)',
                         fontWeight: 700,
                         fontSize: '0.85rem',
                         cursor: 'pointer'
@@ -550,7 +550,7 @@ export function ProviderPublicProfilePage() {
               })}
             </div>
           ) : (
-            <p style={{ color: '#78716C', fontStyle: 'italic', padding: '1rem', background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E6E1D9' }}>
+            <p style={{ color: 'var(--lp-text-subtle)', fontStyle: 'italic', padding: '1rem', background: 'var(--lp-surface)', borderRadius: '12px', border: '1px solid var(--lp-border)' }}>
               No services listed for this provider.
             </p>
           )}
@@ -561,23 +561,23 @@ export function ProviderPublicProfilePage() {
           id="provider-booking-section"
           style={{
             padding: '2rem',
-            backgroundColor: '#FFFFFF',
-            border: '2px solid #5F7A70',
+            backgroundColor: 'var(--lp-surface)',
+            border: '2px solid var(--lp-accent)',
             borderRadius: '20px',
-            boxShadow: '0 8px 30px rgba(47, 37, 32, 0.08)'
+            boxShadow: 'var(--card-shadow)'
           }}
         >
-          <div style={{ marginBottom: '1.25rem', borderBottom: '1px solid #E6E1D9', paddingBottom: '0.85rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#5F7A70', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <div style={{ marginBottom: '1.25rem', borderBottom: '1px solid var(--lp-border)', paddingBottom: '0.85rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Direct Professional Booking
             </span>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#2F2520', marginTop: '0.25rem', marginBottom: '0.25rem', fontFamily: 'Outfit, sans-serif' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--lp-text)', marginTop: '0.25rem', marginBottom: '0.25rem', fontFamily: 'Outfit, sans-serif' }}>
               Book an Appointment with {profile.provider_name}
             </h2>
           </div>
 
           {bookingError && (
-            <div style={{ marginBottom: '1.25rem', padding: '0.85rem', background: conflictError ? '#FEF3C7' : '#FEE2E2', border: `1px solid ${conflictError ? '#FDE68A' : '#FCA5A5'}`, borderRadius: '10px', color: conflictError ? '#B06D2E' : '#B4534B', fontSize: '0.875rem' }}>
+            <div style={{ marginBottom: '1.25rem', padding: '0.85rem', background: conflictError ? 'var(--color-warning-light)' : 'var(--color-danger-light)', border: `1px solid ${conflictError ? 'var(--color-warning)' : 'var(--color-danger)'}`, borderRadius: '10px', color: conflictError ? 'var(--color-warning)' : 'var(--color-danger)', fontSize: '0.875rem' }}>
               {bookingError}
             </div>
           )}
@@ -586,11 +586,11 @@ export function ProviderPublicProfilePage() {
             {/* Service & Date Pickers */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#211C19', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                   1. Select Offered Service
                 </label>
                 <select
-                  style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E6E1D9', outline: 'none', background: '#FFFFFF', fontSize: '0.9rem', cursor: 'pointer' }}
+                  style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid var(--lp-border)', outline: 'none', background: 'var(--lp-surface)', color: 'var(--lp-text)', fontSize: '0.9rem', cursor: 'pointer' }}
                   value={selectedServiceId}
                   onChange={(e) => setSelectedServiceId(e.target.value)}
                 >
@@ -603,12 +603,12 @@ export function ProviderPublicProfilePage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#211C19', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                   2. Select Date
                 </label>
                 <input
                   type="date"
-                  style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E6E1D9', outline: 'none', background: '#FFFFFF', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid var(--lp-border)', outline: 'none', background: 'var(--lp-surface)', color: 'var(--lp-text)', fontSize: '0.9rem', boxSizing: 'border-box' }}
                   min={todayStr}
                   value={selectedDate}
                   onChange={(e) => {
@@ -621,7 +621,7 @@ export function ProviderPublicProfilePage() {
 
             {/* Slot display */}
             <div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: '#2F2520', marginBottom: '0.75rem', fontFamily: 'Outfit, sans-serif' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: 'var(--lp-text)', marginBottom: '0.75rem', fontFamily: 'Outfit, sans-serif' }}>
                 Available Time Slots ({selectedDate})
               </h3>
 
@@ -649,9 +649,9 @@ export function ProviderPublicProfilePage() {
                           style={{
                             padding: '0.65rem 0.5rem',
                             borderRadius: '8px',
-                            border: isSelected ? 'none' : '1px solid #E6E1D9',
-                            background: isSelected ? '#5F7A70' : '#FAF8F3',
-                            color: isSelected ? '#FFFFFF' : '#211C19',
+                            border: isSelected ? 'none' : '1px solid var(--lp-border)',
+                            background: isSelected ? 'var(--lp-accent)' : 'var(--lp-bg-subtle)',
+                            color: isSelected ? '#FFFFFF' : 'var(--lp-text)',
                             fontSize: '0.825rem',
                             fontWeight: 600,
                             cursor: 'pointer',
@@ -669,19 +669,19 @@ export function ProviderPublicProfilePage() {
                   </div>
 
                   {selectedSlot && (
-                    <form onSubmit={handleBookAppointment} style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #E6E1D9' }}>
-                      <div style={{ fontSize: '0.85rem', color: '#78716C', marginBottom: '1rem', backgroundColor: '#FAF8F3', padding: '0.75rem', borderRadius: '8px' }}>
+                    <form onSubmit={handleBookAppointment} style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--lp-border)' }}>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginBottom: '1rem', backgroundColor: 'var(--lp-bg-subtle)', padding: '0.75rem', borderRadius: '8px' }}>
                         <div><strong>Professional:</strong> {profile.provider_name}</div>
                         <div><strong>Service:</strong> {selectedService?.name}</div>
                         <div><strong>Selected Time:</strong> {new Date(selectedSlot.start).toLocaleString()}</div>
                       </div>
 
                       <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#78716C', marginBottom: '0.25rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--lp-text-subtle)', marginBottom: '0.25rem' }}>
                           Additional Notes (Optional)
                         </label>
                         <textarea
-                          style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #E6E1D9', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--lp-border)', outline: 'none', background: 'var(--lp-surface)', color: 'var(--lp-text)', fontSize: '0.85rem', boxSizing: 'border-box' }}
                           rows="2"
                           placeholder="Add any specific requests..."
                           value={notes}
@@ -691,7 +691,7 @@ export function ProviderPublicProfilePage() {
                       </div>
 
                       {!isAuthenticated && (
-                        <p style={{ fontSize: '0.825rem', color: '#5F7A70', fontWeight: '600', marginBottom: '0.75rem' }}>
+                        <p style={{ fontSize: '0.825rem', color: 'var(--lp-accent)', fontWeight: '600', marginBottom: '0.75rem' }}>
                           ℹ️ You will be asked to sign in to complete your booking. Your selected slot choice will be preserved!
                         </p>
                       )}
@@ -702,8 +702,8 @@ export function ProviderPublicProfilePage() {
                         style={{
                           width: '100%',
                           padding: '0.8rem',
-                          background: '#2F2520',
-                          color: '#FAF8F3',
+                          background: 'var(--lp-btn-bg, #2F2520)',
+                          color: 'var(--lp-btn-text, #FAF8F3)',
                           border: 'none',
                           borderRadius: '10px',
                           fontWeight: 700,

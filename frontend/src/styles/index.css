@@ -20,7 +20,7 @@
   --color-primary-hover: #1C1917;
   --color-primary-light: rgba(95, 122, 112, 0.1);
   --color-primary-border: rgba(95, 122, 112, 0.25);
-  --color-primary-text: #2F2520;
+  --color-primary-text: #FFFFFF;
 
   /* Secondary Accent — Muted Sage Green */
   --color-secondary-accent: #5F7A70;
@@ -66,6 +66,10 @@
   --shadow-lg: 0 8px 24px 0 rgba(47, 37, 32, 0.08);
   --shadow-xl: 0 16px 36px 0 rgba(47, 37, 32, 0.1);
 
+  /* Focus & Overlay Tokens */
+  --color-focus: #2F2520;
+  --color-overlay: rgba(47, 37, 32, 0.4);
+
   /* Border Radii */
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -82,6 +86,93 @@
   --duration-slow: 0.25s;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   Dark Theme System Tokens (Warm Dark Roasted Espresso & Sage)
+   ═══════════════════════════════════════════════════════════════ */
+:root[data-theme="dark"] {
+  /* Deep Navy-Charcoal Environment */
+  --color-bg: #0B1220;
+  --color-bg-subtle: #101927;
+  --color-surface: #151F2D;
+  --color-surface-hover: #1C2939;
+  --color-surface-active: #202F40;
+
+  --color-border: #2A394B;
+  --color-border-subtle: #1C2939;
+  --color-border-hover: #35485E;
+  --color-border-focus: #2A9D8F;
+
+  /* Primary Action — Muted Teal Accent */
+  --color-primary: #2A9D8F;
+  --color-primary-hover: #35B3A4;
+  --color-primary-light: rgba(42, 157, 143, 0.16);
+  --color-primary-border: rgba(42, 157, 143, 0.32);
+  --color-primary-text: #081512;
+
+  /* Secondary Accent — Muted Teal-Sage */
+  --color-secondary-accent: #6F9187;
+  --color-secondary-accent-hover: #82A99D;
+  --color-secondary-accent-light: rgba(111, 145, 135, 0.16);
+
+  --color-secondary: #C7D2D0;
+  --color-secondary-hover: #F3F6F5;
+  --color-secondary-light: #101927;
+
+  /* Typography Colors — Crisp Clean Neutral Text */
+  --color-text-main: #F3F6F5;
+  --color-text-secondary: #C7D2D0;
+  --color-text-muted: #91A09D;
+  --color-text-tertiary: #6E7E7B;
+
+  /* Focus & Overlay Tokens */
+  --color-focus: #2A9D8F;
+  --color-overlay: rgba(5, 9, 16, 0.75);
+
+  /* Status Colors — Muted Translucent Backgrounds */
+  --color-success: #4F7A5A;
+  --color-success-bg: rgba(79, 122, 90, 0.16);
+  --color-success-border: rgba(79, 122, 90, 0.3);
+
+  --color-warning: #B77932;
+  --color-warning-bg: rgba(183, 121, 50, 0.16);
+  --color-warning-border: rgba(183, 121, 50, 0.3);
+
+  --color-error: #B4534B;
+  --color-error-bg: rgba(180, 83, 75, 0.16);
+  --color-error-border: rgba(180, 83, 75, 0.3);
+
+  --color-info: #52718A;
+  --color-info-bg: rgba(82, 113, 138, 0.16);
+  --color-info-border: rgba(82, 113, 138, 0.3);
+
+  --color-completed: #91A09D;
+  --color-completed-bg: rgba(145, 160, 157, 0.16);
+  --color-completed-border: rgba(145, 160, 157, 0.3);
+
+  /* Shadows — Deep Calm Elevation */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 6px 0 rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 18px 0 rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px 0 rgba(0, 0, 0, 0.55);
+  --shadow-xl: 0 16px 36px 0 rgba(0, 0, 0, 0.65);
+}
+
+/* Accessible Keyboard Focus Rings */
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Reduced Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Base Reset & Foundation */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -93,7 +184,6 @@ html {
   font-size: 16px;
   scroll-behavior: smooth;
   background-color: var(--color-bg);
-  color-scheme: light;
 }
 
 body {
@@ -335,7 +425,7 @@ p {
 
 .btn-primary {
   background-color: var(--color-primary);
-  color: #FFFFFF;
+  color: var(--color-primary-text);
   border-color: var(--color-primary);
   font-weight: 600;
 }
@@ -645,7 +735,7 @@ p {
 }
 
 .skeleton-box {
-  background: linear-gradient(90deg, #F3F0EA 25%, #E6E1D9 50%, #F3F0EA 75%);
+  background: linear-gradient(90deg, var(--color-bg-subtle) 25%, var(--color-border) 50%, var(--color-bg-subtle) 75%);
   background-size: 200% 100%;
   animation: sqShimmer 1.5s infinite;
   border-radius: var(--radius-sm);
@@ -663,7 +753,7 @@ p {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(33, 28, 25, 0.4);
+  background-color: var(--color-overlay);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -754,7 +844,7 @@ p {
   height: 32px;
   border-radius: var(--radius-md);
   background-color: var(--color-primary);
-  color: #FFFFFF;
+  color: var(--color-primary-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -784,7 +874,7 @@ p {
 }
 
 .nav-link.active {
-  color: #FFFFFF;
+  color: var(--color-primary-text);
   background-color: var(--color-primary);
   font-weight: 600;
 }
@@ -814,7 +904,7 @@ p {
   height: 34px;
   border-radius: var(--radius-full);
   background-color: var(--color-primary);
-  color: #FFFFFF;
+  color: var(--color-primary-text);
   font-weight: 700;
   font-size: 0.8125rem;
   border: none;

@@ -71,7 +71,7 @@ export const CustomerRegisterPage = () => {
   };
 
   return (
-    <div style={{ backgroundColor: '#FAF8F3', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PublicNavbar activePage="register" />
       <div
         className="animate-page-entrance"
@@ -87,11 +87,11 @@ export const CustomerRegisterPage = () => {
         style={{
           width: '100%',
           maxWidth: '520px',
-          backgroundColor: '#FFFFFF',
+          backgroundColor: 'var(--lp-surface)',
           borderRadius: '24px',
-          border: '1px solid #E6E1D9',
+          border: '1px solid var(--lp-border)',
           padding: '2.5rem',
-          boxShadow: '0 12px 40px rgba(47, 37, 32, 0.06)',
+          boxShadow: 'var(--card-shadow)',
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
@@ -106,17 +106,17 @@ export const CustomerRegisterPage = () => {
             }}
           >
             <span style={{ fontSize: '1.5rem' }}>⚡</span>
-            <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: '#211C19' }}>
+            <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: 'var(--lp-text)' }}>
               SmartQueue
             </span>
           </Link>
-          <div style={{ display: 'inline-block', backgroundColor: '#FAF8F3', border: '1px solid #E6E1D9', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: 700, color: '#5F7A70', marginBottom: '0.5rem' }}>
+          <div style={{ display: 'inline-block', backgroundColor: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: 700, color: 'var(--lp-accent)', marginBottom: '0.5rem' }}>
             👤 Customer Registration
           </div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: '#211C19', margin: '0 0 0.35rem 0', fontFamily: 'Cinzel, serif' }}>
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.35rem 0', fontFamily: 'Cinzel, serif' }}>
             Create Customer Account
           </h2>
-          <p style={{ color: '#78716C', fontSize: '0.9rem', margin: 0 }}>
+          <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem', margin: 0 }}>
             Find services, book appointments and manage your visits.
           </p>
         </div>
@@ -125,9 +125,9 @@ export const CustomerRegisterPage = () => {
           <div
             style={{
               padding: '0.85rem 1rem',
-              backgroundColor: '#FDF2F2',
-              color: '#B4534B',
-              border: '1px solid #F87171',
+              backgroundColor: 'var(--color-danger-light)',
+              color: 'var(--color-danger)',
+              border: '1px solid var(--color-danger)',
               borderRadius: '12px',
               fontSize: '0.875rem',
               marginBottom: '1.5rem',
@@ -140,7 +140,7 @@ export const CustomerRegisterPage = () => {
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                 First Name *
               </label>
               <input
@@ -154,14 +154,14 @@ export const CustomerRegisterPage = () => {
                 disabled={submitting}
               />
               {fieldErrors.first_name && (
-                <div style={{ color: '#B4534B', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                   {fieldErrors.first_name.join(' ')}
                 </div>
               )}
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                 Last Name *
               </label>
               <input
@@ -175,7 +175,7 @@ export const CustomerRegisterPage = () => {
                 disabled={submitting}
               />
               {fieldErrors.last_name && (
-                <div style={{ color: '#B4534B', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                   {fieldErrors.last_name.join(' ')}
                 </div>
               )}
@@ -183,7 +183,7 @@ export const CustomerRegisterPage = () => {
           </div>
 
           <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
               Email Address *
             </label>
             <input
@@ -197,14 +197,14 @@ export const CustomerRegisterPage = () => {
               disabled={submitting}
             />
             {fieldErrors.email && (
-              <div style={{ color: '#B4534B', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+              <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                 {fieldErrors.email.join(' ')}
               </div>
             )}
           </div>
 
           <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
               Phone Number
             </label>
             <input
@@ -217,7 +217,7 @@ export const CustomerRegisterPage = () => {
               disabled={submitting}
             />
             {fieldErrors.phone_number && (
-              <div style={{ color: '#B4534B', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+              <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                 {fieldErrors.phone_number.join(' ')}
               </div>
             )}
@@ -225,13 +225,13 @@ export const CustomerRegisterPage = () => {
 
           <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#211C19' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)' }}>
                 Password *
               </label>
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                style={{ background: 'none', border: 'none', color: '#5F7A70', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: 'var(--lp-accent)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
               >
                 {showPassword ? 'Hide' : 'Show'} password
               </button>
@@ -247,14 +247,14 @@ export const CustomerRegisterPage = () => {
               disabled={submitting}
             />
             {fieldErrors.password && (
-              <div style={{ color: '#B4534B', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+              <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                 {fieldErrors.password.join(' ')}
               </div>
             )}
           </div>
 
           <div style={{ marginBottom: '1.75rem' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
               Confirm Password *
             </label>
             <input
@@ -268,7 +268,7 @@ export const CustomerRegisterPage = () => {
               disabled={submitting}
             />
             {fieldErrors.password_confirm && (
-              <div style={{ color: '#B4534B', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+              <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                 {fieldErrors.password_confirm.join(' ')}
               </div>
             )}
@@ -279,7 +279,7 @@ export const CustomerRegisterPage = () => {
             style={{
               width: '100%',
               padding: '0.85rem',
-              backgroundColor: '#5F7A70',
+              backgroundColor: 'var(--lp-accent)',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: '12px',
@@ -294,13 +294,13 @@ export const CustomerRegisterPage = () => {
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.875rem', color: '#78716C', paddingTop: '1.5rem', borderTop: '1px solid #E6E1D9' }}>
+        <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.875rem', color: 'var(--lp-text-subtle)', paddingTop: '1.5rem', borderTop: '1px solid var(--lp-border)' }}>
           Already have an account?{' '}
-          <Link to="/login" style={{ color: '#2F2520', fontWeight: 700, textDecoration: 'none' }}>
+          <Link to="/login" style={{ color: 'var(--lp-accent)', fontWeight: 700, textDecoration: 'none' }}>
             Sign In
           </Link>
           <div style={{ marginTop: '0.75rem' }}>
-            <Link to="/register" style={{ color: '#5F7A70', fontSize: '0.825rem', textDecoration: 'none', fontWeight: 600 }}>
+            <Link to="/register" style={{ color: 'var(--lp-accent)', fontSize: '0.825rem', textDecoration: 'none', fontWeight: 600 }}>
               ← Change Account Type
             </Link>
           </div>

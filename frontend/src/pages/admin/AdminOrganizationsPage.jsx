@@ -7,21 +7,21 @@ import { useToast } from '../../contexts/ToastContext';
 
 const STATUS_TABS = [
   { key: 'ALL', label: 'All Organizations' },
-  { key: 'SUBMITTED', label: 'Needs Review', badgeBg: '#FEF3C7', badgeColor: '#B45309' },
-  { key: 'UNDER_REVIEW', label: 'Under Review', badgeBg: '#DBEAFE', badgeColor: '#1E40AF' },
-  { key: 'APPROVED', label: 'Approved', badgeBg: 'rgba(95, 122, 112, 0.15)', badgeColor: '#5F7A70' },
-  { key: 'REJECTED', label: 'Rejected', badgeBg: '#FEE2E2', badgeColor: '#991B1B' },
-  { key: 'SUSPENDED', label: 'Suspended', badgeBg: '#7F1D1D', badgeColor: '#FFFFFF' },
-  { key: 'SETUP_INCOMPLETE', label: 'Incomplete', badgeBg: '#F3F4F6', badgeColor: '#4B5563' },
+  { key: 'SUBMITTED', label: 'Needs Review' },
+  { key: 'UNDER_REVIEW', label: 'Under Review' },
+  { key: 'APPROVED', label: 'Approved' },
+  { key: 'REJECTED', label: 'Rejected' },
+  { key: 'SUSPENDED', label: 'Suspended' },
+  { key: 'SETUP_INCOMPLETE', label: 'Incomplete' },
 ];
 
 const STATUS_BADGE_STYLE = {
-  SETUP_INCOMPLETE: { bg: '#F3F4F6', color: '#4B5563', label: 'Incomplete Setup' },
-  SUBMITTED: { bg: '#FEF3C7', color: '#B45309', label: 'Submitted' },
-  UNDER_REVIEW: { bg: '#DBEAFE', color: '#1E40AF', label: 'Under Review' },
-  APPROVED: { bg: 'rgba(95, 122, 112, 0.15)', color: '#5F7A70', label: 'Approved' },
-  REJECTED: { bg: '#FEE2E2', color: '#991B1B', label: 'Rejected' },
-  SUSPENDED: { bg: '#7F1D1D', color: '#FFFFFF', label: 'Suspended' },
+  SETUP_INCOMPLETE: { bg: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', label: 'Incomplete Setup' },
+  SUBMITTED: { bg: 'var(--color-warning-bg, rgba(245, 158, 11, 0.15))', color: 'var(--color-warning)', label: 'Submitted' },
+  UNDER_REVIEW: { bg: 'var(--color-info-bg, rgba(14, 165, 233, 0.15))', color: 'var(--color-info, #0284c7)', label: 'Under Review' },
+  APPROVED: { bg: 'var(--color-success-bg, rgba(34, 197, 94, 0.15))', color: 'var(--color-success)', label: 'Approved' },
+  REJECTED: { bg: 'var(--color-danger-bg, rgba(239, 68, 68, 0.15))', color: 'var(--color-danger)', label: 'Rejected' },
+  SUSPENDED: { bg: 'var(--color-danger-bg, rgba(239, 68, 68, 0.25))', color: 'var(--color-danger)', label: 'Suspended' },
 };
 
 const DOC_TYPE_LABELS = {

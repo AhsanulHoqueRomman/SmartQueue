@@ -137,7 +137,7 @@ export function OrganizationsPage() {
   };
 
   return (
-    <div className="lp-root" style={{ background: '#FAF8F3', minHeight: '100vh', width: '100%', overflowX: 'hidden' }}>
+    <div className="lp-root" style={{ background: 'var(--lp-bg)', minHeight: '100vh', width: '100%', overflowX: 'hidden', color: 'var(--lp-text)' }}>
       <PublicNavbar activePage="organizations" />
 
       {/* Main Page Container */}
@@ -145,15 +145,15 @@ export function OrganizationsPage() {
         {/* Page Header */}
         <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h1 style={{ fontSize: '1.85rem', fontWeight: '800', color: '#211C19', fontFamily: 'Cinzel, serif', marginBottom: '0.35rem' }}>
+            <h1 style={{ fontSize: '1.85rem', fontWeight: '800', color: 'var(--lp-text)', fontFamily: 'Cinzel, serif', marginBottom: '0.35rem' }}>
               Explore Organizations
             </h1>
-            <p style={{ color: '#78716C', fontSize: '0.95rem', margin: 0 }}>
+            <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.95rem', margin: 0 }}>
               Discover verified organizations across Healthcare, Legal, Beauty, Repair, and Consulting.
             </p>
           </div>
 
-          <div style={{ background: '#FAF8F3', border: '1px solid #E6E1D9', padding: '0.5rem 0.9rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 700, color: '#5F7A70' }}>
+          <div style={{ background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', padding: '0.5rem 0.9rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-accent)' }}>
             Showing {filteredOrgs.length} Organizations
           </div>
         </div>
@@ -161,25 +161,25 @@ export function OrganizationsPage() {
         {/* Active Filter Chips Bar */}
         {(selectedIndustry !== 'ALL' || minRating > 0 || searchTerm) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#78716C' }}>Active Filters:</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--lp-text-subtle)' }}>Active Filters:</span>
             {selectedIndustry !== 'ALL' && (
-              <span style={{ background: '#F5EFE6', border: '1px solid #E6E1D9', color: '#5F7A70', padding: '0.25rem 0.65rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 600 }}>
+              <span style={{ background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', color: 'var(--lp-accent)', padding: '0.25rem 0.65rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 600 }}>
                 Industry: {INDUSTRY_OPTIONS.find(i => i.value === selectedIndustry)?.label || selectedIndustry}
               </span>
             )}
             {minRating > 0 && (
-              <span style={{ background: '#F5EFE6', border: '1px solid #E6E1D9', color: '#B06D2E', padding: '0.25rem 0.65rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 600 }}>
+              <span style={{ background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', color: 'var(--color-warning)', padding: '0.25rem 0.65rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 600 }}>
                 Rating: ★ {minRating}+
               </span>
             )}
             {searchTerm && (
-              <span style={{ background: '#F5EFE6', border: '1px solid #E6E1D9', color: '#211C19', padding: '0.25rem 0.65rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 600 }}>
+              <span style={{ background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', color: 'var(--lp-text)', padding: '0.25rem 0.65rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 600 }}>
                 Search: "{searchTerm}"
               </span>
             )}
             <button
               onClick={handleClearFilters}
-              style={{ background: 'none', border: 'none', color: '#B4534B', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', marginLeft: '0.5rem' }}
+              style={{ background: 'none', border: 'none', color: 'var(--color-error)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', marginLeft: '0.5rem' }}
             >
               Clear All ✕
             </button>
@@ -187,15 +187,15 @@ export function OrganizationsPage() {
         )}
 
         {/* Search & Sort Toolbar */}
-        <div style={{ padding: '1rem', marginBottom: '1.5rem', backgroundColor: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px', boxShadow: '0 2px 8px rgba(47, 37, 32, 0.03)' }}>
+        <div style={{ padding: '1rem', marginBottom: '1.5rem', backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', boxShadow: '0 2px 8px var(--shadow-sm)' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
             <div style={{ flex: '1 1 280px', position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#78716C', fontSize: '1rem' }}>
+              <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--lp-text-subtle)', fontSize: '1rem' }}>
                 🔍
               </span>
               <input
                 type="text"
-                style={{ width: '100%', padding: '0.75rem 0.85rem 0.75rem 2.5rem', borderRadius: '10px', border: '1px solid #E6E1D9', outline: 'none', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '0.75rem 0.85rem 0.75rem 2.5rem', borderRadius: '10px', border: '1px solid var(--lp-border)', background: 'var(--lp-bg)', color: 'var(--lp-text)', outline: 'none', fontSize: '0.9rem', boxSizing: 'border-box' }}
                 placeholder="Search by organization name, description, address..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -203,9 +203,9 @@ export function OrganizationsPage() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#78716C' }}>Sort:</label>
+              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text-subtle)' }}>Sort:</label>
               <select
-                style={{ padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #E6E1D9', background: '#FFFFFF', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
+                style={{ padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid var(--lp-border)', background: 'var(--lp-surface)', color: 'var(--lp-text)', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
@@ -229,8 +229,8 @@ export function OrganizationsPage() {
           `}</style>
 
           {/* Industry Filter Sidebar */}
-          <aside style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px', padding: '1.25rem', height: 'fit-content' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#211C19', margin: '0 0 1rem 0', fontFamily: 'Outfit, sans-serif' }}>
+          <aside style={{ backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '1.25rem', height: 'fit-content' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 1rem 0', fontFamily: 'Outfit, sans-serif' }}>
               Industry Filter
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.5rem' }}>
@@ -250,21 +250,21 @@ export function OrganizationsPage() {
                       border: 'none',
                       fontSize: '0.875rem',
                       fontWeight: isSelected ? 700 : 500,
-                      background: isSelected ? '#FAF8F3' : 'transparent',
-                      color: isSelected ? '#5F7A70' : '#211C19',
+                      background: isSelected ? 'var(--lp-bg-subtle)' : 'transparent',
+                      color: isSelected ? 'var(--lp-accent)' : 'var(--lp-text)',
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'all 0.15s ease'
                     }}
                   >
                     <span>{item.label}</span>
-                    {isSelected && <span style={{ fontWeight: 800, color: '#5F7A70' }}>✓</span>}
+                    {isSelected && <span style={{ fontWeight: 800, color: 'var(--lp-accent)' }}>✓</span>}
                   </button>
                 );
               })}
             </div>
 
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#211C19', margin: '0 0 0.75rem 0', fontFamily: 'Outfit, sans-serif' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.75rem 0', fontFamily: 'Outfit, sans-serif' }}>
               Rating Filter
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -286,15 +286,15 @@ export function OrganizationsPage() {
                     border: 'none',
                     fontSize: '0.875rem',
                     fontWeight: minRating === r.val ? 700 : 500,
-                    background: minRating === r.val ? '#FAF8F3' : 'transparent',
-                    color: minRating === r.val ? '#B06D2E' : '#211C19',
+                    background: minRating === r.val ? 'var(--lp-bg-subtle)' : 'transparent',
+                    color: minRating === r.val ? 'var(--color-warning)' : 'var(--lp-text)',
                     cursor: 'pointer',
                     textAlign: 'left',
                     transition: 'all 0.15s ease'
                   }}
                 >
                   <span>{r.label}</span>
-                  {minRating === r.val && <span style={{ fontWeight: 800, color: '#B06D2E' }}>✓</span>}
+                  {minRating === r.val && <span style={{ fontWeight: 800, color: 'var(--color-warning)' }}>✓</span>}
                 </button>
               ))}
             </div>
@@ -305,7 +305,7 @@ export function OrganizationsPage() {
             {loading ? (
               <LoadingState message="Discovering organizations..." />
             ) : error ? (
-              <div className="banner banner-danger" style={{ padding: '1rem', background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: '12px', color: '#B4534B' }}>{error}</div>
+              <div className="banner banner-danger" style={{ padding: '1rem', background: 'var(--color-error-bg)', border: '1px solid var(--color-error-border)', borderRadius: '12px', color: 'var(--color-error)' }}>{error}</div>
             ) : filteredOrgs.length === 0 ? (
               <EmptyState
                 title="No Organizations Found"
@@ -324,30 +324,22 @@ export function OrganizationsPage() {
                       key={org.id}
                       onClick={() => handleViewOrg(org)}
                       style={{
-                        background: '#FFFFFF',
+                        background: 'var(--lp-surface)',
                         borderRadius: '16px',
-                        border: '1px solid #E6E1D9',
+                        border: '1px solid var(--lp-border)',
                         padding: '1.25rem',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
-                        boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
+                        boxShadow: '0 4px 16px var(--shadow-sm)',
                         cursor: 'pointer',
                         transition: 'transform 0.2s ease, boxShadow 0.2s ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-4px)';
-                        e.currentTarget.style.boxShadow = '0 10px 24px rgba(47, 37, 32, 0.08)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 4px 16px rgba(47, 37, 32, 0.04)';
                       }}
                     >
                       <div>
                         {/* Card Header Tag & Favorite */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.65rem' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.55rem', borderRadius: '6px', background: '#FAF8F3', color: '#5F7A70', border: '1px solid #E6E1D9' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.55rem', borderRadius: '6px', background: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: '1px solid var(--lp-border)' }}>
                             {industryLabel}
                           </span>
                           <button
@@ -360,32 +352,32 @@ export function OrganizationsPage() {
                         </div>
 
                         {/* Title */}
-                        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#211C19', marginBottom: '0.35rem', fontFamily: 'Outfit, sans-serif' }}>
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem', fontFamily: 'Outfit, sans-serif' }}>
                           {org.name}
                         </h3>
 
                         {/* Rating */}
-                        <div style={{ fontSize: '0.85rem', color: '#B06D2E', fontWeight: 700, marginBottom: '0.5rem' }}>
-                          ★ {org.rating ? org.rating.toFixed(1) : '4.9'} <span style={{ color: '#78716C', fontWeight: 400 }}>({org.reviews_count || 0} reviews)</span>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--color-warning)', fontWeight: 700, marginBottom: '0.5rem' }}>
+                          ★ {org.rating ? org.rating.toFixed(1) : '4.9'} <span style={{ color: 'var(--lp-text-subtle)', fontWeight: 400 }}>({org.reviews_count || 0} reviews)</span>
                         </div>
 
                         {/* Description / Address */}
                         {org.description && (
-                          <p style={{ fontSize: '0.85rem', color: '#78716C', marginBottom: '0.5rem', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginBottom: '0.5rem', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                             {org.description}
                           </p>
                         )}
 
                         {org.address && (
-                          <p style={{ fontSize: '0.825rem', color: '#78716C', marginBottom: '0.75rem', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          <p style={{ fontSize: '0.825rem', color: 'var(--lp-text-subtle)', marginBottom: '0.75rem', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                             📍 {org.address}
                           </p>
                         )}
                       </div>
 
                       {/* Card Footer */}
-                      <div style={{ paddingTop: '0.75rem', borderTop: '1px solid #FAF8F3', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#5F7A70', fontWeight: 600 }}>
+                      <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--lp-sage)', fontWeight: 600 }}>
                           ⚡ {org.services_count || 0} Services • 🩺 {org.providers_count || 0} Providers
                         </span>
                         <button
@@ -393,7 +385,7 @@ export function OrganizationsPage() {
                             e.stopPropagation();
                             handleViewOrg(org);
                           }}
-                          style={{ padding: '0.45rem 0.85rem', background: '#2F2520', color: '#FAF8F3', border: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '0.825rem', cursor: 'pointer' }}
+                          style={{ padding: '0.45rem 0.85rem', background: 'var(--lp-btn-primary-bg)', color: 'var(--lp-btn-primary-text)', border: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '0.825rem', cursor: 'pointer' }}
                         >
                           View Profile →
                         </button>

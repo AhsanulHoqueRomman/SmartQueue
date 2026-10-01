@@ -55,19 +55,19 @@ export function ProviderServicesPage() {
   return (
     <div className="animate-page-entrance" style={{ maxWidth: '950px', margin: '0 auto' }}>
       <div style={{ marginBottom: '1.75rem' }}>
-        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#5F7A70', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
           ⚙️ Service Offerings Catalog
         </div>
-        <h1 style={{ fontSize: '1.75rem', color: '#211C19', margin: '0 0 0.4rem 0', fontFamily: 'Cinzel, serif' }}>
+        <h1 style={{ fontSize: '1.75rem', color: 'var(--lp-text)', margin: '0 0 0.4rem 0', fontFamily: 'Cinzel, serif' }}>
           My Services & Offerings
         </h1>
-        <p style={{ color: '#78716C', margin: 0, fontSize: '0.95rem' }}>
-          Active clinical and consultation service capabilities configured at <strong>{currentOrg.name}</strong>.
+        <p style={{ color: 'var(--lp-text-subtle)', margin: 0, fontSize: '0.95rem' }}>
+          Active clinical and consultation service capabilities configured at <strong style={{ color: 'var(--lp-text)' }}>{currentOrg.name}</strong>.
         </p>
       </div>
 
       {error ? (
-        <div style={{ padding: '1rem', background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#991B1B', borderRadius: '10px' }}>
+        <div style={{ padding: '1rem', background: 'var(--color-danger-light)', border: '1px solid var(--color-danger)', color: 'var(--color-danger)', borderRadius: '10px' }}>
           ⚠️ {error}
         </div>
       ) : services.length === 0 ? (
@@ -78,11 +78,11 @@ export function ProviderServicesPage() {
             <div
               key={svc.id}
               style={{
-                background: '#FFFFFF',
-                border: '1px solid #E6E1D9',
+                background: 'var(--lp-surface)',
+                border: '1px solid var(--lp-border)',
                 borderRadius: '16px',
                 padding: '1.5rem',
-                boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)',
+                boxShadow: 'var(--lp-shadow-sm)',
                 display: 'flex',
                 flexDirection: 'column',
                 justify: 'space-between',
@@ -90,24 +90,24 @@ export function ProviderServicesPage() {
             >
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ background: '#FAF8F3', color: '#5F7A70', border: '1px solid #E6E1D9', fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                  <span style={{ background: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: '1px solid var(--lp-border)', fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
                     {svc.is_active ? '● Active Offering' : '○ Inactive'}
                   </span>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#B06D2E' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-warning)' }}>
                     ${parseFloat(svc.price || 0).toFixed(2)}
                   </span>
                 </div>
 
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#211C19', marginBottom: '0.35rem' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                   {svc.name}
                 </h3>
 
-                <p style={{ color: '#78716C', fontSize: '0.85rem', lineHeight: 1.4, margin: '0 0 1rem 0' }}>
+                <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.85rem', lineHeight: 1.4, margin: '0 0 1rem 0' }}>
                   {svc.description || 'Professional patient consultation and treatment session.'}
                 </p>
               </div>
 
-              <div style={{ padding: '0.65rem 0.85rem', background: '#FAF8F3', borderRadius: '8px', border: '1px solid #E6E1D9', fontSize: '0.85rem', color: '#211C19', fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ padding: '0.65rem 0.85rem', background: 'var(--lp-bg-subtle)', borderRadius: '8px', border: '1px solid var(--lp-border)', fontSize: '0.85rem', color: 'var(--lp-text)', fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
                 <span>⏱ Duration:</span>
                 <span>{svc.duration_minutes || 30} minutes</span>
               </div>

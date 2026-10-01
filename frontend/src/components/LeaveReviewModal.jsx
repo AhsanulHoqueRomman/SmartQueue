@@ -61,10 +61,10 @@ export function LeaveReviewModal({
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'var(--color-overlay)',
         display: 'flex',
         alignItems: 'center',
-        justify: 'center',
+        justifyContent: 'center',
         zIndex: 1000,
         padding: '1rem',
         backdropFilter: 'blur(3px)',
@@ -73,12 +73,12 @@ export function LeaveReviewModal({
     >
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--color-surface)',
           borderRadius: '16px',
-          border: '1px solid #E6E1D9',
+          border: '1px solid var(--color-border)',
           maxWidth: '480px',
           width: '100%',
-          boxShadow: '0 20px 40px rgba(47, 37, 32, 0.15)',
+          boxShadow: 'var(--shadow-xl)',
           overflow: 'hidden',
           animation: 'fadeIn 0.2s ease',
         }}
@@ -90,14 +90,14 @@ export function LeaveReviewModal({
         <div
           style={{
             padding: '1.25rem 1.5rem',
-            borderBottom: '1px solid #E6E1D9',
+            borderBottom: '1px solid var(--color-border)',
             display: 'flex',
             justify: 'space-between',
             alignItems: 'center',
-            background: '#FAF8F3',
+            background: 'var(--color-bg-subtle)',
           }}
         >
-          <h3 id="leave-review-modal-title" style={{ margin: 0, fontSize: '1.15rem', color: '#211C19', fontWeight: 700 }}>
+          <h3 id="leave-review-modal-title" style={{ margin: 0, fontSize: '1.15rem', color: 'var(--color-text-main)', fontWeight: 700 }}>
             Leave a Review
           </h3>
           <button
@@ -109,7 +109,7 @@ export function LeaveReviewModal({
               border: 'none',
               fontSize: '1.5rem',
               cursor: 'pointer',
-              color: '#78716C',
+              color: 'var(--color-text-muted)',
             }}
           >
             &times;
@@ -117,21 +117,21 @@ export function LeaveReviewModal({
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: '1.5rem' }}>
-          <p style={{ margin: '0 0 1rem 0', color: '#5C544E', fontSize: '0.9rem', lineHeight: 1.4 }}>
-            Share your experience for <strong>{appointment.service_name || 'Service'}</strong> with{' '}
-            <strong>{appointment.provider_name || 'Provider'}</strong>.
+          <p style={{ margin: '0 0 1rem 0', color: 'var(--color-text-secondary)', fontSize: '0.9rem', lineHeight: 1.4 }}>
+            Share your experience for <strong style={{ color: 'var(--color-text-main)' }}>{appointment.service_name || 'Service'}</strong> with{' '}
+            <strong style={{ color: 'var(--color-text-main)' }}>{appointment.provider_name || 'Provider'}</strong>.
           </p>
 
           {error && (
             <div
               style={{
-                background: '#FEE2E2',
-                color: '#991B1B',
+                background: 'var(--color-error-bg)',
+                color: 'var(--color-error)',
                 padding: '0.75rem 1rem',
                 borderRadius: '8px',
                 fontSize: '0.85rem',
                 marginBottom: '1rem',
-                border: '1px solid #FCA5A5',
+                border: '1px solid var(--color-error-border)',
               }}
             >
               {error}
@@ -140,7 +140,7 @@ export function LeaveReviewModal({
 
           {/* Star Rating Selector */}
           <div style={{ marginBottom: '1.25rem', textAlign: 'center' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.5rem' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>
               Your Rating
             </label>
             <div style={{ display: 'inline-flex', gap: '0.4rem', cursor: 'pointer' }}>
@@ -154,7 +154,7 @@ export function LeaveReviewModal({
                     onClick={() => setRating(star)}
                     style={{
                       fontSize: '2.2rem',
-                      color: isFilled ? '#B06D2E' : '#E6E1D9',
+                      color: isFilled ? 'var(--color-warning)' : 'var(--color-border)',
                       transition: 'color 0.15s ease, transform 0.1s ease',
                       transform: isFilled ? 'scale(1.1)' : 'scale(1)',
                     }}
@@ -164,13 +164,13 @@ export function LeaveReviewModal({
                 );
               })}
             </div>
-            <div style={{ fontSize: '0.8rem', color: '#78716C', marginTop: '0.25rem', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '0.25rem', fontWeight: 600 }}>
               {rating === 5 ? 'Excellent' : rating === 4 ? 'Very Good' : rating === 3 ? 'Average' : rating === 2 ? 'Poor' : 'Terrible'}
             </div>
           </div>
 
           <div style={{ marginBottom: '1.5rem' }}>
-            <label htmlFor="review-comment" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
+            <label htmlFor="review-comment" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.35rem' }}>
               Comments (Optional)
             </label>
             <textarea
@@ -183,7 +183,9 @@ export function LeaveReviewModal({
                 width: '100%',
                 padding: '0.75rem',
                 borderRadius: '8px',
-                border: '1px solid #E6E1D9',
+                border: '1px solid var(--color-border)',
+                backgroundColor: 'var(--color-surface)',
+                color: 'var(--color-text-main)',
                 fontSize: '0.9rem',
                 fontFamily: 'inherit',
                 resize: 'vertical',
@@ -200,9 +202,9 @@ export function LeaveReviewModal({
               disabled={submitting}
               style={{
                 padding: '0.65rem 1.25rem',
-                background: '#FAF8F3',
-                color: '#5C544E',
-                border: '1px solid #E6E1D9',
+                background: 'var(--color-surface)',
+                color: 'var(--color-text-main)',
+                border: '1px solid var(--color-border)',
                 borderRadius: '8px',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -215,7 +217,7 @@ export function LeaveReviewModal({
               disabled={submitting}
               style={{
                 padding: '0.65rem 1.25rem',
-                background: '#5F7A70',
+                background: 'var(--color-secondary-accent)',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: '8px',

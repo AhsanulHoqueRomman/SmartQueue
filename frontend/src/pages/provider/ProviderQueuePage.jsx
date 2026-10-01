@@ -371,7 +371,7 @@ export function ProviderQueuePage() {
               </thead>
               <tbody>
                 {waitingEntries.map((entry) => (
-                  <tr key={entry.id} style={{ background: entry.is_urgent ? '#FEF2F2' : 'transparent' }}>
+                  <tr key={entry.id} style={{ background: entry.is_urgent ? 'var(--color-danger-light)' : 'transparent' }}>
                     <td>
                       <span className="badge badge-info" style={{ fontSize: '0.9rem', fontWeight: 800 }}>
                         #{entry.serial_number || entry.token_number}
@@ -382,7 +382,7 @@ export function ProviderQueuePage() {
                       <div className="text-xs text-muted">{entry.customer_email || entry.customer_phone || ''}</div>
                     </td>
                     <td>
-                      <span className="badge" style={{ fontSize: '0.75rem', background: entry.arrival_type === 'WALK_IN' ? '#F5EFE6' : '#E0F2FE', color: entry.arrival_type === 'WALK_IN' ? '#B06D2E' : '#0369A1' }}>
+                      <span className="badge" style={{ fontSize: '0.75rem', background: 'var(--lp-bg-subtle)', color: entry.arrival_type === 'WALK_IN' ? 'var(--color-warning)' : 'var(--lp-accent)', border: '1px solid var(--lp-border)' }}>
                         {entry.arrival_type === 'WALK_IN' ? '🚶 Walk-In' : '📅 Scheduled'}
                       </span>
                     </td>
@@ -424,9 +424,9 @@ export function ProviderQueuePage() {
 
       {/* Front-Desk Walk-In Registration Modal */}
       {showWalkInModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div className="card animate-zoom-in" style={{ width: '90%', maxWidth: '500px', background: '#FFFFFF', padding: '2rem', borderRadius: '16px' }}>
-            <h2 style={{ marginBottom: '1rem', fontFamily: 'Cinzel, serif' }}>Register Front-Desk Walk-In Patient</h2>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div className="card animate-zoom-in" style={{ width: '90%', maxWidth: '500px', background: 'var(--lp-surface)', color: 'var(--lp-text)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--lp-border)' }}>
+            <h2 style={{ marginBottom: '1rem', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)' }}>Register Front-Desk Walk-In Patient</h2>
             <form onSubmit={handleWalkInSubmit}>
               <div className="form-group">
                 <label className="form-label">First Name *</label>
@@ -488,10 +488,10 @@ export function ProviderQueuePage() {
 
       {/* Mark Urgent Modal */}
       {showUrgentModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div className="card animate-zoom-in" style={{ width: '90%', maxWidth: '450px', background: '#FFFFFF', padding: '2rem', borderRadius: '16px' }}>
-            <h3 style={{ marginBottom: '1rem', color: '#991B1B' }}>Bump Patient as Urgent</h3>
-            <p style={{ fontSize: '0.85rem', color: '#78716C', marginBottom: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div className="card animate-zoom-in" style={{ width: '90%', maxWidth: '450px', background: 'var(--lp-surface)', color: 'var(--lp-text)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--lp-border)' }}>
+            <h3 style={{ marginBottom: '1rem', color: 'var(--color-danger)' }}>Bump Patient as Urgent</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginBottom: '1rem' }}>
               Urgent entries are prioritized to the top of the waiting queue and will be called next.
             </p>
             <form onSubmit={handleMarkUrgentSubmit}>
