@@ -128,7 +128,7 @@ export function ManagerQueuePage() {
           <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#5F7A70', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
             ⏳ Live Queue Operations
           </div>
-          <h1 style={{ fontSize: '1.75rem', color: '#211C19', margin: '0 0 0.4rem 0', fontFamily: 'Cinzel, serif' }}>
+          <h1 style={{ fontSize: '1.75rem', color: 'var(--color-text-main)', margin: '0 0 0.4rem 0', fontFamily: 'Cinzel, serif' }}>
             Live Queue Command Center
           </h1>
           <p style={{ color: '#78716C', margin: 0, fontSize: '0.95rem' }}>
@@ -199,7 +199,7 @@ export function ManagerQueuePage() {
                 {/* Provider Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', paddingBottom: '0.85rem', borderBottom: '1px solid #FAF8F3' }}>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#211C19', fontWeight: 700 }}>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--color-text-main)', fontWeight: 700 }}>
                       🩺 {prov.user_name || 'Provider'}
                     </h3>
                     <div style={{ fontSize: '0.85rem', color: '#78716C' }}>
@@ -235,10 +235,10 @@ export function ManagerQueuePage() {
                     </div>
                     {currentlyCalled ? (
                       <div style={{ marginTop: '0.5rem' }}>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#211C19' }}>
+                        <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-text-main)' }}>
                           Token #{currentlyCalled.token_number}
                         </div>
-                        <div style={{ fontSize: '0.9rem', color: '#211C19', fontWeight: 600, marginTop: '0.2rem' }}>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--color-text-main)', fontWeight: 600, marginTop: '0.2rem' }}>
                           {currentlyCalled.service_name}
                         </div>
                         <div style={{ fontSize: '0.8rem', color: '#78716C' }}>
@@ -279,7 +279,7 @@ export function ManagerQueuePage() {
                         <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#5F7A70' }}>
                           Token #{inProgress.token_number}
                         </div>
-                        <div style={{ fontSize: '0.9rem', color: '#211C19', fontWeight: 600, marginTop: '0.2rem' }}>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--color-text-main)', fontWeight: 600, marginTop: '0.2rem' }}>
                           {inProgress.service_name}
                         </div>
                         <div style={{ fontSize: '0.8rem', color: '#78716C' }}>
@@ -316,7 +316,7 @@ export function ManagerQueuePage() {
                       {waitingList.map((entry) => (
                         <div key={entry.id} style={{ padding: '0.75rem', background: '#FAF8F3', borderRadius: '8px', border: '1px solid #E6E1D9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
-                            <div style={{ fontWeight: 800, color: '#211C19', fontSize: '1.05rem' }}>#{entry.token_number}</div>
+                            <div style={{ fontWeight: 800, color: 'var(--color-text-main)', fontSize: '1.05rem' }}>#{entry.token_number}</div>
                             <div style={{ fontSize: '0.78rem', color: '#78716C' }}>{entry.service_name}</div>
                           </div>
                           <StatusBadge status={entry.status} />

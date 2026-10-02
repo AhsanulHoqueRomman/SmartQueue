@@ -76,6 +76,17 @@ export const ProfilePage = () => {
     return user?.email ? user.email[0].toUpperCase() : 'U';
   };
 
+  const getRoleBadgeStyle = () => {
+    switch (effectiveRole) {
+      case 'ADMIN': return { bg: 'var(--color-error-bg)', color: 'var(--color-error)', border: 'var(--color-error-border)' };
+      case 'MANAGER': return { bg: 'var(--color-primary-light)', color: 'var(--color-primary)', border: 'var(--color-primary-border)' };
+      case 'STAFF': return { bg: 'var(--color-warning-bg)', color: 'var(--color-warning)', border: 'var(--color-warning-border)' };
+      case 'PROVIDER': return { bg: 'var(--color-info-bg)', color: 'var(--color-info)', border: 'var(--color-info-border)' };
+      default: return { bg: 'var(--color-bg-subtle)', color: 'var(--color-text-secondary)', border: 'var(--color-border)' };
+    }
+  };
+  const roleStyle = getRoleBadgeStyle();
+
   return (
     <div className="container" style={{ padding: '1.5rem', maxWidth: '900px', margin: '0 auto' }}>
       {/* Header Banner */}
@@ -98,8 +109,8 @@ export const ProfilePage = () => {
             width: '72px',
             height: '72px',
             borderRadius: '50%',
-            backgroundColor: 'var(--lp-accent)',
-            color: 'var(--color-surface)',
+            backgroundColor: 'var(--color-primary)',
+            color: 'var(--color-primary-text)',
             fontSize: '1.75rem',
             fontWeight: '700',
             display: 'flex',
@@ -119,9 +130,9 @@ export const ProfilePage = () => {
             <span
               className="status-badge"
               style={{
-                backgroundColor: 'var(--color-primary-light)',
-                color: 'var(--color-primary-text)',
-                border: '1px solid var(--color-primary-border)',
+                backgroundColor: roleStyle.bg,
+                color: roleStyle.color,
+                border: `1px solid ${roleStyle.border}`,
                 fontWeight: '600',
                 padding: '0.2rem 0.6rem'
               }}
@@ -235,7 +246,7 @@ export const ProfilePage = () => {
       )}
 
       {/* Account Details & Organization Memberships */}
-      <div className="grid gap-lg" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))' }}>
+      <div className="grid gap-lg" style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))' }}>
         {/* Personal Info Summary */}
         <div className="card" style={{ padding: '1.5rem' }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem', color: 'var(--color-text-main)' }}>

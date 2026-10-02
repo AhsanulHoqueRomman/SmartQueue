@@ -207,7 +207,7 @@ export function AdminContactPage() {
                   borderRadius: 'var(--radius-full)',
                   border: isActive ? '1px solid var(--lp-accent)' : '1px solid var(--color-border)',
                   background: isActive ? 'var(--lp-accent)' : 'var(--color-surface)',
-                  color: isActive ? 'var(--color-surface)' : 'var(--lp-text-subtle)',
+                  color: isActive ? '#FFFFFF' : 'var(--lp-text-subtle)',
                   fontSize: '0.85rem',
                   fontWeight: isActive ? 700 : 500,
                   cursor: 'pointer',

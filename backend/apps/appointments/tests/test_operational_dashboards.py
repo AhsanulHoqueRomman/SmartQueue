@@ -10,13 +10,13 @@ from apps.providers.models import ProviderProfile, WeeklySchedule
 from apps.services.models import Service
 from apps.appointments.models import Appointment
 from apps.queue.models import QueueEntry
-from apps.queue.services import QueueService
+from apps.queue.services import QueueService, current_business_date
 
 
 class OperationalDashboardsTestCase(APITestCase):
     def setUp(self):
         tz = ZoneInfo(settings.TIME_ZONE)
-        self.today = date.today()
+        self.today = current_business_date()
         self.tomorrow = self.today + timedelta(days=1)
 
         # Organization A (Approved)
