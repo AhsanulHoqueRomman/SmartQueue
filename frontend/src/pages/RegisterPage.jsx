@@ -14,7 +14,9 @@ export const RegisterPage = () => {
       description: 'Find services, book appointments and manage your visits.',
       cta: 'Continue as Customer',
       path: '/register/customer',
-      accentColor: '#5F7A70',
+      badgeColor: 'var(--lp-sage)',
+      btnBg: '#5F7A70',
+      btnText: '#FAF8F3',
     },
     {
       id: 'provider',
@@ -24,7 +26,9 @@ export const RegisterPage = () => {
       description: 'Manage your appointments, services, schedule and queue.',
       cta: 'Continue as Provider',
       path: '/register/provider',
-      accentColor: '#B06D2E',
+      badgeColor: '#B06D2E',
+      btnBg: '#B06D2E',
+      btnText: '#FAF8F3',
     },
     {
       id: 'manager',
@@ -34,7 +38,9 @@ export const RegisterPage = () => {
       description: 'Create and manage your organization, team and services.',
       cta: 'Continue as Manager',
       path: '/register/manager',
-      accentColor: '#2F2520',
+      badgeColor: 'var(--lp-espresso)',
+      btnBg: 'var(--lp-btn-primary-bg)',
+      btnText: 'var(--lp-btn-primary-text)',
     },
   ];
 
@@ -151,7 +157,7 @@ export const RegisterPage = () => {
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em',
-                      color: opt.accentColor,
+                      color: opt.badgeColor,
                       backgroundColor: 'var(--lp-bg-subtle)',
                       padding: '0.25rem 0.65rem',
                       borderRadius: '9999px',
@@ -175,8 +181,8 @@ export const RegisterPage = () => {
                   style={{
                     width: '100%',
                     padding: '0.85rem 1rem',
-                    backgroundColor: opt.accentColor,
-                    color: '#FAF8F3',
+                    backgroundColor: opt.btnBg,
+                    color: opt.btnText,
                     border: 'none',
                     borderRadius: '12px',
                     fontWeight: 600,
