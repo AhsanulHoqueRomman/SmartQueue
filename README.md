@@ -148,3 +148,5 @@ npm run build
 - **Tenant Isolation**: Every organization request enforces organizational membership or ownership.
 - **Cross-Customer Security**: Customers cannot view or mutate another customer's appointments, queue tokens, notifications, or reviews (`403 Forbidden` / `404 Not Found`).
 - **Audit Logging**: Sensitive operations (`APPOINTMENT_BOOKED`, `QUEUE_CALLED`, `QUEUE_SKIPPED`, `REVIEW_CREATED`) emit immutable audit logs.
+- **Password Reset Security**: End-to-end password reset flow powered by Django `default_token_generator`, URL-safe base64 UID encoding, Resend transactional email, rate-limiting (`5/hour`), single-use token invalidation, and generic non-enumerating responses to prevent account enumeration. Development uses `onboarding@resend.dev` (custom verified domain required for production email delivery).
+

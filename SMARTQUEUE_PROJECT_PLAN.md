@@ -1579,7 +1579,7 @@ M6: COMPLETE
 M7: COMPLETE
 M8: COMPLETE
 M9: COMPLETE
-M10: IN PROGRESS
+M10: COMPLETE (Forgot Password / Password Reset Flow Implemented, Security Tested & Verified)
 M11: NOT STARTED
 Contact Us Phase 1: COMPLETE (Architecture & Project Plan Updated)
 Contact Us Phase 2: COMPLETE (Backend System Implemented & Tested)
