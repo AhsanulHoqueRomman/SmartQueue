@@ -98,30 +98,61 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
     return () => { isMounted = false; };
   }, [organizations]);
 
-  // Filter organizations by selected category
+  // Filter organizations strictly by selected category
   const filteredOrgs = React.useMemo(() => {
     const list = allOrgsList.length > 0 ? allOrgsList : (organizations || []);
     if (selectedCategory === 'ALL' || !list.length) return list;
-    const matches = list.filter(o => {
+    return list.filter(o => {
       const catText = `${o.category || ''} ${o.industry_type || ''} ${o.industry_label || ''} ${o.name || ''} ${o.description || ''}`.toUpperCase();
       const sel = selectedCategory.toUpperCase();
-      if (sel === 'HEALTHCARE') return catText.includes('HEALTHCARE') || catText.includes('MEDICAL') || catText.includes('CLINIC') || catText.includes('HEALTH') || catText.includes('DOCTOR');
-      if (sel === 'SALON') return catText.includes('SALON') || catText.includes('BEAUTY') || catText.includes('WELLNESS') || catText.includes('HAIR') || catText.includes('SPA');
+      if (sel === 'HEALTHCARE') return o.industry_type === 'HEALTHCARE' || (catText.includes('HEALTHCARE') || catText.includes('MEDICAL') || catText.includes('CLINIC') || catText.includes('HEALTH') || catText.includes('DOCTOR'));
+      if (sel === 'SALON' || sel === 'BEAUTY') return o.industry_type === 'BEAUTY' || (catText.includes('SALON') || catText.includes('BEAUTY') || catText.includes('WELLNESS') || catText.includes('HAIR') || catText.includes('SPA'));
       if (sel === 'DENTAL') return catText.includes('DENTAL') || catText.includes('ORTHODONTIC') || catText.includes('TEETH');
       if (sel === 'DIAGNOSTIC') return catText.includes('DIAGNOSTIC') || catText.includes('LAB') || catText.includes('IMAGING') || catText.includes('TEST') || catText.includes('SCREENING');
-      if (sel === 'CONSULTING') return catText.includes('CONSULTING') || catText.includes('LEGAL') || catText.includes('PROFESSIONAL') || catText.includes('REPAIR') || catText.includes('SERVICE') || catText.includes('SUPPORT');
+      if (sel === 'CONSULTING' || sel === 'LEGAL') return o.industry_type === 'CONSULTING' || o.industry_type === 'LEGAL' || (catText.includes('CONSULTING') || catText.includes('LEGAL') || catText.includes('PROFESSIONAL') || catText.includes('REPAIR') || catText.includes('SERVICE') || catText.includes('SUPPORT'));
       return catText.includes(sel);
     });
-    return matches.length > 0 ? matches : list;
   }, [allOrgsList, organizations, selectedCategory]);
+
+  const handleCategoryChange = (cat) => {
+    setSelectedCategory(cat);
+    setSelectedOrgId('');
+    setServices([]);
+    setSelectedServiceId('');
+    setProviders([]);
+    setSelectedProviderId('ANY');
+    setSlots([]);
+    setSearched(false);
+  };
+
+  const handleOrgChange = (orgId) => {
+    setSelectedOrgId(orgId);
+    setServices([]);
+    setSelectedServiceId('');
+    setProviders([]);
+    setSelectedProviderId('ANY');
+    setSlots([]);
+    setSearched(false);
+  };
+
+  const handleServiceChange = (serviceId) => {
+    setSelectedServiceId(serviceId);
+    setSelectedProviderId('ANY');
+    setSlots([]);
+    setSearched(false);
+  };
 
   useEffect(() => {
     if (filteredOrgs.length > 0) {
       if (!filteredOrgs.some(o => o.id === selectedOrgId)) {
-        setSelectedOrgId(filteredOrgs[0].id);
+        handleOrgChange(filteredOrgs[0].id);
       }
     } else {
       setSelectedOrgId('');
+      setServices([]);
+      setSelectedServiceId('');
+      setProviders([]);
+      setSelectedProviderId('ANY');
     }
   }, [filteredOrgs]);
 
@@ -245,7 +276,7 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
       </div>
 
       <h3 style={{ fontSize: '1.45rem', color: 'var(--lp-text)', margin: '0 0 1.5rem 0', fontWeight: 700 }}>
-        Need an appointment today? Check live open slots across clinics
+        Need an appointment? Check serial queue availability across organizations
       </h3>
 
       <form onSubmit={handleCheckSlots} className="lp-availability-form">
@@ -255,7 +286,7 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
           </label>
           <select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={(e) => handleCategoryChange(e.target.value)}
             style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--lp-border)', background: 'var(--lp-bg)', fontSize: '0.875rem', color: 'var(--lp-text)', outline: 'none' }}
           >
             <option value="ALL">All Categories</option>
@@ -263,7 +294,7 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
             <option value="SALON">Salon & Beauty</option>
             <option value="DENTAL">Dental Care</option>
             <option value="DIAGNOSTIC">Diagnostic</option>
-            <option value="CONSULTING">Consulting</option>
+            <option value="CONSULTING">Consulting & Legal</option>
           </select>
         </div>
 
@@ -273,11 +304,11 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
           </label>
           <select
             value={selectedOrgId}
-            onChange={(e) => setSelectedOrgId(e.target.value)}
+            onChange={(e) => handleOrgChange(e.target.value)}
             style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--lp-border)', background: 'var(--lp-bg)', fontSize: '0.875rem', color: 'var(--lp-text)', outline: 'none' }}
           >
             {filteredOrgs.length === 0 ? (
-              <option value="">No clinics available</option>
+              <option value="">No organizations available</option>
             ) : (
               filteredOrgs.map(o => (
                 <option key={o.id} value={o.id}>{o.name}</option>
@@ -292,7 +323,7 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
           </label>
           <select
             value={selectedServiceId}
-            onChange={(e) => setSelectedServiceId(e.target.value)}
+            onChange={(e) => handleServiceChange(e.target.value)}
             style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--lp-border)', background: 'var(--lp-bg)', fontSize: '0.875rem', color: 'var(--lp-text)', outline: 'none' }}
           >
             {services.length === 0 ? (
@@ -307,18 +338,18 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
 
         <div>
           <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: 'var(--lp-muted)', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
-            Specialist / Doctor
+            Specialist / Provider
           </label>
           <select
             value={selectedProviderId}
             onChange={(e) => setSelectedProviderId(e.target.value)}
             style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--lp-border)', background: 'var(--lp-bg)', fontSize: '0.875rem', color: 'var(--lp-text)', outline: 'none' }}
           >
-            <option value="ANY">Any Specialist / Doctor</option>
+            <option value="ANY">Any Specialist / Provider</option>
             {providers.map(p => {
               const displayName = p.title 
                 ? `${p.title} (${p.user_email || `ID: ${p.id}`})`
-                : (p.user_email || p.name || `Doctor #${p.id}`);
+                : (p.user_email || p.name || `Provider #${p.id}`);
               return (
                 <option key={p.id} value={p.id}>{displayName}</option>
               );
@@ -328,14 +359,14 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
 
         <div>
           <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: 'var(--lp-muted)', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
-            Time Preference
+            Preferred Window
           </label>
           <select
             value={timePref}
             onChange={(e) => setTimePref(e.target.value)}
             style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--lp-border)', background: 'var(--lp-bg)', fontSize: '0.875rem', color: 'var(--lp-text)', outline: 'none' }}
           >
-            <option value="ANY">Any Time Slot</option>
+            <option value="ANY">Any Preferred Window</option>
             <option value="MORNING">Morning (8 AM - 12 PM)</option>
             <option value="AFTERNOON">Afternoon (12 PM - 5 PM)</option>
             <option value="EVENING">Evening (5 PM - 9 PM)</option>
@@ -373,7 +404,7 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
               boxShadow: '0 4px 14px rgba(95, 122, 112, 0.25)'
             }}
           >
-            {loading ? 'Searching Open Slots...' : 'Find Open Slots'}
+            {loading ? 'Checking Availability...' : 'Check Availability'}
           </button>
         </div>
       </form>

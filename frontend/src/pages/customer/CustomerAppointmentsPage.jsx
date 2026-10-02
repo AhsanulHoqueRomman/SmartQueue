@@ -93,19 +93,19 @@ export function CustomerAppointmentsPage() {
 
   // Filter appointments by tab
   const getFilteredAppointments = () => {
-    const todayStr = new Date().toDateString();
-
     return appointments.filter((item) => {
       const qStatus = item.queue_entry?.status || item.status;
-      const isToday = new Date(item.start_datetime).toDateString() === todayStr;
+      const classification = item.temporal_classification || (
+        new Date(item.start_datetime).toDateString() === new Date().toDateString()
+          ? 'today'
+          : new Date(item.start_datetime) > new Date() ? 'future' : 'historical'
+      );
 
       switch (activeTab) {
         case 'active':
-          return ['WAITING', 'CALLED', 'IN_PROGRESS', 'CHECKED_IN'].includes(qStatus) ||
-            (item.status === 'CONFIRMED' && isToday);
+          return classification === 'today' && ['WAITING', 'CALLED', 'IN_PROGRESS', 'CHECKED_IN', 'CONFIRMED'].includes(qStatus) && qStatus !== 'CANCELLED';
         case 'upcoming':
-          return !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(qStatus) &&
-            !isToday && new Date(item.start_datetime) > new Date();
+          return classification === 'future' && ['CONFIRMED', 'CHECKED_IN', 'PENDING'].includes(qStatus);
         case 'completed':
           return qStatus === 'COMPLETED';
         case 'cancelled':

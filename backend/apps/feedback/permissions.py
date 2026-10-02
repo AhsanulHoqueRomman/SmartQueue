@@ -31,9 +31,4 @@ class CanReviewAppointment(BasePermission):
 
 class CanViewOrganizationReviews(BasePermission):
     def has_permission(self, request, view):
-        if not (request.user and request.user.is_authenticated):
-            return False
-        if _admin(request.user):
-            return True
-        membership = _membership(request.user, view.kwargs.get('organization_id'))
-        return bool(membership and membership.role in ('MANAGER', 'STAFF', 'PROVIDER'))
+        return bool(request.user and request.user.is_authenticated)

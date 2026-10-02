@@ -81,24 +81,29 @@ export const CustomerDashboard = () => {
 
   const todayStr = new Date().toDateString();
 
-  // Categorize dashboard items into distinct arrays using stable IDs
+  // Categorize dashboard items into distinct arrays using server-derived fields
   const liveQueueItems = dashboardItems.filter((item) => {
+    if (item.is_live_queue !== undefined) return item.is_live_queue;
     const qStatus = item.queue_entry?.status || item.status;
-    return ['WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
+    return item.temporal_classification === 'today' && ['WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
   });
 
   const upcomingItems = dashboardItems.filter((item) => {
+    if (item.temporal_classification) {
+      return item.temporal_classification === 'future' && !['CANCELLED', 'COMPLETED'].includes(item.status);
+    }
     const qStatus = item.queue_entry?.status || item.status;
     return !['WAITING', 'CALLED', 'IN_PROGRESS', 'COMPLETED', 'SKIPPED', 'CANCELLED', 'NO_SHOW'].includes(qStatus) &&
       new Date(item.start_datetime) > new Date();
   });
 
-  const todayApptsCount = dashboardItems.filter(
-    (item) => new Date(item.start_datetime).toDateString() === todayStr
-  ).length;
+  const todayApptsCount = dashboardItems.filter((item) => {
+    if (item.temporal_classification) return item.temporal_classification === 'today' && item.status !== 'CANCELLED';
+    return new Date(item.start_datetime).toDateString() === todayStr && item.status !== 'CANCELLED';
+  }).length;
 
   const completedCount = dashboardItems.filter(
-    (item) => (item.queue_entry?.status || item.status) === 'COMPLETED'
+    (item) => item.status === 'COMPLETED'
   ).length;
 
   return (

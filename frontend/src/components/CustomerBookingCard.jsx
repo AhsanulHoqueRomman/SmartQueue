@@ -41,8 +41,11 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
     NOT_YET: { label: 'Not Yet', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', border: 'var(--lp-border)', note: 'Relaxed waiting' },
   }[readinessState] || { label: 'Waiting', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: 'var(--lp-border)', note: '' };
 
-  const isLive = ['WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
+  const isLive = item.is_live_queue !== undefined ? item.is_live_queue : ['WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
   const isTerminal = ['COMPLETED', 'SKIPPED', 'CANCELLED', 'NO_SHOW'].includes(qStatus);
+  const canCheckIn = item.can_check_in !== undefined
+    ? item.can_check_in
+    : (item.temporal_classification === 'today' && item.status === 'CONFIRMED');
   const isCheckingIn = checkingInId === item.id;
 
   return (
@@ -216,7 +219,7 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
 
       {/* Action Footer */}
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-        {qEntry && !qEntry.is_checked_in && !isTerminal && onCheckIn && (
+        {canCheckIn && !isTerminal && onCheckIn && (
           <button
             onClick={() => onCheckIn(item.organization_id, item.id)}
             disabled={isCheckingIn}

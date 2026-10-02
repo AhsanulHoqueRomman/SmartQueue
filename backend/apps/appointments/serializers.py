@@ -1,6 +1,55 @@
 from rest_framework import serializers
-
 from .models import Appointment
+
+
+def _get_temporal_classification(obj) -> str:
+    from apps.queue.services import current_business_date, business_date_for_appointment
+    appt_date = obj.appointment_date or business_date_for_appointment(obj)
+    today = current_business_date()
+    if appt_date < today:
+        return 'historical'
+    elif appt_date == today:
+        return 'today'
+    return 'future'
+
+
+def _get_is_live_queue(obj) -> bool:
+    classification = _get_temporal_classification(obj)
+    if classification != 'today':
+        return False
+    if obj.status not in (Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN, Appointment.Status.IN_PROGRESS):
+        return False
+    q = getattr(obj, 'queue_entry', None)
+    if q is None:
+        from apps.queue.models import QueueEntry
+        q = QueueEntry.objects.filter(appointment=obj).first()
+    if q and q.status in ('COMPLETED', 'SKIPPED', 'CANCELLED', 'NO_SHOW'):
+        return False
+    return True
+
+
+def _get_can_check_in(obj) -> bool:
+    classification = _get_temporal_classification(obj)
+    if classification != 'today':
+        return False
+    if obj.status != Appointment.Status.CONFIRMED:
+        return False
+    if not (obj.organization and obj.organization.is_active):
+        return False
+    if not (obj.provider and obj.provider.is_operationally_active):
+        return False
+    return True
+
+
+def _get_can_cancel(obj) -> bool:
+    return obj.status in (Appointment.Status.PENDING, Appointment.Status.CONFIRMED)
+
+
+def _get_can_review(obj) -> bool:
+    if obj.status != Appointment.Status.COMPLETED:
+        return False
+    from apps.feedback.models import Review
+    return not Review.objects.filter(appointment=obj).exists()
 
 
 class AppointmentSerializer(serializers.ModelSerializer):
@@ -11,6 +60,11 @@ class AppointmentSerializer(serializers.ModelSerializer):
     service_id = serializers.UUIDField(source='service.id', read_only=True)
     service_name = serializers.CharField(source='service.name', read_only=True)
     organization_id = serializers.UUIDField(source='organization.id', read_only=True)
+    temporal_classification = serializers.SerializerMethodField()
+    is_live_queue = serializers.SerializerMethodField()
+    can_check_in = serializers.SerializerMethodField()
+    can_cancel = serializers.SerializerMethodField()
+    can_review = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
@@ -32,10 +86,30 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'status',
             'cancellation_reason',
             'notes',
+            'temporal_classification',
+            'is_live_queue',
+            'can_check_in',
+            'can_cancel',
+            'can_review',
             'created_at',
             'updated_at',
         ]
         read_only_fields = fields
+
+    def get_temporal_classification(self, obj):
+        return _get_temporal_classification(obj)
+
+    def get_is_live_queue(self, obj):
+        return _get_is_live_queue(obj)
+
+    def get_can_check_in(self, obj):
+        return _get_can_check_in(obj)
+
+    def get_can_cancel(self, obj):
+        return _get_can_cancel(obj)
+
+    def get_can_review(self, obj):
+        return _get_can_review(obj)
 
 
 class AppointmentListSerializer(serializers.ModelSerializer):
@@ -45,6 +119,10 @@ class AppointmentListSerializer(serializers.ModelSerializer):
     provider_id = serializers.UUIDField(source='provider.id', read_only=True)
     service_id = serializers.UUIDField(source='service.id', read_only=True)
     service_name = serializers.CharField(source='service.name', read_only=True)
+    temporal_classification = serializers.SerializerMethodField()
+    is_live_queue = serializers.SerializerMethodField()
+    can_check_in = serializers.SerializerMethodField()
+    can_cancel = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
@@ -64,8 +142,24 @@ class AppointmentListSerializer(serializers.ModelSerializer):
             'end_datetime',
             'status',
             'notes',
+            'temporal_classification',
+            'is_live_queue',
+            'can_check_in',
+            'can_cancel',
         ]
         read_only_fields = fields
+
+    def get_temporal_classification(self, obj):
+        return _get_temporal_classification(obj)
+
+    def get_is_live_queue(self, obj):
+        return _get_is_live_queue(obj)
+
+    def get_can_check_in(self, obj):
+        return _get_can_check_in(obj)
+
+    def get_can_cancel(self, obj):
+        return _get_can_cancel(obj)
 
 
 class AppointmentCreateSerializer(serializers.Serializer):
@@ -159,6 +253,11 @@ class CustomerDashboardItemSerializer(serializers.ModelSerializer):
     category_id = serializers.UUIDField(source='service.category.id', read_only=True, default=None)
     category_name = serializers.CharField(source='service.category.name', read_only=True, default=None)
     queue_entry = serializers.SerializerMethodField()
+    temporal_classification = serializers.SerializerMethodField()
+    is_live_queue = serializers.SerializerMethodField()
+    can_check_in = serializers.SerializerMethodField()
+    can_cancel = serializers.SerializerMethodField()
+    can_review = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
@@ -184,6 +283,11 @@ class CustomerDashboardItemSerializer(serializers.ModelSerializer):
             'status',
             'notes',
             'queue_entry',
+            'temporal_classification',
+            'is_live_queue',
+            'can_check_in',
+            'can_cancel',
+            'can_review',
             'created_at',
             'updated_at',
         ]
@@ -203,4 +307,20 @@ class CustomerDashboardItemSerializer(serializers.ModelSerializer):
         if q:
             return QueueEntrySerializer(q).data
         return None
+
+    def get_temporal_classification(self, obj):
+        return _get_temporal_classification(obj)
+
+    def get_is_live_queue(self, obj):
+        return _get_is_live_queue(obj)
+
+    def get_can_check_in(self, obj):
+        return _get_can_check_in(obj)
+
+    def get_can_cancel(self, obj):
+        return _get_can_cancel(obj)
+
+    def get_can_review(self, obj):
+        return _get_can_review(obj)
+
 

@@ -51,7 +51,7 @@ function LiveQueuePreviewCard({ item, formatTime }) {
     NOT_YET: { label: 'Not Yet', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', border: 'var(--lp-border)' },
   }[readinessState] || { label: 'Waiting', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: 'var(--lp-border)' };
 
-  const isLive = ['WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
+  const isLive = item.is_live_queue !== undefined ? item.is_live_queue : ['WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
 
   return (
     <div
@@ -337,7 +337,8 @@ export function HomepageLiveQueueWidget() {
       .then((data) => {
         if (!isMounted) return;
         const list = Array.isArray(data) ? data : data.results || [];
-        const sorted = [...list].sort((a, b) => getPriorityScore(a) - getPriorityScore(b));
+        const activeOrUpcoming = list.filter(item => item.temporal_classification !== 'historical' && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(item.status));
+        const sorted = [...activeOrUpcoming].sort((a, b) => getPriorityScore(a) - getPriorityScore(b));
         setItems(sorted);
       })
       .catch(() => {

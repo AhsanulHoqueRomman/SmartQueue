@@ -51,8 +51,16 @@ class OrganizationReviewListView(APIView):
         membership = OrganizationMembership.objects.filter(
             user=request.user, organization=organization, is_active=True,
         ).first()
-        if membership and membership.role == OrganizationMembership.Role.PROVIDER:
+
+        if request.user.is_staff or request.user.is_superuser:
+            pass
+        elif membership and membership.role in (OrganizationMembership.Role.MANAGER, OrganizationMembership.Role.STAFF):
+            pass
+        elif membership and membership.role == OrganizationMembership.Role.PROVIDER:
             reviews = reviews.filter(provider__membership=membership)
+        else:
+            reviews = reviews.filter(customer=request.user)
+
         reviews = apply_list_query(
             reviews, request,
             filter_fields=('rating', 'provider_id'),

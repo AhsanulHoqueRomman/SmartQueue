@@ -47,8 +47,6 @@ export function CustomerReviewsPage() {
         </p>
       </div>
 
-      {error && <div className="banner banner-danger" style={{ marginBottom: '1.5rem' }}>{error}</div>}
-
       {!currentOrg ? (
         <EmptyState
           title="No Organization Selected"
@@ -56,6 +54,13 @@ export function CustomerReviewsPage() {
         />
       ) : loading ? (
         <LoadingState message="Loading your submitted reviews..." />
+      ) : error ? (
+        <EmptyState
+          title="Failed to Load Reviews"
+          message={error}
+          actionText="Try Again"
+          onAction={fetchReviews}
+        />
       ) : reviews.length === 0 ? (
         <EmptyState
           title="You haven't submitted any reviews"

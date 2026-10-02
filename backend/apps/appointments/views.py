@@ -327,6 +327,7 @@ class CustomerDashboardView(APIView):
         summary='Get customer dashboard appointments across all organizations',
     )
     def get(self, request):
+        QueueService.reconcile_stale_historical_queue_entries()
         qs = Appointment.objects.filter(customer=request.user).select_related(
             'organization',
             'provider',

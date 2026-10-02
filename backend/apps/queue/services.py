@@ -244,6 +244,7 @@ class QueueService:
 
     @classmethod
     def list_provider_queue(cls, *, organization_id, provider_id, on_date: date | None = None):
+        cls.reconcile_stale_historical_queue_entries()
         organization = _load_org(organization_id)
         provider = _load_provider(organization=organization, provider_id=provider_id)
         queue_date = on_date or current_business_date()
@@ -270,6 +271,7 @@ class QueueService:
 
     @classmethod
     def call_next(cls, *, organization_id, provider_id, on_date: date | None = None, actor=None) -> QueueEntry:
+        cls.reconcile_stale_historical_queue_entries()
         organization = _load_org(organization_id)
         queue_date = on_date or current_business_date()
 
@@ -380,14 +382,73 @@ class QueueService:
             return appt
 
     @classmethod
+    def reconcile_stale_historical_queue_entries(cls) -> int:
+        """
+        Transition historical (queue_date < current_business_date()) entries that are still
+        in WAITING, CALLED, or IN_PROGRESS into terminal SKIPPED state.
+        Linked appointments in non-terminal states (CONFIRMED, CHECKED_IN, IN_PROGRESS)
+        are transitioned to NO_SHOW.
+        """
+        today = current_business_date()
+        stale_entries = QueueEntry.objects.filter(
+            queue_date__lt=today,
+            status__in=[QueueEntry.Status.WAITING, QueueEntry.Status.CALLED, QueueEntry.Status.IN_PROGRESS],
+        ).select_related('appointment')
+
+        reconciled_count = 0
+        now = timezone.now()
+        with transaction.atomic():
+            for entry in stale_entries:
+                entry.status = QueueEntry.Status.SKIPPED
+                entry.skipped_at = now
+                entry.save(update_fields=['status', 'skipped_at', 'updated_at'])
+
+                appt = entry.appointment
+                if appt and appt.status in [Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN, Appointment.Status.IN_PROGRESS]:
+                    appt.status = Appointment.Status.NO_SHOW
+                    appt.save(update_fields=['status', 'updated_at'])
+                reconciled_count += 1
+        return reconciled_count
+
+    @classmethod
     def calculate_readiness_and_eta(cls, queue_entry: QueueEntry) -> dict:
         now = timezone.now()
+        today = current_business_date()
+
         if queue_entry.status == QueueEntry.Status.COMPLETED:
             return {'readiness_state': 'COMPLETED', 'people_ahead': 0, 'estimated_wait_minutes': 0}
         if queue_entry.status == QueueEntry.Status.SKIPPED:
             return {'readiness_state': 'SKIPPED', 'people_ahead': 0, 'estimated_wait_minutes': 0}
         if queue_entry.status in (QueueEntry.Status.CANCELLED, QueueEntry.Status.NO_SHOW):
             return {'readiness_state': queue_entry.status, 'people_ahead': 0, 'estimated_wait_minutes': 0}
+
+        # Temporal classification: future or historical queue entries must NOT return active readiness guidance
+        if queue_entry.queue_date > today:
+            service_dur = 15
+            if queue_entry.appointment and queue_entry.appointment.service:
+                service_dur = queue_entry.appointment.service.duration_minutes or 15
+            appt_start = queue_entry.appointment.start_datetime if queue_entry.appointment else None
+            est_start = appt_start or now
+            est_end = est_start + timedelta(minutes=service_dur)
+            rec_arrival = (appt_start - timedelta(minutes=15)) if appt_start else est_start
+            return {
+                'readiness_state': QueueEntry.ReadinessState.NOT_YET,
+                'people_ahead': 0,
+                'estimated_wait_minutes': 0,
+                'estimated_start_time': est_start.isoformat(),
+                'estimated_end_time': est_end.isoformat(),
+                'recommended_arrival_time': rec_arrival.isoformat(),
+                'now_serving_serial': None,
+            }
+
+        if queue_entry.queue_date < today:
+            return {
+                'readiness_state': QueueEntry.ReadinessState.NOT_YET,
+                'people_ahead': 0,
+                'estimated_wait_minutes': 0,
+                'now_serving_serial': None,
+            }
+
         service_dur = 15
         if queue_entry.appointment and queue_entry.appointment.service:
             service_dur = queue_entry.appointment.service.duration_minutes or 15
@@ -411,7 +472,7 @@ class QueueService:
         # Active entry in consultation / called
         active_entry = QueueEntry.objects.filter(
             provider=queue_entry.provider,
-            queue_date=queue_entry.queue_date,
+            queue_date=today,
             status__in=[QueueEntry.Status.CALLED, QueueEntry.Status.IN_PROGRESS],
         ).select_related('appointment__service').first()
 
@@ -430,7 +491,7 @@ class QueueService:
         if queue_entry.is_urgent:
             ahead_qs = QueueEntry.objects.filter(
                 provider=queue_entry.provider,
-                queue_date=queue_entry.queue_date,
+                queue_date=today,
                 status=QueueEntry.Status.WAITING,
                 is_checked_in=True,
                 is_urgent=True,
@@ -440,7 +501,7 @@ class QueueService:
         else:
             ahead_qs = QueueEntry.objects.filter(
                 provider=queue_entry.provider,
-                queue_date=queue_entry.queue_date,
+                queue_date=today,
                 status=QueueEntry.Status.WAITING,
                 is_checked_in=True,
                 appointment__status__in=[Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN],

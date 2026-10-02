@@ -108,9 +108,15 @@ export function CustomerAppointmentDetailPage() {
   const qId = qEntry?.id;
   const orgId = appointment.organization_id || appointment.organization;
 
-  const canCheckIn = appointment.status === 'CONFIRMED' || (qEntry && !qEntry.is_checked_in);
-  const canCancel = ['CONFIRMED', 'PENDING'].includes(appointment.status) && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED', 'IN_PROGRESS'].includes(qStatus);
-  const isLive = ['CHECKED_IN', 'WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
+  const canCheckIn = appointment.can_check_in !== undefined
+    ? appointment.can_check_in
+    : (appointment.temporal_classification === 'today' && appointment.status === 'CONFIRMED');
+  const canCancel = appointment.can_cancel !== undefined
+    ? appointment.can_cancel
+    : (['CONFIRMED', 'PENDING'].includes(appointment.status) && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED', 'IN_PROGRESS'].includes(qStatus));
+  const isLive = appointment.is_live_queue !== undefined
+    ? appointment.is_live_queue
+    : ['CHECKED_IN', 'WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
   const isTerminal = ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(qStatus);
 
   const startDate = new Date(appointment.start_datetime);
