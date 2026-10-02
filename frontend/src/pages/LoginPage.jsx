@@ -130,6 +130,14 @@ export const LoginPage = () => {
                 {fieldErrors.password[0]}
               </div>
             )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.4rem' }}>
+              <Link
+                to="/forgot-password"
+                style={{ color: 'var(--lp-accent)', fontSize: '0.8125rem', fontWeight: 600, textDecoration: 'none' }}
+              >
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', marginTop: '0.75rem' }} disabled={submitting}>

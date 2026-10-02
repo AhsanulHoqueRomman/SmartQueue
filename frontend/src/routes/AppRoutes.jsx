@@ -7,6 +7,8 @@ import { RoleRoute, getRoleDashboardPath } from './RoleRoute';
 import { AppShell } from '../components/AppShell';
 
 import { LoginPage } from '../pages/LoginPage';
+import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '../pages/ResetPasswordPage';
 import { RegisterPage } from '../pages/RegisterPage';
 import { CustomerRegisterPage } from '../pages/customer/CustomerRegisterPage';
 import { ManagerRegisterPage } from '../pages/manager/ManagerRegisterPage';
@@ -104,6 +106,14 @@ export const AppRoutes = () => {
       <Route
         path="/login"
         element={isAuthenticated ? <Navigate to={rolePath} replace /> : <LoginPage />}
+      />
+      <Route
+        path="/forgot-password"
+        element={isAuthenticated ? <Navigate to={rolePath} replace /> : <ForgotPasswordPage />}
+      />
+      <Route
+        path="/reset-password/:uid/:token"
+        element={isAuthenticated ? <Navigate to={rolePath} replace /> : <ResetPasswordPage />}
       />
       <Route
         path="/register"

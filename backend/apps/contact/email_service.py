@@ -34,6 +34,7 @@ __all__ = [
     'send_contact_admin_notification',
     'send_contact_customer_confirmation',
     'send_contact_admin_reply',
+    'send_password_reset_email',
 ]
 
 # Maximum number of characters of an upstream error message we are willing to
@@ -282,4 +283,56 @@ def send_contact_admin_reply(contact_message, reply_text, admin_name=None):
         html=_text_to_html(body),
         reply_to=config['support_email'] or None,
         context='admin reply',
+    )
+
+
+def send_password_reset_email(user, reset_url):
+    """Deliver a password reset link email to the specified user."""
+    config = _get_config()
+    missing = _missing_env_vars(config, ['api_key', 'from_email'])
+    if missing:
+        logger.warning(
+            'Password reset email skipped: missing configuration for %s',
+            ', '.join(missing),
+        )
+        return EmailSendResult(
+            success=False,
+            error=f"Missing email configuration: {', '.join(missing)}",
+        )
+
+    name_greeting = f" {user.get_short_name()}" if hasattr(user, 'get_short_name') and user.get_short_name() else ""
+    text = (
+        f'Hello{name_greeting},\n\n'
+        'We received a request to reset your SmartQueue password.\n\n'
+        'Reset your password:\n'
+        f'{reset_url}\n\n'
+        'This link is valid for a limited time.\n\n'
+        'If you did not request a password reset, you can safely ignore this email.\n\n'
+        'Regards,\n'
+        'SmartQueue Support'
+    )
+
+    html = (
+        f'<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #211C19;">'
+        f'<h2 style="color: #2F2520;">Reset your SmartQueue password</h2>'
+        f'<p>Hello{name_greeting},</p>'
+        f'<p>We received a request to reset your SmartQueue password.</p>'
+        f'<p style="margin: 25px 0;">'
+        f'<a href="{escape(reset_url)}" style="background-color: #2F2520; color: #FAF8F3; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Reset Password</a>'
+        f'</p>'
+        f'<p style="font-size: 0.875rem; color: #78716C;">Or copy and paste this URL into your browser:<br /><a href="{escape(reset_url)}" style="color: #5F7A70;">{escape(reset_url)}</a></p>'
+        f'<p style="font-size: 0.875rem; color: #78716C;">This link is valid for a limited time.</p>'
+        f'<p style="font-size: 0.875rem; color: #78716C;">If you did not request a password reset, you can safely ignore this email.</p>'
+        f'<hr style="border: none; border-top: 1px solid #E6E1D9; margin: 20px 0;" />'
+        f'<p style="font-size: 0.8125rem; color: #A8A29E;">Regards,<br />SmartQueue Support</p>'
+        f'</div>'
+    )
+
+    return _send(
+        to=user.email,
+        subject='Reset your SmartQueue password',
+        text=text,
+        html=html,
+        reply_to=config['support_email'] or None,
+        context='password reset',
     )

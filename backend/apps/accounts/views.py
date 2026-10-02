@@ -14,6 +14,7 @@ from apps.organizations.models import Organization, OrganizationMembership
 from apps.providers.models import ProviderProfile
 from apps.organizations.services import OrganizationService
 
+from apps.accounts.throttling import PasswordResetAnonRateThrottle
 from .serializers import (
     UserSerializer,
     UserRegisterSerializer,
@@ -23,6 +24,8 @@ from .serializers import (
     UserUpdateSerializer,
     ChangePasswordSerializer,
     LogoutSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetConfirmSerializer,
 )
 
 
@@ -266,3 +269,69 @@ class ChangePasswordView(APIView):
             request.user.save()
             return Response({'detail': 'Password successfully updated.'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetRequestView(APIView):
+    """
+    Public API endpoint to request a password reset email.
+    Generates a secure, time-limited token and sends an email via Resend if the user exists.
+    Returns a generic message regardless of email existence to prevent account enumeration.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [PasswordResetAnonRateThrottle]
+
+    @extend_schema(
+        request=PasswordResetRequestSerializer,
+        responses={200: OpenApiResponse(description="Generic confirmation response")},
+        summary="Request a password reset email"
+    )
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            user = User.objects.filter(email__iexact=email, is_active=True).first()
+            if user:
+                from django.contrib.auth.tokens import default_token_generator
+                from django.utils.http import urlsafe_base64_encode
+                from django.utils.encoding import force_bytes
+                from django.conf import settings
+                from apps.contact.email_service import send_password_reset_email
+
+                uid = urlsafe_base64_encode(force_bytes(user.pk))
+                token = default_token_generator.make_token(user)
+                frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+                reset_url = f"{frontend_url}/reset-password/{uid}/{token}"
+
+                send_password_reset_email(user=user, reset_url=reset_url)
+
+            return Response(
+                {"detail": "If an account exists for this email, a password reset link has been sent."},
+                status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetConfirmView(APIView):
+    """
+    Public API endpoint to validate a password reset token and update the user's password.
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        request=PasswordResetConfirmSerializer,
+        responses={200: OpenApiResponse(description="Password successfully reset"), 400: OpenApiResponse(description="Validation Error")},
+        summary="Confirm password reset with UID and token"
+    )
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            new_password = serializer.validated_data['new_password']
+            user.set_password(new_password)
+            user.save()
+            return Response(
+                {"detail": "Your password has been reset successfully."},
+                status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
