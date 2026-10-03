@@ -30,21 +30,22 @@ export function CustomerReviewsPage() {
   }, []);
 
   return (
-    <div className="animate-page-entrance" style={{ maxWidth: '950px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '1.75rem' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'var(--lp-sage-bg)', color: 'var(--lp-sage)', border: '1px solid var(--lp-sage-border)', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-          ★ Feedback & Ratings History
+    <div className="animate-page-entrance" style={{ maxWidth: '850px', margin: '0 auto', padding: '0 0.5rem 2rem 0.5rem' }}>
+      {/* Header section */}
+      <div style={{ marginBottom: '2rem', borderBottom: '1px solid var(--lp-border)', paddingBottom: '1.25rem' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--lp-accent)', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.4rem' }}>
+          ★ Feedback History
         </div>
-        <h1 style={{ fontSize: '1.85rem', marginBottom: '0.25rem', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)' }}>
+        <h1 style={{ fontSize: '1.85rem', marginBottom: '0.35rem', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)', fontWeight: 700 }}>
           My Reviews & Ratings
         </h1>
         <p style={{ color: 'var(--lp-text-subtle)', margin: 0, fontSize: '0.95rem' }}>
-          Your submitted feedback for completed service consultations across SmartQueue clinics.
+          Feedback you've shared after completed service consultations across SmartQueue clinics.
         </p>
       </div>
 
       {loading ? (
-        <LoadingState message="Loading your submitted reviews..." />
+        <LoadingState message="Loading your feedback history..." />
       ) : error ? (
         <EmptyState
           title="Failed to Load Reviews"
@@ -60,54 +61,54 @@ export function CustomerReviewsPage() {
           onAction={() => navigate('/customer/appointments')}
         />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem' }}>
-          {reviews.map((rev) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+          {reviews.map((rev, idx) => (
             <div
               key={rev.id}
               style={{
-                background: 'var(--lp-surface)',
-                borderRadius: '16px',
-                border: '1px solid var(--lp-border)',
-                padding: '1.5rem',
-                boxShadow: 'var(--card-shadow)',
+                padding: '1.5rem 0',
+                borderBottom: idx === reviews.length - 1 ? 'none' : '1px solid var(--lp-border)',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between',
+                gap: '0.75rem',
               }}
             >
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                  <div>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      🏢 {rev.organization_name || rev.organization_details?.name || 'Clinic'}
-                    </span>
-                    <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.15rem', color: 'var(--lp-text)', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
-                      {rev.service_name || rev.appointment_details?.service_name || 'Service Consultation'}
-                    </h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    {rev.organization_name || rev.organization_details?.name || 'Clinic'}
                   </div>
+                  <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1.15rem', color: 'var(--lp-text)', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
+                    {rev.service_name || rev.appointment_details?.service_name || 'Service Consultation'}
+                  </h3>
+                  {rev.provider_name && (
+                    <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginTop: '0.2rem' }}>
+                      Provider: <strong style={{ color: 'var(--lp-text)' }}>{rev.provider_name}</strong>
+                    </div>
+                  )}
+                </div>
 
-                  <div style={{ display: 'flex', gap: '0.15rem', color: 'var(--color-warning)', fontSize: '1.1rem' }}>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ display: 'inline-flex', gap: '0.15rem', color: 'var(--color-warning)', fontSize: '1.1rem' }}>
                     {[1, 2, 3, 4, 5].map((star) => (
                       <span key={star}>{star <= rev.rating ? '★' : '☆'}</span>
                     ))}
                   </div>
-                </div>
-
-                {rev.provider_name && (
-                  <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginBottom: '0.85rem' }}>
-                    Provider: <strong style={{ color: 'var(--lp-text)' }}>{rev.provider_name}</strong>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', marginTop: '0.2rem' }}>
+                    {new Date(rev.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                   </div>
-                )}
+                </div>
+              </div>
 
-                <p style={{ color: 'var(--lp-text)', fontSize: '0.95rem', lineHeight: 1.5, margin: '0 0 1rem 0', fontStyle: rev.comment ? 'normal' : 'italic', background: 'var(--lp-bg-subtle)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--lp-border)' }}>
-                  "{rev.comment || 'No written feedback provided.'}"
+              {rev.comment ? (
+                <p style={{ margin: 0, color: 'var(--lp-text)', fontSize: '0.95rem', lineHeight: 1.55, fontStyle: 'italic', background: 'var(--lp-bg-subtle)', padding: '0.85rem 1rem', borderRadius: '10px' }}>
+                  "{rev.comment}"
                 </p>
-              </div>
-
-              <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)', display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--lp-text-subtle)' }}>
-                <span>Submitted</span>
-                <span>{new Date(rev.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-              </div>
+              ) : (
+                <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', fontStyle: 'italic' }}>
+                  No written comment provided.
+                </div>
+              )}
             </div>
           ))}
         </div>

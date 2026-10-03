@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import queueService from '../../services/queueService';
 import appointmentService from '../../services/appointmentService';
+import { getNormalizedCustomerQueueState } from '../../utils/queueDisplay';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
@@ -28,10 +29,9 @@ export function CustomerLiveQueuePage() {
     setError(null);
 
     try {
-      // 1. Fetch customer's dashboard appointments across all organizations
       const dashData = await appointmentService.getCustomerDashboard();
       const apptList = Array.isArray(dashData) ? dashData : dashData.results || [];
-      
+
       const matchAppt = apptList.find(
         (a) => String(a.queue_entry?.id) === String(queueEntryId) || (a.queue_entry == null && String(a.id) === String(queueEntryId))
       );
@@ -64,7 +64,6 @@ export function CustomerLiveQueuePage() {
       setMyQueueEntry(qEntry);
       setLastUpdated(new Date());
 
-      // 2. Fetch provider queue if organization & provider are identified
       const orgId = matchAppt.organization_id || matchAppt.organization;
       const provId = matchAppt.provider_id || qEntry.provider_id;
 
@@ -146,40 +145,26 @@ export function CustomerLiveQueuePage() {
     (e) => e.status === 'IN_PROGRESS' || e.status === 'CALLED'
   );
 
-  const isTerminal = ['COMPLETED', 'SKIPPED', 'CANCELLED'].includes(myQueueEntry.status);
-  const isFuture = appointment?.temporal_classification === 'future';
-
   const formatTime = (isoStr) => {
     if (!isoStr) return null;
     const d = new Date(isoStr);
     return isNaN(d.getTime()) ? null : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const readiness = isFuture ? 'NOT_YET' : (myQueueEntry.readiness_info?.readiness_state || 'NOT_YET');
-  const peopleAhead = myQueueEntry.readiness_info?.people_ahead ?? 0;
-  const nowServingSerial = myQueueEntry.readiness_info?.now_serving_serial || currentlyServing?.serial_number;
-
-  const estStartStr = formatTime(myQueueEntry.readiness_info?.estimated_start_time) || formatTime(appointment?.start_datetime);
-  const estEndStr = formatTime(myQueueEntry.readiness_info?.estimated_end_time) || formatTime(appointment?.end_datetime);
-  const recArrivalStr = formatTime(myQueueEntry.readiness_info?.recommended_arrival_time) || null;
-
-  const readinessBadgeConfig = isFuture
-    ? { text: '📅 Upcoming / Scheduled Booking', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: 'var(--lp-border)' }
-    : {
-        TURN_NOW: { text: '🟢 It is Your Turn! Proceed inside', bg: 'var(--color-success-light)', color: 'var(--color-success)', border: 'var(--color-success)' },
-        BE_READY: { text: '⚡ You Are Next! Be ready at door', bg: 'var(--color-warning-light)', color: 'var(--color-warning)', border: 'var(--color-warning)' },
-        GET_READY: { text: '🚶 Get Ready! Turn approaching', bg: 'var(--color-warning-light)', color: 'var(--color-warning)', border: 'var(--color-warning)' },
-        NOT_YET: { text: '☕ Scheduled / Relaxed Waiting', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', border: 'var(--lp-border)' },
-      }[readiness] || { text: 'Queue Active', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: 'var(--lp-border)' };
-
+  // Derive normalized presentation model
+  const qState = getNormalizedCustomerQueueState(appointment, myQueueEntry);
+  const nowServingSerial = qState.nowServing || currentlyServing?.serial_number;
   const canCheckIn = appointment?.can_check_in !== undefined
     ? appointment.can_check_in
-    : (appointment?.temporal_classification === 'today' && !myQueueEntry.is_checked_in && !isTerminal);
+    : (appointment?.temporal_classification === 'today' && !qState.isCheckedIn && !qState.isTerminal);
+
+  const estStartStr = formatTime(qState.estimatedStartTime);
+  const estEndStr = formatTime(qState.estimatedEndTime);
 
   return (
-    <div className="animate-page-entrance" style={{ maxWidth: '850px', margin: '0 auto' }}>
-      {/* Navigation Header */}
-      <div style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="animate-page-entrance" style={{ maxWidth: '820px', margin: '0 auto', padding: '0 0.5rem' }}>
+      {/* Top Header Bar */}
+      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Link
           to="/customer/appointments"
           style={{
@@ -198,7 +183,7 @@ export function CustomerLiveQueuePage() {
           onClick={() => fetchQueueStatus(true)}
           disabled={refreshing}
           style={{
-            padding: '0.4rem 0.85rem',
+            padding: '0.45rem 0.9rem',
             background: 'var(--lp-bg-subtle)',
             color: 'var(--lp-text-subtle)',
             border: '1px solid var(--lp-border)',
@@ -215,237 +200,159 @@ export function CustomerLiveQueuePage() {
         </button>
       </div>
 
-      {/* Main Telemetry Container */}
-      <div
-        style={{
-          background: 'var(--lp-surface)',
-          borderRadius: '20px',
-          border: '1px solid var(--lp-border)',
-          padding: '2rem',
-          boxShadow: 'var(--lp-shadow-sm)',
-          textAlign: 'center',
-          marginBottom: '1.5rem',
-        }}
-      >
-        {/* Readiness Pill Badge */}
+      {/* Hero Queue Section (De-boxed open design) */}
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          {appointment?.organization_name || myQueueEntry.organization_name || 'Clinic'} &bull; {appointment?.service_name || myQueueEntry.service_name || 'Service Consultation'}
+        </div>
+        <div style={{ fontSize: '0.9rem', color: 'var(--lp-text-subtle)', marginTop: '0.2rem', marginBottom: '1.5rem' }}>
+          Provider: <strong style={{ color: 'var(--lp-text)' }}>{appointment?.provider_name || myQueueEntry.provider_name || 'Specialist'}</strong>
+        </div>
+
+        {/* Primary Serial Number Display */}
+        <div style={{ margin: '1rem 0' }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--lp-text-subtle)' }}>
+            Your Serial Number
+          </span>
+          <h1 style={{ fontSize: '3.75rem', fontWeight: 800, fontFamily: 'Outfit, sans-serif', color: 'var(--lp-text)', margin: '0.2rem 0' }}>
+            #{qState.serialNumber}
+          </h1>
+
+          {/* Status Pills */}
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.4rem 1rem',
+              borderRadius: '9999px',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+              background: qState.statusTone === 'success' ? 'var(--color-success-light)' : qState.statusTone === 'warning' ? 'var(--color-warning-light)' : 'var(--lp-bg-subtle)',
+              color: qState.statusTone === 'success' ? 'var(--color-success)' : qState.statusTone === 'warning' ? 'var(--color-warning)' : 'var(--lp-accent)',
+              border: `1px solid ${qState.statusTone === 'success' ? 'var(--color-success)' : qState.statusTone === 'warning' ? 'var(--color-warning)' : 'var(--lp-border)'}`,
+            }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'currentColor' }} />
+              {qState.displayStatus}
+            </span>
+
+            {qState.secondaryStatus && (
+              <span style={{
+                padding: '0.4rem 0.9rem',
+                borderRadius: '9999px',
+                fontWeight: 600,
+                fontSize: '0.82rem',
+                background: 'var(--color-warning-light)',
+                color: 'var(--color-warning)',
+                border: '1px solid var(--color-warning)',
+              }}>
+                ⏰ {qState.secondaryStatus}
+              </span>
+            )}
+          </div>
+
+          {/* Human Guidance Statement */}
+          <p style={{ maxWidth: '560px', margin: '1.25rem auto 0 auto', fontSize: '1rem', color: 'var(--lp-text)', lineHeight: 1.5, fontWeight: 500 }}>
+            {qState.guidance}
+          </p>
+        </div>
+      </div>
+
+      {/* Check-In Banner if pending */}
+      {canCheckIn && (
         <div style={{
-          display: 'inline-flex',
+          background: 'var(--color-warning-light)',
+          border: '1px solid var(--color-warning)',
+          borderRadius: '14px',
+          padding: '1.25rem 1.5rem',
+          marginBottom: '2rem',
+          display: 'flex',
           alignItems: 'center',
-          gap: '0.5rem',
-          background: readinessBadgeConfig.bg,
-          color: readinessBadgeConfig.color,
-          border: `1px solid ${readinessBadgeConfig.border}`,
-          padding: '0.5rem 1.1rem',
-          borderRadius: '9999px',
-          fontSize: '0.9rem',
-          fontWeight: 700,
-          marginBottom: '1.25rem'
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
         }}>
-          <span style={{ display: 'inline-block', width: '9px', height: '9px', borderRadius: '50%', background: isTerminal ? 'var(--lp-text-subtle)' : readinessBadgeConfig.color }} />
-          {readinessBadgeConfig.text}
+          <div>
+            <div style={{ fontWeight: 700, color: 'var(--color-warning)', fontSize: '0.95rem' }}>📍 Venue Check-In Available</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--color-warning)', marginTop: '0.2rem' }}>
+              Check in upon arrival at the venue to enter the active queue list.
+            </div>
+          </div>
+          <button
+            onClick={handleCheckInNow}
+            disabled={checkingIn}
+            style={{
+              padding: '0.65rem 1.35rem',
+              background: 'var(--color-warning)',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+            }}
+          >
+            {checkingIn ? 'Checking In...' : '✓ Check In Now'}
+          </button>
         </div>
+      )}
 
-        <h1 style={{ fontSize: '1.75rem', color: 'var(--lp-text)', fontFamily: 'Cinzel, serif', marginBottom: '0.25rem' }}>
-          {appointment?.service_name || myQueueEntry.service_name || 'Service Consultation'}
-        </h1>
-        <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.95rem', margin: '0 0 1.75rem 0' }}>
-          {appointment?.organization_name || myQueueEntry.organization_name || 'Clinic Organization'} &bull; Provider: <strong style={{ color: 'var(--lp-text)' }}>{appointment?.provider_name || myQueueEntry.provider_name || 'Assigned Provider'}</strong>
-        </p>
-
-        {/* Check-In Callout Banner */}
-        {canCheckIn && (
-          <div style={{
-            background: 'var(--color-warning-light)',
-            border: '1px solid var(--color-warning)',
-            borderRadius: '12px',
-            padding: '1.25rem',
-            marginBottom: '1.75rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '1rem',
-            textAlign: 'left'
-          }}>
-            <div>
-              <div style={{ fontWeight: 700, color: 'var(--color-warning)', fontSize: '0.95rem' }}>📍 Physical Presence Check-In Available</div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--color-warning)', marginTop: '0.15rem' }}>
-                You are scheduled for today. Check in when physically present at the clinic to enter the active queue.
-              </div>
-            </div>
-            <button
-              onClick={handleCheckInNow}
-              disabled={checkingIn}
-              style={{
-                padding: '0.6rem 1.25rem',
-                background: 'var(--color-warning)',
-                color: '#FFFFFF',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                cursor: 'pointer'
-              }}
-            >
-              {checkingIn ? 'Checking In...' : '✓ Check In Now'}
-            </button>
+      {/* Metrics Row (Horizontal typography-led, minimal borders) */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '1.25rem',
+        background: 'var(--lp-surface)',
+        border: '1px solid var(--lp-border)',
+        borderRadius: '16px',
+        padding: '1.5rem',
+        marginBottom: '2rem',
+      }}>
+        {/* Metric 1: Now Serving */}
+        <div style={{ textAlign: 'center', padding: '0.5rem' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-text-subtle)' }}>
+            Now Serving
           </div>
-        )}
-
-        {/* Primary Telemetry Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-          {/* Your Serial # */}
-          <div
-            style={{
-              background: 'var(--lp-btn-bg)',
-              color: 'var(--lp-btn-text)',
-              borderRadius: '16px',
-              padding: '1.5rem',
-              boxShadow: 'var(--lp-shadow-sm)',
-            }}
-          >
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.8, marginBottom: '0.35rem' }}>
-              Your Serial #
-            </div>
-            <div style={{ fontSize: '2.75rem', fontWeight: 800, fontFamily: 'Outfit, sans-serif' }}>
-              #{appointment?.serial_number || myQueueEntry.serial_number || myQueueEntry.token_number || '—'}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: myQueueEntry.is_checked_in ? 'var(--color-success)' : 'var(--color-warning)', marginTop: '0.25rem', fontWeight: 600 }}>
-              {myQueueEntry.is_checked_in ? '✓ Checked In' : isFuture ? '• Scheduled Future Date' : '• Pending Check-In'}
-            </div>
+          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif', margin: '0.2rem 0' }}>
+            {nowServingSerial ? `#${nowServingSerial}` : 'Not started'}
           </div>
-
-          {/* Now Serving */}
-          <div
-            style={{
-              background: 'var(--lp-bg-subtle)',
-              border: '1px solid var(--lp-border)',
-              borderRadius: '16px',
-              padding: '1.5rem',
-            }}
-          >
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-text-subtle)', marginBottom: '0.35rem' }}>
-              Now Serving
-            </div>
-            <div style={{ fontSize: '2.75rem', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif' }}>
-              {nowServingSerial ? `#${nowServingSerial}` : 'Not started'}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', marginTop: '0.25rem' }}>
-              Active Consultation Serial
-            </div>
-          </div>
-
-          {/* People Ahead */}
-          <div
-            style={{
-              background: 'var(--lp-bg-subtle)',
-              border: '1px solid var(--lp-border)',
-              borderRadius: '16px',
-              padding: '1.5rem',
-            }}
-          >
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-text-subtle)', marginBottom: '0.35rem' }}>
-              People Ahead
-            </div>
-            <div style={{ fontSize: '2.75rem', fontWeight: 800, color: 'var(--color-warning)', fontFamily: 'Outfit, sans-serif' }}>
-              {myQueueEntry.status === 'CALLED' || myQueueEntry.status === 'IN_PROGRESS' ? '0' : peopleAhead}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', marginTop: '0.25rem' }}>
-              Checked-in Queue
-            </div>
-          </div>
-
-          {/* Estimated Time Window */}
-          <div
-            style={{
-              background: 'var(--lp-bg-subtle)',
-              border: '1px solid var(--lp-border)',
-              borderRadius: '16px',
-              padding: '1.5rem',
-            }}
-          >
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-text-subtle)', marginBottom: '0.35rem' }}>
-              Estimated Service
-            </div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', marginTop: '0.4rem' }}>
-              {myQueueEntry.readiness_info?.is_delayed
-                ? (myQueueEntry.readiness_info?.queue_status_text || 'Awaiting Provider Start')
-                : (estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : (estStartStr || 'Scheduled'))}
-            </div>
-            {myQueueEntry.is_checked_in ? (
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '0.35rem', fontWeight: 600 }}>
-                ✓ Checked In at Venue
-              </div>
-            ) : recArrivalStr ? (
-              <div style={{ fontSize: '0.75rem', color: 'var(--lp-accent)', marginTop: '0.35rem', fontWeight: 600 }}>
-                Rec. arrival: {recArrivalStr}
-              </div>
-            ) : null}
+          <div style={{ fontSize: '0.78rem', color: 'var(--lp-text-subtle)' }}>
+            Active Room Serial
           </div>
         </div>
 
-        {/* Status Callout Footer */}
-        <div style={{ background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '12px', padding: '1.25rem', textAlign: 'left' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-text)' }}>Appointment & Queue Status</span>
-            <StatusBadge status={appointment?.status || myQueueEntry.status} />
+        {/* Metric 2: People Ahead */}
+        <div style={{ textAlign: 'center', padding: '0.5rem', borderLeft: '1px solid var(--lp-border)', borderRight: '1px solid var(--lp-border)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-text-subtle)' }}>
+            People Ahead
           </div>
-
-          {isFuture && (
-            <p style={{ margin: 0, color: 'var(--lp-text-subtle)', fontSize: '0.9rem', lineHeight: 1.5 }}>
-              📅 This is a scheduled future booking. Your serial number is secured. Live queue calling will become active on {appointment?.appointment_date || 'your appointment date'}.
-            </p>
-          )}
-
-          {!isFuture && myQueueEntry.status === 'WAITING' && (
-            <p style={{ margin: 0, color: 'var(--lp-text-subtle)', fontSize: '0.9rem', lineHeight: 1.5 }}>
-              {myQueueEntry.is_checked_in
-                ? 'You are checked in and safely in line. Please remain available near the waiting area.'
-                : 'Your serial number is confirmed. Remember to check in upon physical arrival at the venue.'}
-            </p>
-          )}
-
-          {!isFuture && myQueueEntry.status === 'CALLED' && (
-            <p style={{ margin: 0, color: 'var(--color-success)', fontSize: '0.95rem', fontWeight: 700, lineHeight: 1.5 }}>
-              ⚡ Your serial number has been called! Please proceed directly to the provider room.
-            </p>
-          )}
-
-          {!isFuture && myQueueEntry.status === 'IN_PROGRESS' && (
-            <p style={{ margin: 0, color: 'var(--lp-accent)', fontSize: '0.95rem', fontWeight: 700, lineHeight: 1.5 }}>
-              🩺 Your consultation/service is currently in progress.
-            </p>
-          )}
-
-          {myQueueEntry.status === 'COMPLETED' && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <p style={{ margin: 0, color: 'var(--color-success)', fontSize: '0.9rem', fontWeight: 600 }}>
-                ✅ Service completed. Thank you for visiting!
-              </p>
-              <button
-                onClick={() => navigate(`/customer/appointments/${appointment?.id || myQueueEntry.appointment_id}`)}
-                style={{
-                  padding: '0.4rem 0.85rem',
-                  background: 'var(--lp-surface)',
-                  color: 'var(--color-warning)',
-                  border: '1px solid var(--lp-border)',
-                  borderRadius: '6px',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                }}
-              >
-                ★ Leave Review
-              </button>
-            </div>
-          )}
+          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--color-warning)', fontFamily: 'Outfit, sans-serif', margin: '0.2rem 0' }}>
+            {qState.peopleAhead}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--lp-text-subtle)' }}>
+            Checked-in Ahead
+          </div>
         </div>
 
-        {lastUpdated && (
-          <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', marginTop: '1.25rem' }}>
-            Live Queue Telemetry &bull; Auto-refreshes every 10s &bull; Last updated {lastUpdated.toLocaleTimeString()}
+        {/* Metric 3: Estimated Service / Pace */}
+        <div style={{ textAlign: 'center', padding: '0.5rem' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-text-subtle)' }}>
+            Estimated Window
           </div>
-        )}
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', margin: '0.6rem 0 0.2rem 0' }}>
+            {qState.isDelayed
+              ? 'Awaiting Provider Start'
+              : (estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : (estStartStr || 'Scheduled'))}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: qState.isCheckedIn ? 'var(--color-success)' : 'var(--lp-text-subtle)' }}>
+            {qState.isCheckedIn ? '✓ Arrived at Venue' : 'Pending Arrival'}
+          </div>
+        </div>
+      </div>
+
+      {/* Live Status Metadata Footer */}
+      <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--lp-text-subtle)', margin: '1.5rem 0' }}>
+        Live queue updates automatically every 10s {lastUpdated && `• Last updated ${lastUpdated.toLocaleTimeString()}`}
       </div>
     </div>
   );

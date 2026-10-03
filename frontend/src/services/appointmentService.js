@@ -43,6 +43,15 @@ export const appointmentService = {
   },
 
   /**
+   * Fetch a single customer appointment detail by ID directly across all organizations.
+   * @param {string} appointmentId
+   */
+  async getCustomerAppointmentDetail(appointmentId) {
+    const response = await apiClient.get(`/customer/appointments/${appointmentId}/`);
+    return response.data;
+  },
+
+  /**
    * List appointments for an organization (scoped to current user).
    * @param {string} orgId
    * @param {Object} params - optional filtering / ordering parameters

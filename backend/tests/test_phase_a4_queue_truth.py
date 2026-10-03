@@ -63,8 +63,8 @@ def queue_truth_setup(db):
         provider=prov,
         day_of_week=current_business_date().weekday(),
         is_working_day=True,
-        start_time=time(8, 0),
-        end_time=time(20, 0),
+        start_time=time(0, 0),
+        end_time=time(23, 59),
     )
 
     return {

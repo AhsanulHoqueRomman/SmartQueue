@@ -9,6 +9,7 @@ import LeaveReviewModal from '../../components/LeaveReviewModal';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
+import { getNormalizedCustomerQueueState } from '../../utils/queueDisplay';
 
 export function CustomerAppointmentDetailPage() {
   const { id } = useParams();
@@ -20,10 +21,13 @@ export function CustomerAppointmentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Modals state
+  // Modals & Action states
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
+  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
+  const [newDate, setNewDate] = useState('');
+  const [rescheduling, setRescheduling] = useState(false);
 
   const fetchDetail = async () => {
     if (!id) return;
@@ -31,7 +35,18 @@ export function CustomerAppointmentDetailPage() {
     setError(null);
 
     try {
-      // First try fetching from customer dashboard data across organizations
+      // Direct customer detail endpoint
+      const detail = await appointmentService.getCustomerAppointmentDetail(id);
+      if (detail && detail.id) {
+        setAppointment(detail);
+        setLoading(false);
+        return;
+      }
+    } catch (err) {
+      // If direct detail fails (e.g. legacy structure), fall back to customer dashboard
+    }
+
+    try {
       const dashList = await appointmentService.getCustomerDashboard();
       const list = Array.isArray(dashList) ? dashList : dashList.results || [];
       const match = list.find((item) => String(item.id) === String(id));
@@ -39,7 +54,6 @@ export function CustomerAppointmentDetailPage() {
       if (match) {
         setAppointment(match);
       } else {
-        // Fallback if not found in active list
         setError('Appointment record not found in your customer schedule.');
       }
     } catch (err) {
@@ -104,9 +118,10 @@ export function CustomerAppointmentDetailPage() {
   }
 
   const qEntry = appointment.queue_entry;
+  const normState = getNormalizedCustomerQueueState(appointment, qEntry);
+
   const isFuture = appointment.temporal_classification === 'future';
   const qStatus = isFuture ? appointment.status : (qEntry?.status || appointment.status);
-  const qId = qEntry?.id || appointment.id;
   const orgId = appointment.organization_id || appointment.organization;
 
   const canCheckIn = appointment.can_check_in !== undefined
@@ -115,11 +130,7 @@ export function CustomerAppointmentDetailPage() {
   const canCancel = appointment.can_cancel !== undefined
     ? appointment.can_cancel
     : (['CONFIRMED', 'PENDING'].includes(appointment.status) && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED', 'IN_PROGRESS'].includes(qStatus));
-  const isLive = !isFuture && (
-    appointment.is_live_queue !== undefined
-      ? appointment.is_live_queue
-      : ['CHECKED_IN', 'WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus)
-  );
+  const isLive = normState.can_open_telemetry;
   const isTerminal = ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(qStatus);
 
   const formatDateStr = (isoStr, fallbackDateStr) => {
@@ -148,30 +159,9 @@ export function CustomerAppointmentDetailPage() {
   const startTimeStr = formatTime(appointment.start_datetime);
   const endTimeStr = formatTime(appointment.end_datetime);
 
-  const estStartStr = qEntry?.readiness_info?.estimated_start_time
-    ? formatTime(qEntry.readiness_info.estimated_start_time)
-    : formatTime(appointment.start_datetime);
-
-  const estEndStr = qEntry?.readiness_info?.estimated_end_time
-    ? formatTime(qEntry.readiness_info.estimated_end_time)
-    : formatTime(appointment.end_datetime);
-
-  const recArrivalStr = qEntry?.readiness_info?.recommended_arrival_time
-    ? formatTime(qEntry.readiness_info.recommended_arrival_time)
-    : null;
-
-  const readinessState = qEntry?.readiness_info?.readiness_state || 'NOT_YET';
-  const peopleAhead = qEntry?.readiness_info?.people_ahead ?? 0;
-  const nowServingSerial = qEntry?.readiness_info?.now_serving_serial;
-
-  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
-  const [newDate, setNewDate] = useState('');
-  const [rescheduling, setRescheduling] = useState(false);
-
   const handleRescheduleSubmit = async (e) => {
     e.preventDefault();
     if (!newDate) return;
-    const orgId = appointment.organization_id || appointment.organization;
     setRescheduling(true);
     try {
       await appointmentService.rescheduleAppointment(orgId, appointment.id, {
@@ -189,9 +179,9 @@ export function CustomerAppointmentDetailPage() {
   };
 
   return (
-    <div className="animate-page-entrance" style={{ maxWidth: '850px', margin: '0 auto' }}>
+    <div className="animate-page-entrance" style={{ maxWidth: '850px', margin: '0 auto', padding: '0 0.5rem 2rem 0.5rem' }}>
       {/* Top back navigation */}
-      <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ marginBottom: '1.25rem' }}>
         <Link
           to="/customer/appointments"
           style={{
@@ -208,131 +198,164 @@ export function CustomerAppointmentDetailPage() {
         </Link>
       </div>
 
-      {/* Main Header Card */}
-      <div
-        style={{
-          background: 'var(--lp-surface)',
-          borderRadius: '20px',
-          border: '1px solid var(--lp-border)',
-          padding: '2rem',
-          boxShadow: 'var(--lp-shadow-sm)',
-          marginBottom: '1.5rem',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--lp-border)', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+      {/* Title & Service Header */}
+      <div style={{ marginBottom: '1.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {appointment.organization_category || 'CLINIC'} &bull; {appointment.organization_name || 'Organization'}
             </span>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--lp-text)', fontFamily: 'Cinzel, serif', margin: '0.2rem 0 0 0' }}>
+            <h1 style={{ fontSize: '1.85rem', fontWeight: 700, color: 'var(--lp-text)', fontFamily: 'Cinzel, serif', margin: '0.2rem 0 0 0' }}>
               {appointment.service_name || 'Appointment Service'}
             </h1>
             <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginTop: '0.25rem' }}>
-              Appointment UUID: <span style={{ fontFamily: 'monospace' }}>#{appointment.id}</span>
+              Appointment ID: <span style={{ fontFamily: 'monospace' }}>#{appointment.id}</span>
             </div>
           </div>
-          <StatusBadge status={qStatus} />
-        </div>
-
-        {/* Primary Details Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>
-          <div style={{ background: 'var(--lp-bg-subtle)', borderRadius: '12px', border: '1px solid var(--lp-border)', padding: '1.25rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              📅 Schedule & Time
-            </span>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--lp-text)', marginTop: '0.4rem' }}>
-              {formattedScheduleDate}
-            </div>
-            <div style={{ fontSize: '0.9rem', color: 'var(--lp-text-subtle)', marginTop: '0.2rem' }}>
-              {startTimeStr && endTimeStr ? `${startTimeStr} – ${endTimeStr}` : (startTimeStr || 'Scheduled Consultation')}
-            </div>
-          </div>
-
-          <div style={{ background: 'var(--lp-bg-subtle)', borderRadius: '12px', border: '1px solid var(--lp-border)', padding: '1.25rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              👨‍⚕️ Provider & Category
-            </span>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--lp-text)', marginTop: '0.4rem' }}>
-              {appointment.provider_name || appointment.provider_title || 'Assigned Specialist'}
-            </div>
-            <div style={{ fontSize: '0.9rem', color: 'var(--lp-text-subtle)', marginTop: '0.2rem' }}>
-              Category: {appointment.category_name || 'General Consultation'}
-            </div>
-          </div>
-
-          <div style={{ background: 'var(--lp-bg-subtle)', borderRadius: '12px', border: '1px solid var(--lp-border)', padding: '1.25rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              🎫 Serial & Booking Info
-            </span>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', marginTop: '0.2rem' }}>
-              #{appointment.serial_number || qEntry?.token_number || '—'}
-            </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)', marginTop: '0.2rem' }}>
-              Channel: {appointment.booking_channel || 'ONLINE'} &bull; Type: {appointment.arrival_type || 'SCHEDULED'}
-            </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {normState.serial_number && (
+              <div style={{ background: 'var(--lp-accent-light)', border: '1px solid var(--lp-accent-border)', padding: '0.3rem 0.75rem', borderRadius: '8px', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif' }}>
+                #{normState.serial_number}
+              </div>
+            )}
+            <StatusBadge status={qStatus} />
           </div>
         </div>
+      </div>
 
-        {/* Live Queue Telemetry Box if active */}
-        {isLive && qEntry && (
+      {/* Main Content Area - De-boxed task-first presentation */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+        
+        {/* Live Queue Status Section if active */}
+        {isLive && (
           <div
             style={{
-              background: 'var(--lp-bg-subtle)',
-              border: '1px solid var(--lp-border)',
+              background: normState.is_delayed ? 'var(--color-warning-light, rgba(217, 119, 6, 0.08))' : 'var(--lp-surface)',
+              border: `1px solid ${normState.is_delayed ? 'var(--color-warning, #d97706)' : 'var(--lp-border)'}`,
               borderRadius: '16px',
-              padding: '1.25rem',
-              marginBottom: '1.75rem',
+              padding: '1.5rem',
+              boxShadow: 'var(--lp-shadow-sm)',
             }}
           >
-            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.85rem' }}>
-              🟢 Live Queue Telemetry Status
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', textAlign: 'center', marginBottom: '1rem' }}>
-              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.75rem' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Your Serial</span>
-                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--lp-btn-bg)', fontFamily: 'Outfit, sans-serif' }}>
-                  #{appointment.serial_number || qEntry?.token_number || '—'}
-                </div>
-              </div>
-
-              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.75rem' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Now Serving</span>
-                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif' }}>
-                  {nowServingSerial ? `#${nowServingSerial}` : 'Not started'}
-                </div>
-              </div>
-
-              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.75rem' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>People Ahead</span>
-                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-warning)', fontFamily: 'Outfit, sans-serif' }}>
-                  {qStatus === 'CALLED' || qStatus === 'IN_PROGRESS' ? '0' : peopleAhead}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', fontWeight: 600 }}>Estimated Service: </span>
-                <strong style={{ fontSize: '0.9rem', color: 'var(--lp-text)' }}>{estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : estStartStr || 'Scheduled'}</strong>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: normState.is_delayed ? 'var(--color-warning)' : 'var(--lp-accent)', letterSpacing: '0.04em' }}>
+                  Live Queue Status
+                </span>
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 700, margin: '0.15rem 0 0 0', color: 'var(--lp-text)' }}>
+                  {normState.headline}
+                </h2>
               </div>
 
-              {recArrivalStr && (
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', fontWeight: 600 }}>Recommended Arrival: </span>
-                  <strong style={{ fontSize: '0.9rem', color: 'var(--lp-accent)' }}>{recArrivalStr}</strong>
-                </div>
+              {normState.is_delayed && (
+                <span style={{ background: 'var(--color-warning)', color: '#FFFFFF', padding: '0.25rem 0.65rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 700 }}>
+                  Running behind schedule
+                </span>
               )}
             </div>
+
+            <p style={{ margin: '0 0 1.25rem 0', color: 'var(--lp-text-subtle)', fontSize: '0.925rem', lineHeight: 1.5 }}>
+              {normState.guidance}
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--lp-border)' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Your Serial</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif' }}>
+                  #{normState.serial_number || '—'}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Now Serving</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif' }}>
+                  {normState.now_serving ? `#${normState.now_serving}` : 'Not started'}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>People Ahead</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-warning)', fontFamily: 'Outfit, sans-serif' }}>
+                  {normState.people_ahead ?? 0}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Expected Service</div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--lp-text)', marginTop: '0.2rem' }}>
+                  {normState.estimated_window}
+                </div>
+              </div>
+            </div>
+
+            {qEntry?.id && (
+              <div style={{ marginTop: '1.25rem', textAlign: 'right' }}>
+                <button
+                  onClick={() => navigate(`/customer/queue/${qEntry.id}`)}
+                  style={{
+                    padding: '0.65rem 1.25rem',
+                    background: 'var(--lp-btn-bg)',
+                    color: 'var(--lp-btn-text)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Open Full Live Telemetry →
+                </button>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Notes section */}
-        {appointment.notes && (
-          <div style={{ marginBottom: '1.5rem', background: 'var(--lp-bg-subtle)', borderRadius: '12px', padding: '1.25rem', border: '1px solid var(--lp-border)' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.4rem' }}>
-              📝 Additional Notes / Symptoms
+        {/* Schedule & Location Details */}
+        <div style={{ borderBottom: '1px solid var(--lp-border)', paddingBottom: '1.5rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 1rem 0' }}>
+            📅 Schedule & Consultation Details
+          </h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Date & Time</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--lp-text)', marginTop: '0.25rem' }}>
+                {formattedScheduleDate}
+              </div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--lp-text-subtle)', marginTop: '0.15rem' }}>
+                {startTimeStr && endTimeStr ? `${startTimeStr} – ${endTimeStr}` : (startTimeStr || 'Scheduled Consultation')}
+              </div>
             </div>
+
+            <div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Assigned Specialist</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--lp-text)', marginTop: '0.25rem' }}>
+                {appointment.provider_name || appointment.provider_title || 'Assigned Specialist'}
+              </div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--lp-text-subtle)', marginTop: '0.15rem' }}>
+                Category: {appointment.category_name || 'General Consultation'}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Location</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--lp-text)', marginTop: '0.25rem' }}>
+                {appointment.organization_name || 'Organization Clinic'}
+              </div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--lp-text-subtle)', marginTop: '0.15rem' }}>
+                {appointment.arrival_type || 'SCHEDULED'} &bull; {appointment.booking_channel || 'ONLINE'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Notes section */}
+        {appointment.notes && (
+          <div style={{ borderBottom: '1px solid var(--lp-border)', paddingBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.5rem 0' }}>
+              📝 Patient Notes / Symptoms
+            </h3>
             <p style={{ margin: 0, color: 'var(--lp-text-subtle)', fontSize: '0.9rem', lineHeight: 1.5 }}>
               {appointment.notes}
             </p>
@@ -341,7 +364,7 @@ export function CustomerAppointmentDetailPage() {
 
         {/* Cancellation Reason */}
         {appointment.cancellation_reason && (
-          <div style={{ marginBottom: '1.5rem', background: 'var(--color-danger-light)', borderRadius: '12px', padding: '1.25rem', border: '1px solid var(--color-danger)' }}>
+          <div style={{ background: 'var(--color-danger-light)', borderRadius: '12px', padding: '1.25rem', border: '1px solid var(--color-danger)' }}>
             <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-danger)', marginBottom: '0.4rem' }}>
               ⚠️ Cancellation Reason
             </div>
@@ -351,12 +374,11 @@ export function CustomerAppointmentDetailPage() {
           </div>
         )}
 
-        {/* Created Date */}
-        <div style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)', marginBottom: '1.75rem' }}>
+        <div style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)' }}>
           Booked on: {new Date(appointment.created_at).toLocaleString()}
         </div>
 
-        {/* Action Toolbar */}
+        {/* Action Controls Bar */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1.25rem', borderTop: '1px solid var(--lp-border)' }}>
           {canCheckIn && !isTerminal && (
             <button
@@ -395,24 +417,6 @@ export function CustomerAppointmentDetailPage() {
               }}
             >
               📅 Reschedule Date
-            </button>
-          )}
-
-          {isLive && qEntry?.id && (
-            <button
-              onClick={() => navigate(`/customer/queue/${qEntry.id}`)}
-              style={{
-                padding: '0.75rem 1.5rem',
-                background: 'var(--lp-btn-bg)',
-                color: 'var(--lp-btn-text)',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: 600,
-                fontSize: '0.95rem',
-                cursor: 'pointer',
-              }}
-            >
-              Open Telemetry →
             </button>
           )}
 
@@ -516,3 +520,4 @@ export function CustomerAppointmentDetailPage() {
 }
 
 export default CustomerAppointmentDetailPage;
+

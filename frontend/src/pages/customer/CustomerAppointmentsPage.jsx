@@ -9,6 +9,7 @@ import LeaveReviewModal from '../../components/LeaveReviewModal';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
+import { getNormalizedCustomerQueueState } from '../../utils/queueDisplay';
 
 export function CustomerAppointmentsPage() {
   const navigate = useNavigate();
@@ -259,6 +260,7 @@ export function CustomerAppointmentsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem' }}>
           {filteredAppointments.map((appt) => {
             const qEntry = appt.queue_entry;
+            const normState = getNormalizedCustomerQueueState(appt, qEntry);
             const isFuture = appt.temporal_classification === 'future';
             const qStatus = isFuture ? appt.status : (qEntry?.status || appt.status);
             const orgId = appt.organization_id || appt.organization;
@@ -269,7 +271,7 @@ export function CustomerAppointmentsPage() {
             const canCancel = appt.can_cancel !== undefined
               ? appt.can_cancel
               : (['CONFIRMED', 'PENDING'].includes(appt.status) && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED', 'IN_PROGRESS'].includes(qStatus));
-            const isLive = !isFuture && ['CHECKED_IN', 'WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
+            const isLive = normState.can_open_telemetry;
             const isTerminal = ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(qStatus);
 
             const formattedDate = new Date(appt.start_datetime).toLocaleDateString(undefined, {
@@ -289,11 +291,11 @@ export function CustomerAppointmentsPage() {
                 style={{
                   background: 'var(--lp-surface)',
                   borderRadius: '16px',
-                  border: '1px solid var(--lp-border)',
+                  border: `1px solid ${normState.is_delayed ? 'var(--color-warning, #d97706)' : 'var(--lp-border)'}`,
                   padding: '1.5rem',
                   display: 'flex',
                   flexDirection: 'column',
-                  justify: 'space-between',
+                  justifyContent: 'space-between',
                   boxShadow: 'var(--lp-shadow-sm)',
                   transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                 }}
@@ -313,9 +315,17 @@ export function CustomerAppointmentsPage() {
                   </div>
 
                   {/* Subheader: Provider */}
-                  <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginBottom: '1rem' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginBottom: '0.75rem' }}>
                     Provider: <strong style={{ color: 'var(--lp-text)' }}>{appt.provider_name || appt.provider_title || 'Assigned Specialist'}</strong>
                   </div>
+
+                  {/* Normalized Headline / Delayed Callout */}
+                  {isLive && (
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: normState.is_delayed ? 'var(--color-warning)' : 'var(--lp-accent)', marginBottom: '0.85rem' }}>
+                      {normState.headline}
+                      {normState.is_delayed && <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', background: 'var(--color-warning-light)', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>Running behind schedule</span>}
+                    </div>
+                  )}
 
                   {/* Schedule Card Info */}
                   <div
@@ -334,9 +344,10 @@ export function CustomerAppointmentsPage() {
                       <span>⏰ <strong>{formattedTime}</strong></span>
                     </div>
 
-                    {appt.serial_number && (
-                      <div style={{ fontSize: '0.8rem', color: 'var(--lp-text)', fontWeight: 700, marginTop: '0.25rem', paddingTop: '0.35rem', borderTop: '1px solid var(--lp-border)' }}>
-                        Serial Number: <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.1rem' }}>#{appt.serial_number}</span>
+                    {normState.serial_number && (
+                      <div style={{ fontSize: '0.8rem', color: 'var(--lp-text)', fontWeight: 700, marginTop: '0.25rem', paddingTop: '0.35rem', borderTop: '1px solid var(--lp-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>Serial Number:</span>
+                        <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.1rem', color: 'var(--lp-accent)' }}>#{normState.serial_number}</span>
                       </div>
                     )}
                   </div>

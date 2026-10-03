@@ -339,3 +339,36 @@ class CustomerDashboardView(APIView):
         serializer = CustomerDashboardItemSerializer(qs, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+class CustomerAppointmentItemDetailView(APIView):
+    """
+    GET /api/v1/customer/appointments/{appointment_id}/
+    Retrieves a single appointment record belonging to request.user across any organization.
+    Guarantees Customer A can never access Customer B's appointment record.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(description='Single customer appointment record'),
+            404: OpenApiResponse(description='Not Found / Restricted Access'),
+        },
+        summary='Get single customer appointment by ID across organizations',
+    )
+    def get(self, request, appointment_id):
+        appointment = get_object_or_404(
+            Appointment.objects.select_related(
+                'organization',
+                'provider',
+                'provider__membership__user',
+                'service',
+                'service__category',
+            ),
+            id=appointment_id,
+            customer=request.user,
+        )
+        from .serializers import CustomerDashboardItemSerializer
+        serializer = CustomerDashboardItemSerializer(appointment)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
