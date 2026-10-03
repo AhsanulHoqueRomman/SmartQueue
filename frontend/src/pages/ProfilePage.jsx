@@ -512,19 +512,19 @@ export const ProfilePage = () => {
         </div>
 
         {/* Organization Memberships Card */}
-        <div
-          style={{
-            background: 'var(--lp-surface)',
-            border: '1px solid var(--lp-border)',
-            borderRadius: '18px',
-            padding: '1.75rem',
-            boxShadow: 'var(--card-shadow)'
-          }}
-        >
-          <h2 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '1.25rem', color: 'var(--lp-text)', fontFamily: 'Cinzel, serif' }}>
-            Organization Memberships
-          </h2>
-          {user?.memberships && user.memberships.length > 0 ? (
+        {user?.memberships && user.memberships.length > 0 && (
+          <div
+            style={{
+              background: 'var(--lp-surface)',
+              border: '1px solid var(--lp-border)',
+              borderRadius: '18px',
+              padding: '1.75rem',
+              boxShadow: 'var(--card-shadow)'
+            }}
+          >
+            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '1.25rem', color: 'var(--lp-text)', fontFamily: 'Cinzel, serif' }}>
+              Organization Memberships
+            </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {user.memberships.map((mem) => (
                 <div
@@ -553,7 +553,7 @@ export const ProfilePage = () => {
                       fontSize: '0.75rem',
                       padding: '0.25rem 0.65rem',
                       borderRadius: '9999px',
-                      textTransform: 'uppercase'
+                      textTransform: 'uppercase',
                     }}
                   >
                     {mem.role}
@@ -561,18 +561,8 @@ export const ProfilePage = () => {
                 </div>
               ))}
             </div>
-          ) : (
-            <div style={{ background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '12px', padding: '1.25rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🌐</div>
-              <div style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--lp-text)', marginBottom: '0.25rem' }}>
-                Global Customer Account
-              </div>
-              <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.85rem', margin: 0, lineHeight: 1.4 }}>
-                No specific organization membership linked to this account. You can book consultations across all SmartQueue clinic partners.
-              </p>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Change Password Modal */}

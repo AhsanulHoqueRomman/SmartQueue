@@ -6,6 +6,7 @@ import { getNormalizedCustomerQueueState } from '../../utils/queueDisplay';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
+import ReportIssueModal from '../../components/ReportIssueModal';
 
 export function CustomerLiveQueuePage() {
   const { queueEntryId } = useParams();
@@ -19,6 +20,7 @@ export function CustomerLiveQueuePage() {
   const [checkingIn, setCheckingIn] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   const timerRef = useRef(null);
 
@@ -157,6 +159,115 @@ export function CustomerLiveQueuePage() {
   const canCheckIn = appointment?.can_check_in !== undefined
     ? appointment.can_check_in
     : (appointment?.temporal_classification === 'today' && !qState.isCheckedIn && !qState.isTerminal);
+
+  if (qState.isPast || appointment?.temporal_classification === 'past' || !qState.can_open_telemetry) {
+    const formattedDate = appointment?.start_datetime
+      ? new Date(appointment.start_datetime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+      : (appointment?.appointment_date || 'Past date');
+
+    return (
+      <div className="animate-fade-in" style={{ maxWidth: '800px', margin: '2rem auto' }}>
+        <div style={{ marginBottom: '1.25rem' }}>
+          <Link
+            to="/customer/appointments"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              color: 'var(--lp-accent)',
+              fontWeight: 600,
+              textDecoration: 'none',
+              fontSize: '0.9rem',
+            }}
+          >
+            ← Back to My Appointments
+          </Link>
+        </div>
+
+        <div
+          style={{
+            background: 'var(--lp-surface)',
+            borderRadius: '20px',
+            border: '1px solid var(--lp-border)',
+            padding: '2.5rem',
+            textAlign: 'center',
+            boxShadow: 'var(--lp-shadow-sm)',
+          }}
+        >
+          <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>⏱️</div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 0.5rem 0', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)' }}>
+            This Queue Session Is No Longer Active
+          </h2>
+          <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.95rem', maxWidth: '600px', margin: '0 auto 1.75rem auto', lineHeight: 1.5 }}>
+            {qState.isUnresolved
+              ? `This queue session was scheduled for ${formattedDate}. You checked in, but no consultation outcome was recorded by clinic staff.`
+              : qState.guidance}
+          </p>
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => navigate(`/customer/appointments/${appointment?.id || queueEntryId}`)}
+              style={{
+                padding: '0.7rem 1.25rem',
+                background: 'var(--lp-btn-bg)',
+                color: 'var(--lp-btn-text)',
+                border: 'none',
+                borderRadius: '10px',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+              }}
+            >
+              View Appointment Details
+            </button>
+
+            {qState.isUnresolved && (
+              appointment?.has_issue_report ? (
+                <span
+                  style={{
+                    padding: '0.65rem 1.1rem',
+                    background: 'var(--lp-bg-subtle)',
+                    color: 'var(--lp-accent)',
+                    border: '1px solid var(--lp-border)',
+                    borderRadius: '10px',
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  ✓ Issue Reported
+                </span>
+              ) : (
+                <button
+                  onClick={() => setReportModalOpen(true)}
+                  style={{
+                    padding: '0.7rem 1.25rem',
+                    background: 'var(--lp-bg-subtle)',
+                    color: 'var(--color-warning)',
+                    border: '1px solid var(--lp-border)',
+                    borderRadius: '10px',
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ⚠️ Report an Issue
+                </button>
+              )
+            )}
+          </div>
+        </div>
+
+        {reportModalOpen && appointment && (
+          <ReportIssueModal
+            isOpen={reportModalOpen}
+            appointment={appointment}
+            onSuccess={() => fetchQueueStatus()}
+            onClose={() => setReportModalOpen(false)}
+          />
+        )}
+      </div>
+    );
+  }
 
   const estStartStr = formatTime(qState.estimatedStartTime);
   const estEndStr = formatTime(qState.estimatedEndTime);

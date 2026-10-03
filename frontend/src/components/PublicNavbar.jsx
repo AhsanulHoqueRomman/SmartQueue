@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ThemeToggle } from './ThemeToggle';
+import { UserAccountMenu } from './UserAccountMenu';
 import '../styles/LandingPage.css';
 
 export const PublicNavbar = ({ activePage = '' }) => {
@@ -82,9 +83,7 @@ export const PublicNavbar = ({ activePage = '' }) => {
         <div className="lp-nav-cta">
           <ThemeToggle />
           {user ? (
-            <Link to="/dashboard" className="lp-btn-primary">
-              Dashboard →
-            </Link>
+            <UserAccountMenu />
           ) : (
             <>
               <Link to="/login" className="lp-btn-ghost">Sign in</Link>

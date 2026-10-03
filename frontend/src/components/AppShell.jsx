@@ -5,33 +5,17 @@ import { useTenant } from '../contexts/TenantContext';
 import { OrgSelector } from './OrgSelector';
 import { NotificationBell } from './NotificationBell';
 import { ThemeToggle } from './ThemeToggle';
+import { UserAccountMenu } from './UserAccountMenu';
 import { useToast } from '../contexts/ToastContext';
-import { getApiDocsUrl } from '../api/client';
 
 export const AppShell = ({ children }) => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { effectiveRole, currentOrg } = useTenant();
   const { showInfo } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const navigate = useNavigate();
 
   const handleNewNotification = (n) => {
     showInfo(`${n.title}: ${n.message}`);
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
-
-  const getUserInitials = () => {
-    if (user?.first_name && user?.last_name) {
-      return `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
-    }
-    if (user?.email) {
-      return user.email[0].toUpperCase();
-    }
-    return 'U';
   };
 
   // Role-specific nav items with exact functional routes
@@ -43,6 +27,7 @@ export const AppShell = ({ children }) => {
           { label: 'Organizations', path: '/admin/organizations', icon: '🏢' },
           { label: 'Platform Users', path: '/admin/users', icon: '👥' },
           { label: 'Contact Messages', path: '/admin/contact', icon: '📬' },
+          { label: 'My Profile', path: '/profile', icon: '👤' },
         ];
       case 'MANAGER':
         return [
@@ -56,6 +41,7 @@ export const AppShell = ({ children }) => {
           { label: 'Analytics', path: '/manager/analytics', icon: '📈' },
           { label: 'Audit Logs', path: '/manager/audit', icon: '📜' },
           { label: 'Org Settings', path: '/manager/settings', icon: '🏢' },
+          { label: 'My Profile', path: '/profile', icon: '👤' },
         ];
       case 'STAFF':
         return [
@@ -66,6 +52,7 @@ export const AppShell = ({ children }) => {
           { label: 'Provider Directory', path: '/staff/providers', icon: '🩺' },
           { label: 'Services', path: '/staff/services', icon: '⚙️' },
           { label: 'Notifications', path: '/staff/notifications', icon: '🔔' },
+          { label: 'My Profile', path: '/profile', icon: '👤' },
         ];
       case 'PROVIDER':
         return [
@@ -75,25 +62,22 @@ export const AppShell = ({ children }) => {
           { label: 'My Services', path: '/provider/services', icon: '⚙️' },
           { label: 'My Schedule', path: '/provider/schedule', icon: '📆' },
           { label: 'Patient Reviews', path: '/provider/reviews', icon: '★' },
+          { label: 'My Profile', path: '/profile', icon: '👤' },
         ];
       case 'CUSTOMER':
       default:
         return [
           { label: 'Dashboard', path: '/customer/dashboard', icon: '👤' },
-          { label: 'Explore Clinics', path: '/organizations', icon: '🏥' },
-          { label: 'Saved Clinics', path: '/customer/favorites', icon: '❤️' },
           { label: 'Book Appointment', path: '/customer/book', icon: '✨' },
           { label: 'My Appointments', path: '/customer/appointments', icon: '📋' },
           { label: 'Notifications', path: '/customer/notifications', icon: '🔔' },
           { label: 'My Reviews', path: '/customer/reviews', icon: '★' },
+          { label: 'Saved Clinics', path: '/customer/saved-clinics', icon: '❤️' },
         ];
     }
   };
 
-  const navItems = [
-    ...getNavItems(),
-    { label: 'My Profile', path: '/profile', icon: '👤' },
-  ];
+  const navItems = getNavItems();
 
   const getRoleBadgeStyle = () => {
     switch (effectiveRole) {
@@ -147,23 +131,7 @@ export const AppShell = ({ children }) => {
               {effectiveRole}
             </span>
 
-            <Link
-              to="/profile"
-              className="flex items-center gap-xs user-info-pill"
-              style={{ marginLeft: '0.25rem', textDecoration: 'none', cursor: 'pointer' }}
-              title="View Profile"
-            >
-              <div className="user-avatar-btn" title={user?.email}>
-                {getUserInitials()}
-              </div>
-              <span className="user-name-text" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-main)' }}>
-                {user?.first_name || user?.email?.split('@')[0]}
-              </span>
-            </Link>
-
-            <button onClick={handleLogout} className="btn btn-outline btn-sm logout-btn" style={{ marginLeft: '0.5rem' }}>
-              Sign Out
-            </button>
+            <UserAccountMenu />
           </div>
         </div>
       </header>

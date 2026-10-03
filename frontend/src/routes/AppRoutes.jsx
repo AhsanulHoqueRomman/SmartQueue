@@ -260,6 +260,18 @@ export const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/customer/saved-clinics"
+        element={
+          <ProtectedRoute>
+            <RoleRoute allowedRoles={['CUSTOMER']}>
+              <AppShell>
+                <CustomerFavoritesPage />
+              </AppShell>
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      />
 
       {/* Provider Routes */}
       <Route

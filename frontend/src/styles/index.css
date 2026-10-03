@@ -1081,15 +1081,17 @@ p {
   }
   
   .app-sidebar {
-    position: static;
+    position: sticky;
+    top: 64px;
+    height: calc(100vh - 64px);
+    overflow-y: auto;
     transform: none;
-    width: 220px;
-    min-width: 220px;
+    width: 240px;
+    min-width: 240px;
     box-shadow: none;
-    z-index: 1;
-    top: auto;
-    bottom: auto;
-    background-color: var(--color-bg-subtle);
+    z-index: 10;
+    background-color: var(--color-surface);
+    border-right: 1px solid var(--color-border);
   }
 
   .sidebar-backdrop {

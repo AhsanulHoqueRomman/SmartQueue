@@ -14,15 +14,20 @@ def _get_temporal_classification(obj) -> str:
 
 
 def _get_is_live_queue(obj) -> bool:
-    classification = _get_temporal_classification(obj)
-    if classification != 'today':
-        return False
-    if obj.status not in (Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN, Appointment.Status.IN_PROGRESS):
-        return False
     q = getattr(obj, 'queue_entry', None)
     if q is None:
         from apps.queue.models import QueueEntry
         q = QueueEntry.objects.filter(appointment=obj).first()
+
+    # Legitimate in-progress consultation remains active even across midnight
+    if obj.status == Appointment.Status.IN_PROGRESS or (q and q.status == 'IN_PROGRESS'):
+        return True
+
+    classification = _get_temporal_classification(obj)
+    if classification != 'today':
+        return False
+    if obj.status not in (Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN):
+        return False
     if q and q.status in ('COMPLETED', 'SKIPPED', 'CANCELLED', 'NO_SHOW'):
         return False
     return True
@@ -258,6 +263,7 @@ class CustomerDashboardItemSerializer(serializers.ModelSerializer):
     can_check_in = serializers.SerializerMethodField()
     can_cancel = serializers.SerializerMethodField()
     can_review = serializers.SerializerMethodField()
+    has_issue_report = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
@@ -288,6 +294,7 @@ class CustomerDashboardItemSerializer(serializers.ModelSerializer):
             'can_check_in',
             'can_cancel',
             'can_review',
+            'has_issue_report',
             'created_at',
             'updated_at',
         ]
@@ -297,6 +304,13 @@ class CustomerDashboardItemSerializer(serializers.ModelSerializer):
         if obj.provider and obj.provider.membership and obj.provider.membership.user:
             return obj.provider.membership.user.get_full_name() or obj.provider.membership.user.email
         return obj.provider.title if obj.provider else ''
+
+    def get_has_issue_report(self, obj):
+        from apps.contact.models import AppointmentIssueReport
+        return AppointmentIssueReport.objects.filter(
+            appointment=obj,
+            status=AppointmentIssueReport.Status.PENDING
+        ).exists()
 
     def get_queue_entry(self, obj):
         from apps.queue.serializers import QueueEntrySerializer

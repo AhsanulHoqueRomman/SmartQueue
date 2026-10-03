@@ -7,6 +7,18 @@
 export function getNormalizedCustomerQueueState(appointment, queueEntry = null) {
   const qEntry = queueEntry || appointment?.queue_entry;
   const isFuture = appointment?.temporal_classification === 'future';
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const localTodayStr = `${year}-${month}-${day}`;
+
+  const isLegitInProgress = (appointment?.status === 'IN_PROGRESS' || qEntry?.status === 'IN_PROGRESS');
+
+  const isPast = (
+    appointment?.temporal_classification === 'past' ||
+    (appointment?.appointment_date && appointment.appointment_date < localTodayStr)
+  ) && !isLegitInProgress;
   const rawStatus = isFuture
     ? (appointment?.status || 'CONFIRMED')
     : (qEntry?.status || appointment?.status || 'CONFIRMED');
@@ -29,13 +41,52 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
   let headline = 'Scheduled Consultation';
   let guidance = 'Your appointment serial number is secured.';
   let secondaryStatus = null;
-  let readinessState = isFuture ? 'NOT_YET' : (readinessInfo.readiness_state || 'NOT_YET');
+  let readinessState = (isFuture || isPast) ? 'NOT_YET' : (readinessInfo.readiness_state || 'NOT_YET');
+  let isUnresolved = false;
+  let isMissed = false;
+
+  const serialNum = appointment?.serial_number || qEntry?.serial_number || qEntry?.token_number || '—';
 
   if (isFuture) {
     displayStatus = 'Booked';
     statusTone = 'info';
     headline = 'Scheduled Future Date';
-    guidance = `Your serial #${appointment?.serial_number || '—'} is secured for ${appointment?.appointment_date || 'your appointment date'}.`;
+    guidance = `Your serial #${serialNum} is secured for ${appointment?.appointment_date || 'your appointment date'}.`;
+  } else if (isPast) {
+    if (rawStatus === 'COMPLETED') {
+      displayStatus = 'Completed';
+      statusTone = 'success';
+      headline = 'Consultation Completed';
+      guidance = 'Thank you for visiting. You can leave a review to share your feedback.';
+    } else if (rawStatus === 'CANCELLED') {
+      displayStatus = 'Cancelled';
+      statusTone = 'danger';
+      headline = 'Appointment Cancelled';
+      guidance = appointment?.cancellation_reason || 'This appointment was cancelled.';
+    } else if (rawStatus === 'NO_SHOW') {
+      displayStatus = 'Missed';
+      statusTone = 'danger';
+      headline = 'Appointment Missed';
+      guidance = 'You were absent when called. Please contact support or schedule a new consultation.';
+      isMissed = true;
+    } else if (rawStatus === 'SKIPPED') {
+      displayStatus = 'Skipped';
+      statusTone = 'warning';
+      headline = 'Serial Skipped';
+      guidance = 'Your turn was skipped during the queue session.';
+    } else if (isCheckedIn) {
+      displayStatus = 'Service outcome not recorded';
+      statusTone = 'warning';
+      headline = 'Service Outcome Not Recorded';
+      guidance = 'You checked in, but SmartQueue does not have a final service outcome recorded for this appointment.';
+      isUnresolved = true;
+    } else {
+      displayStatus = 'Missed';
+      statusTone = 'danger';
+      headline = 'Appointment Missed';
+      guidance = 'You were not checked in before the attendance window closed for this past appointment.';
+      isMissed = true;
+    }
   } else if (rawStatus === 'COMPLETED') {
     displayStatus = 'Completed';
     statusTone = 'success';
@@ -51,6 +102,7 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
     statusTone = 'danger';
     headline = 'Appointment Missed';
     guidance = 'You were absent when called. Please contact support or schedule a new consultation.';
+    isMissed = true;
   } else if (rawStatus === 'SKIPPED') {
     displayStatus = 'Skipped';
     statusTone = 'warning';
@@ -103,6 +155,9 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
     guidance = 'Please check in upon physical arrival at the venue to enter the live queue.';
   }
 
+  const isTerminal = ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(rawStatus) || isPast;
+  const canOpenTelemetry = !isPast && !isUnresolved && !isFuture && isCheckedIn && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(rawStatus);
+
   return {
     rawStatus,
     displayStatus,
@@ -110,14 +165,19 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
     statusTone,
     headline,
     guidance,
-    serialNumber: appointment?.serial_number || qEntry?.token_number || '—',
+    serialNumber: serialNum,
+    serial_number: serialNum,
     nowServing,
     peopleAhead: (rawStatus === 'CALLED' || rawStatus === 'IN_PROGRESS') ? 0 : peopleAhead,
     isDelayed,
     isCheckedIn,
     readinessState,
     isFuture,
+    isPast,
+    isUnresolved,
+    isMissed,
     isTerminal: ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(rawStatus),
+    can_open_telemetry: canOpenTelemetry,
     estimatedStartTime: readinessInfo.estimated_start_time || appointment?.start_datetime,
     estimatedEndTime: readinessInfo.estimated_end_time || appointment?.end_datetime,
     recommendedArrivalTime: isCheckedIn ? null : readinessInfo.recommended_arrival_time,
@@ -125,3 +185,4 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
 }
 
 export default getNormalizedCustomerQueueState;
+

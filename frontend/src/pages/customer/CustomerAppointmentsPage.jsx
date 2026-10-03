@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import appointmentService from '../../services/appointmentService';
-import queueService from '../../services/queueService';
 import CancelAppointmentModal from '../../components/CancelAppointmentModal';
 import LeaveReviewModal from '../../components/LeaveReviewModal';
+import ReportIssueModal from '../../components/ReportIssueModal';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
@@ -25,6 +25,7 @@ export function CustomerAppointmentsPage() {
   // Modals state
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [checkingInId, setCheckingInId] = useState(null);
 
@@ -76,6 +77,11 @@ export function CustomerAppointmentsPage() {
     setReviewModalOpen(true);
   };
 
+  const handleOpenReportModal = (appointment) => {
+    setSelectedAppointment(appointment);
+    setReportModalOpen(true);
+  };
+
   const handleConfirmCancel = async (reason) => {
     if (!selectedAppointment) return;
     const orgId = selectedAppointment.organization_id || selectedAppointment.organization;
@@ -92,34 +98,52 @@ export function CustomerAppointmentsPage() {
     }
   };
 
-  // Filter appointments by tab
-  const getFilteredAppointments = () => {
-    return appointments.filter((item) => {
-      const qStatus = item.queue_entry?.status || item.status;
-      const classification = item.temporal_classification || (
-        new Date(item.start_datetime).toDateString() === new Date().toDateString()
-          ? 'today'
-          : new Date(item.start_datetime) > new Date() ? 'future' : 'historical'
-      );
+  const categorizeAppointment = (item) => {
+    const norm = getNormalizedCustomerQueueState(item);
+    const qStatus = item.queue_entry?.status || item.status;
+    const isPast = norm.isPast;
+    const isFuture = item.temporal_classification === 'future';
+    const isToday = item.temporal_classification === 'today';
+    const isCheckedIn = norm.isCheckedIn;
 
-      switch (activeTab) {
-        case 'active':
-          return classification === 'today' && ['WAITING', 'CALLED', 'IN_PROGRESS', 'CHECKED_IN', 'CONFIRMED'].includes(qStatus) && qStatus !== 'CANCELLED';
-        case 'upcoming':
-          return classification === 'future' && !['CANCELLED', 'COMPLETED', 'NO_SHOW', 'SKIPPED'].includes(item.status);
-        case 'completed':
-          return qStatus === 'COMPLETED' || item.status === 'COMPLETED';
-        case 'cancelled':
-          return qStatus === 'CANCELLED' || item.status === 'CANCELLED';
-        case 'no_show':
-          return qStatus === 'NO_SHOW' || qStatus === 'SKIPPED' || item.status === 'NO_SHOW';
-        default:
-          return true;
-      }
-    });
+    if (qStatus === 'COMPLETED' || item.status === 'COMPLETED') return 'completed';
+    if (qStatus === 'CANCELLED' || item.status === 'CANCELLED') return 'cancelled';
+    if (qStatus === 'SKIPPED' || item.status === 'SKIPPED') return 'skipped';
+    if (qStatus === 'NO_SHOW' || item.status === 'NO_SHOW') return 'missed';
+
+    if (isPast) {
+      if (isCheckedIn) return 'needs_followup';
+      return 'missed';
+    }
+
+    if (isFuture) return 'upcoming';
+
+    if (isToday) return 'active';
+
+    return 'active';
   };
 
-  const filteredAppointments = getFilteredAppointments();
+  const tabCounts = {
+    active: appointments.filter((a) => categorizeAppointment(a) === 'active').length,
+    upcoming: appointments.filter((a) => categorizeAppointment(a) === 'upcoming').length,
+    completed: appointments.filter((a) => categorizeAppointment(a) === 'completed').length,
+    cancelled: appointments.filter((a) => categorizeAppointment(a) === 'cancelled').length,
+    missed: appointments.filter((a) => categorizeAppointment(a) === 'missed').length,
+    skipped: appointments.filter((a) => categorizeAppointment(a) === 'skipped').length,
+    needs_followup: appointments.filter((a) => categorizeAppointment(a) === 'needs_followup').length,
+  };
+
+  const filteredAppointments = appointments.filter((item) => categorizeAppointment(item) === activeTab);
+
+  const TABS = [
+    { id: 'active', label: 'Active Today', icon: '🟢' },
+    { id: 'upcoming', label: 'Upcoming', icon: '📅' },
+    { id: 'completed', label: 'Completed', icon: '✅' },
+    { id: 'cancelled', label: 'Cancelled', icon: '❌' },
+    { id: 'missed', label: 'Missed', icon: '🚫' },
+    { id: 'skipped', label: 'Skipped', icon: '⏭️' },
+    { id: 'needs_followup', label: 'Needs Follow-up', icon: '⚠️' },
+  ];
 
   const getEmptyMessage = () => {
     switch (activeTab) {
@@ -127,40 +151,44 @@ export function CustomerAppointmentsPage() {
         return 'No active appointments or live queue participation today.';
       case 'upcoming':
         return 'You have no future appointments scheduled.';
+      case 'needs_followup':
+        return 'All past appointments have verified outcomes. No follow-up required.';
       case 'completed':
         return 'You have no completed appointments yet.';
       case 'cancelled':
         return 'You have no cancelled appointments.';
-      case 'no_show':
+      case 'missed':
         return 'You have no missed appointments.';
+      case 'skipped':
+        return 'You have no skipped queue entries.';
       default:
         return 'No appointments found.';
     }
   };
 
   return (
-    <div className="animate-page-entrance" style={{ maxWidth: '1150px', margin: '0 auto' }}>
+    <div className="animate-page-entrance" style={{ maxWidth: '1150px', margin: '0 auto', paddingBottom: '3rem' }}>
       {/* Header Banner */}
       <div
         style={{
-          background: 'linear-gradient(135deg, var(--lp-btn-bg) 0%, #1c1815 100%)',
-          color: 'var(--lp-btn-text)',
-          borderRadius: '20px',
-          padding: '2rem',
+          background: 'var(--lp-surface)',
+          border: '1px solid var(--lp-border)',
+          borderRadius: '18px',
+          padding: '1.75rem 2rem',
           boxShadow: 'var(--lp-shadow-sm)',
           marginBottom: '1.75rem',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.15)', color: 'var(--lp-btn-text)', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.75rem' }}>
-              📋 Appointment Lifecycle Center
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--lp-accent)', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.35rem' }}>
+              📋 Appointment Lifecycle &amp; History
             </div>
-            <h1 style={{ fontSize: '1.85rem', fontWeight: 700, margin: '0 0 0.4rem 0', fontFamily: 'Cinzel, serif', color: 'var(--lp-btn-text)' }}>
-              My Appointments & Consultations
+            <h1 style={{ fontSize: '1.85rem', fontWeight: 700, margin: '0 0 0.35rem 0', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)' }}>
+              My Appointments &amp; Consultations
             </h1>
-            <p style={{ color: 'var(--lp-btn-text)', opacity: 0.9, margin: 0, fontSize: '0.95rem' }}>
-              Track your appointments, check in online, view live telemetry, and review past care.
+            <p style={{ color: 'var(--lp-text-subtle)', margin: 0, fontSize: '0.925rem' }}>
+              Track active appointments, view lifecycle history, check in online, and report service discrepancies.
             </p>
           </div>
 
@@ -168,31 +196,33 @@ export function CustomerAppointmentsPage() {
             <button
               onClick={() => fetchAppointments(true)}
               disabled={refreshing}
+              title="Refresh schedule"
               style={{
-                padding: '0.75rem 1rem',
-                background: 'rgba(255, 255, 255, 0.12)',
-                color: 'var(--lp-btn-text)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
+                padding: '0.65rem 0.9rem',
+                background: 'var(--lp-bg-subtle)',
+                color: 'var(--lp-text-subtle)',
+                border: '1px solid var(--lp-border)',
                 borderRadius: '10px',
                 fontWeight: 600,
                 fontSize: '0.85rem',
-                cursor: 'pointer',
+                cursor: refreshing ? 'not-allowed' : 'pointer',
               }}
             >
-              🔄 {refreshing ? 'Refreshing...' : 'Refresh All'}
+              🔄 {refreshing ? 'Updating...' : 'Sync'}
             </button>
+
             <button
               onClick={() => navigate('/customer/book')}
               style={{
-                padding: '0.75rem 1.25rem',
+                padding: '0.7rem 1.25rem',
                 background: 'var(--lp-accent)',
-                color: 'var(--lp-btn-text)',
+                color: '#FFFFFF',
                 border: 'none',
                 borderRadius: '10px',
                 fontWeight: 600,
                 fontSize: '0.9rem',
                 cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(95, 122, 112, 0.3)',
+                boxShadow: '0 4px 12px rgba(95, 122, 112, 0.25)',
               }}
             >
               ✨ Book Appointment
@@ -203,64 +233,81 @@ export function CustomerAppointmentsPage() {
 
       {error && <div className="banner banner-danger" style={{ marginBottom: '1.5rem' }}>{error}</div>}
 
-      {/* Tabs */}
+      {/* Accessible Tabs Bar */}
       <div
+        role="tablist"
+        aria-label="Appointment Lifecycle Categories"
         style={{
           display: 'flex',
-          gap: '0.5rem',
+          gap: '0.35rem',
           borderBottom: '2px solid var(--lp-border)',
           marginBottom: '1.75rem',
           overflowX: 'auto',
           paddingBottom: '2px',
         }}
       >
-        {[
-          { id: 'active', label: '🟢 Active Today / Queue' },
-          { id: 'upcoming', label: '📅 Upcoming' },
-          { id: 'completed', label: '✅ Completed' },
-          { id: 'cancelled', label: '❌ Cancelled' },
-          { id: 'no_show', label: '⚠️ Missed / Skipped' },
-        ].map((tab) => {
+        {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
+          const count = tabCounts[tab.id] || 0;
           return (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={isActive}
+              tabIndex={0}
               onClick={() => setActiveTab(tab.id)}
               style={{
-                padding: '0.75rem 1.25rem',
-                background: 'none',
+                padding: '0.75rem 1.1rem',
+                background: isActive ? 'var(--lp-surface)' : 'transparent',
                 border: 'none',
                 borderBottom: isActive ? '3px solid var(--lp-accent)' : '3px solid transparent',
-                color: isActive ? 'var(--lp-text)' : 'var(--lp-text-subtle)',
+                color: isActive ? 'var(--lp-accent)' : 'var(--lp-text-subtle)',
                 fontWeight: isActive ? 700 : 500,
-                fontSize: '0.95rem',
+                fontSize: '0.925rem',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.2s ease',
                 marginBottom: '-2px',
+                borderRadius: '8px 8px 0 0',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
               }}
             >
-              {tab.label}
+              <span>{tab.icon} {tab.label}</span>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  padding: '0.1rem 0.45rem',
+                  borderRadius: '999px',
+                  background: isActive ? 'var(--lp-accent)' : 'var(--lp-border)',
+                  color: isActive ? '#FFFFFF' : 'var(--lp-text-subtle)',
+                }}
+              >
+                {count}
+              </span>
             </button>
           );
         })}
       </div>
 
-      {/* Main Grid */}
+      {/* Main Flat Appointments History List */}
       {loading ? (
-        <LoadingState message="Loading your appointments..." />
+        <LoadingState message="Loading your appointments schedule..." />
       ) : filteredAppointments.length === 0 ? (
         <EmptyState
           title={getEmptyMessage()}
-          message="Select another tab or schedule a new appointment consultation."
+          message="Select another tab or schedule a new consultation with a specialist."
           actionText="Book New Appointment"
           onAction={() => navigate('/customer/book')}
         />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
           {filteredAppointments.map((appt) => {
             const qEntry = appt.queue_entry;
             const normState = getNormalizedCustomerQueueState(appt, qEntry);
+            const category = categorizeAppointment(appt);
             const isFuture = appt.temporal_classification === 'future';
             const qStatus = isFuture ? appt.status : (qEntry?.status || appt.status);
             const orgId = appt.organization_id || appt.organization;
@@ -271,194 +318,232 @@ export function CustomerAppointmentsPage() {
             const canCancel = appt.can_cancel !== undefined
               ? appt.can_cancel
               : (['CONFIRMED', 'PENDING'].includes(appt.status) && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED', 'IN_PROGRESS'].includes(qStatus));
-            const isLive = normState.can_open_telemetry;
-            const isTerminal = ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(qStatus);
 
-            const formattedDate = new Date(appt.start_datetime).toLocaleDateString(undefined, {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            });
-            const formattedTime = new Date(appt.start_datetime).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            });
+            const formattedDate = appt.start_datetime
+              ? new Date(appt.start_datetime).toLocaleDateString(undefined, {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })
+              : (appt.appointment_date || 'Date TBD');
+
+            const formattedTime = appt.start_datetime
+              ? new Date(appt.start_datetime).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : 'Time TBD';
 
             return (
               <div
                 key={appt.id}
                 style={{
-                  background: 'var(--lp-surface)',
-                  borderRadius: '16px',
-                  border: `1px solid ${normState.is_delayed ? 'var(--color-warning, #d97706)' : 'var(--lp-border)'}`,
-                  padding: '1.5rem',
                   display: 'flex',
-                  flexDirection: 'column',
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
                   justifyContent: 'space-between',
-                  boxShadow: 'var(--lp-shadow-sm)',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  padding: '1.5rem 0',
+                  borderBottom: '1px solid var(--lp-border)',
+                  gap: '1.5rem',
+                  flexWrap: 'wrap',
                 }}
               >
-                <div>
-                  {/* Header: Organization & Category Badge */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                    <div>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        {appt.organization_category || 'CLINIC'} &bull; {appt.organization_name || 'Organization'}
-                      </span>
-                      <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1.2rem', color: 'var(--lp-text)', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
-                        {appt.service_name || 'Service Consultation'}
-                      </h3>
-                    </div>
-                    <StatusBadge status={qStatus} />
+                {/* Left: Date & Time */}
+                <div style={{ minWidth: '160px', flexShrink: 0 }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    {formattedDate}
                   </div>
-
-                  {/* Subheader: Provider */}
-                  <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginBottom: '0.75rem' }}>
-                    Provider: <strong style={{ color: 'var(--lp-text)' }}>{appt.provider_name || appt.provider_title || 'Assigned Specialist'}</strong>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', marginTop: '0.2rem' }}>
+                    {formattedTime}
                   </div>
-
-                  {/* Normalized Headline / Delayed Callout */}
-                  {isLive && (
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: normState.is_delayed ? 'var(--color-warning)' : 'var(--lp-accent)', marginBottom: '0.85rem' }}>
-                      {normState.headline}
-                      {normState.is_delayed && <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', background: 'var(--color-warning-light)', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>Running behind schedule</span>}
+                  {normState.serialNumber && normState.serialNumber !== '—' && (
+                    <div style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)', marginTop: '0.35rem', fontWeight: 600 }}>
+                      Serial <span style={{ color: 'var(--lp-accent)', fontWeight: 700 }}>#{normState.serialNumber}</span>
                     </div>
                   )}
+                </div>
 
-                  {/* Schedule Card Info */}
-                  <div
-                    style={{
-                      background: 'var(--lp-bg-subtle)',
-                      border: '1px solid var(--lp-border)',
-                      borderRadius: '10px',
-                      padding: '0.85rem',
-                      marginBottom: '1rem',
-                      fontSize: '0.85rem',
-                      color: 'var(--lp-text)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                      <span>📅 <strong>{formattedDate}</strong></span>
-                      <span>⏰ <strong>{formattedTime}</strong></span>
-                    </div>
+                {/* Center: Service, Organization, Provider & Contextual Notes */}
+                <div style={{ flex: 1, minWidth: '260px' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lp-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    {appt.organization_category || 'CLINIC'} &bull; {appt.organization_name || 'Organization'}
+                  </div>
+                  <h3 style={{ margin: '0.2rem 0 0.35rem 0', fontSize: '1.2rem', color: 'var(--lp-text)', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
+                    {appt.service_name || 'Service Consultation'}
+                  </h3>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--lp-text-subtle)', marginBottom: '0.5rem' }}>
+                    Specialist: <strong style={{ color: 'var(--lp-text)' }}>{appt.provider_name || appt.provider_title || 'Assigned Specialist'}</strong>
+                  </div>
 
-                    {normState.serial_number && (
-                      <div style={{ fontSize: '0.8rem', color: 'var(--lp-text)', fontWeight: 700, marginTop: '0.25rem', paddingTop: '0.35rem', borderTop: '1px solid var(--lp-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>Serial Number:</span>
-                        <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.1rem', color: 'var(--lp-accent)' }}>#{normState.serial_number}</span>
-                      </div>
-                    )}
+                  {/* Contextual Guidance / Status explanation */}
+                  <div style={{ fontSize: '0.85rem', color: normState.statusTone === 'warning' ? 'var(--color-warning)' : 'var(--lp-text-subtle)', lineHeight: 1.45, marginTop: '0.25rem' }}>
+                    {normState.guidance}
                   </div>
                 </div>
 
-                {/* Footer Action Controls */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'flex-end', paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)' }}>
-                  {canCheckIn && !isTerminal && (
-                    <button
-                      onClick={() => handleCheckIn(orgId, appt.id)}
-                      disabled={checkingInId === appt.id}
-                      style={{
-                        padding: '0.55rem 0.9rem',
-                        background: 'var(--color-warning)',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontWeight: 700,
-                        fontSize: '0.85rem',
-                        cursor: checkingInId === appt.id ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {checkingInId === appt.id ? 'Checking in...' : '✓ Check-In'}
-                    </button>
-                  )}
+                {/* Right: Status Badge & Actions */}
+                <div style={{ minWidth: '200px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.75rem', flexShrink: 0 }}>
+                  <StatusBadge status={category === 'needs_followup' ? 'Service outcome not recorded' : normState.displayStatus} />
 
-                  {isLive && qEntry?.id && (
-                    <button
-                      onClick={() => navigate(`/customer/queue/${qEntry.id}`)}
-                      style={{
-                        padding: '0.55rem 0.9rem',
-                        background: 'var(--lp-btn-bg)',
-                        color: 'var(--lp-btn-text)',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontWeight: 600,
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Open Telemetry →
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => navigate(`/customer/appointments/${appt.id}`)}
-                    style={{
-                      padding: '0.55rem 0.9rem',
-                      background: 'var(--lp-bg-subtle)',
-                      color: 'var(--lp-accent)',
-                      border: '1px solid var(--lp-border)',
-                      borderRadius: '8px',
-                      fontWeight: 600,
-                      fontSize: '0.85rem',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Details
-                  </button>
-
-                  {(qStatus === 'COMPLETED' || appt.status === 'COMPLETED') && (
-                    appt.can_review ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                    {canCheckIn && (
                       <button
-                        onClick={() => handleOpenReviewModal(appt)}
+                        onClick={() => handleCheckIn(orgId, appt.id)}
+                        disabled={checkingInId === appt.id}
                         style={{
-                          padding: '0.55rem 0.9rem',
-                          background: 'var(--lp-bg-subtle)',
-                          color: 'var(--color-warning)',
-                          border: '1px solid var(--lp-border)',
+                          padding: '0.5rem 0.85rem',
+                          background: 'var(--color-warning)',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          cursor: checkingInId === appt.id ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        {checkingInId === appt.id ? 'Checking in...' : '✓ Check-In'}
+                      </button>
+                    )}
+
+                    {normState.can_open_telemetry && (
+                      <button
+                        onClick={() => navigate(`/customer/queue/${qEntry?.id || appt.id}`)}
+                        style={{
+                          padding: '0.5rem 0.85rem',
+                          background: 'var(--lp-btn-bg)',
+                          color: 'var(--lp-btn-text)',
+                          border: 'none',
                           borderRadius: '8px',
                           fontWeight: 600,
                           fontSize: '0.85rem',
                           cursor: 'pointer',
                         }}
                       >
-                        ★ Leave Review
+                        Open Live Queue →
                       </button>
-                    ) : (
-                      <span
+                    )}
+
+                    {category === 'needs_followup' && (
+                      appt.has_issue_report ? (
+                        <span
+                          style={{
+                            padding: '0.45rem 0.8rem',
+                            background: 'var(--lp-bg-subtle)',
+                            color: 'var(--lp-accent)',
+                            border: '1px solid var(--lp-border)',
+                            borderRadius: '8px',
+                            fontWeight: 700,
+                            fontSize: '0.8rem',
+                          }}
+                        >
+                          ✓ Issue Reported
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleOpenReportModal(appt)}
+                          style={{
+                            padding: '0.5rem 0.85rem',
+                            background: 'var(--lp-bg-subtle)',
+                            color: 'var(--color-warning)',
+                            border: '1px solid var(--lp-border)',
+                            borderRadius: '8px',
+                            fontWeight: 600,
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ⚠️ Report an Issue
+                        </button>
+                      )
+                    )}
+
+                    {(category === 'completed' || qStatus === 'COMPLETED' || appt.status === 'COMPLETED') && (
+                      appt.can_review ? (
+                        <button
+                          onClick={() => handleOpenReviewModal(appt)}
+                          style={{
+                            padding: '0.5rem 0.85rem',
+                            background: 'var(--lp-bg-subtle)',
+                            color: 'var(--color-warning)',
+                            border: '1px solid var(--lp-border)',
+                            borderRadius: '8px',
+                            fontWeight: 600,
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ★ Leave Review
+                        </button>
+                      ) : (
+                        <span
+                          style={{
+                            padding: '0.4rem 0.75rem',
+                            background: 'var(--lp-sage-bg)',
+                            color: 'var(--lp-sage)',
+                            border: '1px solid var(--lp-sage-border)',
+                            borderRadius: '8px',
+                            fontWeight: 600,
+                            fontSize: '0.8rem',
+                          }}
+                        >
+                          ✓ Reviewed
+                        </span>
+                      )
+                    )}
+
+                    {canCancel && (
+                      <button
+                        onClick={() => handleOpenCancelModal(appt)}
                         style={{
-                          padding: '0.45rem 0.8rem',
-                          background: 'var(--lp-sage-bg)',
-                          color: 'var(--lp-sage)',
-                          border: '1px solid var(--lp-sage-border)',
+                          padding: '0.5rem 0.85rem',
+                          background: 'var(--color-danger-light)',
+                          color: 'var(--color-danger)',
+                          border: '1px solid var(--color-danger)',
                           borderRadius: '8px',
                           fontWeight: 600,
-                          fontSize: '0.8rem',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
                         }}
                       >
-                        ✓ Reviewed
-                      </span>
-                    )
-                  )}
+                        Cancel
+                      </button>
+                    )}
 
-                  {canCancel && (
+                    {(category === 'missed' || category === 'cancelled') && (
+                      <button
+                        onClick={() => navigate('/customer/book')}
+                        style={{
+                          padding: '0.5rem 0.85rem',
+                          background: 'var(--lp-accent)',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontWeight: 600,
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Book Again
+                      </button>
+                    )}
+
                     <button
-                      onClick={() => handleOpenCancelModal(appt)}
+                      onClick={() => navigate(`/customer/appointments/${appt.id}`)}
                       style={{
-                        padding: '0.55rem 0.9rem',
-                        background: 'var(--color-danger-light)',
-                        color: 'var(--color-danger)',
-                        border: '1px solid var(--color-danger)',
+                        padding: '0.5rem 0.85rem',
+                        background: 'var(--lp-bg-subtle)',
+                        color: 'var(--lp-accent)',
+                        border: '1px solid var(--lp-border)',
                         borderRadius: '8px',
                         fontWeight: 600,
                         fontSize: '0.85rem',
                         cursor: 'pointer',
                       }}
                     >
-                      Cancel
+                      Details →
                     </button>
-                  )}
+                  </div>
                 </div>
               </div>
             );
@@ -487,6 +572,18 @@ export function CustomerAppointmentsPage() {
             fetchAppointments();
           }}
           onClose={() => setReviewModalOpen(false)}
+        />
+      )}
+
+      {/* Report Issue Modal */}
+      {reportModalOpen && selectedAppointment && (
+        <ReportIssueModal
+          isOpen={reportModalOpen}
+          appointment={selectedAppointment}
+          onSuccess={() => {
+            fetchAppointments();
+          }}
+          onClose={() => setReportModalOpen(false)}
         />
       )}
     </div>

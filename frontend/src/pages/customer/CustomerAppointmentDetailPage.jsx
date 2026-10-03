@@ -9,6 +9,7 @@ import LeaveReviewModal from '../../components/LeaveReviewModal';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
+import ReportIssueModal from '../../components/ReportIssueModal';
 import { getNormalizedCustomerQueueState } from '../../utils/queueDisplay';
 
 export function CustomerAppointmentDetailPage() {
@@ -24,6 +25,7 @@ export function CustomerAppointmentDetailPage() {
   // Modals & Action states
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
   const [newDate, setNewDate] = useState('');
@@ -214,12 +216,12 @@ export function CustomerAppointmentDetailPage() {
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {normState.serial_number && (
+            {(normState.serialNumber || appointment.serial_number) && (
               <div style={{ background: 'var(--lp-accent-light)', border: '1px solid var(--lp-accent-border)', padding: '0.3rem 0.75rem', borderRadius: '8px', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif' }}>
-                #{normState.serial_number}
+                #{normState.serialNumber || appointment.serial_number}
               </div>
             )}
-            <StatusBadge status={qStatus} />
+            <StatusBadge status={normState.isUnresolved ? 'Service outcome not recorded' : qStatus} />
           </div>
         </div>
       </div>
@@ -227,8 +229,59 @@ export function CustomerAppointmentDetailPage() {
       {/* Main Content Area - De-boxed task-first presentation */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
         
+        {/* Historical Reconciliation Box for Needs Follow-up Appointments */}
+        {normState.isUnresolved && (
+          <div
+            style={{
+              background: 'var(--lp-surface)',
+              border: '1px solid var(--lp-border)',
+              borderRadius: '16px',
+              padding: '1.5rem',
+              boxShadow: 'var(--lp-shadow-sm)',
+            }}
+          >
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-warning, #d97706)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.35rem' }}>
+              SERVICE OUTCOME
+            </div>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: 'var(--lp-text)', fontFamily: 'Cinzel, serif' }}>
+              Service outcome not recorded
+            </h2>
+            <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.925rem', margin: '0 0 1.25rem 0', lineHeight: 1.5 }}>
+              You checked in for this appointment, but SmartQueue does not have a final service outcome recorded for this consultation.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--lp-border)' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)' }}>
+                Checked in: <strong style={{ color: 'var(--lp-text)' }}>{qEntry?.checked_in_at ? new Date(qEntry.checked_in_at).toLocaleString() : 'Verified'}</strong>
+              </div>
+
+              {appointment.has_issue_report ? (
+                <span style={{ padding: '0.45rem 0.85rem', background: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', borderRadius: '8px', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--lp-border)' }}>
+                  ✓ Issue Reported
+                </span>
+              ) : (
+                <button
+                  onClick={() => setReportModalOpen(true)}
+                  style={{
+                    padding: '0.55rem 1rem',
+                    background: 'var(--lp-bg-subtle)',
+                    color: 'var(--color-warning)',
+                    border: '1px solid var(--lp-border)',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ⚠️ Report an Issue
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Live Queue Status Section if active */}
-        {isLive && (
+        {isLive && !normState.isUnresolved && (
           <div
             style={{
               background: normState.is_delayed ? 'var(--color-warning-light, rgba(217, 119, 6, 0.08))' : 'var(--lp-surface)',
@@ -263,7 +316,7 @@ export function CustomerAppointmentDetailPage() {
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Your Serial</div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif' }}>
-                  #{normState.serial_number || '—'}
+                  #{normState.serialNumber || appointment.serial_number || '—'}
                 </div>
               </div>
 
@@ -513,6 +566,18 @@ export function CustomerAppointmentDetailPage() {
             fetchDetail();
           }}
           onClose={() => setReviewModalOpen(false)}
+        />
+      )}
+
+      {/* Report Issue Modal */}
+      {reportModalOpen && (
+        <ReportIssueModal
+          isOpen={reportModalOpen}
+          appointment={appointment}
+          onSuccess={() => {
+            fetchDetail();
+          }}
+          onClose={() => setReportModalOpen(false)}
         />
       )}
     </div>

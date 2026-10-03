@@ -372,3 +372,71 @@ class CustomerAppointmentItemDetailView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class CustomerAppointmentReportIssueView(APIView):
+    """
+    POST /api/v1/customer/appointments/{appointment_id}/report-issue/
+    Submits a customer issue report for an appointment.
+    Prevents duplicate submissions and does NOT mutate appointment operational status.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Report an issue for an appointment',
+        responses={201: OpenApiResponse(description='Issue report submitted successfully')},
+    )
+    def post(self, request, appointment_id):
+        appointment = get_object_or_404(
+            Appointment.objects.select_related('organization', 'provider', 'service'),
+            id=appointment_id,
+            customer=request.user,
+        )
+
+        from apps.contact.models import AppointmentIssueReport, ContactMessage
+        existing = AppointmentIssueReport.objects.filter(
+            appointment=appointment,
+            status=AppointmentIssueReport.Status.PENDING,
+        ).first()
+
+        if existing:
+            return Response(
+                {
+                    'detail': 'An issue report for this appointment has already been submitted.',
+                    'has_issue_report': True,
+                    'report_id': str(existing.id),
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        reason = request.data.get('reason', AppointmentIssueReport.Reason.CHECKED_IN_NOT_SERVED)
+        details = request.data.get('details', '')
+
+        if reason not in AppointmentIssueReport.Reason.values:
+            reason = AppointmentIssueReport.Reason.CHECKED_IN_NOT_SERVED
+
+        report = AppointmentIssueReport.objects.create(
+            appointment=appointment,
+            customer=request.user,
+            reason=reason,
+            details=details,
+            status=AppointmentIssueReport.Status.PENDING,
+        )
+
+        ContactMessage.objects.create(
+            name=request.user.get_full_name() or request.user.email,
+            email=request.user.email,
+            subject=f"Appointment Discrepancy: {appointment.service.name} (#{appointment.serial_number or '—'})",
+            message=f"Reason: {report.get_reason_display()}\nOrganization: {appointment.organization.name}\nDetails: {details}",
+            status=ContactMessage.Status.NEW,
+        )
+
+        return Response(
+            {
+                'detail': 'Issue report submitted successfully.',
+                'has_issue_report': True,
+                'report_id': str(report.id),
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+

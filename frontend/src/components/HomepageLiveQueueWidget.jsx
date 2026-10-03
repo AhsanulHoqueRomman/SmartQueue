@@ -158,7 +158,9 @@ export function HomepageLiveQueueWidget() {
       .then((data) => {
         if (!isMounted) return;
         const list = Array.isArray(data) ? data : data.results || [];
-        const activeOrUpcoming = list.filter(item => item.temporal_classification !== 'historical' && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(item.status));
+        const activeOrUpcoming = list.filter(
+          (item) => item.temporal_classification !== 'past' && item.temporal_classification !== 'historical' && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(item.status)
+        );
         const sorted = [...activeOrUpcoming].sort((a, b) => getPriorityScore(a) - getPriorityScore(b));
         setItems(sorted);
       })
