@@ -174,12 +174,16 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     """
     Serializer for updating profile fields (first_name, last_name, phone_number, avatar).
     """
+    avatar = serializers.ImageField(required=False, allow_null=True)
+
     class Meta:
         model = User
         fields = ('first_name', 'last_name', 'phone_number', 'avatar')
 
     def validate_avatar(self, value):
-        if value:
+        if value is None or value == '':
+            return None
+        if hasattr(value, 'size'):
             max_size = 5 * 1024 * 1024  # 5MB
             if value.size > max_size:
                 raise serializers.ValidationError("Avatar file size must not exceed 5MB.")

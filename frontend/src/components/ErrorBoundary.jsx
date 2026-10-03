@@ -1,7 +1,7 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
-export class ErrorBoundary extends React.Component {
+export class ErrorBoundaryClass extends React.Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -13,6 +13,12 @@ export class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('Uncaught React ErrorBoundary caught an exception:', error, errorInfo);
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.locationKey !== this.props.locationKey && this.state.hasError) {
+      this.setState({ hasError: false, error: null });
+    }
   }
 
   handleReset = () => {
@@ -131,6 +137,11 @@ export class ErrorBoundary extends React.Component {
 
     return this.props.children;
   }
+}
+
+export function ErrorBoundary(props) {
+  const location = useLocation();
+  return <ErrorBoundaryClass {...props} locationKey={location.pathname} />;
 }
 
 export default ErrorBoundary;

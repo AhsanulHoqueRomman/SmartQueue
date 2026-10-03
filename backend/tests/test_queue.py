@@ -296,7 +296,7 @@ class TestQueueAPI:
         s = queue_setup
         from apps.appointments.services import AppointmentService
         today = current_business_date()
-        start_time = timezone.make_aware(datetime.combine(today, time(10, 0)), timezone=TZ)
+        start_time = timezone.now() + timedelta(minutes=5)
 
         appt1 = AppointmentService.book_appointment(
             organization_id=s['org'].id, customer=s['customer'],

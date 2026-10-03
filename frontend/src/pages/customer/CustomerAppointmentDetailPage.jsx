@@ -122,14 +122,31 @@ export function CustomerAppointmentDetailPage() {
   );
   const isTerminal = ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(qStatus);
 
-  const startDate = new Date(appointment.start_datetime);
-  const endDate = new Date(appointment.end_datetime);
+  const formatDateStr = (isoStr, fallbackDateStr) => {
+    if (isoStr) {
+      const d = new Date(isoStr);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+      }
+    }
+    if (fallbackDateStr) {
+      const d = new Date(fallbackDateStr);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+      }
+    }
+    return 'Scheduled Date';
+  };
 
   const formatTime = (isoStr) => {
     if (!isoStr) return null;
     const d = new Date(isoStr);
     return isNaN(d.getTime()) ? null : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
+
+  const formattedScheduleDate = formatDateStr(appointment.start_datetime, appointment.appointment_date);
+  const startTimeStr = formatTime(appointment.start_datetime);
+  const endTimeStr = formatTime(appointment.end_datetime);
 
   const estStartStr = qEntry?.readiness_info?.estimated_start_time
     ? formatTime(qEntry.readiness_info.estimated_start_time)
