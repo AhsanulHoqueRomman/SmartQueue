@@ -76,7 +76,10 @@ export function NotificationsPage() {
       );
     }
 
-    if (n.queue_entry_id) {
+    const kind = n.kind || n.type;
+    if (['APPOINTMENT_BOOKED', 'APPOINTMENT_CANCELLED', 'SERVICE_COMPLETED'].includes(kind) && n.appointment_id) {
+      navigate(`/customer/appointments/${n.appointment_id}`);
+    } else if (n.queue_entry_id) {
       navigate(`/customer/queue/${n.queue_entry_id}`);
     } else if (n.appointment_id) {
       navigate(`/customer/appointments/${n.appointment_id}`);

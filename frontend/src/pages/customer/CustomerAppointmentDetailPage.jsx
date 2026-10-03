@@ -241,10 +241,10 @@ export function CustomerAppointmentDetailPage() {
               📅 Schedule & Time
             </span>
             <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--lp-text)', marginTop: '0.4rem' }}>
-              {startDate.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}
+              {formattedScheduleDate}
             </div>
             <div style={{ fontSize: '0.9rem', color: 'var(--lp-text-subtle)', marginTop: '0.2rem' }}>
-              {startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – {endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {startTimeStr && endTimeStr ? `${startTimeStr} – ${endTimeStr}` : (startTimeStr || 'Scheduled Consultation')}
             </div>
           </div>
 
@@ -398,9 +398,9 @@ export function CustomerAppointmentDetailPage() {
             </button>
           )}
 
-          {isLive && qId && (
+          {isLive && qEntry?.id && (
             <button
-              onClick={() => navigate(`/customer/queue/${qId}`)}
+              onClick={() => navigate(`/customer/queue/${qEntry.id}`)}
               style={{
                 padding: '0.75rem 1.5rem',
                 background: 'var(--lp-btn-bg)',

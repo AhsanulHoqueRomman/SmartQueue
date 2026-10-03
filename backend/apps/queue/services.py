@@ -519,17 +519,57 @@ class QueueService:
                 dur = entry.appointment.service.duration_minutes or 15
             waiting_ahead_minutes += dur
 
+        # Check if provider queue has had any activity today
+        provider_has_started = (
+            active_entry is not None or
+            QueueEntry.objects.filter(
+                provider=queue_entry.provider,
+                queue_date=today,
+                status__in=[QueueEntry.Status.COMPLETED, QueueEntry.Status.IN_PROGRESS, QueueEntry.Status.CALLED]
+            ).exists()
+        )
+
+        is_overdue_unstarted = bool(
+            appt_start and (now > appt_start + timedelta(minutes=30)) and not provider_has_started
+        )
+
         est_wait = active_remaining + waiting_ahead_minutes
         dynamic_start = now + timedelta(minutes=est_wait)
 
+        # Recommended arrival: if customer has ALREADY checked in, arrival instruction is no longer active
+        if queue_entry.is_checked_in:
+            rec_arrival_iso = None
+        elif appt_start:
+            rec_arrival_iso = (appt_start - timedelta(minutes=15)).isoformat()
+        else:
+            rec_arrival_iso = (now + timedelta(minutes=max(0, est_wait - 15))).isoformat()
+
+        if is_overdue_unstarted:
+            if time_until_start > 45 if 'time_until_start' in locals() else False:
+                readiness = QueueEntry.ReadinessState.NOT_YET
+            elif people_ahead == 0:
+                readiness = QueueEntry.ReadinessState.BE_READY
+            elif people_ahead <= 2:
+                readiness = QueueEntry.ReadinessState.GET_READY
+            else:
+                readiness = QueueEntry.ReadinessState.NOT_YET
+
+            return {
+                'readiness_state': readiness,
+                'people_ahead': people_ahead,
+                'estimated_wait_minutes': None,
+                'estimated_start_time': None,
+                'estimated_end_time': None,
+                'recommended_arrival_time': rec_arrival_iso,
+                'now_serving_serial': None,
+                'is_delayed': True,
+                'queue_status_text': 'Awaiting Provider Start (Delayed)',
+            }
+
         if appt_start:
             est_start = max(appt_start, dynamic_start)
-            rec_arrival = appt_start - timedelta(minutes=15)
-            if rec_arrival < now and est_start > now:
-                rec_arrival = min(now, est_start)
         else:
             est_start = dynamic_start
-            rec_arrival = now + timedelta(minutes=max(0, est_wait - 15))
 
         time_until_start = (est_start - now).total_seconds() / 60.0
 
@@ -543,6 +583,7 @@ class QueueService:
             readiness = QueueEntry.ReadinessState.NOT_YET
 
         est_end = est_start + timedelta(minutes=service_dur)
+        is_delayed = bool(appt_start and est_start > appt_start + timedelta(minutes=20))
 
         return {
             'readiness_state': readiness,
@@ -550,8 +591,10 @@ class QueueService:
             'estimated_wait_minutes': est_wait,
             'estimated_start_time': est_start.isoformat(),
             'estimated_end_time': est_end.isoformat(),
-            'recommended_arrival_time': rec_arrival.isoformat(),
+            'recommended_arrival_time': rec_arrival_iso,
             'now_serving_serial': active_entry.serial_number if active_entry else None,
+            'is_delayed': is_delayed,
+            'queue_status_text': 'Running Late' if is_delayed else 'Normal Operational Pace',
         }
 
     # ------------------------------------------------------------------

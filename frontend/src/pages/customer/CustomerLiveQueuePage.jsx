@@ -33,7 +33,7 @@ export function CustomerLiveQueuePage() {
       const apptList = Array.isArray(dashData) ? dashData : dashData.results || [];
       
       const matchAppt = apptList.find(
-        (a) => String(a.id) === String(queueEntryId) || String(a.queue_entry?.id) === String(queueEntryId)
+        (a) => String(a.queue_entry?.id) === String(queueEntryId) || (a.queue_entry == null && String(a.id) === String(queueEntryId))
       );
 
       if (!matchAppt) {
@@ -368,13 +368,19 @@ export function CustomerLiveQueuePage() {
               Estimated Service
             </div>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', marginTop: '0.4rem' }}>
-              {estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : estStartStr || 'Scheduled'}
+              {myQueueEntry.readiness_info?.is_delayed
+                ? (myQueueEntry.readiness_info?.queue_status_text || 'Awaiting Provider Start')
+                : (estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : (estStartStr || 'Scheduled'))}
             </div>
-            {recArrivalStr && (
+            {myQueueEntry.is_checked_in ? (
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '0.35rem', fontWeight: 600 }}>
+                ✓ Checked In at Venue
+              </div>
+            ) : recArrivalStr ? (
               <div style={{ fontSize: '0.75rem', color: 'var(--lp-accent)', marginTop: '0.35rem', fontWeight: 600 }}>
                 Rec. arrival: {recArrivalStr}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
