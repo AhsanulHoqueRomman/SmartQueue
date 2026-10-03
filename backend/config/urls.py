@@ -7,6 +7,7 @@ from drf_spectacular.views import (
 )
 
 from apps.appointments.views import CustomerDashboardView
+from apps.feedback.views import CustomerMyReviewsView
 from apps.notifications.views import (
     CustomerNotificationListView,
     CustomerNotificationMarkAllReadView,
@@ -23,6 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/auth/', include('apps.accounts.urls')),
     path('api/v1/customer/dashboard/', CustomerDashboardView.as_view(), name='customer_dashboard'),
+    path('api/v1/customer/reviews/', CustomerMyReviewsView.as_view(), name='customer_my_reviews'),
     path('api/v1/customer/notifications/', CustomerNotificationListView.as_view(), name='customer_notifications_list'),
     path('api/v1/customer/notifications/read-all/', CustomerNotificationMarkAllReadView.as_view(), name='customer_notifications_mark_all_read'),
     path('api/v1/customer/notifications/<uuid:notification_id>/read/', CustomerNotificationReadView.as_view(), name='customer_notification_read'),

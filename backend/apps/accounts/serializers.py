@@ -19,14 +19,23 @@ class UserSerializer(serializers.ModelSerializer):
     Includes active organization memberships and admin status.
     """
     memberships = UserMembershipSerializer(many=True, read_only=True)
+    avatar_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'first_name', 'last_name', 'phone_number',
+            'id', 'email', 'first_name', 'last_name', 'phone_number', 'avatar', 'avatar_url',
             'is_staff', 'is_superuser', 'date_joined', 'memberships'
         )
         read_only_fields = ('id', 'email', 'is_staff', 'is_superuser', 'date_joined')
+
+    def get_avatar_url(self, obj):
+        if obj.avatar:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.avatar.url)
+            return obj.avatar.url
+        return None
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
@@ -163,11 +172,22 @@ class UserLoginSerializer(serializers.Serializer):
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     """
-    Serializer for updating profile fields (first_name, last_name, phone_number).
+    Serializer for updating profile fields (first_name, last_name, phone_number, avatar).
     """
     class Meta:
         model = User
-        fields = ('first_name', 'last_name', 'phone_number')
+        fields = ('first_name', 'last_name', 'phone_number', 'avatar')
+
+    def validate_avatar(self, value):
+        if value:
+            max_size = 5 * 1024 * 1024  # 5MB
+            if value.size > max_size:
+                raise serializers.ValidationError("Avatar file size must not exceed 5MB.")
+            valid_extensions = ('.jpg', '.jpeg', '.png', '.webp', '.gif')
+            ext = str(value.name).lower()[str(value.name).rfind('.'):]
+            if ext not in valid_extensions:
+                raise serializers.ValidationError(f"Unsupported file extension '{ext}'. Allowed: {', '.join(valid_extensions)}")
+        return value
 
 
 class ChangePasswordSerializer(serializers.Serializer):

@@ -69,3 +69,25 @@ class OrganizationReviewListView(APIView):
             default_ordering=('-created_at',),
         )
         return list_response(reviews, ReviewSerializer, request)
+
+
+class CustomerMyReviewsView(APIView):
+    """
+    GET /api/v1/customer/reviews/
+    Lists all reviews created by the authenticated customer across all organizations.
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = ReviewSerializer
+
+    def get(self, request):
+        reviews = Review.objects.filter(customer=request.user).select_related(
+            'organization', 'customer', 'provider', 'provider__membership__user', 'appointment', 'appointment__service'
+        )
+        reviews = apply_list_query(
+            reviews, request,
+            filter_fields=('rating', 'organization_id', 'provider_id'),
+            search_fields=('comment', 'organization__name'),
+            ordering_fields=('rating', 'created_at', 'updated_at'),
+            default_ordering=('-created_at',),
+        )
+        return list_response(reviews, ReviewSerializer, request)

@@ -89,12 +89,7 @@ export const CustomerDashboard = () => {
   });
 
   const upcomingItems = dashboardItems.filter((item) => {
-    if (item.temporal_classification) {
-      return item.temporal_classification === 'future' && !['CANCELLED', 'COMPLETED'].includes(item.status);
-    }
-    const qStatus = item.queue_entry?.status || item.status;
-    return !['WAITING', 'CALLED', 'IN_PROGRESS', 'COMPLETED', 'SKIPPED', 'CANCELLED', 'NO_SHOW'].includes(qStatus) &&
-      new Date(item.start_datetime) > new Date();
+    return item.temporal_classification === 'future' && !['CANCELLED', 'COMPLETED', 'NO_SHOW', 'SKIPPED'].includes(item.status);
   });
 
   const todayApptsCount = dashboardItems.filter((item) => {

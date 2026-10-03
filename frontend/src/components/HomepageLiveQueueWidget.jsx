@@ -239,14 +239,21 @@ function LiveQueuePreviewCard({ item, formatTime }) {
                   justifyContent: 'center',
                 }}
               >
-                <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em', marginBottom: '0.35rem' }}>
-                  Appointment Overview
+                <div style={{ fontSize: '0.75rem', color: 'var(--lp-accent)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em', marginBottom: '0.35rem' }}>
+                  Upcoming Appointment Preview
                 </div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
                   Scheduled for: &nbsp;<strong>{new Date(item.start_datetime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</strong>
                 </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)' }}>
-                  Queue Status: <strong style={{ color: 'var(--lp-text)' }}>{qStatus}</strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--lp-border)' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)' }}>
+                    Status: <strong style={{ color: 'var(--lp-text)' }}>Scheduled</strong>
+                  </div>
+                  {item.serial_number && (
+                    <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif' }}>
+                      Your Serial: #{item.serial_number}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

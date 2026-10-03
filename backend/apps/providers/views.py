@@ -102,8 +102,13 @@ class ProviderProfileListCreateView(APIView):
                 membership__is_active=True,
                 membership__role=OrganizationMembership.Role.PROVIDER,
                 is_active=True,
-                application_status=ProviderProfile.ApplicationStatus.APPROVED
+                application_status=ProviderProfile.ApplicationStatus.APPROVED,
             ).select_related('membership__user', 'membership__organization')
+
+        service_id = request.query_params.get('service_id')
+        if service_id:
+            profiles = profiles.filter(provider_services__service_id=service_id)
+
         profiles = apply_list_query(
             profiles, request,
             filter_fields=('is_active',),

@@ -55,7 +55,8 @@ export const authService = {
   },
 
   async updateProfile(profileData) {
-    const response = await apiClient.patch('/auth/me/', profileData);
+    const config = profileData instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+    const response = await apiClient.patch('/auth/me/', profileData, config);
     return response.data;
   },
 

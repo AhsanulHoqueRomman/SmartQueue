@@ -112,7 +112,7 @@ export const appointmentService = {
    */
   async getReview(orgId, appointmentId) {
     const response = await apiClient.get(
-      `/organizations/${orgId}/appointments/${appointmentId}/review/`
+      `/organizations/${orgId}/reviews/appointments/${appointmentId}/`
     );
     return response.data;
   },
@@ -122,7 +122,7 @@ export const appointmentService = {
    */
   async submitReview(orgId, appointmentId, reviewData) {
     const response = await apiClient.post(
-      `/organizations/${orgId}/appointments/${appointmentId}/review/`,
+      `/organizations/${orgId}/reviews/appointments/${appointmentId}/`,
       reviewData
     );
     return response.data;

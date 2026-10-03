@@ -520,14 +520,6 @@ class QueueService:
             waiting_ahead_minutes += dur
 
         est_wait = active_remaining + waiting_ahead_minutes
-
-        if people_ahead == 0:
-            readiness = QueueEntry.ReadinessState.BE_READY
-        elif people_ahead <= 2:
-            readiness = QueueEntry.ReadinessState.GET_READY
-        else:
-            readiness = QueueEntry.ReadinessState.NOT_YET
-
         dynamic_start = now + timedelta(minutes=est_wait)
 
         if appt_start:
@@ -538,6 +530,17 @@ class QueueService:
         else:
             est_start = dynamic_start
             rec_arrival = now + timedelta(minutes=max(0, est_wait - 15))
+
+        time_until_start = (est_start - now).total_seconds() / 60.0
+
+        if time_until_start > 45:
+            readiness = QueueEntry.ReadinessState.NOT_YET
+        elif people_ahead == 0:
+            readiness = QueueEntry.ReadinessState.BE_READY
+        elif people_ahead <= 2:
+            readiness = QueueEntry.ReadinessState.GET_READY
+        else:
+            readiness = QueueEntry.ReadinessState.NOT_YET
 
         est_end = est_start + timedelta(minutes=service_dur)
 

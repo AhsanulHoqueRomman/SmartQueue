@@ -59,7 +59,7 @@ class ServiceListCreateView(APIView):
             services = Service.objects.filter(organization=org)
         services = apply_list_query(
             services, request,
-            filter_fields=('is_active',),
+            filter_fields=('is_active', 'category_id'),
             search_fields=('name', 'description'),
             ordering_fields=('name', 'price', 'duration_minutes', 'created_at'),
             default_ordering=('name',),

@@ -2,13 +2,25 @@ import apiClient from '../api/client';
 
 export const reviewService = {
   /**
-   * List organization reviews or customer's reviews.
+   * List organization public reviews.
    * @param {string} orgId
    * @param {Object} params
    */
   async getReviews(orgId, params = {}) {
     const response = await apiClient.get(
-      `/organizations/${orgId}/feedback/`,
+      `/organizations/${orgId}/reviews/`,
+      { params }
+    );
+    return response.data;
+  },
+
+  /**
+   * Fetch all reviews submitted by the authenticated customer across all organizations.
+   * @param {Object} params
+   */
+  async getMyReviews(params = {}) {
+    const response = await apiClient.get(
+      '/customer/reviews/',
       { params }
     );
     return response.data;
@@ -21,7 +33,7 @@ export const reviewService = {
    */
   async getAppointmentReview(orgId, appointmentId) {
     const response = await apiClient.get(
-      `/organizations/${orgId}/feedback/appointments/${appointmentId}/`
+      `/organizations/${orgId}/reviews/appointments/${appointmentId}/`
     );
     return response.data;
   },
@@ -34,7 +46,7 @@ export const reviewService = {
    */
   async submitReview(orgId, appointmentId, reviewData) {
     const response = await apiClient.post(
-      `/organizations/${orgId}/feedback/appointments/${appointmentId}/`,
+      `/organizations/${orgId}/reviews/appointments/${appointmentId}/`,
       reviewData
     );
     return response.data;

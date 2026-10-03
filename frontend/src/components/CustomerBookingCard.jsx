@@ -211,8 +211,17 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
 
         {/* Scheduled appointment info for upcoming non-active */}
         {!isLive && (
-          <div style={{ background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '12px', padding: '0.85rem', marginBottom: '1.25rem', fontSize: '0.85rem', color: 'var(--lp-text)' }}>
-            📅 Date: <strong>{new Date(item.start_datetime).toLocaleDateString()}</strong> &bull; Time: <strong>{estStartStr || 'Scheduled'}</strong>
+          <div style={{ background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '1.25rem', fontSize: '0.85rem', color: 'var(--lp-text)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>📅 Date: <strong>{new Date(item.start_datetime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</strong></span>
+              <span>⏰ <strong>{estStartStr || 'Scheduled'}</strong></span>
+            </div>
+            {item.serial_number && (
+              <div style={{ marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid var(--lp-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Allocated Serial</span>
+                <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif' }}>Your Serial: #{item.serial_number}</span>
+              </div>
+            )}
           </div>
         )}
       </div>

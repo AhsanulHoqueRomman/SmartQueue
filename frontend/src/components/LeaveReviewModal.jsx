@@ -73,12 +73,12 @@ export function LeaveReviewModal({
     >
       <div
         style={{
-          background: 'var(--color-surface)',
-          borderRadius: '16px',
-          border: '1px solid var(--color-border)',
-          maxWidth: '480px',
+          background: 'var(--lp-surface)',
+          borderRadius: '20px',
+          border: '1px solid var(--lp-border)',
+          maxWidth: '520px',
           width: '100%',
-          boxShadow: 'var(--shadow-xl)',
+          boxShadow: 'var(--card-shadow)',
           overflow: 'hidden',
           animation: 'fadeIn 0.2s ease',
         }}
@@ -90,16 +90,21 @@ export function LeaveReviewModal({
         <div
           style={{
             padding: '1.25rem 1.5rem',
-            borderBottom: '1px solid var(--color-border)',
+            borderBottom: '1px solid var(--lp-border)',
             display: 'flex',
             justify: 'space-between',
             alignItems: 'center',
-            background: 'var(--color-bg-subtle)',
+            background: 'var(--lp-bg-subtle)',
           }}
         >
-          <h3 id="leave-review-modal-title" style={{ margin: 0, fontSize: '1.15rem', color: 'var(--color-text-main)', fontWeight: 700 }}>
-            Leave a Review
-          </h3>
+          <div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {appointment.organization_name || 'Clinic'}
+            </span>
+            <h3 id="leave-review-modal-title" style={{ margin: '0.1rem 0 0 0', fontSize: '1.25rem', color: 'var(--lp-text)', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
+              Leave a Review
+            </h3>
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -109,7 +114,7 @@ export function LeaveReviewModal({
               border: 'none',
               fontSize: '1.5rem',
               cursor: 'pointer',
-              color: 'var(--color-text-muted)',
+              color: 'var(--lp-text-subtle)',
             }}
           >
             &times;
@@ -117,21 +122,25 @@ export function LeaveReviewModal({
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: '1.5rem' }}>
-          <p style={{ margin: '0 0 1rem 0', color: 'var(--color-text-secondary)', fontSize: '0.9rem', lineHeight: 1.4 }}>
-            Share your experience for <strong style={{ color: 'var(--color-text-main)' }}>{appointment.service_name || 'Service'}</strong> with{' '}
-            <strong style={{ color: 'var(--color-text-main)' }}>{appointment.provider_name || 'Provider'}</strong>.
-          </p>
+          <div style={{ background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '1.25rem' }}>
+            <div style={{ fontSize: '0.9rem', color: 'var(--lp-text)', fontWeight: 700 }}>
+              {appointment.service_name || 'Service Consultation'}
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)', marginTop: '0.2rem' }}>
+              Provider: <strong style={{ color: 'var(--lp-text)' }}>{appointment.provider_name || appointment.provider_title || 'Assigned Specialist'}</strong>
+            </div>
+          </div>
 
           {error && (
             <div
               style={{
-                background: 'var(--color-error-bg)',
-                color: 'var(--color-error)',
+                background: 'var(--color-danger-light)',
+                color: 'var(--color-danger)',
                 padding: '0.75rem 1rem',
-                borderRadius: '8px',
+                borderRadius: '10px',
                 fontSize: '0.85rem',
-                marginBottom: '1rem',
-                border: '1px solid var(--color-error-border)',
+                marginBottom: '1.25rem',
+                border: '1px solid var(--color-danger)',
               }}
             >
               {error}
@@ -139,11 +148,11 @@ export function LeaveReviewModal({
           )}
 
           {/* Star Rating Selector */}
-          <div style={{ marginBottom: '1.25rem', textAlign: 'center' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>
-              Your Rating
+          <div style={{ marginBottom: '1.5rem', textAlign: 'center', background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '14px', padding: '1.25rem' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Select Consultation Rating
             </label>
-            <div style={{ display: 'inline-flex', gap: '0.4rem', cursor: 'pointer' }}>
+            <div style={{ display: 'inline-flex', gap: '0.5rem', cursor: 'pointer' }}>
               {[1, 2, 3, 4, 5].map((star) => {
                 const isFilled = star <= (hoverRating || rating);
                 return (
@@ -153,8 +162,8 @@ export function LeaveReviewModal({
                     onMouseLeave={() => setHoverRating(0)}
                     onClick={() => setRating(star)}
                     style={{
-                      fontSize: '2.2rem',
-                      color: isFilled ? 'var(--color-warning)' : 'var(--color-border)',
+                      fontSize: '2.4rem',
+                      color: isFilled ? 'var(--color-warning)' : 'var(--lp-border)',
                       transition: 'color 0.15s ease, transform 0.1s ease',
                       transform: isFilled ? 'scale(1.1)' : 'scale(1)',
                     }}
@@ -164,35 +173,40 @@ export function LeaveReviewModal({
                 );
               })}
             </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '0.25rem', fontWeight: 600 }}>
-              {rating === 5 ? 'Excellent' : rating === 4 ? 'Very Good' : rating === 3 ? 'Average' : rating === 2 ? 'Poor' : 'Terrible'}
+            <div style={{ fontSize: '0.9rem', color: 'var(--color-warning)', marginTop: '0.35rem', fontWeight: 700 }}>
+              {rating === 5 ? '★ 5 - Excellent Care' : rating === 4 ? '★ 4 - Very Good' : rating === 3 ? '★ 3 - Average' : rating === 2 ? '★ 2 - Poor Experience' : '★ 1 - Terrible'}
             </div>
           </div>
 
           <div style={{ marginBottom: '1.5rem' }}>
-            <label htmlFor="review-comment" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.35rem' }}>
-              Comments (Optional)
+            <label htmlFor="review-comment" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
+              Written Feedback (Optional)
             </label>
             <textarea
               id="review-comment"
-              rows="4"
+              rows="3"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Tell us what you liked or how we can improve..."
+              maxLength={500}
+              placeholder="Tell us what went well or how the clinic can improve..."
               style={{
                 width: '100%',
-                padding: '0.75rem',
-                borderRadius: '8px',
-                border: '1px solid var(--color-border)',
-                backgroundColor: 'var(--color-surface)',
-                color: 'var(--color-text-main)',
+                padding: '0.75rem 1rem',
+                borderRadius: '10px',
+                border: '1px solid var(--lp-border)',
+                backgroundColor: 'var(--lp-surface)',
+                color: 'var(--lp-text)',
                 fontSize: '0.9rem',
                 fontFamily: 'inherit',
                 resize: 'vertical',
                 outline: 'none',
+                boxSizing: 'border-box',
               }}
               disabled={submitting}
             />
+            <div style={{ textAlign: 'right', fontSize: '0.75rem', color: 'var(--lp-text-subtle)', marginTop: '0.25rem' }}>
+              {comment.length}/500 characters
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
@@ -201,12 +215,13 @@ export function LeaveReviewModal({
               onClick={onClose}
               disabled={submitting}
               style={{
-                padding: '0.65rem 1.25rem',
-                background: 'var(--color-surface)',
-                color: 'var(--color-text-main)',
-                border: '1px solid var(--color-border)',
-                borderRadius: '8px',
+                padding: '0.7rem 1.25rem',
+                background: 'var(--lp-bg-subtle)',
+                color: 'var(--lp-text)',
+                border: '1px solid var(--lp-border)',
+                borderRadius: '10px',
                 fontWeight: 600,
+                fontSize: '0.9rem',
                 cursor: 'pointer',
               }}
             >
@@ -216,14 +231,15 @@ export function LeaveReviewModal({
               type="submit"
               disabled={submitting}
               style={{
-                padding: '0.65rem 1.25rem',
-                background: 'var(--color-secondary-accent)',
-                color: '#FFFFFF',
+                padding: '0.7rem 1.4rem',
+                background: 'var(--lp-accent)',
+                color: 'var(--lp-btn-text)',
                 border: 'none',
-                borderRadius: '8px',
-                fontWeight: 600,
+                borderRadius: '10px',
+                fontWeight: 700,
+                fontSize: '0.9rem',
                 cursor: 'pointer',
-                transition: 'background 0.2s ease',
+                boxShadow: '0 4px 12px rgba(95, 122, 112, 0.25)',
               }}
             >
               {submitting ? 'Submitting...' : 'Submit Review'}

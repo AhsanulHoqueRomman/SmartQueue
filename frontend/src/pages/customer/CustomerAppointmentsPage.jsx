@@ -105,13 +105,13 @@ export function CustomerAppointmentsPage() {
         case 'active':
           return classification === 'today' && ['WAITING', 'CALLED', 'IN_PROGRESS', 'CHECKED_IN', 'CONFIRMED'].includes(qStatus) && qStatus !== 'CANCELLED';
         case 'upcoming':
-          return classification === 'future' && ['CONFIRMED', 'CHECKED_IN', 'PENDING'].includes(qStatus);
+          return classification === 'future' && !['CANCELLED', 'COMPLETED', 'NO_SHOW', 'SKIPPED'].includes(item.status);
         case 'completed':
-          return qStatus === 'COMPLETED';
+          return qStatus === 'COMPLETED' || item.status === 'COMPLETED';
         case 'cancelled':
-          return qStatus === 'CANCELLED';
+          return qStatus === 'CANCELLED' || item.status === 'CANCELLED';
         case 'no_show':
-          return qStatus === 'NO_SHOW' || qStatus === 'SKIPPED';
+          return qStatus === 'NO_SHOW' || qStatus === 'SKIPPED' || item.status === 'NO_SHOW';
         default:
           return true;
       }
@@ -392,22 +392,38 @@ export function CustomerAppointmentsPage() {
                     Details
                   </button>
 
-                  {qStatus === 'COMPLETED' && (
-                    <button
-                      onClick={() => handleOpenReviewModal(appt)}
-                      style={{
-                        padding: '0.55rem 0.9rem',
-                        background: 'var(--lp-bg-subtle)',
-                        color: 'var(--color-warning)',
-                        border: '1px solid var(--lp-border)',
-                        borderRadius: '8px',
-                        fontWeight: 600,
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      ★ Leave Review
-                    </button>
+                  {(qStatus === 'COMPLETED' || appt.status === 'COMPLETED') && (
+                    appt.can_review ? (
+                      <button
+                        onClick={() => handleOpenReviewModal(appt)}
+                        style={{
+                          padding: '0.55rem 0.9rem',
+                          background: 'var(--lp-bg-subtle)',
+                          color: 'var(--color-warning)',
+                          border: '1px solid var(--lp-border)',
+                          borderRadius: '8px',
+                          fontWeight: 600,
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ★ Leave Review
+                      </button>
+                    ) : (
+                      <span
+                        style={{
+                          padding: '0.45rem 0.8rem',
+                          background: 'var(--lp-sage-bg)',
+                          color: 'var(--lp-sage)',
+                          border: '1px solid var(--lp-sage-border)',
+                          borderRadius: '8px',
+                          fontWeight: 600,
+                          fontSize: '0.8rem',
+                        }}
+                      >
+                        ✓ Reviewed
+                      </span>
+                    )
                   )}
 
                   {canCancel && (

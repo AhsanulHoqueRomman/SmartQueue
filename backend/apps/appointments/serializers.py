@@ -7,7 +7,7 @@ def _get_temporal_classification(obj) -> str:
     appt_date = obj.appointment_date or business_date_for_appointment(obj)
     today = current_business_date()
     if appt_date < today:
-        return 'historical'
+        return 'past'
     elif appt_date == today:
         return 'today'
     return 'future'
