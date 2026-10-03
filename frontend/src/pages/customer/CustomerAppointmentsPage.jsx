@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import appointmentService from '../../services/appointmentService';
@@ -13,14 +13,39 @@ import { getNormalizedCustomerQueueState } from '../../utils/queueDisplay';
 
 export function CustomerAppointmentsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { showSuccess, showError } = useToast();
+
+  const getSanitizedTab = (tabStr) => {
+    if (!tabStr) return 'active';
+    const normalized = tabStr.toLowerCase().replace(/-/g, '_');
+    if (['active', 'upcoming', 'completed', 'cancelled', 'missed', 'skipped', 'needs_followup'].includes(normalized)) {
+      return normalized;
+    }
+    return 'active';
+  };
 
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('active');
+  const [activeTab, setActiveTab] = useState(() => getSanitizedTab(searchParams.get('tab')));
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl) {
+      const sanitized = getSanitizedTab(tabFromUrl);
+      if (sanitized !== activeTab) {
+        setActiveTab(sanitized);
+      }
+    }
+  }, [searchParams]);
+
+  const handleSelectTab = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams({ tab: tabId === 'needs_followup' ? 'needs-follow-up' : tabId });
+  };
 
   // Modals state
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -255,7 +280,7 @@ export function CustomerAppointmentsPage() {
               role="tab"
               aria-selected={isActive}
               tabIndex={0}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleSelectTab(tab.id)}
               style={{
                 padding: '0.75rem 1.1rem',
                 background: isActive ? 'var(--lp-surface)' : 'transparent',

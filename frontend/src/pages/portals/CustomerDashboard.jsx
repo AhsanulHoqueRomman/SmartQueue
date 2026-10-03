@@ -98,10 +98,14 @@ export const CustomerDashboard = () => {
     (item) => item.status === 'COMPLETED'
   ).length;
 
-  const needsFollowUpCount = dashboardItems.filter((item) => {
+  const unresolvedItems = dashboardItems.filter((item) => {
     const norm = getNormalizedCustomerQueueState(item);
     return norm.isUnresolved;
-  }).length;
+  });
+
+  const totalUnresolved = unresolvedItems.length;
+  const unreportedCount = unresolvedItems.filter((item) => !item.has_issue_report).length;
+  const underReviewCount = unresolvedItems.filter((item) => Boolean(item.has_issue_report)).length;
 
   const getUserFirstName = () => {
     if (user?.first_name) return user.first_name;
@@ -235,25 +239,70 @@ export const CustomerDashboard = () => {
         </div>
       </div>
 
-      {/* Needs Follow-up Notice Bar if applicable */}
-      {needsFollowUpCount > 0 && (
+      {/* Needs Follow-up / Reports Notice Bar */}
+      {totalUnresolved > 0 && (
         <div
           style={{
-            background: 'var(--color-warning-light, rgba(217, 119, 6, 0.08))',
-            border: '1px solid var(--color-warning, #d97706)',
+            background: unreportedCount > 0 
+              ? 'var(--color-warning-light, rgba(217, 119, 6, 0.08))' 
+              : 'var(--lp-surface)',
+            border: unreportedCount > 0 
+              ? '1px solid var(--color-warning, #d97706)' 
+              : '1px solid var(--lp-border)',
             borderRadius: '12px',
-            padding: '0.85rem 1.25rem',
+            padding: '1rem 1.35rem',
             marginBottom: '2rem',
             display: 'flex',
             justify: 'space-between',
             alignItems: 'center',
-            fontSize: '0.875rem',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            fontSize: '0.9rem',
             color: 'var(--lp-text)',
+            boxShadow: unreportedCount > 0 ? 'none' : 'var(--lp-shadow-sm)',
           }}
         >
-          <span>⚠️ You have <strong>{needsFollowUpCount}</strong> past {needsFollowUpCount === 1 ? 'appointment' : 'appointments'} with unrecorded service outcomes.</span>
-          <Link to="/customer/appointments" style={{ color: 'var(--color-warning)', fontWeight: 700, textDecoration: 'none' }}>
-            Review in Needs Follow-up →
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: '260px' }}>
+            <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>
+              {unreportedCount > 0 ? '⚠️' : '✓'}
+            </span>
+            <span style={{ lineHeight: 1.45 }}>
+              {unreportedCount > 0 && underReviewCount === 0 && (
+                <>
+                  You have <strong>{unreportedCount}</strong> {unreportedCount === 1 ? 'appointment that needs' : 'appointments that need'} follow-up.
+                </>
+              )}
+              {unreportedCount === 0 && underReviewCount > 0 && (
+                <>
+                  <strong>{underReviewCount}</strong> {underReviewCount === 1 ? 'appointment report is' : 'appointment reports are'} under review. We'll notify you when they're resolved.
+                </>
+              )}
+              {unreportedCount > 0 && underReviewCount > 0 && (
+                <>
+                  <strong>{unreportedCount}</strong> {unreportedCount === 1 ? 'appointment still needs' : 'appointments still need'} your follow-up. <strong>{underReviewCount}</strong> {underReviewCount === 1 ? 'report is' : 'reports are'} already under review.
+                </>
+              )}
+            </span>
+          </div>
+
+          <Link
+            to="/customer/appointments?tab=needs-follow-up"
+            style={{
+              color: unreportedCount > 0 ? 'var(--color-warning, #d97706)' : 'var(--lp-accent, #5F7A70)',
+              fontWeight: 700,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+              padding: '0.4rem 0.85rem',
+              borderRadius: '8px',
+              background: 'var(--lp-bg-subtle)',
+              border: '1px solid var(--lp-border)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              marginLeft: 'auto',
+            }}
+          >
+            {unreportedCount > 0 ? 'Review appointments →' : 'View follow-ups →'}
           </Link>
         </div>
       )}

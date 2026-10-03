@@ -292,3 +292,33 @@ class TestAppointmentsLifecycleAndCleanup:
         # Check serializer method reflects has_issue_report = True
         serializer_data = CustomerDashboardItemSerializer(appt).data
         assert serializer_data['has_issue_report'] is True
+
+    def test_issue_report_cross_customer_access_forbidden(self):
+        """Customer B cannot submit an issue report for Customer A's appointment."""
+        user_cust, org, prov, service = self._create_setup()
+        other_user = User.objects.create_user(email='intruder@test.com', first_name='Intruder', last_name='User')
+        
+        today = current_business_date()
+        yesterday = today - timedelta(days=1)
+        tz = get_project_tz()
+        start = timezone.make_aware(timezone.datetime.combine(yesterday, time(15, 0)), tz)
+
+        appt = Appointment.objects.create(
+            organization=org,
+            customer=user_cust,
+            provider=prov,
+            service=service,
+            appointment_date=yesterday,
+            serial_number=1,
+            start_datetime=start,
+            end_datetime=start + timedelta(minutes=30),
+            status=Appointment.Status.CHECKED_IN,
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=other_user)
+
+        url = f"/api/v1/customer/appointments/{appt.id}/report-issue/"
+        resp = client.post(url, {'reason': 'CHECKED_IN_NOT_SERVED'}, format='json')
+        assert resp.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND)
+        assert AppointmentIssueReport.objects.filter(appointment=appt).count() == 0
