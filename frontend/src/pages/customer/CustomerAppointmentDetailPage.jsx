@@ -104,8 +104,9 @@ export function CustomerAppointmentDetailPage() {
   }
 
   const qEntry = appointment.queue_entry;
-  const qStatus = qEntry?.status || appointment.status;
-  const qId = qEntry?.id;
+  const isFuture = appointment.temporal_classification === 'future';
+  const qStatus = isFuture ? appointment.status : (qEntry?.status || appointment.status);
+  const qId = qEntry?.id || appointment.id;
   const orgId = appointment.organization_id || appointment.organization;
 
   const canCheckIn = appointment.can_check_in !== undefined
@@ -114,9 +115,11 @@ export function CustomerAppointmentDetailPage() {
   const canCancel = appointment.can_cancel !== undefined
     ? appointment.can_cancel
     : (['CONFIRMED', 'PENDING'].includes(appointment.status) && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED', 'IN_PROGRESS'].includes(qStatus));
-  const isLive = appointment.is_live_queue !== undefined
-    ? appointment.is_live_queue
-    : ['CHECKED_IN', 'WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
+  const isLive = !isFuture && (
+    appointment.is_live_queue !== undefined
+      ? appointment.is_live_queue
+      : ['CHECKED_IN', 'WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus)
+  );
   const isTerminal = ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(qStatus);
 
   const startDate = new Date(appointment.start_datetime);
@@ -272,7 +275,7 @@ export function CustomerAppointmentDetailPage() {
               <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.75rem' }}>
                 <span style={{ fontSize: '0.7rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Your Serial</span>
                 <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--lp-btn-bg)', fontFamily: 'Outfit, sans-serif' }}>
-                  #{appointment.serial_number || qEntry.token_number}
+                  #{appointment.serial_number || qEntry?.token_number || '—'}
                 </div>
               </div>
 

@@ -189,7 +189,7 @@ export const ProfilePage = () => {
         <div style={{ flex: 1, minWidth: '240px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.3rem' }}>
             <h1 style={{ fontSize: '1.75rem', fontWeight: '700', color: 'var(--lp-text)', margin: 0, fontFamily: 'Cinzel, serif' }}>
-              {user?.first_name ? `${user.first_name} ${user.last_name || ''}`.strip() : 'User Profile'}
+              {user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : 'User Profile'}
             </h1>
             <span
               style={{

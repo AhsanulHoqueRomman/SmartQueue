@@ -259,12 +259,17 @@ export function CustomerAppointmentsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem' }}>
           {filteredAppointments.map((appt) => {
             const qEntry = appt.queue_entry;
-            const qStatus = qEntry?.status || appt.status;
+            const isFuture = appt.temporal_classification === 'future';
+            const qStatus = isFuture ? appt.status : (qEntry?.status || appt.status);
             const orgId = appt.organization_id || appt.organization;
 
-            const canCheckIn = appt.status === 'CONFIRMED' || (qEntry && !qEntry.is_checked_in);
-            const canCancel = ['CONFIRMED', 'PENDING'].includes(appt.status) && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED', 'IN_PROGRESS'].includes(qStatus);
-            const isLive = ['CHECKED_IN', 'WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
+            const canCheckIn = appt.can_check_in !== undefined
+              ? appt.can_check_in
+              : (appt.temporal_classification === 'today' && appt.status === 'CONFIRMED');
+            const canCancel = appt.can_cancel !== undefined
+              ? appt.can_cancel
+              : (['CONFIRMED', 'PENDING'].includes(appt.status) && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED', 'IN_PROGRESS'].includes(qStatus));
+            const isLive = !isFuture && ['CHECKED_IN', 'WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
             const isTerminal = ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(qStatus);
 
             const formattedDate = new Date(appt.start_datetime).toLocaleDateString(undefined, {

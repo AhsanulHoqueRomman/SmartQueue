@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import { AppRoutes } from './routes/AppRoutes';
 
 export function App() {
@@ -13,7 +14,9 @@ export function App() {
         <AuthProvider>
           <TenantProvider>
             <ToastProvider>
-              <AppRoutes />
+              <ErrorBoundary>
+                <AppRoutes />
+              </ErrorBoundary>
             </ToastProvider>
           </TenantProvider>
         </AuthProvider>

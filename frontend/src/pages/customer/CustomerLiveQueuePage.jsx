@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useTenant } from '../../contexts/TenantContext';
 import queueService from '../../services/queueService';
 import appointmentService from '../../services/appointmentService';
 import StatusBadge from '../../components/StatusBadge';
@@ -10,9 +9,9 @@ import EmptyState from '../../components/EmptyState';
 export function CustomerLiveQueuePage() {
   const { queueEntryId } = useParams();
   const navigate = useNavigate();
-  const { currentOrg } = useTenant();
 
   const [myQueueEntry, setMyQueueEntry] = useState(null);
+  const [appointment, setAppointment] = useState(null);
   const [providerQueueEntries, setProviderQueueEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -23,40 +22,65 @@ export function CustomerLiveQueuePage() {
   const timerRef = useRef(null);
 
   const fetchQueueStatus = async (isManual = false) => {
-    if (!currentOrg?.id || !queueEntryId) return;
+    if (!queueEntryId) return;
 
     if (isManual) setRefreshing(true);
     setError(null);
 
     try {
-      // 1. Fetch customer's queue list in current org
-      const myData = await queueService.getMyQueue(currentOrg.id);
-      const myList = Array.isArray(myData) ? myData : myData.results || [];
-      const entry = myList.find((q) => String(q.id) === String(queueEntryId)) || myList[0];
+      // 1. Fetch customer's dashboard appointments across all organizations
+      const dashData = await appointmentService.getCustomerDashboard();
+      const apptList = Array.isArray(dashData) ? dashData : dashData.results || [];
+      
+      const matchAppt = apptList.find(
+        (a) => String(a.id) === String(queueEntryId) || String(a.queue_entry?.id) === String(queueEntryId)
+      );
 
-      if (!entry) {
-        setError('Queue entry not found or is no longer active.');
+      if (!matchAppt) {
+        setError('Queue entry or appointment record not found in your schedule.');
         setLoading(false);
         return;
       }
 
-      setMyQueueEntry(entry);
+      setAppointment(matchAppt);
+
+      const qEntry = matchAppt.queue_entry || {
+        id: matchAppt.id,
+        appointment_id: matchAppt.id,
+        serial_number: matchAppt.serial_number,
+        status: matchAppt.status,
+        provider_id: matchAppt.provider_id,
+        provider_name: matchAppt.provider_name,
+        service_name: matchAppt.service_name,
+        organization_id: matchAppt.organization_id,
+        organization_name: matchAppt.organization_name,
+        is_checked_in: matchAppt.status === 'CHECKED_IN' || matchAppt.status === 'WAITING' || matchAppt.status === 'IN_PROGRESS',
+        readiness_info: {
+          readiness_state: matchAppt.temporal_classification === 'today' ? (matchAppt.status === 'CONFIRMED' ? 'GET_READY' : 'BE_READY') : 'NOT_YET',
+          people_ahead: 0,
+        }
+      };
+
+      setMyQueueEntry(qEntry);
       setLastUpdated(new Date());
 
-      // 2. Fetch full provider queue to compute currently serving serial and people ahead
-      if (entry.provider_id) {
+      // 2. Fetch provider queue if organization & provider are identified
+      const orgId = matchAppt.organization_id || matchAppt.organization;
+      const provId = matchAppt.provider_id || qEntry.provider_id;
+
+      if (orgId && provId) {
         try {
-          const provData = await queueService.getProviderQueue(currentOrg.id, entry.provider_id);
+          const provData = await queueService.getProviderQueue(orgId, provId);
           const provEntries = Array.isArray(provData)
             ? provData
             : provData.entries || provData.results || [];
           setProviderQueueEntries(provEntries);
         } catch (pErr) {
-          // Fallback gracefully
+          // Graceful fallback
         }
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to update queue telemetry.');
+      setError(err.response?.data?.detail || 'Failed to update live queue telemetry.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -64,13 +88,16 @@ export function CustomerLiveQueuePage() {
   };
 
   const handleCheckInNow = async () => {
-    if (!currentOrg?.id || !myQueueEntry?.appointment_id) return;
+    const orgId = appointment?.organization_id || appointment?.organization || myQueueEntry?.organization_id;
+    const apptId = appointment?.id || myQueueEntry?.appointment_id;
+    if (!orgId || !apptId) return;
+
     setCheckingIn(true);
     try {
-      await appointmentService.checkInAppointment(currentOrg.id, myQueueEntry.appointment_id);
+      await appointmentService.checkInAppointment(orgId, apptId);
       await fetchQueueStatus(true);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Check-in failed.');
+      setError(err.response?.data?.detail || 'Check-in failed. Please verify your appointment date.');
     } finally {
       setCheckingIn(false);
     }
@@ -79,7 +106,6 @@ export function CustomerLiveQueuePage() {
   useEffect(() => {
     fetchQueueStatus();
 
-    // 10-second polling loop for responsive dynamic ETA updates
     timerRef.current = setInterval(() => {
       fetchQueueStatus();
     }, 10000);
@@ -89,10 +115,10 @@ export function CustomerLiveQueuePage() {
         clearInterval(timerRef.current);
       }
     };
-  }, [currentOrg?.id, queueEntryId]);
+  }, [queueEntryId]);
 
   useEffect(() => {
-    if (myQueueEntry && ['COMPLETED', 'SKIPPED'].includes(myQueueEntry.status)) {
+    if (myQueueEntry && ['COMPLETED', 'SKIPPED', 'CANCELLED'].includes(myQueueEntry.status)) {
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
@@ -105,7 +131,7 @@ export function CustomerLiveQueuePage() {
 
   if (error || !myQueueEntry) {
     return (
-      <div className="animate-fade-in">
+      <div className="animate-fade-in" style={{ maxWidth: '850px', margin: '0 auto' }}>
         <EmptyState
           title="Queue Information Unavailable"
           message={error || 'Could not retrieve active queue status for this appointment.'}
@@ -120,7 +146,8 @@ export function CustomerLiveQueuePage() {
     (e) => e.status === 'IN_PROGRESS' || e.status === 'CALLED'
   );
 
-  const isTerminal = ['COMPLETED', 'SKIPPED'].includes(myQueueEntry.status);
+  const isTerminal = ['COMPLETED', 'SKIPPED', 'CANCELLED'].includes(myQueueEntry.status);
+  const isFuture = appointment?.temporal_classification === 'future';
 
   const formatTime = (isoStr) => {
     if (!isoStr) return null;
@@ -128,24 +155,30 @@ export function CustomerLiveQueuePage() {
     return isNaN(d.getTime()) ? null : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const readiness = myQueueEntry.readiness_info?.readiness_state || 'NOT_YET';
+  const readiness = isFuture ? 'NOT_YET' : (myQueueEntry.readiness_info?.readiness_state || 'NOT_YET');
   const peopleAhead = myQueueEntry.readiness_info?.people_ahead ?? 0;
   const nowServingSerial = myQueueEntry.readiness_info?.now_serving_serial || currentlyServing?.serial_number;
 
-  const estStartStr = formatTime(myQueueEntry.readiness_info?.estimated_start_time) || formatTime(myQueueEntry.appointment_start);
-  const estEndStr = formatTime(myQueueEntry.readiness_info?.estimated_end_time) || formatTime(myQueueEntry.appointment_end);
-  const recArrivalStr = formatTime(myQueueEntry.readiness_info?.recommended_arrival_time) || 'Now';
+  const estStartStr = formatTime(myQueueEntry.readiness_info?.estimated_start_time) || formatTime(appointment?.start_datetime);
+  const estEndStr = formatTime(myQueueEntry.readiness_info?.estimated_end_time) || formatTime(appointment?.end_datetime);
+  const recArrivalStr = formatTime(myQueueEntry.readiness_info?.recommended_arrival_time) || null;
 
-  const readinessBadgeConfig = {
-    TURN_NOW: { text: '🟢 It is Your Turn! Proceed inside', bg: 'var(--color-success-light)', color: 'var(--color-success)', border: 'var(--color-success)' },
-    BE_READY: { text: '⚡ You Are Next! Be ready at door', bg: 'var(--color-warning-light)', color: 'var(--color-warning)', border: 'var(--color-warning)' },
-    GET_READY: { text: '🚶 Get Ready! Turn approaching', bg: 'var(--color-warning-light)', color: 'var(--color-warning)', border: 'var(--color-warning)' },
-    NOT_YET: { text: '☕ Relaxed Waiting (Time remaining)', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', border: 'var(--lp-border)' },
-  }[readiness] || { text: 'Queue Active', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: 'var(--lp-border)' };
+  const readinessBadgeConfig = isFuture
+    ? { text: '📅 Upcoming / Scheduled Booking', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: 'var(--lp-border)' }
+    : {
+        TURN_NOW: { text: '🟢 It is Your Turn! Proceed inside', bg: 'var(--color-success-light)', color: 'var(--color-success)', border: 'var(--color-success)' },
+        BE_READY: { text: '⚡ You Are Next! Be ready at door', bg: 'var(--color-warning-light)', color: 'var(--color-warning)', border: 'var(--color-warning)' },
+        GET_READY: { text: '🚶 Get Ready! Turn approaching', bg: 'var(--color-warning-light)', color: 'var(--color-warning)', border: 'var(--color-warning)' },
+        NOT_YET: { text: '☕ Scheduled / Relaxed Waiting', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', border: 'var(--lp-border)' },
+      }[readiness] || { text: 'Queue Active', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: 'var(--lp-border)' };
+
+  const canCheckIn = appointment?.can_check_in !== undefined
+    ? appointment.can_check_in
+    : (appointment?.temporal_classification === 'today' && !myQueueEntry.is_checked_in && !isTerminal);
 
   return (
     <div className="animate-page-entrance" style={{ maxWidth: '850px', margin: '0 auto' }}>
-      {/* Top back link & manual refresh button */}
+      {/* Navigation Header */}
       <div style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Link
           to="/customer/appointments"
@@ -178,11 +211,11 @@ export function CustomerLiveQueuePage() {
             gap: '0.35rem',
           }}
         >
-          🔄 {refreshing ? 'Refreshing...' : 'Refresh Now'}
+          🔄 {refreshing ? 'Refreshing...' : 'Refresh Telemetry'}
         </button>
       </div>
 
-      {/* Main Telemetry Box */}
+      {/* Main Telemetry Container */}
       <div
         style={{
           background: 'var(--lp-surface)',
@@ -213,14 +246,14 @@ export function CustomerLiveQueuePage() {
         </div>
 
         <h1 style={{ fontSize: '1.75rem', color: 'var(--lp-text)', fontFamily: 'Cinzel, serif', marginBottom: '0.25rem' }}>
-          {myQueueEntry.service_name || 'Service Consultation'}
+          {appointment?.service_name || myQueueEntry.service_name || 'Service Consultation'}
         </h1>
         <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.95rem', margin: '0 0 1.75rem 0' }}>
-          {currentOrg?.name || 'Organization'} &bull; Provider: <strong style={{ color: 'var(--lp-text)' }}>{myQueueEntry.provider_name || 'Assigned Provider'}</strong>
+          {appointment?.organization_name || myQueueEntry.organization_name || 'Clinic Organization'} &bull; Provider: <strong style={{ color: 'var(--lp-text)' }}>{appointment?.provider_name || myQueueEntry.provider_name || 'Assigned Provider'}</strong>
         </p>
 
-        {/* Check-In Status Callout Banner */}
-        {!myQueueEntry.is_checked_in && !isTerminal && (
+        {/* Check-In Callout Banner */}
+        {canCheckIn && (
           <div style={{
             background: 'var(--color-warning-light)',
             border: '1px solid var(--color-warning)',
@@ -229,15 +262,15 @@ export function CustomerLiveQueuePage() {
             marginBottom: '1.75rem',
             display: 'flex',
             alignItems: 'center',
-            justify: 'space-between',
+            justifyContent: 'space-between',
             flexWrap: 'wrap',
             gap: '1rem',
             textAlign: 'left'
           }}>
             <div>
-              <div style={{ fontWeight: 700, color: 'var(--color-warning)', fontSize: '0.95rem' }}>📍 Physical Presence Check-In Required</div>
+              <div style={{ fontWeight: 700, color: 'var(--color-warning)', fontSize: '0.95rem' }}>📍 Physical Presence Check-In Available</div>
               <div style={{ fontSize: '0.85rem', color: 'var(--color-warning)', marginTop: '0.15rem' }}>
-                Please click "Check In Now" when you arrive at the facility so the provider can call your serial number.
+                You are scheduled for today. Check in when physically present at the clinic to enter the active queue.
               </div>
             </div>
             <button
@@ -259,7 +292,7 @@ export function CustomerLiveQueuePage() {
           </div>
         )}
 
-        {/* Primary Serial Telemetry Row */}
+        {/* Primary Telemetry Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
           {/* Your Serial # */}
           <div
@@ -271,14 +304,14 @@ export function CustomerLiveQueuePage() {
               boxShadow: 'var(--lp-shadow-sm)',
             }}
           >
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-btn-text)', opacity: 0.8, marginBottom: '0.35rem' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.8, marginBottom: '0.35rem' }}>
               Your Serial #
             </div>
             <div style={{ fontSize: '2.75rem', fontWeight: 800, fontFamily: 'Outfit, sans-serif' }}>
-              #{myQueueEntry.serial_number || myQueueEntry.token_number}
+              #{appointment?.serial_number || myQueueEntry.serial_number || myQueueEntry.token_number || '—'}
             </div>
             <div style={{ fontSize: '0.75rem', color: myQueueEntry.is_checked_in ? 'var(--color-success)' : 'var(--color-warning)', marginTop: '0.25rem', fontWeight: 600 }}>
-              {myQueueEntry.is_checked_in ? '✓ Checked In' : '• Waiting for Check-In'}
+              {myQueueEntry.is_checked_in ? '✓ Checked In' : isFuture ? '• Scheduled Future Date' : '• Pending Check-In'}
             </div>
           </div>
 
@@ -298,7 +331,7 @@ export function CustomerLiveQueuePage() {
               {nowServingSerial ? `#${nowServingSerial}` : 'Not started'}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', marginTop: '0.25rem' }}>
-              Active in Room
+              Active Consultation Serial
             </div>
           </div>
 
@@ -318,11 +351,11 @@ export function CustomerLiveQueuePage() {
               {myQueueEntry.status === 'CALLED' || myQueueEntry.status === 'IN_PROGRESS' ? '0' : peopleAhead}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', marginTop: '0.25rem' }}>
-              Checked-in Waiting
+              Checked-in Queue
             </div>
           </div>
 
-          {/* Estimated Service Range */}
+          {/* Estimated Time Window */}
           <div
             style={{
               background: 'var(--lp-bg-subtle)',
@@ -334,23 +367,31 @@ export function CustomerLiveQueuePage() {
             <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-text-subtle)', marginBottom: '0.35rem' }}>
               Estimated Service
             </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', marginTop: '0.4rem' }}>
+            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', marginTop: '0.4rem' }}>
               {estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : estStartStr || 'Scheduled'}
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--lp-accent)', marginTop: '0.35rem', fontWeight: 600 }}>
-              Recommended arrival: {recArrivalStr}
-            </div>
+            {recArrivalStr && (
+              <div style={{ fontSize: '0.75rem', color: 'var(--lp-accent)', marginTop: '0.35rem', fontWeight: 600 }}>
+                Rec. arrival: {recArrivalStr}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Detailed Queue Status Callout */}
+        {/* Status Callout Footer */}
         <div style={{ background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '12px', padding: '1.25rem', textAlign: 'left' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-text)' }}>Queue Status</span>
-            <StatusBadge status={myQueueEntry.status} />
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-text)' }}>Appointment & Queue Status</span>
+            <StatusBadge status={appointment?.status || myQueueEntry.status} />
           </div>
 
-          {myQueueEntry.status === 'WAITING' && (
+          {isFuture && (
+            <p style={{ margin: 0, color: 'var(--lp-text-subtle)', fontSize: '0.9rem', lineHeight: 1.5 }}>
+              📅 This is a scheduled future booking. Your serial number is secured. Live queue calling will become active on {appointment?.appointment_date || 'your appointment date'}.
+            </p>
+          )}
+
+          {!isFuture && myQueueEntry.status === 'WAITING' && (
             <p style={{ margin: 0, color: 'var(--lp-text-subtle)', fontSize: '0.9rem', lineHeight: 1.5 }}>
               {myQueueEntry.is_checked_in
                 ? 'You are checked in and safely in line. Please remain available near the waiting area.'
@@ -358,25 +399,25 @@ export function CustomerLiveQueuePage() {
             </p>
           )}
 
-          {myQueueEntry.status === 'CALLED' && (
+          {!isFuture && myQueueEntry.status === 'CALLED' && (
             <p style={{ margin: 0, color: 'var(--color-success)', fontSize: '0.95rem', fontWeight: 700, lineHeight: 1.5 }}>
               ⚡ Your serial number has been called! Please proceed directly to the provider room.
             </p>
           )}
 
-          {myQueueEntry.status === 'IN_PROGRESS' && (
-            <p style={{ margin: 0, color: 'var(--lp-accent)', fontSize: '0.9rem', fontWeight: 600, lineHeight: 1.5 }}>
+          {!isFuture && myQueueEntry.status === 'IN_PROGRESS' && (
+            <p style={{ margin: 0, color: 'var(--lp-accent)', fontSize: '0.95rem', fontWeight: 700, lineHeight: 1.5 }}>
               🩺 Your consultation/service is currently in progress.
             </p>
           )}
 
           {myQueueEntry.status === 'COMPLETED' && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
               <p style={{ margin: 0, color: 'var(--color-success)', fontSize: '0.9rem', fontWeight: 600 }}>
                 ✅ Service completed. Thank you for visiting!
               </p>
               <button
-                onClick={() => navigate(`/customer/appointments/${myQueueEntry.appointment_id}`)}
+                onClick={() => navigate(`/customer/appointments/${appointment?.id || myQueueEntry.appointment_id}`)}
                 style={{
                   padding: '0.4rem 0.85rem',
                   background: 'var(--lp-surface)',
@@ -392,17 +433,11 @@ export function CustomerLiveQueuePage() {
               </button>
             </div>
           )}
-
-          {myQueueEntry.status === 'SKIPPED' && (
-            <p style={{ margin: 0, color: 'var(--color-danger)', fontSize: '0.9rem', fontWeight: 600 }}>
-              ⚠️ Your serial turn was skipped. If you missed your call, please report to the front desk.
-            </p>
-          )}
         </div>
 
         {lastUpdated && (
           <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', marginTop: '1.25rem' }}>
-            Live ETA Telemetry &bull; Auto-refreshes every 10s &bull; Last updated {lastUpdated.toLocaleTimeString()}
+            Live Queue Telemetry &bull; Auto-refreshes every 10s &bull; Last updated {lastUpdated.toLocaleTimeString()}
           </div>
         )}
       </div>
