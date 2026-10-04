@@ -43,6 +43,15 @@ def _get_can_check_in(obj) -> bool:
         return False
     if not (obj.provider and obj.provider.is_operationally_active):
         return False
+
+    q = getattr(obj, 'queue_entry', None)
+    if q is None:
+        from apps.queue.models import QueueEntry
+        q = QueueEntry.objects.filter(appointment=obj).first()
+    if q:
+        from apps.queue.services import QueueService
+        readiness = QueueService.calculate_readiness_and_eta(q)
+        return readiness.get('can_check_in', False)
     return True
 
 

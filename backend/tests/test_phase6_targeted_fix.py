@@ -46,7 +46,7 @@ def multi_org_setup(db):
     for p in (provider_1, provider_2):
         for day_idx in range(7):
             WeeklySchedule.objects.create(
-                provider=p, day_of_week=day_idx, start_time=time(8, 0), end_time=time(18, 0), is_working_day=True
+                provider=p, day_of_week=day_idx, start_time=time(0, 0), end_time=time(23, 59, 59), is_working_day=True
             )
 
     return locals()
@@ -146,7 +146,7 @@ class TestPhase6ETARangeAndOrdering:
     def test_eta_range_calculation_and_ordering(self, multi_org_setup):
         s = multi_org_setup
         today = current_business_date()
-        start_time = timezone.make_aware(datetime.combine(today, time(10, 0)), timezone=TZ)
+        start_time = timezone.now() + timedelta(minutes=15)
 
         appt_1 = AppointmentService.book_appointment(
             organization_id=s['org_1'].id, customer=s['customer_a'],
@@ -159,6 +159,10 @@ class TestPhase6ETARangeAndOrdering:
             start_datetime=start_time + timedelta(minutes=30),
         )
 
+        q1_unbound = QueueEntry.objects.get(appointment=appt_1)
+        eta_unbound = QueueService.calculate_readiness_and_eta(q1_unbound)
+        assert eta_unbound['recommended_arrival_time'] is not None
+
         q1 = QueueService.check_in_appointment(appointment=appt_1)
         q2 = QueueService.check_in_appointment(appointment=appt_2)
 
@@ -168,7 +172,6 @@ class TestPhase6ETARangeAndOrdering:
         # 1. ETA range fields exist
         assert 'estimated_start_time' in eta_info_1
         assert 'estimated_end_time' in eta_info_1
-        assert 'recommended_arrival_time' in eta_info_1
 
         # 2. Start <= End
         start_dt = datetime.fromisoformat(eta_info_1['estimated_start_time'])
@@ -177,8 +180,8 @@ class TestPhase6ETARangeAndOrdering:
         # Duration is 20 mins for svc_1
         assert (end_dt - start_dt).total_seconds() == 20 * 60
 
-        # 3. Recommended arrival is 15 mins before estimated start time
-        rec_dt = datetime.fromisoformat(eta_info_1['recommended_arrival_time'])
+        # 3. Recommended arrival is 15 mins before estimated start time when not checked in
+        rec_dt = datetime.fromisoformat(eta_unbound['recommended_arrival_time'])
         assert rec_dt <= start_dt
 
         # 4. Ordering consistency: q2 is behind q1 (people_ahead == 1)

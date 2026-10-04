@@ -411,7 +411,7 @@ export function CustomerLiveQueuePage() {
       {/* Metrics Row (Horizontal typography-led, minimal borders) */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
         gap: '1.25rem',
         background: 'var(--lp-surface)',
         border: '1px solid var(--lp-border)',
@@ -424,39 +424,54 @@ export function CustomerLiveQueuePage() {
           <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-text-subtle)' }}>
             Now Serving
           </div>
-          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif', margin: '0.2rem 0' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif', margin: '0.2rem 0' }}>
             {nowServingSerial ? `#${nowServingSerial}` : 'Not started'}
           </div>
           <div style={{ fontSize: '0.78rem', color: 'var(--lp-text-subtle)' }}>
-            Active Room Serial
+            Active Consultation
           </div>
         </div>
 
-        {/* Metric 2: People Ahead */}
+        {/* Metric 2: Scheduled Ahead */}
         <div style={{ textAlign: 'center', padding: '0.5rem', borderLeft: '1px solid var(--lp-border)', borderRight: '1px solid var(--lp-border)' }}>
           <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-text-subtle)' }}>
-            People Ahead
+            Scheduled Ahead
           </div>
-          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--color-warning)', fontFamily: 'Outfit, sans-serif', margin: '0.2rem 0' }}>
-            {qState.peopleAhead}
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-warning)', fontFamily: 'Outfit, sans-serif', margin: '0.2rem 0' }}>
+            {qState.scheduledAhead}
           </div>
           <div style={{ fontSize: '0.78rem', color: 'var(--lp-text-subtle)' }}>
-            Checked-in Ahead
+            Reserved Serials
           </div>
         </div>
 
-        {/* Metric 3: Estimated Service / Pace */}
+        {/* Metric 3: Checked-in Ahead */}
+        <div style={{ textAlign: 'center', padding: '0.5rem', borderRight: '1px solid var(--lp-border)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-text-subtle)' }}>
+            Checked-In Ahead
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', margin: '0.2rem 0' }}>
+            {qState.checkedInAhead}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--lp-text-subtle)' }}>
+            Present at Venue
+          </div>
+        </div>
+
+        {/* Metric 4: Estimated Service / Recommended Arrival */}
         <div style={{ textAlign: 'center', padding: '0.5rem' }}>
           <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-text-subtle)' }}>
-            Estimated Window
+            Estimated Service
           </div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', margin: '0.6rem 0 0.2rem 0' }}>
+          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', margin: '0.5rem 0 0.2rem 0' }}>
             {qState.isDelayed
               ? 'Awaiting Provider Start'
-              : (estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : (estStartStr || 'Scheduled'))}
+              : (estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : (estStartStr || 'Around appointment time'))}
           </div>
-          <div style={{ fontSize: '0.78rem', color: qState.isCheckedIn ? 'var(--color-success)' : 'var(--lp-text-subtle)' }}>
-            {qState.isCheckedIn ? '✓ Arrived at Venue' : 'Pending Arrival'}
+          <div style={{ fontSize: '0.78rem', color: qState.isCheckedIn ? 'var(--color-success)' : 'var(--lp-accent)' }}>
+            {qState.isCheckedIn
+              ? '✓ Arrived & Checked In'
+              : (qState.recommendedArrivalTime ? `Recommended Arrival: ${formatTime(qState.recommendedArrivalTime)}` : 'Awaiting Arrival')}
           </div>
         </div>
       </div>

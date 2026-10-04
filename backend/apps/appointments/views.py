@@ -439,4 +439,94 @@ class CustomerAppointmentReportIssueView(APIView):
         )
 
 
+class OrganizationAppointmentIssueResolveView(APIView):
+    """
+    POST /api/v1/organizations/{organization_id}/appointments/{appointment_id}/resolve-issue/
+    Allows authorized staff/manager/provider/admin to resolve a customer's AppointmentIssueReport.
+    """
+    permission_classes = [IsAuthenticated, CanAccessOrganizationAppointments]
+
+    @extend_schema(
+        summary='Resolve an appointment issue report',
+        responses={200: OpenApiResponse(description='Issue resolved successfully')},
+    )
+    def post(self, request, organization_id, appointment_id):
+        appointment = _get_appointment(organization_id, appointment_id)
+        org_id = organization_id
+
+        if not (
+            _is_admin(request.user)
+            or _is_org_manager(request.user, org_id)
+            or _is_org_staff(request.user, org_id)
+            or (appointment.provider and appointment.provider.membership and appointment.provider.membership.user_id == request.user.id)
+        ):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        from apps.contact.models import AppointmentIssueReport
+        from apps.audit.services import AuditService
+        from django.db import transaction
+        from django.utils import timezone
+
+        report = AppointmentIssueReport.objects.filter(
+            appointment=appointment,
+            status=AppointmentIssueReport.Status.PENDING,
+        ).first()
+
+        if not report:
+            return Response(
+                {'detail': 'No pending issue report found for this appointment.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        resolution_outcome = request.data.get('resolution_outcome', 'COMPLETED')
+        notes = request.data.get('notes', '')
+
+        with transaction.atomic():
+            now = timezone.now()
+            from apps.queue.models import QueueEntry
+            entry = QueueEntry.objects.filter(appointment=appointment).first()
+
+            if resolution_outcome == 'COMPLETED':
+                report.status = AppointmentIssueReport.Status.RESOLVED
+                appointment.status = Appointment.Status.COMPLETED
+                appointment.save(update_fields=['status', 'updated_at'])
+                if entry:
+                    entry.status = QueueEntry.Status.COMPLETED
+                    entry.completed_at = now
+                    entry.save(update_fields=['status', 'completed_at', 'updated_at'])
+
+            elif resolution_outcome == 'NO_SHOW':
+                report.status = AppointmentIssueReport.Status.RESOLVED
+                appointment.status = Appointment.Status.NO_SHOW
+                appointment.save(update_fields=['status', 'updated_at'])
+                if entry:
+                    entry.status = QueueEntry.Status.SKIPPED
+                    entry.skipped_at = now
+                    entry.save(update_fields=['status', 'skipped_at', 'updated_at'])
+
+            elif resolution_outcome == 'DISMISSED':
+                report.status = AppointmentIssueReport.Status.DISMISSED
+
+            report.details = (report.details + f"\n[Resolution Notes: {notes}]").strip()
+            report.save(update_fields=['status', 'details', 'updated_at'])
+
+            AuditService.record(
+                action='APPOINTMENT_ISSUE_RESOLVED',
+                entity_type='AppointmentIssueReport',
+                entity_id=report.id,
+                organization_id=organization_id,
+                actor=request.user,
+                metadata={'outcome': resolution_outcome, 'notes': notes},
+            )
+
+        return Response(
+            {
+                'detail': 'Issue report resolved successfully.',
+                'status': report.status,
+                'appointment_status': appointment.status,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 

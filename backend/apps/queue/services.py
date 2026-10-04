@@ -125,7 +125,7 @@ class QueueService:
     # ------------------------------------------------------------------
 
     @classmethod
-    def check_in_appointment(cls, *, appointment: Appointment, actor=None) -> QueueEntry:
+    def check_in_appointment(cls, *, appointment: Appointment, actor=None, bypass_window=False) -> QueueEntry:
         """
         Atomically:
           Mark appointment CONFIRMED -> CHECKED_IN
@@ -175,8 +175,14 @@ class QueueService:
                     message=f'Cannot check in today ({today_date}). Appointment is scheduled for {appt_date}.'
                 )
 
-            # Look for existing QueueEntry
             entry = QueueEntry.objects.filter(appointment=appointment).first()
+            if not bypass_window and actor and hasattr(actor, 'id') and actor.id == appointment.customer_id:
+                if entry:
+                    readiness = cls.calculate_readiness_and_eta(entry)
+                    if not readiness.get('can_check_in', True):
+                        raise InvalidCheckInException(
+                            message='Check-in is not open yet for this appointment.'
+                        )
             now = timezone.now()
 
             if entry:
@@ -211,6 +217,9 @@ class QueueService:
             if appointment.status == Appointment.Status.CONFIRMED:
                 appointment.status = Appointment.Status.CHECKED_IN
                 appointment.save(update_fields=['status', 'updated_at'])
+
+            if entry:
+                entry.appointment = appointment
 
             NotificationService.create(
                 recipient=appointment.customer,
@@ -416,11 +425,38 @@ class QueueService:
         today = current_business_date()
 
         if queue_entry.status == QueueEntry.Status.COMPLETED:
-            return {'readiness_state': 'COMPLETED', 'people_ahead': 0, 'estimated_wait_minutes': 0}
+            return {
+                'readiness_state': 'COMPLETED',
+                'scheduled_ahead': 0,
+                'checked_in_ahead': 0,
+                'people_ahead': 0,
+                'estimated_wait_minutes': 0,
+                'now_serving_serial': None,
+                'can_check_in': False,
+                'check_in_available_at': None,
+            }
         if queue_entry.status == QueueEntry.Status.SKIPPED:
-            return {'readiness_state': 'SKIPPED', 'people_ahead': 0, 'estimated_wait_minutes': 0}
+            return {
+                'readiness_state': 'SKIPPED',
+                'scheduled_ahead': 0,
+                'checked_in_ahead': 0,
+                'people_ahead': 0,
+                'estimated_wait_minutes': 0,
+                'now_serving_serial': None,
+                'can_check_in': False,
+                'check_in_available_at': None,
+            }
         if queue_entry.status in (QueueEntry.Status.CANCELLED, QueueEntry.Status.NO_SHOW):
-            return {'readiness_state': queue_entry.status, 'people_ahead': 0, 'estimated_wait_minutes': 0}
+            return {
+                'readiness_state': queue_entry.status,
+                'scheduled_ahead': 0,
+                'checked_in_ahead': 0,
+                'people_ahead': 0,
+                'estimated_wait_minutes': 0,
+                'now_serving_serial': None,
+                'can_check_in': False,
+                'check_in_available_at': None,
+            }
 
         # Temporal classification: future or historical queue entries must NOT return active readiness guidance
         if queue_entry.queue_date > today:
@@ -431,22 +467,31 @@ class QueueService:
             est_start = appt_start or now
             est_end = est_start + timedelta(minutes=service_dur)
             rec_arrival = (appt_start - timedelta(minutes=15)) if appt_start else est_start
+            chk_avail = (rec_arrival - timedelta(minutes=30)) if rec_arrival else est_start
             return {
                 'readiness_state': QueueEntry.ReadinessState.NOT_YET,
+                'scheduled_ahead': 0,
+                'checked_in_ahead': 0,
                 'people_ahead': 0,
                 'estimated_wait_minutes': 0,
                 'estimated_start_time': est_start.isoformat(),
                 'estimated_end_time': est_end.isoformat(),
                 'recommended_arrival_time': rec_arrival.isoformat(),
                 'now_serving_serial': None,
+                'can_check_in': False,
+                'check_in_available_at': chk_avail.isoformat(),
             }
 
         if queue_entry.queue_date < today:
             return {
                 'readiness_state': QueueEntry.ReadinessState.NOT_YET,
+                'scheduled_ahead': 0,
+                'checked_in_ahead': 0,
                 'people_ahead': 0,
                 'estimated_wait_minutes': 0,
                 'now_serving_serial': None,
+                'can_check_in': False,
+                'check_in_available_at': None,
             }
 
         service_dur = 15
@@ -458,15 +503,18 @@ class QueueService:
         if queue_entry.status in (QueueEntry.Status.IN_PROGRESS, QueueEntry.Status.CALLED):
             est_start = appt_start or queue_entry.started_at or queue_entry.called_at or now
             est_end = est_start + timedelta(minutes=service_dur)
-            rec_arrival = (appt_start - timedelta(minutes=15)) if appt_start else est_start
             return {
                 'readiness_state': QueueEntry.ReadinessState.TURN_NOW,
+                'scheduled_ahead': 0,
+                'checked_in_ahead': 0,
                 'people_ahead': 0,
                 'estimated_wait_minutes': 0,
                 'estimated_start_time': est_start.isoformat(),
                 'estimated_end_time': est_end.isoformat(),
-                'recommended_arrival_time': rec_arrival.isoformat(),
+                'recommended_arrival_time': None,
                 'now_serving_serial': queue_entry.serial_number,
+                'can_check_in': False,
+                'check_in_available_at': None,
             }
 
         # Active entry in consultation / called
@@ -477,7 +525,7 @@ class QueueService:
         ).select_related('appointment__service').first()
 
         active_remaining = 0
-        if active_entry:
+        if active_entry and active_entry.pk != queue_entry.pk:
             dur = 15
             if active_entry.appointment and active_entry.appointment.service:
                 dur = active_entry.appointment.service.duration_minutes or 15
@@ -487,37 +535,63 @@ class QueueService:
             else:
                 active_remaining = dur
 
-        # Query preceding waiting entries according to effective queue ordering (-is_urgent, serial_number)
+        # Query preceding non-terminal entries for this provider/date
+        base_preceding = QueueEntry.objects.filter(
+            provider=queue_entry.provider,
+            queue_date=today,
+            status=QueueEntry.Status.WAITING,
+        ).exclude(
+            appointment__status__in=[
+                Appointment.Status.COMPLETED,
+                Appointment.Status.CANCELLED,
+                Appointment.Status.NO_SHOW,
+            ]
+        )
+
         if queue_entry.is_urgent:
-            ahead_qs = QueueEntry.objects.filter(
-                provider=queue_entry.provider,
-                queue_date=today,
-                status=QueueEntry.Status.WAITING,
-                is_checked_in=True,
+            preceding_qs = base_preceding.filter(
                 is_urgent=True,
                 serial_number__lt=queue_entry.serial_number,
-                appointment__status__in=[Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN],
             )
         else:
-            ahead_qs = QueueEntry.objects.filter(
-                provider=queue_entry.provider,
-                queue_date=today,
-                status=QueueEntry.Status.WAITING,
-                is_checked_in=True,
-                appointment__status__in=[Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN],
-            ).filter(
+            preceding_qs = base_preceding.filter(
                 models.Q(is_urgent=True) | models.Q(is_urgent=False, serial_number__lt=queue_entry.serial_number)
             )
 
-        waiting_ahead_count = ahead_qs.count()
-        people_ahead = waiting_ahead_count + (1 if active_entry else 0)
+        scheduled_ahead = preceding_qs.count()
+        checked_in_ahead = preceding_qs.filter(is_checked_in=True).count()
+        people_ahead = checked_in_ahead + (1 if (active_entry and active_entry.pk != queue_entry.pk) else 0)
 
-        waiting_ahead_minutes = 0
-        for entry in ahead_qs.select_related('appointment__service'):
+        scheduled_ahead_wait = 0
+        for entry in preceding_qs.select_related('appointment__service'):
             dur = 15
             if entry.appointment and entry.appointment.service:
                 dur = entry.appointment.service.duration_minutes or 15
-            waiting_ahead_minutes += dur
+            scheduled_ahead_wait += dur
+
+        total_est_wait = active_remaining + scheduled_ahead_wait
+        dynamic_start = now + timedelta(minutes=total_est_wait)
+
+        if appt_start:
+            if now < appt_start:
+                est_start = max(appt_start, dynamic_start)
+            else:
+                est_start = dynamic_start
+        else:
+            est_start = dynamic_start
+
+        est_end = est_start + timedelta(minutes=service_dur)
+        rec_arrival = est_start - timedelta(minutes=15)
+        check_in_available_at = est_start - timedelta(hours=6)
+
+        is_confirmed = (queue_entry.appointment.status == Appointment.Status.CONFIRMED) if queue_entry.appointment else True
+        can_check_in = bool(
+            not queue_entry.is_checked_in and
+            is_confirmed and
+            now >= check_in_available_at
+        )
+
+        rec_arrival_iso = None if queue_entry.is_checked_in else rec_arrival.isoformat()
 
         # Check if provider queue has had any activity today
         provider_has_started = (
@@ -529,72 +603,51 @@ class QueueService:
             ).exists()
         )
 
-        is_overdue_unstarted = bool(
-            appt_start and (now > appt_start + timedelta(minutes=30)) and not provider_has_started
-        )
-
-        est_wait = active_remaining + waiting_ahead_minutes
-        dynamic_start = now + timedelta(minutes=est_wait)
-
-        # Recommended arrival: if customer has ALREADY checked in, arrival instruction is no longer active
-        if queue_entry.is_checked_in:
-            rec_arrival_iso = None
-        elif appt_start:
-            rec_arrival_iso = (appt_start - timedelta(minutes=15)).isoformat()
+        if provider_has_started:
+            is_delayed = bool(appt_start and est_start > appt_start + timedelta(minutes=20))
+            queue_status_text = 'Running Behind Schedule' if is_delayed else 'Normal Operational Pace'
+            est_start_iso = est_start.isoformat()
+            est_wait_mins = int(round(total_est_wait))
         else:
-            rec_arrival_iso = (now + timedelta(minutes=max(0, est_wait - 15))).isoformat()
-
-        if is_overdue_unstarted:
-            if time_until_start > 45 if 'time_until_start' in locals() else False:
-                readiness = QueueEntry.ReadinessState.NOT_YET
-            elif people_ahead == 0:
-                readiness = QueueEntry.ReadinessState.BE_READY
-            elif people_ahead <= 2:
-                readiness = QueueEntry.ReadinessState.GET_READY
+            is_delayed = bool(appt_start and now > appt_start + timedelta(minutes=20))
+            if is_delayed:
+                queue_status_text = 'Running Behind Schedule'
+                est_start_iso = None
+                est_wait_mins = None
+            elif appt_start and now < appt_start:
+                queue_status_text = 'Service scheduled for later today'
+                est_start_iso = est_start.isoformat()
+                est_wait_mins = int(round(total_est_wait))
             else:
-                readiness = QueueEntry.ReadinessState.NOT_YET
-
-            return {
-                'readiness_state': readiness,
-                'people_ahead': people_ahead,
-                'estimated_wait_minutes': None,
-                'estimated_start_time': None,
-                'estimated_end_time': None,
-                'recommended_arrival_time': rec_arrival_iso,
-                'now_serving_serial': None,
-                'is_delayed': True,
-                'queue_status_text': 'Awaiting Provider Start (Delayed)',
-            }
-
-        if appt_start:
-            est_start = max(appt_start, dynamic_start)
-        else:
-            est_start = dynamic_start
+                queue_status_text = 'Normal Operational Pace'
+                est_start_iso = est_start.isoformat()
+                est_wait_mins = int(round(total_est_wait))
 
         time_until_start = (est_start - now).total_seconds() / 60.0
 
-        if time_until_start > 45:
-            readiness = QueueEntry.ReadinessState.NOT_YET
-        elif people_ahead == 0:
+        if queue_entry.is_checked_in and checked_in_ahead == 0:
             readiness = QueueEntry.ReadinessState.BE_READY
-        elif people_ahead <= 2:
+        elif checked_in_ahead <= 2 or (time_until_start <= 45 and time_until_start > 15):
             readiness = QueueEntry.ReadinessState.GET_READY
+        elif time_until_start <= 15:
+            readiness = QueueEntry.ReadinessState.BE_READY
         else:
             readiness = QueueEntry.ReadinessState.NOT_YET
 
-        est_end = est_start + timedelta(minutes=service_dur)
-        is_delayed = bool(appt_start and est_start > appt_start + timedelta(minutes=20))
-
         return {
             'readiness_state': readiness,
+            'scheduled_ahead': scheduled_ahead,
+            'checked_in_ahead': checked_in_ahead,
             'people_ahead': people_ahead,
-            'estimated_wait_minutes': est_wait,
-            'estimated_start_time': est_start.isoformat(),
+            'estimated_wait_minutes': est_wait_mins,
+            'estimated_start_time': est_start_iso,
             'estimated_end_time': est_end.isoformat(),
             'recommended_arrival_time': rec_arrival_iso,
             'now_serving_serial': active_entry.serial_number if active_entry else None,
+            'can_check_in': can_check_in,
+            'check_in_available_at': check_in_available_at.isoformat(),
             'is_delayed': is_delayed,
-            'queue_status_text': 'Running Late' if is_delayed else 'Normal Operational Pace',
+            'queue_status_text': queue_status_text,
         }
 
     # ------------------------------------------------------------------

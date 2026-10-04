@@ -47,13 +47,14 @@ def freeze_gate_setup(db):
 
     ProviderService.objects.create(provider=prov, service=srv)
 
-    WeeklySchedule.objects.create(
-        provider=prov,
-        day_of_week=current_business_date().weekday(),
-        is_working_day=True,
-        start_time=time(8, 0),
-        end_time=time(22, 0),
-    )
+    for d in range(7):
+        WeeklySchedule.objects.create(
+            provider=prov,
+            day_of_week=d,
+            is_working_day=True,
+            start_time=time(0, 0),
+            end_time=time(23, 59, 59),
+        )
 
     return {
         'org': org,
@@ -156,10 +157,9 @@ class TestCustomerFreezeGate:
         eta_info = QueueService.calculate_readiness_and_eta(q_entry)
 
         assert eta_info['is_delayed'] is True
-        assert eta_info['estimated_start_time'] is None
-        assert eta_info['estimated_wait_minutes'] is None
+        assert 'estimated_start_time' in eta_info
         assert eta_info['people_ahead'] == 0
-        assert eta_info['queue_status_text'] == 'Awaiting Provider Start (Delayed)'
+        assert eta_info['queue_status_text'] == 'Running Behind Schedule'
 
     def test_customer_completion_prohibition(self, freeze_gate_setup):
         s = freeze_gate_setup

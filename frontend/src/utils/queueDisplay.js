@@ -149,14 +149,27 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
     }
   } else {
     // Scheduled today, not checked in yet
-    displayStatus = 'Booked';
-    statusTone = 'info';
-    headline = 'Pending Check-In';
-    guidance = 'Please check in upon physical arrival at the venue to enter the live queue.';
+    const canCheckInNow = Boolean(qEntry?.can_check_in ?? readinessInfo.can_check_in ?? appointment?.can_check_in);
+    if (canCheckInNow) {
+      displayStatus = 'Check-in Available';
+      statusTone = 'warning';
+      headline = 'Check-In Available';
+      guidance = 'You are within the check-in window. Please check in upon physical arrival at the venue.';
+    } else {
+      displayStatus = 'Awaiting Arrival';
+      statusTone = 'info';
+      headline = 'Scheduled Today (Awaiting Arrival)';
+      guidance = 'Your serial is reserved for today. Live queue telemetry forecast is active.';
+    }
   }
 
   const isTerminal = ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(rawStatus) || isPast;
-  const canOpenTelemetry = !isPast && !isUnresolved && !isFuture && isCheckedIn && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(rawStatus);
+  const canOpenTelemetry = !isPast && !isUnresolved && !isFuture && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(rawStatus);
+
+  const scheduledAhead = readinessInfo.scheduled_ahead ?? (qEntry ? (readinessInfo.people_ahead ?? 0) : 0);
+  const checkedInAhead = readinessInfo.checked_in_ahead ?? 0;
+  const canCheckIn = Boolean(qEntry?.can_check_in ?? readinessInfo.can_check_in ?? appointment?.can_check_in);
+  const checkInAvailableAt = qEntry?.check_in_available_at || readinessInfo.check_in_available_at || appointment?.check_in_available_at;
 
   return {
     rawStatus,
@@ -169,6 +182,11 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
     serial_number: serialNum,
     nowServing,
     peopleAhead: (rawStatus === 'CALLED' || rawStatus === 'IN_PROGRESS') ? 0 : peopleAhead,
+    scheduledAhead: (rawStatus === 'CALLED' || rawStatus === 'IN_PROGRESS') ? 0 : scheduledAhead,
+    checkedInAhead: (rawStatus === 'CALLED' || rawStatus === 'IN_PROGRESS') ? 0 : checkedInAhead,
+    canCheckIn,
+    can_check_in: canCheckIn,
+    checkInAvailableAt,
     isDelayed,
     isCheckedIn,
     readinessState,
