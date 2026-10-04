@@ -409,7 +409,7 @@ export function CustomerAppointmentsPage() {
 
                 {/* Right: Status Badge & Actions */}
                 <div style={{ minWidth: '200px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.75rem', flexShrink: 0 }}>
-                  <StatusBadge status={category === 'needs_followup' ? 'Service outcome not recorded' : normState.displayStatus} />
+                  <StatusBadge status={normState.rawStatus} customLabel={category === 'needs_followup' ? 'Service outcome not recorded' : normState.displayStatus} />
 
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
                     {canCheckIn && (

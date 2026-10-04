@@ -56,9 +56,11 @@ export function CustomerLiveQueuePage() {
         service_name: matchAppt.service_name,
         organization_id: matchAppt.organization_id,
         organization_name: matchAppt.organization_name,
-        is_checked_in: matchAppt.status === 'CHECKED_IN' || matchAppt.status === 'WAITING' || matchAppt.status === 'IN_PROGRESS',
+        is_checked_in: Boolean(matchAppt.is_checked_in || matchAppt.status === 'CHECKED_IN'),
         readiness_info: {
-          readiness_state: matchAppt.temporal_classification === 'today' ? (matchAppt.status === 'CONFIRMED' ? 'GET_READY' : 'BE_READY') : 'NOT_YET',
+          readiness_state: 'NOT_YET',
+          scheduled_ahead: 0,
+          checked_in_ahead: 0,
           people_ahead: 0,
         }
       };
@@ -471,7 +473,7 @@ export function CustomerLiveQueuePage() {
           <div style={{ fontSize: '0.78rem', color: qState.isCheckedIn ? 'var(--color-success)' : 'var(--lp-accent)' }}>
             {qState.isCheckedIn
               ? '✓ Arrived & Checked In'
-              : (qState.recommendedArrivalTime ? `Recommended Arrival: ${formatTime(qState.recommendedArrivalTime)}` : 'Awaiting Arrival')}
+              : (qState.recommendedArrivalTime ? `Recommended Arrival: ${formatTime(qState.recommendedArrivalTime)}` : (qState.checkInAvailableAt ? `Check-in opens: ${formatTime(qState.checkInAvailableAt)}` : 'Awaiting Arrival'))}
           </div>
         </div>
       </div>

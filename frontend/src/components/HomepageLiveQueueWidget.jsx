@@ -64,7 +64,7 @@ function LiveQueuePreviewCard({ item, formatTime }) {
               Provider: <strong style={{ color: 'var(--lp-text)' }}>{item.provider_name || item.provider_title || 'Assigned Specialist'}</strong>
             </div>
           </div>
-          <StatusBadge status={qState.rawStatus} />
+          <StatusBadge status={qState.rawStatus} customLabel={qState.displayStatus} />
         </div>
 
         {/* Hero Serial & Status Row */}
@@ -95,9 +95,10 @@ function LiveQueuePreviewCard({ item, formatTime }) {
 
         {/* Action Link to Full Telemetry */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)' }}>
-            People Ahead: <strong style={{ color: 'var(--lp-text)' }}>{qState.peopleAhead}</strong>
-          </span>
+          <div style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)', display: 'flex', gap: '0.85rem' }}>
+            <span>Scheduled ahead: <strong style={{ color: 'var(--lp-text)' }}>{qState.scheduledAhead}</strong></span>
+            <span>Checked in: <strong style={{ color: 'var(--lp-text)' }}>{qState.checkedInAhead}</strong></span>
+          </div>
           <Link
             to={item.queue_entry?.id ? `/customer/queue/${item.queue_entry.id}` : `/customer/appointments/${item.id}`}
             style={{

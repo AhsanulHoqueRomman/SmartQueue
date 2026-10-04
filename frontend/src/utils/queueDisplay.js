@@ -19,21 +19,25 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
     appointment?.temporal_classification === 'past' ||
     (appointment?.appointment_date && appointment.appointment_date < localTodayStr)
   ) && !isLegitInProgress;
+
   const rawStatus = isFuture
     ? (appointment?.status || 'CONFIRMED')
     : (qEntry?.status || appointment?.status || 'CONFIRMED');
 
-  const isCheckedIn = Boolean(
-    qEntry?.is_checked_in ||
-    appointment?.is_checked_in ||
-    ['CHECKED_IN', 'WAITING', 'CALLED', 'IN_PROGRESS'].includes(rawStatus)
-  );
+  // Authoritative physical presence check.
+  // CRITICAL: Raw QueueEntry status "WAITING" does NOT imply physical presence.
+  const rawCheckedIn = qEntry?.is_checked_in ?? appointment?.is_checked_in ?? false;
+  const isCheckedIn = (
+    typeof rawCheckedIn === 'string'
+      ? rawCheckedIn.toLowerCase() === 'true'
+      : Boolean(rawCheckedIn)
+  ) || (rawStatus === 'CHECKED_IN');
 
-  const readinessInfo = qEntry?.readiness_info || {};
+  const readinessInfo = qEntry?.readiness_info || appointment?.queue_entry?.readiness_info || {};
   const isDelayed = Boolean(readinessInfo.is_delayed);
-  const peopleAhead = qEntry
-    ? (readinessInfo.people_ahead ?? 0)
-    : (appointment?.queue_entry?.readiness_info?.people_ahead ?? 0);
+  const scheduledAhead = readinessInfo.scheduled_ahead ?? (qEntry ? (readinessInfo.people_ahead ?? 0) : 0);
+  const checkedInAhead = readinessInfo.checked_in_ahead ?? 0;
+  const peopleAhead = isCheckedIn ? checkedInAhead : scheduledAhead;
   const nowServing = readinessInfo.now_serving_serial || null;
 
   let displayStatus = 'Booked';
@@ -46,6 +50,15 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
   let isMissed = false;
 
   const serialNum = appointment?.serial_number || qEntry?.serial_number || qEntry?.token_number || '—';
+
+  const formatTimeStr = (isoStr) => {
+    if (!isoStr) return null;
+    const d = new Date(isoStr);
+    return isNaN(d.getTime()) ? null : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const canCheckIn = Boolean(qEntry?.can_check_in ?? readinessInfo.can_check_in ?? appointment?.can_check_in ?? false);
+  const checkInAvailableAt = qEntry?.check_in_available_at || readinessInfo.check_in_available_at || appointment?.check_in_available_at;
 
   if (isFuture) {
     displayStatus = 'Booked';
@@ -119,7 +132,7 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
     headline = 'You Have Been Called!';
     guidance = 'Please proceed directly to the provider consultation room now.';
   } else if (isCheckedIn) {
-    if (isDelayed && peopleAhead === 0) {
+    if (isDelayed && checkedInAhead === 0) {
       displayStatus = "Provider hasn't started yet";
       statusTone = 'warning';
       secondaryStatus = 'Running behind schedule';
@@ -130,46 +143,46 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
       statusTone = 'warning';
       secondaryStatus = 'Running behind schedule';
       headline = 'Queue Running Behind Schedule';
-      guidance = `You're checked in with ${peopleAhead} ${peopleAhead === 1 ? 'person' : 'people'} ahead. Please remain nearby.`;
-    } else if (peopleAhead === 0) {
-      displayStatus = "You're next";
+      guidance = `You're checked in with ${checkedInAhead} ${checkedInAhead === 1 ? 'person' : 'people'} checked in ahead of you. Please remain nearby.`;
+    } else if (readinessState === 'BE_READY' || checkedInAhead === 0) {
+      displayStatus = "You're likely next";
       statusTone = 'warning';
-      headline = 'You Are First in Line';
+      headline = 'First Checked-In Patient in Line';
       guidance = "You're checked in. Please remain near the waiting room door.";
-    } else if (peopleAhead <= 2) {
+    } else if (readinessState === 'GET_READY' || checkedInAhead <= 2) {
       displayStatus = 'Get ready';
       statusTone = 'warning';
       headline = 'Turn Approaching';
-      guidance = `There ${peopleAhead === 1 ? 'is 1 person' : `are ${peopleAhead} people`} ahead of you. Get ready for your turn.`;
+      guidance = `There ${checkedInAhead === 1 ? 'is 1 checked-in person' : `are ${checkedInAhead} checked-in people`} ahead of you. Get ready for your turn.`;
     } else {
       displayStatus = 'Checked in';
       statusTone = 'info';
       headline = 'Checked In at Venue';
-      guidance = `You are checked in and in line. ${peopleAhead} people ahead.`;
+      guidance = `You are checked in and in line. ${checkedInAhead} ${checkedInAhead === 1 ? 'person' : 'people'} checked in ahead of you.`;
     }
   } else {
-    // Scheduled today, not checked in yet
-    const canCheckInNow = Boolean(qEntry?.can_check_in ?? readinessInfo.can_check_in ?? appointment?.can_check_in);
-    if (canCheckInNow) {
+    // Scheduled today, not checked in yet (Awaiting Physical Arrival)
+    const checkInTimeFormatted = formatTimeStr(checkInAvailableAt);
+    const checkInNotice = checkInTimeFormatted ? ` Check-in opens around ${checkInTimeFormatted}.` : '';
+
+    if (canCheckIn) {
       displayStatus = 'Check-in Available';
       statusTone = 'warning';
-      headline = 'Check-In Available';
+      headline = 'Check-In Available at Venue';
       guidance = 'You are within the check-in window. Please check in upon physical arrival at the venue.';
     } else {
-      displayStatus = 'Awaiting Arrival';
+      displayStatus = 'Scheduled Today';
       statusTone = 'info';
-      headline = 'Scheduled Today (Awaiting Arrival)';
-      guidance = 'Your serial is reserved for today. Live queue telemetry forecast is active.';
+      const isFirstSerial = Number(serialNum) === 1 || scheduledAhead === 0;
+      headline = isFirstSerial ? 'First Scheduled Serial Today' : 'Scheduled Today (Awaiting Arrival)';
+      guidance = isFirstSerial
+        ? `Your serial #${serialNum} is reserved for today. Provider queue has not started yet.${checkInNotice}`
+        : `Your serial #${serialNum} is reserved for today. Live queue forecast telemetry is active.${checkInNotice}`;
     }
   }
 
   const isTerminal = ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(rawStatus) || isPast;
   const canOpenTelemetry = !isPast && !isUnresolved && !isFuture && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(rawStatus);
-
-  const scheduledAhead = readinessInfo.scheduled_ahead ?? (qEntry ? (readinessInfo.people_ahead ?? 0) : 0);
-  const checkedInAhead = readinessInfo.checked_in_ahead ?? 0;
-  const canCheckIn = Boolean(qEntry?.can_check_in ?? readinessInfo.can_check_in ?? appointment?.can_check_in);
-  const checkInAvailableAt = qEntry?.check_in_available_at || readinessInfo.check_in_available_at || appointment?.check_in_available_at;
 
   return {
     rawStatus,
@@ -194,7 +207,7 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
     isPast,
     isUnresolved,
     isMissed,
-    isTerminal: ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(rawStatus),
+    isTerminal,
     can_open_telemetry: canOpenTelemetry,
     estimatedStartTime: readinessInfo.estimated_start_time || appointment?.start_datetime,
     estimatedEndTime: readinessInfo.estimated_end_time || appointment?.end_datetime,
@@ -203,4 +216,3 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
 }
 
 export default getNormalizedCustomerQueueState;
-

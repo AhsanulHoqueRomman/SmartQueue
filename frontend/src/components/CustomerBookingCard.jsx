@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
+import { getNormalizedCustomerQueueState } from '../utils/queueDisplay';
 
 export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
   const navigate = useNavigate();
@@ -9,8 +10,9 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
 
   const apptId = item.id;
   const qEntry = item.queue_entry;
-  const qStatus = qEntry?.status || item.status;
   const qId = qEntry?.id;
+  const qState = getNormalizedCustomerQueueState(item, qEntry);
+  const qStatus = qState.rawStatus;
 
   const formatTime = (isoStr) => {
     if (!isoStr) return null;
@@ -18,34 +20,21 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
     return isNaN(d.getTime()) ? null : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const estStartStr = qEntry?.readiness_info?.estimated_start_time
-    ? formatTime(qEntry.readiness_info.estimated_start_time)
-    : formatTime(item.start_datetime);
-
-  const estEndStr = qEntry?.readiness_info?.estimated_end_time
-    ? formatTime(qEntry.readiness_info.estimated_end_time)
-    : formatTime(item.end_datetime);
-
-  const recArrivalStr = qEntry?.readiness_info?.recommended_arrival_time
-    ? formatTime(qEntry.readiness_info.recommended_arrival_time)
-    : null;
-
-  const readinessState = qEntry?.readiness_info?.readiness_state || 'NOT_YET';
-  const peopleAhead = qEntry?.readiness_info?.people_ahead ?? 0;
-  const nowServingSerial = qEntry?.readiness_info?.now_serving_serial;
+  const estStartStr = formatTime(qState.estimatedStartTime);
+  const estEndStr = formatTime(qState.estimatedEndTime);
+  const recArrivalStr = formatTime(qState.recommendedArrivalTime);
+  const nowServingSerial = qState.nowServing;
 
   const readinessConfig = {
     TURN_NOW: { label: 'Your Turn', bg: 'var(--color-success-light)', color: 'var(--color-success)', border: 'var(--color-success)', note: 'Please proceed inside' },
     BE_READY: { label: 'Be Ready', bg: 'var(--color-warning-light)', color: 'var(--color-warning)', border: 'var(--color-warning)', note: 'You are next in line' },
     GET_READY: { label: 'Get Ready', bg: 'var(--color-warning-light)', color: 'var(--color-warning)', border: 'var(--color-warning)', note: 'Turn approaching soon' },
     NOT_YET: { label: 'Not Yet', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', border: 'var(--lp-border)', note: 'Relaxed waiting' },
-  }[readinessState] || { label: 'Waiting', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: 'var(--lp-border)', note: '' };
+  }[qState.readinessState] || { label: 'Scheduled', bg: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: 'var(--lp-border)', note: '' };
 
-  const isLive = item.is_live_queue !== undefined ? item.is_live_queue : ['WAITING', 'CALLED', 'IN_PROGRESS'].includes(qStatus);
-  const isTerminal = ['COMPLETED', 'SKIPPED', 'CANCELLED', 'NO_SHOW'].includes(qStatus);
-  const canCheckIn = item.can_check_in !== undefined
-    ? item.can_check_in
-    : (item.temporal_classification === 'today' && item.status === 'CONFIRMED');
+  const isLive = qState.can_open_telemetry;
+  const isTerminal = qState.isTerminal;
+  const canCheckIn = qState.canCheckIn;
   const isCheckingIn = checkingInId === item.id;
 
   return (
@@ -76,7 +65,7 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
               {item.service_name || 'Service Consultation'}
             </h3>
           </div>
-          <StatusBadge status={qStatus} />
+          <StatusBadge status={qState.rawStatus} customLabel={qState.displayStatus} />
         </div>
 
         {/* Subheader: Provider & Category */}
@@ -132,26 +121,33 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
               marginBottom: '1.25rem',
             }}
           >
-            {/* Primary Telemetry Grid: Serial, Now Serving, People Ahead */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginBottom: '0.85rem', textAlign: 'center' }}>
-              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
-                <span style={{ fontSize: '0.65rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Your Serial</span>
-                <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
-                  #{item.serial_number || qEntry?.token_number || '—'}
+            {/* Dual Counter Grid: Serial, Now Serving, Scheduled Ahead, Checked-In Ahead */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', marginBottom: '0.85rem', textAlign: 'center' }}>
+              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.6rem 0.25rem' }}>
+                <span style={{ fontSize: '0.62rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Your Serial</span>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+                  #{qState.serialNumber}
                 </div>
               </div>
 
-              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
-                <span style={{ fontSize: '0.65rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Now Serving</span>
-                <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.6rem 0.25rem' }}>
+                <span style={{ fontSize: '0.62rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Now Serving</span>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
                   {nowServingSerial ? `#${nowServingSerial}` : 'Not started'}
                 </div>
               </div>
 
-              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.6rem 0.35rem' }}>
-                <span style={{ fontSize: '0.65rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>People Ahead</span>
-                <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--color-warning)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
-                  {qStatus === 'CALLED' || qStatus === 'IN_PROGRESS' ? '0' : peopleAhead}
+              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.6rem 0.25rem' }}>
+                <span style={{ fontSize: '0.62rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Scheduled Ahead</span>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-warning)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+                  {qState.scheduledAhead}
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.6rem 0.25rem' }}>
+                <span style={{ fontSize: '0.62rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Checked-In Ahead</span>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+                  {qState.checkedInAhead}
                 </div>
               </div>
             </div>
@@ -195,12 +191,12 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
                 {readinessConfig.label}
               </div>
 
-              {qEntry && !qEntry.is_checked_in && !isTerminal && (
+              {!qState.isCheckedIn && !isTerminal && (
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-warning)', fontWeight: 600 }}>
-                  ⏳ Check-In Pending
+                  {canCheckIn ? '📍 Check-In Available' : (qState.checkInAvailableAt ? `Check-in opens around ${formatTime(qState.checkInAvailableAt)}` : 'Awaiting Arrival')}
                 </span>
               )}
-              {qEntry && qEntry.is_checked_in && (
+              {qState.isCheckedIn && (
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-success)', fontWeight: 600 }}>
                   ✓ Checked In
                 </span>

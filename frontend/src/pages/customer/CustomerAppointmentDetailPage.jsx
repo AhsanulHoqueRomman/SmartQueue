@@ -221,7 +221,7 @@ export function CustomerAppointmentDetailPage() {
                 #{normState.serialNumber || appointment.serial_number}
               </div>
             )}
-            <StatusBadge status={normState.isUnresolved ? 'Service outcome not recorded' : qStatus} />
+            <StatusBadge status={normState.rawStatus} customLabel={normState.isUnresolved ? 'Service outcome not recorded' : normState.displayStatus} />
           </div>
         </div>
       </div>
@@ -312,7 +312,7 @@ export function CustomerAppointmentDetailPage() {
               {normState.guidance}
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--lp-border)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--lp-border)' }}>
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Your Serial</div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif' }}>
@@ -323,21 +323,29 @@ export function CustomerAppointmentDetailPage() {
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Now Serving</div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif' }}>
-                  {normState.now_serving ? `#${normState.now_serving}` : 'Not started'}
+                  {normState.nowServing ? `#${normState.nowServing}` : 'Not started'}
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>People Ahead</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Scheduled Ahead</div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-warning)', fontFamily: 'Outfit, sans-serif' }}>
-                  {normState.people_ahead ?? 0}
+                  {normState.scheduledAhead}
                 </div>
               </div>
 
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Checked-In Ahead</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif' }}>
+                  {normState.checkedInAhead}
+                </div>
+              </div>
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Expected Service</div>
                 <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--lp-text)', marginTop: '0.2rem' }}>
-                  {normState.estimated_window}
+                  {formatTime(normState.estimatedStartTime) && formatTime(normState.estimatedEndTime)
+                    ? `${formatTime(normState.estimatedStartTime)} – ${formatTime(normState.estimatedEndTime)}`
+                    : (formatTime(normState.estimatedStartTime) || 'Around appointment time')}
                 </div>
               </div>
             </div>
