@@ -7,7 +7,7 @@ from apps.providers.models import ProviderProfile, ProviderService, WeeklySchedu
 from apps.services.models import Service
 from apps.appointments.models import Appointment
 from apps.queue.models import QueueEntry
-from apps.appointments.services import AppointmentService
+from apps.appointments.services import AppointmentService, get_project_tz
 from apps.queue.services import QueueService, current_business_date
 from apps.appointments.serializers import CustomerDashboardItemSerializer
 
@@ -107,31 +107,35 @@ def test_raw_queue_waiting_with_is_checked_in_false_does_not_imply_physical_pres
 def test_check_in_capability_window(a71_setup):
     """
     Test check-in availability window gating:
-    can_check_in is False when start_datetime is far away (e.g. 8 hours ahead).
-    can_check_in is True when within check-in window or when bypass_window is passed for staff.
+    can_check_in is False when appointment is for a future date.
+    can_check_in is True when appointment is today within the check-in window.
     """
     s = a71_setup
     today = current_business_date()
-    far_start = timezone.now() + timedelta(hours=8)
+    future_date = today + timedelta(days=1)
 
-    appt = AppointmentService.book_appointment(
+    # Future date appointment -> can_check_in is False
+    appt_future = AppointmentService.book_appointment(
         organization_id=s['org'].id,
         customer=s['cust1'],
         provider_id=s['provider'].id,
         service_id=s['service'].id,
-        appointment_date=today,
-        start_datetime=far_start,
+        appointment_date=future_date,
     )
+    dash_data_future = CustomerDashboardItemSerializer(appt_future).data
+    assert dash_data_future['can_check_in'] is False
 
-    dash_data = CustomerDashboardItemSerializer(appt).data
-    assert dash_data['can_check_in'] is False
-
-    # Near appointment time (e.g. 1 hour ahead) -> check-in becomes available
+    # Near appointment time today -> check-in becomes available
     near_start = timezone.now() + timedelta(minutes=30)
-    appt.start_datetime = near_start
-    appt.save()
-
-    dash_data_near = CustomerDashboardItemSerializer(appt).data
+    appt_today = AppointmentService.book_appointment(
+        organization_id=s['org'].id,
+        customer=s['cust2'],
+        provider_id=s['provider'].id,
+        service_id=s['service'].id,
+        appointment_date=today,
+        start_datetime=near_start,
+    )
+    dash_data_near = CustomerDashboardItemSerializer(appt_today).data
     assert dash_data_near['can_check_in'] is True
 
 

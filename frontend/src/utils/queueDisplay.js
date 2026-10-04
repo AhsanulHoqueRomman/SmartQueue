@@ -39,13 +39,19 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
   const checkedInAhead = readinessInfo.checked_in_ahead ?? 0;
   const peopleAhead = isCheckedIn ? checkedInAhead : scheduledAhead;
   const nowServing = readinessInfo.now_serving_serial || null;
+  const providerHasStarted = Boolean(
+    readinessInfo.provider_has_started ??
+    (nowServing != null || isLegitInProgress || rawStatus === 'CALLED')
+  );
 
   let displayStatus = 'Booked';
-  let statusTone = 'info'; // 'info' | 'success' | 'warning' | 'neutral' | 'danger'
+  let statusTone = 'info'; // 'info' | 'success' | 'warning' | 'neutral' | 'danger' | 'accent'
   let headline = 'Scheduled Consultation';
   let guidance = 'Your appointment serial number is secured.';
   let secondaryStatus = null;
-  let readinessState = (isFuture || isPast) ? 'NOT_YET' : (readinessInfo.readiness_state || 'NOT_YET');
+  let readinessState = (isFuture || isPast)
+    ? 'NOT_YET'
+    : (rawStatus === 'IN_PROGRESS' ? 'IN_SERVICE' : (readinessInfo.readiness_state || 'NOT_YET'));
   let isUnresolved = false;
   let isMissed = false;
 
@@ -132,12 +138,18 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
     headline = 'You Have Been Called!';
     guidance = 'Please proceed directly to the provider consultation room now.';
   } else if (isCheckedIn) {
-    if (isDelayed && checkedInAhead === 0) {
+    if (!providerHasStarted && isDelayed && checkedInAhead === 0) {
       displayStatus = "Provider hasn't started yet";
       statusTone = 'warning';
       secondaryStatus = 'Running behind schedule';
       headline = "Provider Hasn't Started Yet";
       guidance = "You're checked in and first in line. Stay nearby — we'll update you when service begins.";
+    } else if (isDelayed && (readinessState === 'BE_READY' || checkedInAhead === 0)) {
+      displayStatus = "You're likely next";
+      statusTone = 'warning';
+      secondaryStatus = 'Running behind schedule';
+      headline = 'First Checked-In Patient in Line';
+      guidance = "You're checked in and next in line. Service is running behind schedule, please remain near the waiting room door.";
     } else if (isDelayed) {
       displayStatus = 'Checked in';
       statusTone = 'warning';
@@ -184,6 +196,14 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
   const isTerminal = ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(rawStatus) || isPast;
   const canOpenTelemetry = !isPast && !isUnresolved && !isFuture && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(rawStatus);
 
+  const estimatedStartTime = rawStatus === 'IN_PROGRESS'
+    ? null
+    : (readinessInfo.estimated_start_time || appointment?.start_datetime);
+
+  const estimatedEndTime = rawStatus === 'IN_PROGRESS'
+    ? (readinessInfo.estimated_completion_at || readinessInfo.estimated_end_time)
+    : (readinessInfo.estimated_end_time || appointment?.end_datetime);
+
   return {
     rawStatus,
     displayStatus,
@@ -194,6 +214,7 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
     serialNumber: serialNum,
     serial_number: serialNum,
     nowServing,
+    providerHasStarted,
     peopleAhead: (rawStatus === 'CALLED' || rawStatus === 'IN_PROGRESS') ? 0 : peopleAhead,
     scheduledAhead: (rawStatus === 'CALLED' || rawStatus === 'IN_PROGRESS') ? 0 : scheduledAhead,
     checkedInAhead: (rawStatus === 'CALLED' || rawStatus === 'IN_PROGRESS') ? 0 : checkedInAhead,
@@ -209,9 +230,12 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
     isMissed,
     isTerminal,
     can_open_telemetry: canOpenTelemetry,
-    estimatedStartTime: readinessInfo.estimated_start_time || appointment?.start_datetime,
-    estimatedEndTime: readinessInfo.estimated_end_time || appointment?.end_datetime,
-    recommendedArrivalTime: isCheckedIn ? null : readinessInfo.recommended_arrival_time,
+    estimatedStartTime,
+    estimatedEndTime,
+    actualStartedAt: readinessInfo.actual_started_at || qEntry?.started_at || null,
+    estimatedCompletionAt: readinessInfo.estimated_completion_at || null,
+    remainingServiceMinutes: readinessInfo.remaining_service_minutes ?? null,
+    recommendedArrivalTime: (isCheckedIn || rawStatus === 'IN_PROGRESS' || rawStatus === 'CALLED') ? null : readinessInfo.recommended_arrival_time,
   };
 }
 

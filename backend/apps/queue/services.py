@@ -500,8 +500,55 @@ class QueueService:
 
         appt_start = queue_entry.appointment.start_datetime if queue_entry.appointment else None
 
-        if queue_entry.status in (QueueEntry.Status.IN_PROGRESS, QueueEntry.Status.CALLED):
-            est_start = appt_start or queue_entry.started_at or queue_entry.called_at or now
+        # Check provider active consultation or activity today
+        in_prog_entry = QueueEntry.objects.filter(
+            provider=queue_entry.provider,
+            queue_date=today,
+            status=QueueEntry.Status.IN_PROGRESS,
+        ).order_by('-started_at', '-updated_at').first()
+
+        active_entry = in_prog_entry or QueueEntry.objects.filter(
+            provider=queue_entry.provider,
+            queue_date=today,
+            status=QueueEntry.Status.CALLED,
+        ).order_by('-called_at', '-updated_at').first()
+
+        provider_has_started = (
+            active_entry is not None or
+            QueueEntry.objects.filter(
+                provider=queue_entry.provider,
+                queue_date=today,
+                status__in=[QueueEntry.Status.COMPLETED, QueueEntry.Status.IN_PROGRESS, QueueEntry.Status.CALLED]
+            ).exists()
+        )
+
+        if queue_entry.status == QueueEntry.Status.IN_PROGRESS:
+            started_at_dt = queue_entry.started_at or now
+            elapsed_mins = max(0.0, (now - started_at_dt).total_seconds() / 60.0)
+            remaining_mins = max(0, int(round(service_dur - elapsed_mins)))
+            est_comp_dt = started_at_dt + timedelta(minutes=service_dur)
+            return {
+                'readiness_state': QueueEntry.ReadinessState.IN_SERVICE,
+                'scheduled_ahead': 0,
+                'checked_in_ahead': 0,
+                'people_ahead': 0,
+                'estimated_wait_minutes': 0,
+                'estimated_start_time': None,  # Suppress stale pending start window for active consultation
+                'estimated_end_time': est_comp_dt.isoformat(),
+                'actual_started_at': started_at_dt.isoformat(),
+                'estimated_completion_at': est_comp_dt.isoformat(),
+                'remaining_service_minutes': remaining_mins,
+                'recommended_arrival_time': None,
+                'now_serving_serial': queue_entry.serial_number,
+                'can_check_in': False,
+                'check_in_available_at': None,
+                'is_delayed': False,
+                'provider_has_started': True,
+                'queue_status_text': 'Service in Progress',
+            }
+
+        if queue_entry.status == QueueEntry.Status.CALLED:
+            est_start = queue_entry.called_at or now
             est_end = est_start + timedelta(minutes=service_dur)
             return {
                 'readiness_state': QueueEntry.ReadinessState.TURN_NOW,
@@ -511,18 +558,17 @@ class QueueService:
                 'estimated_wait_minutes': 0,
                 'estimated_start_time': est_start.isoformat(),
                 'estimated_end_time': est_end.isoformat(),
+                'actual_started_at': None,
+                'estimated_completion_at': None,
+                'remaining_service_minutes': None,
                 'recommended_arrival_time': None,
                 'now_serving_serial': queue_entry.serial_number,
                 'can_check_in': False,
                 'check_in_available_at': None,
+                'is_delayed': False,
+                'provider_has_started': True,
+                'queue_status_text': 'Called for Consultation',
             }
-
-        # Active entry in consultation / called
-        active_entry = QueueEntry.objects.filter(
-            provider=queue_entry.provider,
-            queue_date=today,
-            status__in=[QueueEntry.Status.CALLED, QueueEntry.Status.IN_PROGRESS],
-        ).select_related('appointment__service').first()
 
         active_remaining = 0
         if active_entry and active_entry.pk != queue_entry.pk:
@@ -584,7 +630,7 @@ class QueueService:
         rec_arrival = est_start - timedelta(minutes=15)
         check_in_available_at = est_start - timedelta(hours=6)
 
-        is_confirmed = (queue_entry.appointment.status == Appointment.Status.CONFIRMED) if queue_entry.appointment else True
+        is_confirmed = (queue_entry.appointment.status in (Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN)) if queue_entry.appointment else True
         can_check_in = bool(
             not queue_entry.is_checked_in and
             is_confirmed and
@@ -592,16 +638,6 @@ class QueueService:
         )
 
         rec_arrival_iso = None if queue_entry.is_checked_in else rec_arrival.isoformat()
-
-        # Check if provider queue has had any activity today
-        provider_has_started = (
-            active_entry is not None or
-            QueueEntry.objects.filter(
-                provider=queue_entry.provider,
-                queue_date=today,
-                status__in=[QueueEntry.Status.COMPLETED, QueueEntry.Status.IN_PROGRESS, QueueEntry.Status.CALLED]
-            ).exists()
-        )
 
         if provider_has_started:
             is_delayed = bool(appt_start and est_start > appt_start + timedelta(minutes=20))
@@ -642,11 +678,15 @@ class QueueService:
             'estimated_wait_minutes': est_wait_mins,
             'estimated_start_time': est_start_iso,
             'estimated_end_time': est_end.isoformat(),
+            'actual_started_at': None,
+            'estimated_completion_at': None,
+            'remaining_service_minutes': None,
             'recommended_arrival_time': rec_arrival_iso,
             'now_serving_serial': active_entry.serial_number if active_entry else None,
             'can_check_in': can_check_in,
             'check_in_available_at': check_in_available_at.isoformat(),
             'is_delayed': is_delayed,
+            'provider_has_started': provider_has_started,
             'queue_status_text': queue_status_text,
         }
 

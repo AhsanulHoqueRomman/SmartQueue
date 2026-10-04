@@ -463,17 +463,21 @@ export function CustomerLiveQueuePage() {
         {/* Metric 4: Estimated Service / Recommended Arrival */}
         <div style={{ textAlign: 'center', padding: '0.5rem' }}>
           <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-text-subtle)' }}>
-            Estimated Service
+            {qState.rawStatus === 'IN_PROGRESS' ? 'Consultation Status' : 'Estimated Service'}
           </div>
           <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', margin: '0.5rem 0 0.2rem 0' }}>
-            {qState.isDelayed
-              ? 'Awaiting Provider Start'
-              : (estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : (estStartStr || 'Around appointment time'))}
+            {qState.rawStatus === 'IN_PROGRESS'
+              ? (qState.remainingServiceMinutes != null ? `In Consultation (~${qState.remainingServiceMinutes}m rem.)` : 'In Consultation')
+              : (!qState.providerHasStarted && qState.isDelayed
+                  ? 'Awaiting Provider Start'
+                  : (estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : (estStartStr || 'Around appointment time')))}
           </div>
-          <div style={{ fontSize: '0.78rem', color: qState.isCheckedIn ? 'var(--color-success)' : 'var(--lp-accent)' }}>
-            {qState.isCheckedIn
-              ? '✓ Arrived & Checked In'
-              : (qState.recommendedArrivalTime ? `Recommended Arrival: ${formatTime(qState.recommendedArrivalTime)}` : (qState.checkInAvailableAt ? `Check-in opens: ${formatTime(qState.checkInAvailableAt)}` : 'Awaiting Arrival'))}
+          <div style={{ fontSize: '0.78rem', color: (qState.rawStatus === 'IN_PROGRESS' || qState.isCheckedIn) ? 'var(--color-success)' : 'var(--lp-accent)' }}>
+            {qState.rawStatus === 'IN_PROGRESS'
+              ? (qState.actualStartedAt ? `Started at ${formatTime(qState.actualStartedAt)}` : 'Service underway')
+              : (qState.isCheckedIn
+                  ? '✓ Arrived & Checked In'
+                  : (qState.recommendedArrivalTime ? `Recommended Arrival: ${formatTime(qState.recommendedArrivalTime)}` : (qState.checkInAvailableAt ? `Check-in opens: ${formatTime(qState.checkInAvailableAt)}` : 'Awaiting Arrival')))}
           </div>
         </div>
       </div>

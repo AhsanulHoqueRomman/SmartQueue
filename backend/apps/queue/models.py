@@ -23,6 +23,7 @@ class QueueEntry(models.Model):
         GET_READY = 'GET_READY', _('Get ready')
         BE_READY = 'BE_READY', _('Be ready')
         TURN_NOW = 'TURN_NOW', _('Turn now')
+        IN_SERVICE = 'IN_SERVICE', _('In service')
 
     ACTIVE_STATUSES = (Status.CALLED, Status.IN_PROGRESS)
 

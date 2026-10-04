@@ -155,13 +155,19 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
             {/* Service Range & Recommended Arrival */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)' }}>
               <div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--lp-text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Estimated Service</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--lp-text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>
+                  {qStatus === 'IN_PROGRESS' ? 'Consultation Status' : 'Estimated Service'}
+                </div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-text)', marginTop: '0.1rem' }}>
-                  {estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : estStartStr || 'Scheduled'}
+                  {qStatus === 'IN_PROGRESS'
+                    ? (qState.remainingServiceMinutes != null ? `In Consultation (~${qState.remainingServiceMinutes}m rem.)` : 'In Consultation')
+                    : (!qState.providerHasStarted && qState.isDelayed
+                        ? 'Awaiting Provider Start'
+                        : (estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : estStartStr || 'Scheduled'))}
                 </div>
               </div>
 
-              {recArrivalStr && (
+              {recArrivalStr && qStatus !== 'IN_PROGRESS' && qStatus !== 'CALLED' && !qState.isCheckedIn && (
                 <div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--lp-text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Recommended Arrival</div>
                   <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-accent)', marginTop: '0.1rem' }}>
