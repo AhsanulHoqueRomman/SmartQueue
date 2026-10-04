@@ -240,14 +240,14 @@ export function CustomerAppointmentsPage() {
               onClick={() => navigate('/customer/book')}
               style={{
                 padding: '0.7rem 1.25rem',
-                background: 'var(--lp-accent)',
-                color: '#FFFFFF',
+                background: 'var(--lp-btn-bg, #2F2520)',
+                color: 'var(--lp-btn-text, #FFFFFF)',
                 border: 'none',
                 borderRadius: '10px',
                 fontWeight: 600,
                 fontSize: '0.9rem',
                 cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(95, 122, 112, 0.25)',
+                boxShadow: '0 4px 12px rgba(47, 37, 32, 0.25)',
               }}
             >
               ✨ Book Appointment
@@ -540,8 +540,8 @@ export function CustomerAppointmentsPage() {
                         onClick={() => navigate('/customer/book')}
                         style={{
                           padding: '0.5rem 0.85rem',
-                          background: 'var(--lp-accent)',
-                          color: '#FFFFFF',
+                          background: 'var(--lp-btn-bg, #2F2520)',
+                          color: 'var(--lp-btn-text, #FFFFFF)',
                           border: 'none',
                           borderRadius: '8px',
                           fontWeight: 600,

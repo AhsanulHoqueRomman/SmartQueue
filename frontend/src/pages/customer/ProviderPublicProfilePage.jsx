@@ -30,13 +30,14 @@ export function ProviderPublicProfilePage() {
 
   const [availability, setAvailability] = useState(null);
   const [loadingAvailability, setLoadingAvailability] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState(null);
 
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [bookingError, setBookingError] = useState(null);
-  const [conflictError, setConflictError] = useState(false);
   const [bookedAppointment, setBookedAppointment] = useState(null);
+
+  // Avatar error state
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     if (!organizationId || !providerId) return;
@@ -50,7 +51,6 @@ export function ProviderPublicProfilePage() {
         setProfile(data);
         selectOrg(organizationId);
 
-        // Pre-select first service if available
         if (data.services && data.services.length > 0) {
           setSelectedServiceId(data.services[0].id);
         }
@@ -67,7 +67,6 @@ export function ProviderPublicProfilePage() {
     return () => { isMounted = false; };
   }, [organizationId, providerId]);
 
-  // Dynamic Availability Slots Fetch
   const fetchAvailability = async () => {
     if (!organizationId || !providerId || !selectedServiceId || !selectedDate) {
       setAvailability(null);
@@ -76,7 +75,6 @@ export function ProviderPublicProfilePage() {
 
     setLoadingAvailability(true);
     setBookingError(null);
-    setConflictError(false);
 
     try {
       const data = await appointmentService.getAvailability(
@@ -88,22 +86,8 @@ export function ProviderPublicProfilePage() {
       setAvailability(data);
     } catch (err) {
       const detailMsg = err.response?.data?.detail;
-      const isValidationMismatch = detailMsg && (
-        detailMsg.includes('not assigned') ||
-        detailMsg.includes('does not offer') ||
-        detailMsg.includes('not operating')
-      );
-
-      if (isValidationMismatch) {
-        setAvailability(null);
-      } else {
-        setBookingError(
-          detailMsg ||
-          err.response?.data?.date?.[0] ||
-          'Failed to load available slots.'
-        );
-        setAvailability(null);
-      }
+      setBookingError(detailMsg || 'Failed to load availability.');
+      setAvailability(null);
     } finally {
       setLoadingAvailability(false);
     }
@@ -113,17 +97,10 @@ export function ProviderPublicProfilePage() {
     fetchAvailability();
   }, [organizationId, providerId, selectedServiceId, selectedDate]);
 
-  const handleSelectService = (svcId) => {
-    setSelectedServiceId(svcId);
-    setSelectedSlot(null);
-    const bookingSection = document.getElementById('provider-booking-section');
-    if (bookingSection) bookingSection.scrollIntoView({ behavior: 'smooth' });
-  };
-
   const handleBookAppointment = async (e) => {
     e.preventDefault();
-    if (!selectedSlot) {
-      setBookingError('Please select an available time slot.');
+    if (!selectedServiceId || !selectedDate) {
+      setBookingError('Please complete all selection steps.');
       return;
     }
 
@@ -133,7 +110,6 @@ export function ProviderPublicProfilePage() {
         providerId: providerId,
         serviceId: selectedServiceId,
         date: selectedDate,
-        slot: selectedSlot,
         notes: notes,
       };
       sessionStorage.setItem(PENDING_BOOKING_KEY, JSON.stringify(pendingState));
@@ -143,7 +119,6 @@ export function ProviderPublicProfilePage() {
 
     setSubmitting(true);
     setBookingError(null);
-    setConflictError(false);
 
     try {
       const appointment = await appointmentService.bookAppointment(organizationId, {
@@ -155,32 +130,14 @@ export function ProviderPublicProfilePage() {
 
       setBookedAppointment(appointment);
     } catch (err) {
-      const status = err.response?.status;
       const errorData = err.response?.data;
-
-      if (status === 409 || errorData?.code === 'DOUBLE_BOOKING_CONFLICT' || errorData?.detail?.includes('conflict')) {
-        setConflictError(true);
-        setBookingError('This slot is no longer available because another booking occurred. Please select a different slot.');
-        fetchAvailability();
-      } else {
-        const msg =
-          errorData?.detail ||
-          errorData?.non_field_errors?.[0] ||
-          'Failed to book appointment. Please try again.';
-        setBookingError(msg);
-      }
+      const msg =
+        errorData?.detail ||
+        errorData?.non_field_errors?.[0] ||
+        'Failed to book appointment. Please try again.';
+      setBookingError(msg);
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const formatSlotTime = (isoString) => {
-    if (!isoString) return '';
-    try {
-      const d = new Date(isoString);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (e) {
-      return isoString;
     }
   };
 
@@ -200,21 +157,27 @@ export function ProviderPublicProfilePage() {
   }
 
   const selectedService = profile.services?.find((s) => s.id === selectedServiceId);
+  const name = profile.provider_name || 'Professional';
+  const initials = name.split(' ').map(n => n[0]).filter(Boolean).join('').substring(0, 2).toUpperCase() || 'P';
 
   // Booking Confirmation View
   if (bookedAppointment) {
+    const queueId = bookedAppointment.queue_entry?.id || bookedAppointment.queue_entry_id;
     return (
       <div className="lp-root" style={{ background: 'var(--lp-bg)', minHeight: '100vh', color: 'var(--lp-text)' }}>
         <PublicNavbar />
-        <div style={{ maxWidth: '640px', margin: '6rem auto 3rem auto', textAlign: 'center', backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '2rem', boxShadow: '0 8px 30px var(--shadow-sm)' }}>
+        <div style={{ maxWidth: '640px', margin: '6rem auto 3rem auto', textAlign: 'center', backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '2.5rem', boxShadow: '0 8px 30px var(--shadow-sm)' }}>
           <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1.25rem' }}>
             ✓
           </div>
-          <h2 style={{ fontSize: '1.65rem', fontWeight: '800', marginBottom: '0.35rem', color: 'var(--lp-text)', fontFamily: 'Cinzel, serif' }}>
-            Appointment Booked!
+          <div style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.25rem' }}>
+            Serial Allocated
+          </div>
+          <h2 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.35rem', color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif' }}>
+            Serial #{bookedAppointment.serial_number || 1} Assigned
           </h2>
           <p style={{ color: 'var(--lp-text-subtle)', marginBottom: '1.75rem', fontSize: '0.95rem' }}>
-            Your appointment with {profile.provider_name} has been confirmed.
+            Your place with {profile.provider_name} is confirmed for {bookedAppointment.appointment_date || selectedDate}.
           </p>
 
           <div style={{ backgroundColor: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '12px', textAlign: 'left', marginBottom: '1.75rem', padding: '1.25rem' }}>
@@ -231,8 +194,8 @@ export function ProviderPublicProfilePage() {
               <strong style={{ color: 'var(--lp-text)' }}>{bookedAppointment.service_name || selectedService?.name}</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.65rem 0', borderBottom: '1px solid var(--lp-border)' }}>
-              <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Date & Time:</span>
-              <strong style={{ color: 'var(--lp-text)' }}>{new Date(bookedAppointment.start_datetime).toLocaleString()}</strong>
+              <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Estimated Service Window:</span>
+              <strong style={{ color: 'var(--lp-text)' }}>~{new Date(bookedAppointment.start_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.65rem' }}>
               <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Status:</span>
@@ -240,21 +203,32 @@ export function ProviderPublicProfilePage() {
             </div>
           </div>
 
+          <div style={{ backgroundColor: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', borderRadius: '10px', padding: '0.85rem 1rem', textAlign: 'left', marginBottom: '1.75rem', fontSize: '0.875rem', color: 'var(--color-success)' }}>
+            💡 <strong>Queue Telemetry Notice:</strong> Your estimated service window and recommended arrival time will update dynamically as live consultations progress.
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            {queueId && (
+              <button
+                onClick={() => navigate(`/customer/queue/${queueId}`)}
+                style={{ padding: '0.75rem 1.5rem', background: 'var(--lp-btn-primary-bg)', color: 'var(--lp-btn-primary-text)', border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }}
+              >
+                📍 Track Live Queue
+              </button>
+            )}
             <button
               onClick={() => navigate('/customer/appointments')}
-              style={{ padding: '0.75rem 1.5rem', background: 'var(--lp-btn-primary-bg)', color: 'var(--lp-btn-primary-text)', border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }}
+              style={{ padding: '0.75rem 1.5rem', background: 'var(--lp-bg-subtle)', color: 'var(--lp-text)', border: '1px solid var(--lp-border)', borderRadius: '10px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}
             >
-              View My Appointments
+              My Appointments
             </button>
             <button
               onClick={() => {
                 setBookedAppointment(null);
-                setSelectedSlot(null);
                 setNotes('');
                 fetchAvailability();
               }}
-              style={{ padding: '0.75rem 1.5rem', background: 'var(--lp-bg-subtle)', color: 'var(--lp-text)', border: '1px solid var(--lp-border)', borderRadius: '10px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}
+              style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: 'var(--lp-text-subtle)', border: '1px solid var(--lp-border)', borderRadius: '10px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}
             >
               Book Another
             </button>
@@ -275,7 +249,7 @@ export function ProviderPublicProfilePage() {
             to={`/organizations/${organizationId}`}
             style={{ color: 'var(--lp-accent)', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none' }}
           >
-            ← Back to {profile.organization_name}
+            ← Back to {profile.organization_name} Directory
           </Link>
         </div>
 
@@ -291,16 +265,29 @@ export function ProviderPublicProfilePage() {
           }}
         >
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '1.5rem' }}>
-            {/* Photo Avatar */}
-            {profile.profile_photo ? (
+            {/* Photo Avatar with Fallback */}
+            {profile.profile_photo && !imgError ? (
               <img
                 src={profile.profile_photo}
-                alt={profile.provider_name}
+                alt={name}
+                onError={() => setImgError(true)}
                 style={{ width: '96px', height: '96px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--lp-border)' }}
               />
             ) : (
-              <div style={{ width: '96px', height: '96px', borderRadius: '50%', backgroundColor: 'var(--lp-btn-primary-bg)', color: 'var(--lp-btn-primary-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 'bold' }}>
-                👤
+              <div style={{
+                width: '96px',
+                height: '96px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--lp-accent)',
+                color: 'var(--lp-btn-primary-text, #ffffff)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '2.25rem',
+                fontWeight: '800',
+                border: '2px solid var(--lp-border)'
+              }}>
+                {initials}
               </div>
             )}
 
@@ -397,22 +384,6 @@ export function ProviderPublicProfilePage() {
                   ✨ {spec}
                 </span>
               ))}
-              {profile.categories?.map((cat) => (
-                <span
-                  key={cat.id}
-                  style={{
-                    padding: '0.4rem 0.8rem',
-                    borderRadius: '9999px',
-                    background: 'var(--lp-bg-subtle)',
-                    border: '1px solid var(--lp-border)',
-                    color: 'var(--lp-accent)',
-                    fontSize: '0.825rem',
-                    fontWeight: 600
-                  }}
-                >
-                  📁 {cat.name}
-                </span>
-              ))}
             </div>
           </div>
         )}
@@ -421,43 +392,18 @@ export function ProviderPublicProfilePage() {
         {profile.education && profile.education.length > 0 && (
           <div style={{ padding: '1.5rem', marginBottom: '1.5rem', backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px' }}>
             <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--lp-text)', marginBottom: '1rem', fontFamily: 'Outfit, sans-serif' }}>
-              🎓 Education & Training
+              🎓 Education & Qualifications
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {profile.education.map((edu, idx) => (
                 <div key={idx} style={{ padding: '0.85rem 1rem', background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '10px' }}>
                   <div style={{ fontWeight: 700, color: 'var(--lp-text)', fontSize: '0.95rem' }}>
-                    {edu.degree} {edu.field ? `in ${edu.field}` : ''}
+                    {typeof edu === 'string' ? edu : edu.degree} {edu.field ? `in ${edu.field}` : ''}
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--lp-accent)', fontWeight: 600 }}>
-                    {edu.institution} {edu.year ? `(${edu.year})` : ''}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Experience History Section */}
-        {profile.experience_history && profile.experience_history.length > 0 && (
-          <div style={{ padding: '1.5rem', marginBottom: '1.5rem', backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--lp-text)', marginBottom: '1rem', fontFamily: 'Outfit, sans-serif' }}>
-              💼 Professional History
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              {profile.experience_history.map((exp, idx) => (
-                <div key={idx} style={{ padding: '0.85rem 1rem', background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--lp-text)', fontSize: '0.95rem' }}>{exp.role}</span>
-                    {exp.period && <span style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)', fontWeight: 600 }}>{exp.period}</span>}
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--lp-accent)', fontWeight: 600, marginBottom: '0.35rem' }}>
-                    {exp.organization}
-                  </div>
-                  {exp.description && (
-                    <p style={{ fontSize: '0.825rem', color: 'var(--lp-text-subtle)', margin: 0, lineHeight: 1.4 }}>
-                      {exp.description}
-                    </p>
+                  {typeof edu === 'object' && edu.institution && (
+                    <div style={{ fontSize: '0.85rem', color: 'var(--lp-accent)', fontWeight: 600 }}>
+                      {edu.institution} {edu.year ? `(${edu.year})` : ''}
+                    </div>
                   )}
                 </div>
               ))}
@@ -465,98 +411,7 @@ export function ProviderPublicProfilePage() {
           </div>
         )}
 
-        {/* Certifications Section */}
-        {profile.certifications && profile.certifications.length > 0 && (
-          <div style={{ padding: '1.5rem', marginBottom: '1.5rem', backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--lp-text)', marginBottom: '1rem', fontFamily: 'Outfit, sans-serif' }}>
-              📜 Certifications & Accreditation
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.75rem' }}>
-              {profile.certifications.map((cert, idx) => (
-                <div key={idx} style={{ padding: '0.75rem 0.9rem', background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '10px' }}>
-                  <div style={{ fontWeight: 700, color: 'var(--lp-text)', fontSize: '0.9rem' }}>{cert.name}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--lp-accent)' }}>
-                    {cert.issuing_organization} {cert.year ? `(${cert.year})` : ''}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Offered Services Section */}
-        <div style={{ marginBottom: '2rem' }}>
-          <h2 style={{ fontSize: '1.35rem', fontWeight: '800', color: 'var(--lp-text)', marginBottom: '0.75rem', fontFamily: 'Outfit, sans-serif' }}>
-            Services Offered by {profile.provider_name}
-          </h2>
-
-          {profile.services && profile.services.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-              {profile.services.map((svc) => {
-                const isSelected = selectedServiceId === svc.id;
-                return (
-                  <div
-                    key={svc.id}
-                    style={{
-                      padding: '1.25rem',
-                      backgroundColor: 'var(--lp-surface)',
-                      border: `1.5px solid ${isSelected ? 'var(--lp-accent)' : 'var(--lp-border)'}`,
-                      borderRadius: '14px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justify: 'space-between'
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.35rem' }}>
-                        <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--lp-text)', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
-                          {svc.name}
-                        </h3>
-                        {svc.price && (
-                          <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--lp-accent)' }}>
-                            ৳{svc.price}
-                          </span>
-                        )}
-                      </div>
-                      {svc.category_name && (
-                        <span style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', background: 'var(--lp-bg-subtle)', padding: '0.15rem 0.5rem', borderRadius: '4px', border: '1px solid var(--lp-border)', display: 'inline-block', marginBottom: '0.5rem' }}>
-                          {svc.category_name}
-                        </span>
-                      )}
-                      <div style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)', fontWeight: 600 }}>
-                        ⏱️ {svc.duration_minutes} min duration
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleSelectService(svc.id)}
-                      style={{
-                        marginTop: '0.85rem',
-                        padding: '0.5rem',
-                        borderRadius: '8px',
-                        border: isSelected ? 'none' : '1px solid var(--lp-border)',
-                        background: isSelected ? 'var(--lp-btn-primary-bg)' : 'var(--lp-bg-subtle)',
-                        color: isSelected ? 'var(--lp-btn-primary-text)' : 'var(--lp-text)',
-                        fontWeight: 700,
-                        fontSize: '0.85rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {isSelected ? '✓ Selected Service' : 'Book This Service'}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p style={{ color: 'var(--lp-text-subtle)', fontStyle: 'italic', padding: '1rem', background: 'var(--lp-surface)', borderRadius: '12px', border: '1px solid var(--lp-border)' }}>
-              No services listed for this provider.
-            </p>
-          )}
-        </div>
-
-        {/* Embedded Booking Form for this Provider */}
+        {/* Serial Booking Form for this Provider */}
         <div
           id="provider-booking-section"
           style={{
@@ -569,7 +424,7 @@ export function ProviderPublicProfilePage() {
         >
           <div style={{ marginBottom: '1.25rem', borderBottom: '1px solid var(--lp-border)', paddingBottom: '0.85rem' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              Direct Professional Booking
+              Serial Queue Booking
             </span>
             <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--lp-text)', marginTop: '0.25rem', marginBottom: '0.25rem', fontFamily: 'Outfit, sans-serif' }}>
               Book an Appointment with {profile.provider_name}
@@ -577,7 +432,7 @@ export function ProviderPublicProfilePage() {
           </div>
 
           {bookingError && (
-            <div style={{ marginBottom: '1.25rem', padding: '0.85rem', background: conflictError ? 'var(--color-warning-light)' : 'var(--color-danger-light)', border: `1px solid ${conflictError ? 'var(--color-warning)' : 'var(--color-danger)'}`, borderRadius: '10px', color: conflictError ? 'var(--color-warning)' : 'var(--color-danger)', fontSize: '0.875rem' }}>
+            <div style={{ marginBottom: '1.25rem', padding: '0.85rem', background: 'var(--color-error-bg)', border: '1px solid var(--color-error-border)', borderRadius: '10px', color: 'var(--color-error)', fontSize: '0.875rem' }}>
               {bookingError}
             </div>
           )}
@@ -596,7 +451,7 @@ export function ProviderPublicProfilePage() {
                 >
                   {profile.services?.map((svc) => (
                     <option key={svc.id} value={svc.id}>
-                      {svc.name} ({svc.duration_minutes} min {svc.price ? `- ৳${svc.price}` : ''})
+                      {svc.name} (~{svc.duration_minutes} min {svc.price ? `- ৳${svc.price}` : ''})
                     </option>
                   ))}
                 </select>
@@ -611,110 +466,85 @@ export function ProviderPublicProfilePage() {
                   style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid var(--lp-border)', outline: 'none', background: 'var(--lp-surface)', color: 'var(--lp-text)', fontSize: '0.9rem', boxSizing: 'border-box' }}
                   min={todayStr}
                   value={selectedDate}
-                  onChange={(e) => {
-                    setSelectedDate(e.target.value);
-                    setSelectedSlot(null);
-                  }}
+                  onChange={(e) => setSelectedDate(e.target.value)}
                 />
               </div>
             </div>
 
-            {/* Slot display */}
+            {/* Availability Summary & Confirmation */}
             <div>
               <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: 'var(--lp-text)', marginBottom: '0.75rem', fontFamily: 'Outfit, sans-serif' }}>
-                Available Time Slots ({selectedDate})
+                Queue Availability ({selectedDate})
               </h3>
 
               {!selectedServiceId ? (
                 <EmptyState
                   title="Select Service"
-                  message="Choose a service to view availability slots."
+                  message="Choose a service to view availability."
                 />
               ) : loadingAvailability ? (
-                <LoadingState message="Loading available time slots..." />
-              ) : !availability || !availability.slots || availability.slots.length === 0 ? (
-                <EmptyState
-                  title="No Open Slots"
-                  message={`No available slots found for ${selectedDate}. Try selecting another date.`}
-                />
+                <LoadingState message="Loading provider availability..." />
               ) : (
                 <div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.5rem', marginBottom: '1rem' }}>
-                    {availability.slots.map((slot, idx) => {
-                      const isSelected = selectedSlot?.start === slot.start;
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          style={{
-                            padding: '0.65rem 0.5rem',
-                            borderRadius: '8px',
-                            border: isSelected ? 'none' : '1px solid var(--lp-border)',
-                            background: isSelected ? 'var(--lp-accent)' : 'var(--lp-bg-subtle)',
-                            color: isSelected ? '#FFFFFF' : 'var(--lp-text)',
-                            fontSize: '0.825rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                          onClick={() => {
-                            setSelectedSlot(slot);
-                            setBookingError(null);
-                          }}
-                        >
-                          {formatSlotTime(slot.start)} – {formatSlotTime(slot.end)}
-                        </button>
-                      );
-                    })}
+                  <div style={{ backgroundColor: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '14px', padding: '1.25rem', marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Selected Date:</span>
+                      <strong style={{ color: 'var(--lp-text)' }}>{selectedDate}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Provider Availability:</span>
+                      <strong style={{ color: availability?.is_available ? 'var(--color-success)' : 'var(--color-error)' }}>
+                        {availability?.is_available ? `Available (${availability.working_hours_display})` : (availability?.reason || 'Not Available')}
+                      </strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Estimated Consultation Duration:</span>
+                      <strong style={{ color: 'var(--lp-text)' }}>{availability?.duration_minutes || selectedService?.duration_minutes || 30} min</strong>
+                    </div>
+                    <div style={{ fontSize: '0.825rem', color: 'var(--lp-text-subtle)', padding: '0.75rem', backgroundColor: 'var(--lp-surface)', borderRadius: '8px', border: '1px solid var(--lp-border)' }}>
+                      ⚡ <strong>Queue-based booking:</strong> Your serial and estimated service window will be assigned after booking. The estimate may update continuously as the live queue progresses.
+                    </div>
                   </div>
 
-                  {selectedSlot && (
-                    <form onSubmit={handleBookAppointment} style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--lp-border)' }}>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginBottom: '1rem', backgroundColor: 'var(--lp-bg-subtle)', padding: '0.75rem', borderRadius: '8px' }}>
-                        <div><strong>Professional:</strong> {profile.provider_name}</div>
-                        <div><strong>Service:</strong> {selectedService?.name}</div>
-                        <div><strong>Selected Time:</strong> {new Date(selectedSlot.start).toLocaleString()}</div>
-                      </div>
+                  <form onSubmit={handleBookAppointment}>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--lp-text-subtle)', marginBottom: '0.25rem' }}>
+                        Additional Notes (Optional)
+                      </label>
+                      <textarea
+                        style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--lp-border)', outline: 'none', background: 'var(--lp-surface)', color: 'var(--lp-text)', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                        rows="2"
+                        placeholder="Add any specific requests..."
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        disabled={submitting || (availability && !availability.is_available)}
+                      />
+                    </div>
 
-                      <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--lp-text-subtle)', marginBottom: '0.25rem' }}>
-                          Additional Notes (Optional)
-                        </label>
-                        <textarea
-                          style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--lp-border)', outline: 'none', background: 'var(--lp-surface)', color: 'var(--lp-text)', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                          rows="2"
-                          placeholder="Add any specific requests..."
-                          value={notes}
-                          onChange={(e) => setNotes(e.target.value)}
-                          disabled={submitting}
-                        />
-                      </div>
+                    {!isAuthenticated && (
+                      <p style={{ fontSize: '0.825rem', color: 'var(--lp-accent)', fontWeight: '600', marginBottom: '0.75rem' }}>
+                        ℹ️ You will be asked to sign in to complete your serial booking.
+                      </p>
+                    )}
 
-                      {!isAuthenticated && (
-                        <p style={{ fontSize: '0.825rem', color: 'var(--lp-accent)', fontWeight: '600', marginBottom: '0.75rem' }}>
-                          ℹ️ You will be asked to sign in to complete your booking. Your selected slot choice will be preserved!
-                        </p>
-                      )}
-
-                      <button
-                        type="submit"
-                        disabled={submitting}
-                        style={{
-                          width: '100%',
-                          padding: '0.8rem',
-                          background: 'var(--lp-btn-bg, #2F2520)',
-                          color: 'var(--lp-btn-text, #FAF8F3)',
-                          border: 'none',
-                          borderRadius: '10px',
-                          fontWeight: 700,
-                          fontSize: '0.9rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {submitting ? 'Confirming Booking...' : isAuthenticated ? 'Confirm & Book Appointment Now' : 'Sign In to Confirm Booking'}
-                      </button>
-                    </form>
-                  )}
+                    <button
+                      type="submit"
+                      disabled={submitting || (availability && !availability.is_available)}
+                      style={{
+                        width: '100%',
+                        padding: '0.8rem',
+                        background: (availability && !availability.is_available) ? 'var(--lp-bg-subtle)' : 'var(--lp-btn-primary-bg)',
+                        color: (availability && !availability.is_available) ? 'var(--lp-text-subtle)' : 'var(--lp-btn-primary-text)',
+                        border: 'none',
+                        borderRadius: '10px',
+                        fontWeight: 700,
+                        fontSize: '0.9rem',
+                        cursor: (availability && !availability.is_available) ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {submitting ? 'Allocating Serial...' : (availability && !availability.is_available) ? 'Unavailable on Selected Date' : isAuthenticated ? 'Confirm Appointment & Join Queue for This Date' : 'Sign In to Confirm Booking'}
+                    </button>
+                  </form>
                 </div>
               )}
             </div>

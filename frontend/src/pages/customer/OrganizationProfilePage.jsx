@@ -16,7 +16,7 @@ export function OrganizationProfilePage() {
   const { organizationId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { selectOrg } = useTenant();
 
   // Profile State
@@ -28,7 +28,7 @@ export function OrganizationProfilePage() {
   const [error, setError] = useState(null);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
 
-  // Booking Flow State
+  // Booking Flow State: Organization -> Service -> Provider -> Date -> Serial
   const [selectedServiceId, setSelectedServiceId] = useState('');
   const [selectedProviderId, setSelectedProviderId] = useState('');
   
@@ -37,13 +37,14 @@ export function OrganizationProfilePage() {
 
   const [availability, setAvailability] = useState(null);
   const [loadingAvailability, setLoadingAvailability] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState(null);
 
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [bookingError, setBookingError] = useState(null);
-  const [conflictError, setConflictError] = useState(false);
   const [bookedAppointment, setBookedAppointment] = useState(null);
+
+  // Avatar Image Error Tracker
+  const [imgErrors, setImgErrors] = useState({});
 
   // Fetch Organization, Categories, Services, Providers
   useEffect(() => {
@@ -98,7 +99,6 @@ export function OrganizationProfilePage() {
               if (pb.serviceId && svcList.some(s => s.id === pb.serviceId)) setSelectedServiceId(pb.serviceId);
               if (pb.providerId && provList.some(p => p.id === pb.providerId)) setSelectedProviderId(pb.providerId);
               if (pb.date) setSelectedDate(pb.date);
-              if (pb.slot) setSelectedSlot(pb.slot);
               if (pb.notes) setNotes(pb.notes);
               restored = true;
               sessionStorage.removeItem(PENDING_BOOKING_KEY);
@@ -112,11 +112,11 @@ export function OrganizationProfilePage() {
           const paramService = searchParams.get('service_id');
           const paramProvider = searchParams.get('provider_id');
 
-          if (paramService && svcList.some(s => s.id === paramService)) {
-            setSelectedServiceId(paramService);
-          } else if (svcList.length > 0) {
-            setSelectedServiceId(svcList[0].id);
-          }
+          const defaultSvc = (paramService && svcList.some(s => s.id === paramService))
+            ? paramService
+            : (svcList.length > 0 ? svcList[0].id : '');
+
+          setSelectedServiceId(defaultSvc);
 
           if (paramProvider && provList.some(p => p.id === paramProvider)) {
             setSelectedProviderId(paramProvider);
@@ -137,7 +137,25 @@ export function OrganizationProfilePage() {
     return () => { isMounted = false; };
   }, [organizationId]);
 
-  // Dynamic Availability Slots Fetch
+  // Service-First Provider Filtering: Filter providers by selected service
+  const displayedProviders = selectedServiceId
+    ? providers.filter((prov) => {
+        if (!prov.services || prov.services.length === 0) return true;
+        return prov.services.some((s) => s.id === selectedServiceId);
+      })
+    : providers;
+
+  // Auto-sync selectedProviderId when service changes
+  useEffect(() => {
+    if (selectedServiceId && displayedProviders.length > 0) {
+      const isStillEligible = displayedProviders.some((p) => p.id === selectedProviderId);
+      if (!isStillEligible) {
+        setSelectedProviderId(displayedProviders[0].id);
+      }
+    }
+  }, [selectedServiceId, displayedProviders]);
+
+  // Dynamic Availability Fetch for selected provider & date
   const fetchAvailability = async () => {
     if (!organizationId || !selectedProviderId || !selectedServiceId || !selectedDate) {
       setAvailability(null);
@@ -146,7 +164,6 @@ export function OrganizationProfilePage() {
 
     setLoadingAvailability(true);
     setBookingError(null);
-    setConflictError(false);
 
     try {
       const data = await appointmentService.getAvailability(
@@ -158,22 +175,8 @@ export function OrganizationProfilePage() {
       setAvailability(data);
     } catch (err) {
       const detailMsg = err.response?.data?.detail;
-      const isValidationMismatch = detailMsg && (
-        detailMsg.includes('not assigned') ||
-        detailMsg.includes('does not offer') ||
-        detailMsg.includes('not operating')
-      );
-
-      if (isValidationMismatch) {
-        setAvailability(null);
-      } else {
-        setBookingError(
-          detailMsg ||
-          err.response?.data?.date?.[0] ||
-          'Failed to load available slots.'
-        );
-        setAvailability(null);
-      }
+      setBookingError(detailMsg || 'Failed to load provider availability.');
+      setAvailability(null);
     } finally {
       setLoadingAvailability(false);
     }
@@ -185,22 +188,20 @@ export function OrganizationProfilePage() {
 
   const handleSelectService = (svcId) => {
     setSelectedServiceId(svcId);
-    setSelectedSlot(null);
     const bookingSection = document.getElementById('appointment-booking-section');
     if (bookingSection) bookingSection.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleSelectProvider = (provId) => {
     setSelectedProviderId(provId);
-    setSelectedSlot(null);
     const bookingSection = document.getElementById('appointment-booking-section');
     if (bookingSection) bookingSection.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleBookAppointment = async (e) => {
     e.preventDefault();
-    if (!selectedSlot) {
-      setBookingError('Please select an available time slot.');
+    if (!selectedServiceId || !selectedProviderId || !selectedDate) {
+      setBookingError('Please complete all selection steps.');
       return;
     }
 
@@ -210,7 +211,6 @@ export function OrganizationProfilePage() {
         serviceId: selectedServiceId,
         providerId: selectedProviderId,
         date: selectedDate,
-        slot: selectedSlot,
         notes: notes,
       };
       sessionStorage.setItem(PENDING_BOOKING_KEY, JSON.stringify(pendingState));
@@ -220,7 +220,6 @@ export function OrganizationProfilePage() {
 
     setSubmitting(true);
     setBookingError(null);
-    setConflictError(false);
 
     try {
       const appointment = await appointmentService.bookAppointment(organizationId, {
@@ -232,27 +231,19 @@ export function OrganizationProfilePage() {
 
       setBookedAppointment(appointment);
     } catch (err) {
-      const status = err.response?.status;
       const errorData = err.response?.data;
-
-      if (status === 409 || errorData?.code === 'DOUBLE_BOOKING_CONFLICT' || errorData?.detail?.includes('conflict') || errorData?.detail?.includes('booked')) {
-        setConflictError(true);
-        setBookingError('This slot is no longer available because another booking occurred. Please select a different slot.');
-        fetchAvailability();
-      } else {
-        const msg =
-          errorData?.detail ||
-          errorData?.non_field_errors?.[0] ||
-          errorData?.start_datetime?.[0] ||
-          'Failed to book appointment. Please check your selections and try again.';
-        setBookingError(msg);
-      }
+      const msg =
+        errorData?.detail ||
+        errorData?.non_field_errors?.[0] ||
+        errorData?.appointment_date?.[0] ||
+        'Failed to book appointment. Please check availability and try again.';
+      setBookingError(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Industry-specific label helper
+  // Industry-specific terminology helper
   const getIndustryLabels = (indType) => {
     switch (indType) {
       case 'LEGAL':
@@ -277,26 +268,16 @@ export function OrganizationProfilePage() {
     ? services
     : services.filter(s => s.category?.id === selectedCategoryFilter || s.category === selectedCategoryFilter);
 
-  const formatSlotTime = (isoString) => {
-    if (!isoString) return '';
-    try {
-      const d = new Date(isoString);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (e) {
-      return isoString;
-    }
-  };
-
   if (loading) {
-    return <LoadingState message="Loading organization profile..." />;
+    return <LoadingState message="Loading organization directory..." />;
   }
 
   if (error || !org) {
     return (
       <EmptyState
         title="Organization Unavailable"
-        message={error?.includes('404') || error?.includes('Not Found') ? 'This organization is currently unavailable.' : (error || 'This organization is currently unavailable.')}
-        actionText="Back to Organizations"
+        message={error || 'This organization is currently unavailable.'}
+        actionText="Back to Directory"
         onAction={() => navigate('/organizations')}
       />
     );
@@ -304,20 +285,24 @@ export function OrganizationProfilePage() {
 
   const industryLabels = getIndustryLabels(org.industry_type);
 
-  // Booking Confirmation View
+  // Serial Booking Confirmation View
   if (bookedAppointment) {
+    const queueId = bookedAppointment.queue_entry?.id || bookedAppointment.queue_entry_id;
     return (
       <div className="lp-root" style={{ background: 'var(--lp-bg)', minHeight: '100vh', color: 'var(--lp-text)' }}>
         <PublicNavbar />
-        <div style={{ maxWidth: '640px', margin: '6rem auto 3rem auto', textAlign: 'center', backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '2rem', boxShadow: '0 8px 30px var(--shadow-sm)' }}>
+        <div style={{ maxWidth: '640px', margin: '6rem auto 3rem auto', textAlign: 'center', backgroundColor: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '2.5rem', boxShadow: '0 8px 30px var(--shadow-sm)' }}>
           <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1.25rem' }}>
             ✓
           </div>
-          <h2 style={{ fontSize: '1.65rem', fontWeight: '800', marginBottom: '0.35rem', color: 'var(--lp-text)', fontFamily: 'Cinzel, serif' }}>
-            Appointment Booked Successfully!
+          <div style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.25rem' }}>
+            Serial Allocated
+          </div>
+          <h2 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.35rem', color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif' }}>
+            Serial #{bookedAppointment.serial_number || 1} Assigned
           </h2>
           <p style={{ color: 'var(--lp-text-subtle)', marginBottom: '1.75rem', fontSize: '0.95rem' }}>
-            Your appointment has been confirmed and registered with {org.name}.
+            Your position in {org.name}'s queue is locked for {bookedAppointment.appointment_date || selectedDate}.
           </p>
 
           <div style={{ backgroundColor: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '12px', textAlign: 'left', marginBottom: '1.75rem', padding: '1.25rem' }}>
@@ -334,8 +319,8 @@ export function OrganizationProfilePage() {
               <strong style={{ color: 'var(--lp-text)' }}>{bookedAppointment.provider_name || selectedProvider?.title || 'Assigned Professional'}</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.65rem 0', borderBottom: '1px solid var(--lp-border)' }}>
-              <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Date & Time:</span>
-              <strong style={{ color: 'var(--lp-text)' }}>{new Date(bookedAppointment.start_datetime).toLocaleString()}</strong>
+              <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Estimated Service Window:</span>
+              <strong style={{ color: 'var(--lp-text)' }}>~{new Date(bookedAppointment.start_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.65rem' }}>
               <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Status:</span>
@@ -343,21 +328,32 @@ export function OrganizationProfilePage() {
             </div>
           </div>
 
+          <div style={{ backgroundColor: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', borderRadius: '10px', padding: '0.85rem 1rem', textAlign: 'left', marginBottom: '1.75rem', fontSize: '0.875rem', color: 'var(--color-success)' }}>
+            💡 <strong>Queue Telemetry Notice:</strong> Your estimated service window and recommended arrival time will update dynamically as consultations progress.
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            {queueId && (
+              <button
+                onClick={() => navigate(`/customer/queue/${queueId}`)}
+                style={{ padding: '0.75rem 1.5rem', background: 'var(--lp-btn-primary-bg)', color: 'var(--lp-btn-primary-text)', border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }}
+              >
+                📍 Track Live Queue
+              </button>
+            )}
             <button
               onClick={() => navigate('/customer/appointments')}
-              style={{ padding: '0.75rem 1.5rem', background: 'var(--lp-btn-primary-bg)', color: 'var(--lp-btn-primary-text)', border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }}
+              style={{ padding: '0.75rem 1.5rem', background: 'var(--lp-bg-subtle)', color: 'var(--lp-text)', border: '1px solid var(--lp-border)', borderRadius: '10px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}
             >
-              View My Appointments
+              My Appointments
             </button>
             <button
               onClick={() => {
                 setBookedAppointment(null);
-                setSelectedSlot(null);
                 setNotes('');
                 fetchAvailability();
               }}
-              style={{ padding: '0.75rem 1.5rem', background: 'var(--lp-bg-subtle)', color: 'var(--lp-text)', border: '1px solid var(--lp-border)', borderRadius: '10px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}
+              style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: 'var(--lp-text-subtle)', border: '1px solid var(--lp-border)', borderRadius: '10px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}
             >
               Book Another
             </button>
@@ -372,7 +368,7 @@ export function OrganizationProfilePage() {
       <PublicNavbar />
 
       <div style={{ padding: '6rem 1rem 3rem 1rem', maxWidth: '1140px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-        {/* Organization Header Banner */}
+        {/* Organization Directory Header */}
         <div
           style={{
             padding: '2rem',
@@ -413,7 +409,7 @@ export function OrganizationProfilePage() {
                     border: '1px solid var(--color-success-border)'
                   }}
                 >
-                  ✓ Verified Organization
+                  ✓ Verified Directory
                 </span>
               </div>
 
@@ -528,10 +524,10 @@ export function OrganizationProfilePage() {
         <div style={{ marginBottom: '2.5rem' }}>
           <div style={{ marginBottom: '1rem' }}>
             <h2 style={{ fontSize: '1.35rem', fontWeight: '800', color: 'var(--lp-text)', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
-              Available Services
+              Services
             </h2>
             <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.875rem', margin: '0.2rem 0 0 0' }}>
-              Select a service below to schedule your appointment.
+              Select a service below to filter available professionals who offer it.
             </p>
           </div>
 
@@ -579,7 +575,7 @@ export function OrganizationProfilePage() {
                         </p>
                       )}
                       <div style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)', fontWeight: '600' }}>
-                        ⏱️ Expected Duration: {svc.duration_minutes} min
+                        ⏱️ Typical consultation duration: {svc.duration_minutes} min
                       </div>
                     </div>
 
@@ -610,121 +606,163 @@ export function OrganizationProfilePage() {
           )}
         </div>
 
-        {/* Providers / Professionals Section */}
+        {/* Provider Directory Section (Vertical List Presentation) */}
         <div style={{ marginBottom: '2.5rem' }}>
-          <div style={{ marginBottom: '1rem' }}>
+          <div style={{ marginBottom: '1.25rem' }}>
             <h2 style={{ fontSize: '1.35rem', fontWeight: '800', color: 'var(--lp-text)', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
               {industryLabels.providers}
             </h2>
             <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.875rem', margin: '0.2rem 0 0 0' }}>
-              Select a professional to view their availability or open their public profile.
+              {selectedService ? `Showing professionals offering "${selectedService.name}"` : 'Select a service above to view matching professionals.'}
             </p>
           </div>
 
-          {providers.length === 0 ? (
-            <p style={{ color: 'var(--lp-text-subtle)', fontStyle: 'italic', padding: '1rem', background: 'var(--lp-surface)', borderRadius: '12px', border: '1px solid var(--lp-border)' }}>
-              No providers listed for this organization yet.
+          {displayedProviders.length === 0 ? (
+            <p style={{ color: 'var(--lp-text-subtle)', fontStyle: 'italic', padding: '1.25rem', background: 'var(--lp-surface)', borderRadius: '12px', border: '1px solid var(--lp-border)' }}>
+              No professionals listed for this service.
             </p>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
-              {providers.map((prov) => {
-                const isSelected = selectedProviderId === prov.id;
-                const displayName = prov.title ? `${prov.title}` : `Professional`;
-                const emailText = prov.user_email || `Team Member`;
+            <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px var(--shadow-sm)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {displayedProviders.map((prov, idx) => {
+                  const isSelected = selectedProviderId === prov.id;
+                  const name = prov.provider_name || `${prov.user_first_name || ''} ${prov.user_last_name || ''}`.trim() || prov.user_email || 'Professional';
+                  const title = prov.title || 'Professional';
+                  
+                  // Extract education degrees string
+                  let degrees = '';
+                  if (Array.isArray(prov.education) && prov.education.length > 0) {
+                    degrees = prov.education.map(e => typeof e === 'string' ? e : e.degree).filter(Boolean).join(', ');
+                  }
 
-                return (
-                  <div
-                    key={prov.id}
-                    style={{
-                      padding: '1.25rem',
-                      backgroundColor: 'var(--lp-surface)',
-                      border: `1.5px solid ${isSelected ? 'var(--lp-accent)' : 'var(--lp-border)'}`,
-                      borderRadius: '16px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justify: 'space-between',
-                      boxShadow: isSelected ? '0 4px 16px var(--shadow-sm)' : 'none'
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                        {prov.profile_photo ? (
-                          <img
-                            src={prov.profile_photo}
-                            alt={displayName}
-                            style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--lp-border)' }}
-                          />
-                        ) : (
-                          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--lp-accent)', color: 'var(--color-primary-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                            👤
+                  // Initials fallback
+                  const initials = name.split(' ').map(n => n[0]).filter(Boolean).join('').substring(0, 2).toUpperCase() || 'P';
+
+                  return (
+                    <div
+                      key={prov.id}
+                      style={{
+                        padding: '1.25rem 0',
+                        borderBottom: idx < displayedProviders.length - 1 ? '1px solid var(--lp-border)' : 'none',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'flex-start',
+                        gap: '1.25rem',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      {/* Left: Avatar + Professional Info */}
+                      <div style={{ display: 'flex', gap: '1.25rem', flex: '1 1 320px', alignItems: 'flex-start' }}>
+                        <div style={{ flexShrink: 0 }}>
+                          {prov.profile_photo && !imgErrors[prov.id] ? (
+                            <img
+                              src={prov.profile_photo}
+                              alt={name}
+                              onError={() => setImgErrors(prev => ({ ...prev, [prov.id]: true }))}
+                              style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--lp-border)' }}
+                            />
+                          ) : (
+                            <div style={{
+                              width: '64px',
+                              height: '64px',
+                              borderRadius: '50%',
+                              backgroundColor: 'var(--lp-accent)',
+                              color: 'var(--lp-btn-primary-text, #ffffff)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: '800',
+                              fontSize: '1.25rem',
+                              border: '2px solid var(--lp-border)'
+                            }}>
+                              {initials}
+                            </div>
+                          )}
+                        </div>
+
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--lp-text)', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
+                              {name}
+                            </h3>
+                            {degrees && (
+                              <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--lp-text-subtle)' }}>
+                                {degrees}
+                              </span>
+                            )}
                           </div>
-                        )}
-                        <div>
-                          <h4 style={{ fontSize: '1.05rem', fontWeight: '700', color: 'var(--lp-text)', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
-                            {displayName}
-                          </h4>
-                          <span style={{ fontSize: '0.775rem', color: 'var(--lp-text-subtle)' }}>{emailText}</span>
+
+                          {title && (
+                            <div style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--lp-accent)', marginTop: '0.2rem' }}>
+                              {title}
+                            </div>
+                          )}
+
+                          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginTop: '0.35rem' }}>
+                            {prov.experience_years > 0 && (
+                              <span>🎓 {prov.experience_years} years experience</span>
+                            )}
+                            {prov.specialties && prov.specialties.length > 0 && (
+                              <span>✨ {Array.isArray(prov.specialties) ? prov.specialties.join(', ') : prov.specialties}</span>
+                            )}
+                          </div>
+
+                          {prov.bio && (
+                            <p style={{ fontSize: '0.875rem', color: 'var(--lp-text-subtle)', margin: '0.5rem 0 0 0', lineHeight: '1.5', maxWidth: '650px' }}>
+                              {prov.bio}
+                            </p>
+                          )}
+
+                          <div style={{ marginTop: '0.65rem', fontSize: '0.825rem', fontWeight: '600', color: isSelected && availability?.is_available ? 'var(--color-success)' : 'var(--lp-text-subtle)' }}>
+                            📅 Selected Date ({selectedDate}): {isSelected && availability ? (availability.is_available ? `Available (${availability.working_hours_display})` : `Unavailable (${availability.reason || 'Not available'})`) : 'Select provider to inspect working hours'}
+                          </div>
                         </div>
                       </div>
 
-                      {prov.experience_years > 0 && (
-                        <div style={{ fontSize: '0.8rem', color: 'var(--lp-accent)', fontWeight: 600, marginBottom: '0.5rem' }}>
-                          🎓 {prov.experience_years} Years Experience
-                        </div>
-                      )}
-
-                      {prov.bio && (
-                        <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', lineHeight: '1.4', marginBottom: '0.75rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                          {prov.bio}
-                        </p>
-                      )}
+                      {/* Right: Selection Action & Profile Link */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0, minWidth: '150px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectProvider(prov.id)}
+                          style={{
+                            padding: '0.65rem 1.25rem',
+                            borderRadius: '10px',
+                            border: isSelected ? 'none' : '1px solid var(--lp-border)',
+                            background: isSelected ? 'var(--lp-btn-primary-bg)' : 'var(--lp-bg-subtle)',
+                            color: isSelected ? 'var(--lp-btn-primary-text)' : 'var(--lp-text)',
+                            fontWeight: 700,
+                            fontSize: '0.875rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {isSelected ? '✓ Selected Provider' : 'Select Provider'}
+                        </button>
+                        <Link
+                          to={`/organizations/${organizationId}/providers/${prov.id}`}
+                          style={{
+                            display: 'block',
+                            textAlign: 'center',
+                            padding: '0.45rem',
+                            borderRadius: '8px',
+                            color: 'var(--lp-accent)',
+                            fontWeight: 600,
+                            fontSize: '0.825rem',
+                            textDecoration: 'none'
+                          }}
+                        >
+                          View Full Profile →
+                        </Link>
+                      </div>
                     </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.75rem' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleSelectProvider(prov.id)}
-                        style={{
-                          width: '100%',
-                          padding: '0.55rem',
-                          borderRadius: '8px',
-                          border: isSelected ? 'none' : '1px solid var(--lp-border)',
-                          background: isSelected ? 'var(--lp-btn-primary-bg)' : 'var(--lp-bg-subtle)',
-                          color: isSelected ? 'var(--lp-btn-primary-text)' : 'var(--lp-text)',
-                          fontWeight: 700,
-                          fontSize: '0.85rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        {isSelected ? '✓ Selected Provider' : 'Select Provider'}
-                      </button>
-                      <Link
-                        to={`/organizations/${organizationId}/providers/${prov.id}`}
-                        style={{
-                          display: 'block',
-                          textAlign: 'center',
-                          padding: '0.45rem',
-                          borderRadius: '8px',
-                          border: 'none',
-                          background: 'transparent',
-                          color: 'var(--lp-accent)',
-                          fontWeight: 600,
-                          fontSize: '0.8rem',
-                          textDecoration: 'none'
-                        }}
-                      >
-                        View Full Public Profile →
-                      </Link>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Appointment Booking Section */}
+        {/* Serial-Based Queue Booking Component */}
         <div
           id="appointment-booking-section"
           style={{
@@ -737,18 +775,18 @@ export function OrganizationProfilePage() {
         >
           <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--lp-border)', paddingBottom: '1rem' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              Instant Booking System
+              Serial Queue Booking
             </span>
             <h2 style={{ fontSize: '1.65rem', fontWeight: '800', color: 'var(--lp-text)', marginTop: '0.25rem', marginBottom: '0.25rem', fontFamily: 'Outfit, sans-serif' }}>
-              Schedule Your Appointment
+              Schedule Appointment & Join Queue
             </h2>
             <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem', margin: 0 }}>
-              Choose your preferred service, professional, and date to view live available time slots.
+              Select a date to check provider availability. Serial and estimated consultation window are assigned upon booking.
             </p>
           </div>
 
           {bookingError && (
-            <div style={{ marginBottom: '1.5rem', padding: '0.85rem', background: conflictError ? 'var(--color-warning-bg)' : 'var(--color-error-bg)', border: `1px solid ${conflictError ? 'var(--color-warning-border)' : 'var(--color-error-border)'}`, borderRadius: '10px', color: conflictError ? 'var(--color-warning)' : 'var(--color-error)', fontSize: '0.875rem' }}>
+            <div style={{ marginBottom: '1.5rem', padding: '0.85rem', background: 'var(--color-error-bg)', border: '1px solid var(--color-error-border)', borderRadius: '10px', color: 'var(--color-error)', fontSize: '0.875rem' }}>
               {bookingError}
             </div>
           )}
@@ -758,7 +796,7 @@ export function OrganizationProfilePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                  1. Select Service
+                  1. Selected Service
                 </label>
                 <select
                   style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid var(--lp-border)', outline: 'none', background: 'var(--lp-surface)', color: 'var(--lp-text)', fontSize: '0.9rem', cursor: 'pointer' }}
@@ -770,7 +808,7 @@ export function OrganizationProfilePage() {
                   ) : (
                     services.map((svc) => (
                       <option key={svc.id} value={svc.id}>
-                        {svc.name} ({svc.duration_minutes} min {svc.price ? `- ৳${svc.price}` : ''})
+                        {svc.name} (~{svc.duration_minutes} min {svc.price ? `- ৳${svc.price}` : ''})
                       </option>
                     ))
                   )}
@@ -779,19 +817,19 @@ export function OrganizationProfilePage() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                  2. Select Professional
+                  2. Selected Professional
                 </label>
                 <select
                   style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid var(--lp-border)', outline: 'none', background: 'var(--lp-surface)', color: 'var(--lp-text)', fontSize: '0.9rem', cursor: 'pointer' }}
                   value={selectedProviderId}
                   onChange={(e) => setSelectedProviderId(e.target.value)}
                 >
-                  {providers.length === 0 ? (
-                    <option value="">No providers available</option>
+                  {displayedProviders.length === 0 ? (
+                    <option value="">No providers available for selected service</option>
                   ) : (
-                    providers.map((prov) => (
+                    displayedProviders.map((prov) => (
                       <option key={prov.id} value={prov.id}>
-                        {prov.title ? `${prov.title}` : `Provider #${prov.id.slice(0, 8)}`}
+                        {prov.provider_name || prov.title || `Provider #${prov.id.slice(0, 8)}`}
                       </option>
                     ))
                   )}
@@ -807,113 +845,85 @@ export function OrganizationProfilePage() {
                   style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid var(--lp-border)', outline: 'none', background: 'var(--lp-surface)', color: 'var(--lp-text)', fontSize: '0.9rem', boxSizing: 'border-box' }}
                   min={todayStr}
                   value={selectedDate}
-                  onChange={(e) => {
-                    setSelectedDate(e.target.value);
-                    setSelectedSlot(null);
-                  }}
+                  onChange={(e) => setSelectedDate(e.target.value)}
                 />
               </div>
             </div>
 
-            {/* Step 4: Slot Display */}
+            {/* Step 4: Availability Summary & Booking Confirmation */}
             <div>
               <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: 'var(--lp-text)', marginBottom: '0.75rem', fontFamily: 'Outfit, sans-serif' }}>
-                Available Time Slots ({selectedDate})
+                Queue Availability ({selectedDate})
               </h3>
 
               {!selectedServiceId || !selectedProviderId ? (
                 <EmptyState
                   title="Make Selections"
-                  message="Choose a service and provider to load real-time slot availability."
+                  message="Choose a service and provider to load real-time queue availability."
                 />
               ) : loadingAvailability ? (
-                <LoadingState message="Fetching available slots..." />
-              ) : !availability || !availability.slots || availability.slots.length === 0 ? (
-                <EmptyState
-                  title="No Open Slots"
-                  message={`No available slots found for ${selectedDate}. Try selecting another date.`}
-                />
+                <LoadingState message="Checking provider working schedule..." />
               ) : (
                 <div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.5rem', marginBottom: '1rem' }}>
-                    {availability.slots.map((slot, idx) => {
-                      const isSelected = selectedSlot?.start === slot.start;
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          style={{
-                            padding: '0.65rem 0.5rem',
-                            borderRadius: '8px',
-                            border: isSelected ? 'none' : '1px solid var(--lp-border)',
-                            background: isSelected ? 'var(--lp-btn-primary-bg)' : 'var(--lp-bg-subtle)',
-                            color: isSelected ? 'var(--lp-btn-primary-text)' : 'var(--lp-text)',
-                            fontSize: '0.825rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                          onClick={() => {
-                            setSelectedSlot(slot);
-                            setBookingError(null);
-                          }}
-                        >
-                          {formatSlotTime(slot.start)} – {formatSlotTime(slot.end)}
-                        </button>
-                      );
-                    })}
+                  <div style={{ backgroundColor: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '14px', padding: '1.25rem', marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Selected Date:</span>
+                      <strong style={{ color: 'var(--lp-text)' }}>{selectedDate}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Provider Availability:</span>
+                      <strong style={{ color: availability?.is_available ? 'var(--color-success)' : 'var(--color-error)' }}>
+                        {availability?.is_available ? `Available (${availability.working_hours_display})` : (availability?.reason || 'Not Available')}
+                      </strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Estimated Consultation Duration:</span>
+                      <strong style={{ color: 'var(--lp-text)' }}>{availability?.duration_minutes || selectedService?.duration_minutes || 30} min</strong>
+                    </div>
+                    <div style={{ fontSize: '0.825rem', color: 'var(--lp-text-subtle)', padding: '0.75rem', backgroundColor: 'var(--lp-surface)', borderRadius: '8px', border: '1px solid var(--lp-border)' }}>
+                      ⚡ <strong>Queue-based booking:</strong> Your serial and estimated service window will be assigned after booking. The estimate may update continuously as the live queue progresses.
+                    </div>
                   </div>
 
-                  {selectedSlot && (
-                    <form onSubmit={handleBookAppointment} style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--lp-border)' }}>
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--lp-text)', marginBottom: '0.5rem' }}>
-                        Confirm Appointment Details
-                      </h4>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginBottom: '1rem', backgroundColor: 'var(--lp-bg-subtle)', padding: '0.75rem', borderRadius: '8px' }}>
-                        <div><strong>Service:</strong> {selectedService?.name}</div>
-                        <div><strong>Provider:</strong> {selectedProvider?.title || 'Assigned Professional'}</div>
-                        <div><strong>Time:</strong> {new Date(selectedSlot.start).toLocaleString()}</div>
-                      </div>
+                  <form onSubmit={handleBookAppointment}>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--lp-text-subtle)', marginBottom: '0.25rem' }}>
+                        Additional Notes for Provider (Optional)
+                      </label>
+                      <textarea
+                        style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--lp-border)', background: 'var(--lp-surface)', color: 'var(--lp-text)', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                        rows="2"
+                        placeholder="Add any specific requests or details..."
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        disabled={submitting || (availability && !availability.is_available)}
+                      />
+                    </div>
 
-                      <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--lp-text-subtle)', marginBottom: '0.25rem' }}>
-                          Additional Notes (Optional)
-                        </label>
-                        <textarea
-                          style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--lp-border)', background: 'var(--lp-surface)', color: 'var(--lp-text)', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                          rows="2"
-                          placeholder="Add any specific requests or details..."
-                          value={notes}
-                          onChange={(e) => setNotes(e.target.value)}
-                          disabled={submitting}
-                        />
-                      </div>
+                    {!isAuthenticated && (
+                      <p style={{ fontSize: '0.825rem', color: 'var(--lp-accent)', fontWeight: '600', marginBottom: '0.75rem' }}>
+                        ℹ️ You will be asked to sign in to finalize your serial booking.
+                      </p>
+                    )}
 
-                      {!isAuthenticated && (
-                        <p style={{ fontSize: '0.825rem', color: 'var(--lp-accent)', fontWeight: '600', marginBottom: '0.75rem' }}>
-                          ℹ️ You will be asked to sign in to finalize your booking. Your selected slot choice will be preserved!
-                        </p>
-                      )}
-
-                      <button
-                        type="submit"
-                        disabled={submitting}
-                        style={{
-                          width: '100%',
-                          padding: '0.8rem',
-                          background: 'var(--lp-btn-primary-bg)',
-                          color: 'var(--lp-btn-primary-text)',
-                          border: 'none',
-                          borderRadius: '10px',
-                          fontWeight: 700,
-                          fontSize: '0.9rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {submitting ? 'Confirming Booking...' : isAuthenticated ? 'Confirm & Book Appointment Now' : 'Sign In to Confirm Booking'}
-                      </button>
-                    </form>
-                  )}
+                    <button
+                      type="submit"
+                      disabled={submitting || (availability && !availability.is_available)}
+                      style={{
+                        width: '100%',
+                        padding: '0.8rem',
+                        background: (availability && !availability.is_available) ? 'var(--lp-bg-subtle)' : 'var(--lp-btn-primary-bg)',
+                        color: (availability && !availability.is_available) ? 'var(--lp-text-subtle)' : 'var(--lp-btn-primary-text)',
+                        border: 'none',
+                        borderRadius: '10px',
+                        fontWeight: 700,
+                        fontSize: '0.9rem',
+                        cursor: (availability && !availability.is_available) ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {submitting ? 'Allocating Serial...' : (availability && !availability.is_available) ? 'Unavailable on Selected Date' : isAuthenticated ? 'Confirm Appointment & Join Queue for This Date' : 'Sign In to Confirm Appointment'}
+                    </button>
+                  </form>
                 </div>
               )}
             </div>

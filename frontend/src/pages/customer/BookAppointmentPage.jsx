@@ -26,18 +26,15 @@ export function BookAppointmentPage() {
   // Availability State
   const [availability, setAvailability] = useState(null);
   const [loadingAvailability, setLoadingAvailability] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState(null);
 
   // Notes & Booking State
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const [conflictError, setConflictError] = useState(false);
   const [bookedAppointment, setBookedAppointment] = useState(null);
 
   // Loading flags
   const [loadingDetails, setLoadingDetails] = useState(false);
-
   const [availableOrgs, setAvailableOrgs] = useState(organizations || []);
   const [loadingOrgsList, setLoadingOrgsList] = useState(false);
 
@@ -80,7 +77,6 @@ export function BookAppointmentPage() {
     setSelectedServiceId('');
     setSelectedProviderId('');
     setAvailability(null);
-    setSelectedSlot(null);
   };
 
   useEffect(() => {
@@ -103,22 +99,25 @@ export function BookAppointmentPage() {
         const svcList = Array.isArray(servicesData) ? servicesData : servicesData.results || [];
         const provList = Array.isArray(providersData) ? providersData : providersData.results || [];
 
-        setServices(svcList.filter(s => s.is_active !== false));
-        setProviders(provList.filter(p => p.is_active !== false));
+        const activeSvcs = svcList.filter(s => s.is_active !== false);
+        const activeProvs = provList.filter(p => p.is_active !== false);
+
+        setServices(activeSvcs);
+        setProviders(activeProvs);
 
         const paramService = searchParams.get('service_id');
         const paramProvider = searchParams.get('provider_id');
 
-        if (paramService && svcList.some(s => s.id === paramService)) {
+        if (paramService && activeSvcs.some(s => s.id === paramService)) {
           setSelectedServiceId(paramService);
-        } else if (svcList.length > 0) {
-          setSelectedServiceId(svcList[0].id);
+        } else if (activeSvcs.length > 0) {
+          setSelectedServiceId(activeSvcs[0].id);
         }
 
-        if (paramProvider && provList.some(p => p.id === paramProvider)) {
+        if (paramProvider && activeProvs.some(p => p.id === paramProvider)) {
           setSelectedProviderId(paramProvider);
-        } else if (provList.length > 0) {
-          setSelectedProviderId(provList[0].id);
+        } else if (activeProvs.length > 0) {
+          setSelectedProviderId(activeProvs[0].id);
         }
       })
       .catch((err) => {
@@ -135,6 +134,23 @@ export function BookAppointmentPage() {
     };
   }, [selectedOrgId]);
 
+  // Service-First Filtering: filter providers by selected service
+  const displayedProviders = selectedServiceId
+    ? providers.filter((prov) => {
+        if (!prov.services || prov.services.length === 0) return true;
+        return prov.services.some((s) => s.id === selectedServiceId);
+      })
+    : providers;
+
+  useEffect(() => {
+    if (selectedServiceId && displayedProviders.length > 0) {
+      const isStillEligible = displayedProviders.some((p) => p.id === selectedProviderId);
+      if (!isStillEligible) {
+        setSelectedProviderId(displayedProviders[0].id);
+      }
+    }
+  }, [selectedServiceId, displayedProviders]);
+
   const fetchAvailability = async () => {
     if (!selectedOrgId || !selectedProviderId || !selectedServiceId || !selectedDate) {
       setAvailability(null);
@@ -143,8 +159,6 @@ export function BookAppointmentPage() {
 
     setLoadingAvailability(true);
     setError(null);
-    setConflictError(false);
-    setSelectedSlot(null);
 
     try {
       const data = await appointmentService.getAvailability(
@@ -156,22 +170,8 @@ export function BookAppointmentPage() {
       setAvailability(data);
     } catch (err) {
       const detailMsg = err.response?.data?.detail;
-      const isValidationMismatch = detailMsg && (
-        detailMsg.includes('not assigned') ||
-        detailMsg.includes('does not offer') ||
-        detailMsg.includes('not operating')
-      );
-
-      if (isValidationMismatch) {
-        setAvailability(null);
-      } else {
-        setError(
-          detailMsg ||
-            err.response?.data?.date?.[0] ||
-            'Failed to load available slots.'
-        );
-        setAvailability(null);
-      }
+      setError(detailMsg || 'Failed to load availability.');
+      setAvailability(null);
     } finally {
       setLoadingAvailability(false);
     }
@@ -181,22 +181,15 @@ export function BookAppointmentPage() {
     fetchAvailability();
   }, [selectedOrgId, selectedProviderId, selectedServiceId, selectedDate]);
 
-  const handleSelectSlot = (slot) => {
-    setSelectedSlot(slot);
-    setError(null);
-    setConflictError(false);
-  };
-
   const handleBookAppointment = async (e) => {
     e.preventDefault();
-    if (!selectedDate) {
-      setError('Please select an appointment date.');
+    if (!selectedDate || !selectedProviderId || !selectedServiceId) {
+      setError('Please select organization, service, provider, and date.');
       return;
     }
 
     setSubmitting(true);
     setError(null);
-    setConflictError(false);
 
     try {
       const appointment = await appointmentService.bookAppointment(selectedOrgId, {
@@ -208,33 +201,15 @@ export function BookAppointmentPage() {
 
       setBookedAppointment(appointment);
     } catch (err) {
-      const status = err.response?.status;
       const errorData = err.response?.data;
-
-      if (status === 409 || errorData?.code === 'DOUBLE_BOOKING_CONFLICT' || errorData?.detail?.includes('conflict') || errorData?.detail?.includes('booked')) {
-        setConflictError(true);
-        setError('This slot is no longer available because another booking occurred. Please select a different slot.');
-        fetchAvailability();
-      } else {
-        const msg =
-          errorData?.detail ||
-          errorData?.non_field_errors?.[0] ||
-          errorData?.start_datetime?.[0] ||
-          'Failed to book appointment. Please check your selections and try again.';
-        setError(msg);
-      }
+      const msg =
+        errorData?.detail ||
+        errorData?.non_field_errors?.[0] ||
+        errorData?.appointment_date?.[0] ||
+        'Failed to book appointment. Please check availability and try again.';
+      setError(msg);
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const formatSlotTime = (isoString) => {
-    if (!isoString) return '';
-    try {
-      const d = new Date(isoString);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (e) {
-      return isoString;
     }
   };
 
@@ -256,7 +231,7 @@ export function BookAppointmentPage() {
           Serial #{bookedAppointment.serial_number || 1}
         </h2>
         <p className="subtitle" style={{ marginBottom: '1.5rem', fontSize: '0.95rem' }}>
-          Your place in the provider queue is confirmed for {bookedAppointment.appointment_date || selectedDate}.
+          Your place in the queue is confirmed for {bookedAppointment.appointment_date || selectedDate}.
         </p>
 
         <div className="card" style={{ backgroundColor: 'var(--color-bg-subtle)', textAlign: 'left', marginBottom: '1.5rem', padding: '1.25rem' }}>
@@ -266,11 +241,11 @@ export function BookAppointmentPage() {
           </div>
           <div className="flex justify-between" style={{ padding: '0.65rem 0', borderBottom: '1px solid var(--color-border)' }}>
             <span className="text-muted text-sm">Service & Provider:</span>
-            <strong className="text-main">{bookedAppointment.service_name || selectedService?.name} &bull; {selectedProvider?.user_email || 'Assigned Provider'}</strong>
+            <strong className="text-main">{bookedAppointment.service_name || selectedService?.name} &bull; {selectedProvider?.provider_name || selectedProvider?.title || 'Assigned Professional'}</strong>
           </div>
           <div className="flex justify-between" style={{ padding: '0.65rem 0', borderBottom: '1px solid var(--color-border)' }}>
-            <span className="text-muted text-sm">Target Arrival Target:</span>
-            <strong className="text-main">{new Date(bookedAppointment.start_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>
+            <span className="text-muted text-sm">Estimated Service Window:</span>
+            <strong className="text-main">~{new Date(bookedAppointment.start_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>
           </div>
           <div className="flex justify-between items-center" style={{ paddingTop: '0.65rem' }}>
             <span className="text-muted text-sm">Status:</span>
@@ -279,7 +254,7 @@ export function BookAppointmentPage() {
         </div>
 
         <div className="card" style={{ backgroundColor: 'var(--color-success-light)', border: '1px solid var(--color-success)', padding: '1rem', textAlign: 'left', marginBottom: '1.5rem', fontSize: '0.875rem', color: 'var(--color-success)' }}>
-          💡 <strong>Dynamic ETA Notice:</strong> Your actual consultation time will adapt continuously based on live queue movement. Please check in on your live queue tracker upon physical arrival.
+          💡 <strong>Dynamic Queue Forecast:</strong> Your actual consultation time will adapt continuously based on live queue movement. Please check in upon physical arrival.
         </div>
 
         <div className="flex justify-center gap-md flex-wrap">
@@ -295,7 +270,6 @@ export function BookAppointmentPage() {
             className="btn btn-outline"
             onClick={() => {
               setBookedAppointment(null);
-              setSelectedSlot(null);
               setNotes('');
               fetchAvailability();
             }}
@@ -311,11 +285,11 @@ export function BookAppointmentPage() {
     <div className="animate-page-entrance">
       <div className="margin-bottom">
         <h1 style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>Book an Appointment</h1>
-        <p className="subtitle">Select an organization, service, provider, and dynamic slot.</p>
+        <p className="subtitle">Select an organization, service, provider, and date for serial-based queue placement.</p>
       </div>
 
       {error && (
-        <div className={`banner ${conflictError ? 'banner-warning' : 'banner-danger'}`}>
+        <div className="banner banner-danger">
           {error}
         </div>
       )}
@@ -366,7 +340,7 @@ export function BookAppointmentPage() {
                       ) : (
                         services.map((svc) => (
                           <option key={svc.id} value={svc.id}>
-                            {svc.name} ({svc.duration_minutes} min {svc.price ? `- $${svc.price}` : ''})
+                            {svc.name} (~{svc.duration_minutes} min {svc.price ? `- $${svc.price}` : ''})
                           </option>
                         ))
                       )}
@@ -375,7 +349,7 @@ export function BookAppointmentPage() {
 
                   {selectedService && (
                     <div className="card" style={{ backgroundColor: 'var(--color-bg-subtle)', padding: '0.85rem', fontSize: '0.85rem' }}>
-                      <div><strong>Duration:</strong> {selectedService.duration_minutes} mins</div>
+                      <div><strong>Typical Duration:</strong> {selectedService.duration_minutes} mins</div>
                       {selectedService.price && <div style={{ marginTop: '0.2rem' }}><strong>Price:</strong> ${selectedService.price}</div>}
                     </div>
                   )}
@@ -388,13 +362,12 @@ export function BookAppointmentPage() {
                       value={selectedProviderId}
                       onChange={(e) => setSelectedProviderId(e.target.value)}
                     >
-                      {providers.length === 0 ? (
-                        <option value="">No active providers found</option>
+                      {displayedProviders.length === 0 ? (
+                        <option value="">No active providers for this service</option>
                       ) : (
-                        providers.map((prov) => (
+                        displayedProviders.map((prov) => (
                           <option key={prov.id} value={prov.id}>
-                            {prov.title ? `${prov.title} - ` : ''}
-                            {prov.user_email || `Provider #${prov.id.slice(0, 8)}`}
+                            {prov.provider_name || prov.title || `Provider #${prov.id.slice(0, 8)}`}
                           </option>
                         ))
                       )}
@@ -406,17 +379,17 @@ export function BookAppointmentPage() {
           )}
         </div>
 
-        {/* Step 3 & 4 Date & Slot Picker Main Content */}
+        {/* Step 3 & 4 Date & Serial Queue Booking */}
         <div className="card flex flex-col gap-md" style={{ gridColumn: 'span 2' }}>
           <div>
             <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--color-success)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Step 3</div>
-            <h3>Available Time Slots</h3>
+            <h3>Queue Availability & Booking</h3>
           </div>
 
           {!selectedOrgId || !selectedServiceId || !selectedProviderId ? (
             <EmptyState
               title="Select Service & Provider"
-              message="Choose an organization, service, and provider from the left panel to view dynamic slot availability."
+              message="Choose an organization, service, and provider from the left panel to inspect queue availability."
             />
           ) : (
             <>
@@ -433,31 +406,30 @@ export function BookAppointmentPage() {
               </div>
 
               {loadingAvailability ? (
-                <LoadingState message="Fetching provider operating schedule & serial availability..." />
+                <LoadingState message="Fetching provider operating schedule & capacity..." />
               ) : !availability ? (
                 <EmptyState
                   title="No Schedule Available"
-                  message={`Provider is not operating on ${selectedDate} or is not assigned to this service. Try selecting a different date or provider.`}
+                  message={`Provider is not operating on ${selectedDate} or is unavailable. Select another date.`}
                 />
               ) : (
                 <div className="flex flex-col gap-md margin-top-sm">
-                  {/* Provider Operating Hours Banner */}
+                  {/* Provider Schedule Banner */}
                   <div className="card" style={{ backgroundColor: 'var(--color-bg-subtle)', padding: '1.25rem', borderLeft: '4px solid var(--color-primary)' }}>
                     <div style={{ fontWeight: '700', fontSize: '1rem', color: 'var(--color-text-main)', marginBottom: '0.35rem' }}>
-                      Provider Operating Schedule: {selectedDate}
+                      Provider Status ({selectedDate}): {availability.is_available ? `Available (${availability.working_hours_display})` : (availability.reason || 'Unavailable')}
                     </div>
                     <div style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
-                      Serial Queue Booking Available &bull; Duration per patient: ~{selectedService?.duration_minutes || 15} mins
+                      Serial Queue Booking &bull; Duration per patient: ~{availability.duration_minutes || selectedService?.duration_minutes || 15} mins
                     </div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--color-info)', marginTop: '0.5rem', fontWeight: '500' }}>
-                      ℹ️ SmartQueue assigns sequential serial numbers. Your estimated consultation start will update continuously on your live queue tracker.
+                      ⚡ SmartQueue assigns sequential serial numbers upon confirmation. Your estimated consultation start will update dynamically on your live queue tracker.
                     </div>
                   </div>
-
                 </div>
               )}
 
-              {availability && (
+              {availability && availability.is_available && (
                 <form onSubmit={handleBookAppointment} style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--color-border)' }}>
                   <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--color-primary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Step 4</div>
                   <h3>Confirm Serial Booking</h3>
@@ -479,7 +451,7 @@ export function BookAppointmentPage() {
                   </div>
 
                   <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }} disabled={submitting}>
-                    {submitting ? 'Assigning Serial Number...' : 'Book Queue Serial Now'}
+                    {submitting ? 'Assigning Serial Number...' : 'Confirm & Join Queue for This Date'}
                   </button>
                 </form>
               )}

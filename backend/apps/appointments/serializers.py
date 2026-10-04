@@ -251,7 +251,14 @@ class AvailabilityResponseSerializer(serializers.Serializer):
     provider_id = serializers.UUIDField()
     service_id = serializers.UUIDField()
     duration_minutes = serializers.IntegerField()
-    slots = AvailabilitySlotSerializer(many=True)
+    is_available = serializers.BooleanField(default=True)
+    reason = serializers.CharField(required=False, allow_null=True, allow_blank=True, default=None)
+    working_hours_display = serializers.CharField(required=False, allow_null=True, allow_blank=True, default=None)
+    start_time = serializers.CharField(required=False, allow_null=True, allow_blank=True, default=None)
+    end_time = serializers.CharField(required=False, allow_null=True, allow_blank=True, default=None)
+    remaining_capacity_minutes = serializers.IntegerField(required=False, allow_null=True, default=0)
+    slots = AvailabilitySlotSerializer(many=True, required=False, default=list)
+
 
 
 class CustomerDashboardItemSerializer(serializers.ModelSerializer):

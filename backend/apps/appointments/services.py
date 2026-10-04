@@ -272,13 +272,64 @@ def validate_slot_against_schedule_and_blocks(
 
 
 # ---------------------------------------------------------------------------
+def check_provider_date_capacity(
+    *, provider: ProviderProfile, on_date: date, new_service_duration: int, exclude_appointment_id=None
+) -> tuple[bool, int, int]:
+    """
+    Calculates date-level workload capacity for a provider.
+    effective_work_minutes = working_minutes - break_minutes
+    reserved_workload = sum(duration of non-terminal appointments for provider on on_date)
+    has_capacity = (effective_work_minutes - reserved_workload) >= new_service_duration
+    Returns (has_capacity, effective_work_minutes, reserved_workload).
+    """
+    schedule = _get_working_schedule(provider, on_date)
+    if schedule is None or not schedule.is_working_day:
+        return False, 0, 0
+
+    sched_start = _combine_date_time(on_date, schedule.start_time)
+    sched_end = _combine_date_time(on_date, schedule.end_time)
+    working_minutes = int((sched_end - sched_start).total_seconds() // 60)
+
+    breaks = ScheduleBreak.objects.filter(weekly_schedule=schedule)
+    break_minutes = 0
+    for brk in breaks:
+        b_start = _combine_date_time(on_date, brk.start_time)
+        b_end = _combine_date_time(on_date, brk.end_time)
+        break_minutes += int((b_end - b_start).total_seconds() // 60)
+
+    effective_work_minutes = max(0, working_minutes - break_minutes)
+
+    active_appts = Appointment.objects.filter(
+        provider=provider,
+        appointment_date=on_date,
+        status__in=Appointment.BLOCKING_STATUSES,
+    )
+    if exclude_appointment_id is not None:
+        active_appts = active_appts.exclude(pk=exclude_appointment_id)
+
+    reserved_workload = 0
+    for appt in active_appts:
+        try:
+            duration = get_effective_duration_minutes(provider=provider, service=appt.service)
+        except Exception:
+            if appt.start_datetime and appt.end_datetime:
+                duration = int((appt.end_datetime - appt.start_datetime).total_seconds() // 60)
+            else:
+                duration = 15
+        reserved_workload += max(1, duration)
+
+    remaining = effective_work_minutes - reserved_workload
+    has_capacity = remaining >= new_service_duration
+    return has_capacity, effective_work_minutes, reserved_workload
+
+
+# ---------------------------------------------------------------------------
 # Availability
 # ---------------------------------------------------------------------------
 
 class AppointmentAvailabilityService:
     """
-    Dynamically compute available booking slots for a provider/service/date.
-    Slots are never persisted.
+    Dynamically compute customer-safe date availability for a provider/service/date under serial queue model.
     """
 
     @classmethod
@@ -291,57 +342,91 @@ class AppointmentAvailabilityService:
         duration = get_effective_duration_minutes(provider=provider, service=service)
 
         schedule = _get_working_schedule(provider, on_date)
-        empty = {
-            'date': on_date.isoformat(),
-            'provider_id': str(provider.id),
-            'service_id': str(service.id),
-            'duration_minutes': duration,
-            'slots': [],
-        }
         if schedule is None or not schedule.is_working_day:
-            return empty
+            return {
+                'date': on_date.isoformat(),
+                'provider_id': str(provider.id),
+                'service_id': str(service.id),
+                'duration_minutes': duration,
+                'is_available': False,
+                'reason': 'Not working on this date',
+                'working_hours_display': None,
+                'start_time': None,
+                'end_time': None,
+                'remaining_capacity_minutes': 0,
+                'slots': [],
+            }
 
         schedule_start = _combine_date_time(on_date, schedule.start_time)
         schedule_end = _combine_date_time(on_date, schedule.end_time)
-        duration_delta = timedelta(minutes=duration)
-        step = timedelta(minutes=SLOT_INCREMENT_MINUTES)
 
-        breaks = list(ScheduleBreak.objects.filter(weekly_schedule=schedule))
-        day_start = schedule_start
-        day_end = schedule_end
         leaves = list(
             ProviderLeave.objects.filter(
                 provider=provider,
-                start_datetime__lt=day_end,
-                end_datetime__gt=day_start,
+                start_datetime__lt=schedule_end,
+                end_datetime__gt=schedule_start,
             )
         )
-        now = timezone.now()
+        full_day_leave = any(
+            leave.start_datetime <= schedule_start and leave.end_datetime >= schedule_end
+            for leave in leaves
+        )
+        if full_day_leave:
+            return {
+                'date': on_date.isoformat(),
+                'provider_id': str(provider.id),
+                'service_id': str(service.id),
+                'duration_minutes': duration,
+                'is_available': False,
+                'reason': 'Provider is unavailable on this date',
+                'working_hours_display': None,
+                'start_time': None,
+                'end_time': None,
+                'remaining_capacity_minutes': 0,
+                'slots': [],
+            }
+
+        has_capacity, effective_work_minutes, reserved_workload = check_provider_date_capacity(
+            provider=provider,
+            on_date=on_date,
+            new_service_duration=duration,
+        )
+        remaining_capacity = max(0, effective_work_minutes - reserved_workload)
+
+        start_str = schedule.start_time.strftime('%I:%M %p').lstrip('0')
+        end_str = schedule.end_time.strftime('%I:%M %p').lstrip('0')
+        working_hours_display = f"{start_str} – {end_str}"
+
+        breaks = list(ScheduleBreak.objects.filter(weekly_schedule=schedule))
+        blocking_appts = list(_blocking_appointment_qs(provider))
+
         slots = []
-        cursor = schedule_start
-        while cursor + duration_delta <= schedule_end:
-            slot_start = cursor
-            slot_end = cursor + duration_delta
-            cursor += step
-
-            # Skip past slots (lead-time: now).
-            if slot_start < now:
-                continue
-            if _slot_overlaps_breaks(slot_start, slot_end, breaks, on_date):
-                continue
-            if _slot_overlaps_leaves(slot_start, slot_end, leaves):
-                continue
-
-            slots.append({
-                'start': slot_start.isoformat(),
-                'end': slot_end.isoformat(),
-            })
+        if has_capacity:
+            curr = schedule_start
+            step = timedelta(minutes=15)
+            dur = timedelta(minutes=duration)
+            while curr + dur <= schedule_end:
+                slot_end = curr + dur
+                if not _slot_overlaps_breaks(curr, slot_end, breaks, on_date) and \
+                   not _slot_overlaps_leaves(curr, slot_end, leaves) and \
+                   not _slot_overlaps_appointments(curr, slot_end, blocking_appts):
+                    slots.append({
+                        'start': curr.isoformat(),
+                        'end': slot_end.isoformat(),
+                    })
+                curr += step
 
         return {
             'date': on_date.isoformat(),
             'provider_id': str(provider.id),
             'service_id': str(service.id),
             'duration_minutes': duration,
+            'is_available': has_capacity,
+            'reason': None if has_capacity else 'Fully booked for this date',
+            'working_hours_display': working_hours_display,
+            'start_time': schedule.start_time.strftime('%H:%M:%S'),
+            'end_time': schedule.end_time.strftime('%H:%M:%S'),
+            'remaining_capacity_minutes': remaining_capacity,
             'slots': slots,
         }
 
@@ -428,45 +513,80 @@ class AppointmentService:
             schedule_start = _combine_date_time(on_date, schedule.start_time)
             schedule_end = _combine_date_time(on_date, schedule.end_time)
 
+            duration = get_effective_duration_minutes(provider=provider, service=service)
+
             if start_datetime is not None:
                 op_start = start_datetime
-            else:
-                if on_date == today:
-                    op_start = max(now, schedule_start)
+                op_end = op_start + timedelta(minutes=duration)
+                if appointment_date is not None:
+                    if op_start < schedule_start:
+                        op_start = schedule_start
+                    elif op_start + timedelta(minutes=duration) > schedule_end:
+                        op_start = max(schedule_start, schedule_end - timedelta(minutes=duration))
+                    op_end = op_start + timedelta(minutes=duration)
                 else:
-                    op_start = schedule_start
-
-            duration = get_effective_duration_minutes(provider=provider, service=service)
-            op_end = op_start + timedelta(minutes=duration)
-
-            if start_datetime is not None:
-                if not _slot_fits_schedule(op_start, op_end, schedule, on_date):
-                    raise AppointmentValidationException(
-                        message='Appointment does not fall within provider working hours.',
-                        code='OUTSIDE_WORKING_HOURS',
-                    )
+                    if not _slot_fits_schedule(op_start, op_end, schedule, on_date):
+                        raise AppointmentValidationException(
+                            message='Appointment does not fall within provider working hours.',
+                            code='OUTSIDE_WORKING_HOURS',
+                        )
                 breaks = list(ScheduleBreak.objects.filter(weekly_schedule=schedule))
                 if _slot_overlaps_breaks(op_start, op_end, breaks, on_date):
                     raise AppointmentValidationException(
                         message='Appointment overlaps a schedule break.',
                         code='BREAK_CONFLICT',
                     )
-
-            leaves = list(
-                ProviderLeave.objects.filter(
-                    provider=provider,
-                    start_datetime__lt=schedule_end,
-                    end_datetime__gt=schedule_start,
+                leaves = list(
+                    ProviderLeave.objects.filter(
+                        provider=provider,
+                        start_datetime__lt=op_end,
+                        end_datetime__gt=op_start,
+                    )
                 )
+                if _slot_overlaps_leaves(op_start, op_end, leaves):
+                    raise AppointmentValidationException(
+                        message='Appointment overlaps provider leave.',
+                        code='LEAVE_CONFLICT',
+                    )
+            else:
+                if on_date == today:
+                    op_start = max(now, schedule_start)
+                else:
+                    op_start = schedule_start
+                op_end = op_start + timedelta(minutes=duration)
+
+                leaves = list(
+                    ProviderLeave.objects.filter(
+                        provider=provider,
+                        start_datetime__lt=schedule_end,
+                        end_datetime__gt=schedule_start,
+                    )
+                )
+                full_day_leave = any(
+                    leave.start_datetime <= schedule_start and leave.end_datetime >= schedule_end
+                    for leave in leaves
+                )
+                if full_day_leave:
+                    raise AppointmentValidationException(
+                        message='Provider is on leave on the requested date.',
+                        code='LEAVE_CONFLICT',
+                    )
+
+            # Capacity Check: ensure workload fits provider working capacity
+            has_capacity, eff_work, res_work = check_provider_date_capacity(
+                provider=provider,
+                on_date=on_date,
+                new_service_duration=duration,
             )
-            if _slot_overlaps_leaves(schedule_start, schedule_end, leaves):
+            if not has_capacity:
                 raise AppointmentValidationException(
-                    message='Provider is on leave on the requested date.',
-                    code='LEAVE_CONFLICT',
+                    message='Provider capacity for this date has been reached.',
+                    code='CAPACITY_EXCEEDED',
                 )
 
             from django.db.models import Max
             from apps.queue.models import QueueEntry
+
 
             max_appt_serial = (
                 Appointment.objects.filter(

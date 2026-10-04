@@ -31,6 +31,9 @@
   --lp-faint:       #A8A29E;
   --lp-very-faint:  #C7BDB6;
 
+  --lp-accent:           #2F2520;
+  --lp-btn-bg:           #2F2520;
+  --lp-btn-text:         #FFFFFF;
   --lp-btn-primary-bg:   #2F2520;
   --lp-btn-primary-text: #FFFFFF;
 }
@@ -64,6 +67,9 @@
   --lp-faint:       #6E7E7B;
   --lp-very-faint:  #4A5A57;
 
+  --lp-accent:           #2A9D8F;
+  --lp-btn-bg:           #2A9D8F;
+  --lp-btn-text:         #FFFFFF;
   --lp-btn-primary-bg:   #2A9D8F;
   --lp-btn-primary-text: #081512;
 }
