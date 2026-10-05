@@ -69,7 +69,7 @@ def _get_can_review(obj) -> bool:
 class AppointmentSerializer(serializers.ModelSerializer):
     """Full read serializer for appointments."""
     customer_email = serializers.EmailField(source='customer.email', read_only=True)
-    customer_name = serializers.CharField(source='customer.get_full_name', read_only=True)
+    customer_name = serializers.CharField(source='customer_display_name', read_only=True)
     provider_id = serializers.UUIDField(source='provider.id', read_only=True)
     service_id = serializers.UUIDField(source='service.id', read_only=True)
     service_name = serializers.CharField(source='service.name', read_only=True)
@@ -88,6 +88,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'customer',
             'customer_email',
             'customer_name',
+            'booked_service_charge', 'contact_name', 'contact_phone',
             'provider_id',
             'service_id',
             'service_name',
@@ -129,7 +130,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
 class AppointmentListSerializer(serializers.ModelSerializer):
     """Compact list serializer."""
     customer_email = serializers.EmailField(source='customer.email', read_only=True)
-    customer_name = serializers.CharField(source='customer.get_full_name', read_only=True)
+    customer_name = serializers.CharField(source='customer_display_name', read_only=True)
     provider_id = serializers.UUIDField(source='provider.id', read_only=True)
     service_id = serializers.UUIDField(source='service.id', read_only=True)
     service_name = serializers.CharField(source='service.name', read_only=True)
@@ -145,6 +146,7 @@ class AppointmentListSerializer(serializers.ModelSerializer):
             'customer',
             'customer_email',
             'customer_name',
+            'booked_service_charge', 'contact_name', 'contact_phone',
             'provider_id',
             'service_id',
             'service_name',
@@ -187,6 +189,16 @@ class AppointmentCreateSerializer(serializers.Serializer):
     appointment_date = serializers.DateField(required=False)
     start_datetime = serializers.DateTimeField(required=False)
     notes = serializers.CharField(required=False, allow_blank=True, default='')
+    contact_name = serializers.CharField(required=False, max_length=300)
+    contact_phone = serializers.CharField(required=False, max_length=30)
+
+    def validate_contact_name(self, value):
+        from .contacts import normalize_contact_name
+        return normalize_contact_name(value)
+
+    def validate_contact_phone(self, value):
+        from .contacts import normalize_contact_phone
+        return normalize_contact_phone(value)
 
     def validate(self, data):
         from django.utils import timezone
@@ -265,6 +277,7 @@ class AvailabilityResponseSerializer(serializers.Serializer):
 
 
 class CustomerDashboardItemSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source='customer_display_name', read_only=True)
     organization_id = serializers.UUIDField(source='organization.id', read_only=True)
     organization_name = serializers.CharField(source='organization.name', read_only=True)
     organization_slug = serializers.CharField(source='organization.slug', read_only=True)
@@ -288,6 +301,7 @@ class CustomerDashboardItemSerializer(serializers.ModelSerializer):
         model = Appointment
         fields = [
             'id',
+            'customer_name', 'booked_service_charge', 'contact_name', 'contact_phone',
             'organization_id',
             'organization_name',
             'organization_slug',

@@ -19,6 +19,9 @@ from apps.services.models import Service
 from config.exceptions import ApplicationError
 
 from .models import Appointment
+from .contacts import resolve_booking_contact
+from apps.providers.pricing import effective_customer_charge
+from django.core.exceptions import ValidationError
 
 
 SLOT_INCREMENT_MINUTES = 15
@@ -471,8 +474,16 @@ class AppointmentService:
         booking_channel: str = Appointment.BookingChannel.ONLINE,
         arrival_type: str = Appointment.ArrivalType.SCHEDULED,
         notes: str = '',
+        contact_name: str | None = None,
+        contact_phone: str | None = None,
     ) -> Appointment:
         organization = _load_active_organization(organization_id)
+        try:
+            contact_name, contact_phone = resolve_booking_contact(
+                customer, contact_name=contact_name, contact_phone=contact_phone,
+            )
+        except ValidationError as exc:
+            raise AppointmentValidationException(message=' '.join(exc.messages)) from exc
 
         with transaction.atomic():
             # Provider-row lock serializes concurrent bookings for this provider.
@@ -500,7 +511,18 @@ class AppointmentService:
                 )
 
             service = _load_active_service(organization=organization, service_id=service_id)
-            _ensure_provider_offers_service(provider=provider, service=service)
+            # Same order as manager mutations: provider first, assignment second.
+            # Re-fetch the assignment once for both eligibility and price.
+            try:
+                assignment = ProviderService.objects.select_for_update(of=('self',)).select_related('service').get(
+                    provider=provider, service=service, service__organization=organization,
+                )
+            except ProviderService.DoesNotExist:
+                raise AppointmentValidationException(
+                    message='Provider is not assigned to this service.',
+                    code='PROVIDER_SERVICE_NOT_ASSIGNED',
+                )
+            booked_service_charge = effective_customer_charge(assignment)
 
             tz = get_project_tz()
             today = timezone.localtime(timezone.now(), tz).date()
@@ -639,6 +661,9 @@ class AppointmentService:
                 arrival_type=arrival_type,
                 status=initial_status,
                 notes=notes or '',
+                booked_service_charge=booked_service_charge,
+                contact_name=contact_name,
+                contact_phone=contact_phone,
             )
 
             # Create linked QueueEntry

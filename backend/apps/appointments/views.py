@@ -164,6 +164,8 @@ class AppointmentListCreateView(APIView):
             booking_channel=Appointment.BookingChannel.ONLINE,
             arrival_type=Appointment.ArrivalType.SCHEDULED,
             notes=serializer.validated_data.get('notes', ''),
+            contact_name=serializer.validated_data.get('contact_name'),
+            contact_phone=serializer.validated_data.get('contact_phone'),
         )
         return Response(
             AppointmentSerializer(appointment).data,

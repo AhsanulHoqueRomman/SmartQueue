@@ -94,6 +94,19 @@ class Appointment(models.Model):
     )
     cancellation_reason = models.TextField(_('cancellation reason'), blank=True)
     notes = models.TextField(_('notes'), blank=True)
+    # Nullable for legacy records: historical charges/contact cannot be inferred.
+    booked_service_charge = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    contact_name = models.CharField(max_length=300, null=True, blank=True)
+    contact_phone = models.CharField(max_length=30, null=True, blank=True)
+
+    @property
+    def customer_display_name(self):
+        return self.contact_name if self.contact_name is not None else self.customer.get_full_name()
+
+    @property
+    def customer_display_phone(self):
+        return self.contact_phone if self.contact_phone is not None else self.customer.phone_number
+
     created_at = models.DateTimeField(_('created at'), auto_now_add=True)
     updated_at = models.DateTimeField(_('updated at'), auto_now=True)
 

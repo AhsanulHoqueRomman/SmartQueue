@@ -387,6 +387,8 @@ class QueueService:
                 booking_channel=Appointment.BookingChannel.FRONT_DESK,
                 arrival_type=Appointment.ArrivalType.WALK_IN,
                 notes=notes,
+                contact_name=f'{first_name} {last_name}'.strip(),
+                contact_phone=phone_number if phone_number else None,
             )
             return appt
 
