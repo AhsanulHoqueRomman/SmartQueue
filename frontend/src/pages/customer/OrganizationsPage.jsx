@@ -385,9 +385,9 @@ export function OrganizationsPage() {
                             e.stopPropagation();
                             handleViewOrg(org);
                           }}
-                          style={{ padding: '0.45rem 0.85rem', background: 'var(--lp-btn-primary-bg)', color: 'var(--lp-btn-primary-text)', border: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '0.825rem', cursor: 'pointer' }}
+                          style={{ padding: '0.3rem 0.7rem', background: 'var(--lp-btn-primary-bg)', color: 'var(--lp-btn-primary-text)', border: 'none', borderRadius: '7px', fontWeight: 600, fontSize: '0.78rem', lineHeight: 1.5, cursor: 'pointer', whiteSpace: 'nowrap' }}
                         >
-                          View Profile →
+                          View Profile
                         </button>
                       </div>
                     </div>

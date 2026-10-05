@@ -6,6 +6,7 @@ import ProfessionalCarousel from '../../components/ProfessionalCarousel';
 import PublicNavbar from '../../components/PublicNavbar';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
+import { deriveProfessionalDisplay } from '../../utils/providerDisplay';
 import '../../styles/LandingPage.css';
 
 // ─── Format Currency Helper ────────────────────────────────────────────────
@@ -424,7 +425,27 @@ export function OrganizationProfilePage() {
                 onClick={scrollToBooking}
                 className="lp-btn-primary org-identity-cta"
               >
-                Schedule Appointment <span className="org-arrow">→</span>
+                <svg
+                  className="org-cta-icon"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <rect x="3" y="4.5" width="18" height="16.5" rx="2.5" />
+                  <path d="M3 9.75h18" />
+                  <path d="M8 2.5v4" />
+                  <path d="M16 2.5v4" />
+                  <path d="M12 13.25v5" />
+                  <path d="M9.5 15.75h5" />
+                </svg>
+                Schedule Appointment
               </button>
             </div>
           </section>
@@ -940,15 +961,14 @@ export function OrganizationProfilePage() {
                         return p.services.some(s => s.id === activeDetailService.id || s.service_id === activeDetailService.id);
                       })
                       .map(p => {
-                        const u = p.membership?.user || {};
-                        const name = `${u.first_name || ''} ${u.last_name || ''}`.trim() || p.title || 'Professional';
+                        const { displayName, designation, showDesignation } = deriveProfessionalDisplay(p, 'Professional');
                         return (
                           <div key={p.id} className="org-modal-prov-row">
                             <div className="org-modal-prov-info">
                               <span className="org-modal-prov-avatar">👤</span>
                               <div>
-                                <span className="org-modal-prov-name">{name}</span>
-                                {p.title && <span className="org-modal-prov-desig">{p.title}</span>}
+                                <span className="org-modal-prov-name">{displayName}</span>
+                                {showDesignation && <span className="org-modal-prov-desig">{designation}</span>}
                                 {p.experience_years > 0 && (
                                   <span className="org-modal-prov-exp">{p.experience_years} yrs exp</span>
                                 )}

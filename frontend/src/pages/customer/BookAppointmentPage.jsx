@@ -6,6 +6,7 @@ import appointmentService from '../../services/appointmentService';
 import BookingStepper from '../../components/BookingStepper';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
+import { deriveProfessionalDisplay } from '../../utils/providerDisplay';
 
 export function BookAppointmentPage() {
   const navigate = useNavigate();
@@ -587,8 +588,8 @@ export function BookAppointmentPage() {
                 <div className="professional-radio-list" role="radiogroup" aria-label="Select Professional">
                   {providers.map((prov) => {
                     const isSelected = selectedProviderId === prov.id;
+                    const { displayName: fullName, designation, showDesignation } = deriveProfessionalDisplay(prov, 'Professional');
                     const u = prov.membership?.user || {};
-                    const fullName = `${u.first_name || ''} ${u.last_name || ''}`.trim() || prov.title || 'Professional';
                     const initials = `${(u.first_name || 'P')[0]}${(u.last_name || '')[0] || ''}`.toUpperCase();
 
                     return (
@@ -624,7 +625,7 @@ export function BookAppointmentPage() {
 
                         <div className="professional-info-block">
                           <div className="professional-name-text">{fullName}</div>
-                          {prov.title && <div className="professional-credentials-text">{prov.title}</div>}
+                          {showDesignation && <div className="professional-credentials-text">{designation}</div>}
                           <div className="professional-designation-text">
                             {prov.bio || 'Available for consultations'}
                           </div>

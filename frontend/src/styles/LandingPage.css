@@ -1452,6 +1452,10 @@
   white-space: nowrap;
 }
 
+.org-cta-icon {
+  flex-shrink: 0;
+}
+
 @media (max-width: 640px) {
   .org-identity-right {
     width: 100%;
@@ -1468,7 +1472,7 @@
   grid-template-columns: 7fr 5fr;
   gap: 2rem;
   margin-bottom: 2rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 @media (max-width: 768px) {
@@ -1499,9 +1503,9 @@
   margin: 0;
 }
 
-/* Trust & Credentials Block (fills awkward space under About) */
+/* Trust & Credentials Block (naturally stretches to balance Contact column) */
 .org-trust-block {
-  margin-top: 0.75rem;
+  flex: 1 1 auto;
   padding: 1.25rem 1.5rem;
   background: var(--lp-surface);
   border: 1px solid var(--lp-border);
@@ -1615,6 +1619,7 @@
 
 /* Contact Column */
 .org-contact-col {
+  box-sizing: border-box;
   background: var(--lp-surface);
   border: 1px solid var(--lp-border);
   border-radius: 16px;
@@ -1982,7 +1987,21 @@
   pointer-events: none;
 }
 
+/* Carousel shell: nav controls sit at the left/right of the card viewport,
+   vertically centered, without overlapping the cards. */
+.org-prof-carousel-shell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.org-carousel-arrow-side {
+  flex: 0 0 auto;
+}
+
 .org-prof-carousel-track {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   gap: 1.5rem;
   overflow-x: auto;
@@ -1990,6 +2009,24 @@
   padding: 0.5rem 0.25rem 1rem 0.25rem;
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+/* Mobile fallback: cards take the full width and the nav controls drop to a
+   row beneath them (left control to the far left, right control to the far
+   right) so they never squeeze or overflow the card track. */
+@media (max-width: 768px) {
+  .org-prof-carousel-shell {
+    flex-wrap: wrap;
+  }
+
+  .org-prof-carousel-track {
+    order: -1;
+    flex: 1 0 100%;
+  }
+
+  .org-carousel-arrow-left {
+    margin-right: auto;
+  }
 }
 
 .org-prof-carousel-track::-webkit-scrollbar {
