@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from datetime import date
+from django.utils import timezone
+from .operating_hours import organization_hours_status
 from .models import Organization, OrganizationMembership, OrganizationDocument, OrganizationCredential, OrganizationOperatingHours
 
 User = get_user_model()
@@ -59,6 +60,33 @@ class OrganizationOperatingHoursSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrganizationOperatingHours
         fields = ('id', 'day_of_week', 'day_name', 'open_time', 'close_time', 'is_closed')
+
+
+class OrganizationHoursBatchSerializer(serializers.ListSerializer):
+    def validate(self, rows):
+        days = [row['day_of_week'] for row in rows]
+        if len(days) != len(set(days)):
+            raise serializers.ValidationError('Each weekday may appear only once per batch.')
+        return rows
+
+
+class OrganizationOperatingHoursWriteSerializer(serializers.Serializer):
+    day_of_week = serializers.IntegerField(min_value=0, max_value=6)
+    open_time = serializers.TimeField(required=False, allow_null=True, default=None)
+    close_time = serializers.TimeField(required=False, allow_null=True, default=None)
+    is_closed = serializers.BooleanField(required=False, default=False)
+
+    class Meta:
+        list_serializer_class = OrganizationHoursBatchSerializer
+
+    def validate(self, values):
+        if values['is_closed']:
+            values['open_time'] = values['close_time'] = None
+        elif values['open_time'] is None or values['close_time'] is None:
+            raise serializers.ValidationError('Open days require both opening and closing times.')
+        elif values['open_time'] == values['close_time']:
+            raise serializers.ValidationError('Opening and closing times must differ. Overnight hours are supported.')
+        return values
 
 
 class OrganizationMembershipUserSerializer(serializers.ModelSerializer):
@@ -133,6 +161,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
     credentials = serializers.SerializerMethodField()
     operating_hours = serializers.SerializerMethodField()
     today_hours = serializers.SerializerMethodField()
+    current_status = serializers.SerializerMethodField()
     smartqueue_verified = serializers.SerializerMethodField()
 
     class Meta:
@@ -145,7 +174,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
             'verification_rejection_reason', 'verification_suspension_reason',
             'created_at', 'updated_at',
             'services_count', 'providers_count', 'rating', 'reviews_count',
-            'documents', 'documents_count', 'credentials', 'operating_hours', 'today_hours'
+            'documents', 'documents_count', 'credentials', 'operating_hours', 'today_hours', 'current_status'
         )
         read_only_fields = (
             'id', 'is_active', 'verification_status',
@@ -165,46 +194,29 @@ class OrganizationSerializer(serializers.ModelSerializer):
         return OrganizationCredentialPublicSerializer(verified_creds, many=True).data
 
     def get_operating_hours(self, obj):
-        hours = obj.operating_hours.all().order_by('day_of_week')
+        hours = self._hours_records(obj)
         return OrganizationOperatingHoursSerializer(hours, many=True).data
 
-    def get_today_hours(self, obj):
-        # 0=Monday, 6=Sunday
-        today_idx = date.today().weekday()
-        today_record = obj.operating_hours.filter(day_of_week=today_idx).first()
-        if not today_record:
-            return {
-                'is_open': True,
-                'is_closed': False,
-                'text': 'Open today (Standard Hours)',
-                'open_time': None,
-                'close_time': None,
-            }
-        if today_record.is_closed:
-            return {
-                'is_open': False,
-                'is_closed': True,
-                'text': 'Closed today',
-                'open_time': None,
-                'close_time': None,
-            }
-        
-        # Format times for clean reading
-        def format_time_clean(t):
-            if not t:
-                return ''
-            return t.strftime('%I:%M %p').lstrip('0')
+    def _hours_records(self, obj):
+        if not hasattr(self, '_hours_cache'):
+            self._hours_cache = {}
+        if obj.pk not in self._hours_cache:
+            self._hours_cache[obj.pk] = sorted(obj.operating_hours.all(), key=lambda row: row.day_of_week)
+        return self._hours_cache[obj.pk]
 
-        open_str = format_time_clean(today_record.open_time)
-        close_str = format_time_clean(today_record.close_time)
-        return {
-            'is_open': True,
-            'is_closed': False,
-            'open_time': str(today_record.open_time) if today_record.open_time else None,
-            'close_time': str(today_record.close_time) if today_record.close_time else None,
-            'text': f"Open today until {close_str}" if close_str else "Open today",
-            'window_text': f"{open_str} – {close_str}" if open_str and close_str else "Open today",
-        }
+    def _hours_status(self, obj):
+        if not hasattr(self, '_status_cache'):
+            self._status_cache = {}
+            self._status_now = timezone.now()
+        if obj.pk not in self._status_cache:
+            self._status_cache[obj.pk] = organization_hours_status(self._hours_records(obj), now=self._status_now)
+        return self._status_cache[obj.pk]
+
+    def get_current_status(self, obj):
+        return self._hours_status(obj)['current_status']
+
+    def get_today_hours(self, obj):
+        return self._hours_status(obj)['today_hours']
 
     def get_industry_label(self, obj):
         return obj.get_industry_type_display() if obj.industry_type else 'Other Services'
@@ -370,5 +382,4 @@ class StaffMemberSerializer(serializers.ModelSerializer):
             'organization', 'organization_name', 'role', 'is_active', 'created_at', 'updated_at'
         )
         read_only_fields = fields
-
 

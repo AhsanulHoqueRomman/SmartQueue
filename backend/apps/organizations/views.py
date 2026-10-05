@@ -10,6 +10,7 @@ from config.api import apply_list_query, list_response
 from .models import Organization, OrganizationMembership, OrganizationDocument, OrganizationInvitation, OrganizationCredential, OrganizationOperatingHours
 from .permissions import IsOrganizationManager, IsOrganizationMember, IsSystemAdmin
 from .services import OrganizationService
+from .operating_hours import update_organization_hours
 from .serializers import (
     OrganizationSerializer,
     OrganizationCreateSerializer,
@@ -18,6 +19,7 @@ from .serializers import (
     OrganizationCredentialPublicSerializer,
     OrganizationCredentialManagerSerializer,
     OrganizationOperatingHoursSerializer,
+    OrganizationOperatingHoursWriteSerializer,
     MemberAddSerializer,
     MemberUpdateSerializer,
     AdminActionReasonSerializer,
@@ -72,7 +74,7 @@ class OrganizationListCreateView(APIView):
         orgs = Organization.objects.filter(
             is_active=True,
             verification_status=Organization.VerificationStatus.APPROVED
-        )
+        ).prefetch_related('operating_hours')
         category_param = (
             request.query_params.get('category') or 
             request.query_params.get('category_id') or 
@@ -128,7 +130,7 @@ class OrganizationDetailView(APIView):
         summary="Retrieve organization details"
     )
     def get(self, request, organization_id):
-        org = get_object_or_404(Organization, id=organization_id)
+        org = get_object_or_404(Organization.objects.prefetch_related('operating_hours'), id=organization_id)
         
         is_manager_or_admin = False
         if request.user.is_authenticated:
@@ -844,27 +846,13 @@ class OrganizationOperatingHoursView(APIView):
     def put(self, request, organization_id):
         org = get_object_or_404(Organization, id=organization_id, is_active=True)
         days_data = request.data
-        if not isinstance(days_data, list):
+        if isinstance(days_data, dict):
             days_data = request.data.get('hours', [])
-
-        saved = []
-        for item in days_data:
-            day = item.get('day_of_week')
-            if day is None:
-                continue
-            rec, _ = OrganizationOperatingHours.objects.update_or_create(
-                organization=org,
-                day_of_week=int(day),
-                defaults={
-                    'open_time': item.get('open_time') or None,
-                    'close_time': item.get('close_time') or None,
-                    'is_closed': bool(item.get('is_closed', False)),
-                }
-            )
-            saved.append(rec)
+        serializer = OrganizationOperatingHoursWriteSerializer(data=days_data, many=True)
+        serializer.is_valid(raise_exception=True)
+        update_organization_hours(organization=org, rows=serializer.validated_data)
         hours = org.operating_hours.all().order_by('day_of_week')
         return Response(OrganizationOperatingHoursSerializer(hours, many=True).data, status=status.HTTP_200_OK)
-
 
 
 
