@@ -7,7 +7,8 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from apps.organizations.models import Organization, OrganizationMembership
 from apps.organizations.permissions import IsOrganizationManager
-from .models import ProviderProfile, ProviderDocument, WeeklySchedule, ScheduleBreak, ProviderLeave
+from .models import ProviderProfile, ProviderDocument, ProviderService, WeeklySchedule, ScheduleBreak, ProviderLeave
+from django.db.models import Prefetch
 from .permissions import IsOrganizationManagerOrOwnProvider
 from .serializers import (
     ProviderProfileSerializer,
@@ -19,6 +20,7 @@ from .serializers import (
     ProviderDocumentReviewSerializer,
     ProviderServiceSerializer,
     ProviderServiceCreateSerializer,
+    ProviderServiceChargeUpdateSerializer,
     WeeklyScheduleSerializer,
     WeeklyScheduleCreateUpdateSerializer,
     ScheduleBreakSerializer,
@@ -109,6 +111,9 @@ class ProviderProfileListCreateView(APIView):
         if service_id:
             profiles = profiles.filter(provider_services__service_id=service_id)
 
+        profiles = profiles.prefetch_related(Prefetch(
+            'provider_services', queryset=ProviderService.objects.select_related('service')
+        ))
         profiles = apply_list_query(
             profiles, request,
             filter_fields=('is_active',),
@@ -271,8 +276,19 @@ class ProviderServiceListCreateView(APIView):
 
 
 class ProviderServiceDetailView(APIView):
-    """DELETE — Remove a service assignment (Manager only)."""
+    """PATCH charge / DELETE assignment (organization manager only)."""
     permission_classes = [IsAuthenticated, IsOrganizationManager]
+
+    @extend_schema(request=ProviderServiceChargeUpdateSerializer, responses={200: ProviderServiceSerializer})
+    def patch(self, request, organization_id, provider_id, provider_service_id):
+        profile = _get_provider(organization_id, provider_id)
+        serializer = ProviderServiceChargeUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        assignment = ProviderBizService.update_service_charge(
+            provider=profile, provider_service_id=provider_service_id,
+            custom_price=serializer.validated_data['custom_price'],
+        )
+        return Response(ProviderServiceSerializer(assignment).data)
 
     @extend_schema(
         responses={204: OpenApiResponse(description="Deleted"), 404: OpenApiResponse(description="Not Found")},
@@ -572,5 +588,4 @@ class ManagerProviderDocumentReviewView(APIView):
             )
             return Response(ProviderDocumentSerializer(reviewed).data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 

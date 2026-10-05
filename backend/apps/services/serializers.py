@@ -56,6 +56,14 @@ class CategoryCreateUpdateSerializer(serializers.ModelSerializer):
 class ServiceSerializer(serializers.ModelSerializer):
     """Read serializer for Service — includes organization ID, nested Category, and rich detail fields."""
     category = CategoryNestedSerializer(read_only=True)
+    starting_from_price = serializers.SerializerMethodField()
+
+    def get_starting_from_price(self, obj):
+        from apps.providers.pricing import starting_from_price
+        value = starting_from_price(obj)
+        return None if value is None else serializers.DecimalField(
+            max_digits=10, decimal_places=2
+        ).to_representation(value)
 
     class Meta:
         model = Service
@@ -63,7 +71,7 @@ class ServiceSerializer(serializers.ModelSerializer):
             'id', 'organization', 'category', 'name', 'description',
             'short_description', 'detailed_description', 'image',
             'service_scope', 'process_steps', 'preparation_notes', 'important_information',
-            'duration_minutes', 'price', 'is_active',
+            'duration_minutes', 'price', 'starting_from_price', 'is_active',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'organization', 'created_at', 'updated_at']

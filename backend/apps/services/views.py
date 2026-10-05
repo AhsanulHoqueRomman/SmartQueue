@@ -12,6 +12,7 @@ from apps.organizations.permissions import IsOrganizationManager
 from .models import Service
 from .serializers import ServiceSerializer, ServiceCreateUpdateSerializer
 from .services import ServiceService
+from apps.providers.pricing import with_starting_from_price
 from config.api import apply_list_query, list_response
 
 
@@ -57,6 +58,7 @@ class ServiceListCreateView(APIView):
             services = Service.objects.filter(organization=org, is_active=True)
         else:
             services = Service.objects.filter(organization=org)
+        services = with_starting_from_price(services)
         services = apply_list_query(
             services, request,
             filter_fields=('is_active', 'category_id'),

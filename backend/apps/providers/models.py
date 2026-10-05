@@ -166,8 +166,8 @@ class ProviderDocument(models.Model):
 
 class ProviderService(models.Model):
     """
-    Configures which Services a ProviderProfile offers, optionally overriding
-    the base duration and price defined on the Service.
+    Configures services and optional customer-facing duration/charge overrides.
+    custom_price is a customer charge, never provider income or commission.
     Invariant: provider.membership.organization == service.organization
     """
     provider = models.ForeignKey(
@@ -192,6 +192,11 @@ class ProviderService(models.Model):
         null=True,
         blank=True
     )
+
+    @property
+    def effective_customer_charge(self):
+        from .pricing import effective_customer_charge
+        return effective_customer_charge(self)
 
     class Meta:
         verbose_name = _('provider service')

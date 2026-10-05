@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from apps.organizations.models import OrganizationMembership
 from .models import ProviderProfile, ProviderDocument, ProviderService, WeeklySchedule, ScheduleBreak, ProviderLeave
+from .pricing import effective_customer_charge
 
 
 class ProviderDocumentSerializer(serializers.ModelSerializer):
@@ -26,6 +27,7 @@ class ProviderProfileSerializer(serializers.ModelSerializer):
     membership_is_active = serializers.BooleanField(source='membership.is_active', read_only=True)
     is_operationally_active = serializers.BooleanField(read_only=True)
     documents = ProviderDocumentSerializer(many=True, read_only=True)
+    service_charges = serializers.SerializerMethodField()
     application_reviewed_by_email = serializers.EmailField(source='application_reviewed_by.email', read_only=True)
 
     class Meta:
@@ -37,10 +39,17 @@ class ProviderProfileSerializer(serializers.ModelSerializer):
             'education', 'experience_history', 'certifications', 'specialties',
             'is_active', 'application_status', 'application_rejection_reason',
             'application_reviewed_at', 'application_reviewed_by', 'application_reviewed_by_email',
-            'is_operationally_active', 'documents',
+            'is_operationally_active', 'documents', 'service_charges',
             'created_at', 'updated_at',
         ]
         read_only_fields = fields
+
+    def get_service_charges(self, obj):
+        assignments = [
+            ps for ps in obj.provider_services.all()
+            if ps.service.is_active and ps.service.organization_id == obj.membership.organization_id
+        ]
+        return ProviderServiceSerializer(assignments, many=True).data
 
 
 class ProviderApplicationReviewSerializer(serializers.Serializer):
@@ -205,9 +214,9 @@ class ProviderPublicProfileSerializer(serializers.ModelSerializer):
         services_list = []
         for ps in obj.provider_services.select_related('service__category').all():
             svc = ps.service
-            if svc.is_active:
+            if svc.is_active and svc.organization_id == obj.membership.organization_id:
                 duration = ps.custom_duration_minutes if ps.custom_duration_minutes is not None else svc.duration_minutes
-                price = ps.custom_price if ps.custom_price is not None else svc.price
+                price = effective_customer_charge(ps)
                 cat_data = None
                 if svc.category and svc.category.is_active:
                     cat_data = {
@@ -222,6 +231,7 @@ class ProviderPublicProfileSerializer(serializers.ModelSerializer):
                     'description': svc.description,
                     'duration_minutes': duration,
                     'price': str(price),
+                    'effective_customer_charge': str(price),
                     'category': cat_data,
                 })
         return services_list
@@ -249,6 +259,7 @@ class ProviderPublicProfileSerializer(serializers.ModelSerializer):
 # ---------------------------------------------------------------------------
 
 class ProviderServiceSerializer(serializers.ModelSerializer):
+    effective_customer_charge = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     service_name = serializers.CharField(source='service.name', read_only=True)
     service_id = serializers.UUIDField(source='service.id', read_only=True)
 
@@ -256,9 +267,15 @@ class ProviderServiceSerializer(serializers.ModelSerializer):
         model = ProviderService
         fields = [
             'id', 'service_id', 'service_name',
-            'custom_duration_minutes', 'custom_price',
+            'custom_duration_minutes', 'custom_price', 'effective_customer_charge',
         ]
         read_only_fields = ['id', 'service_id', 'service_name']
+
+
+class ProviderServiceChargeUpdateSerializer(serializers.Serializer):
+    custom_price = serializers.DecimalField(
+        max_digits=10, decimal_places=2, allow_null=True, min_value=0
+    )
 
 
 class ProviderServiceCreateSerializer(serializers.Serializer):

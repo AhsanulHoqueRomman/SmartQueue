@@ -230,6 +230,7 @@ class ProviderService_:
     # ------------------------------------------------------------------
 
     @staticmethod
+    @transaction.atomic
     def assign_service_to_provider(*, provider, service_id, custom_duration_minutes=None, custom_price=None):
         """
         Assign a Service to a ProviderProfile.
@@ -237,6 +238,7 @@ class ProviderService_:
           - service belongs to the same organization as provider
           - assignment is not a duplicate
         """
+        provider = ProviderService_._lock_assignment_provider(provider)
         try:
             service = Service.objects.get(id=service_id, is_active=True)
         except Service.DoesNotExist:
@@ -260,15 +262,40 @@ class ProviderService_:
         )
 
     @staticmethod
-    def remove_service_from_provider(*, provider, provider_service_id):
+    def _lock_assignment_provider(provider):
+        """Shared with booking: provider first, then assignment; never reversed."""
         try:
-            ps = ProviderService.objects.get(id=provider_service_id, provider=provider)
-        except ProviderService.DoesNotExist:
-            raise ApplicationError(
-                message="Provider service assignment not found.",
-                code="PROVIDER_SERVICE_NOT_FOUND",
-                status_code=404
+            return ProviderProfile.objects.select_for_update(of=('self',)).select_related('membership').get(
+                pk=provider.pk, membership__organization_id=provider.membership.organization_id,
+                membership__is_active=True, membership__role=OrganizationMembership.Role.PROVIDER,
             )
+        except ProviderProfile.DoesNotExist:
+            raise ApplicationError(message='Provider not found in this organization.', code='PROVIDER_NOT_FOUND', status_code=404)
+
+    @staticmethod
+    def _lock_assignment(provider, provider_service_id):
+        try:
+            return ProviderService.objects.select_for_update(of=('self',)).select_related('service').get(
+                id=provider_service_id, provider=provider,
+                service__organization_id=provider.membership.organization_id,
+            )
+        except ProviderService.DoesNotExist:
+            raise ApplicationError(message='Provider service assignment not found.', code='PROVIDER_SERVICE_NOT_FOUND', status_code=404)
+
+    @staticmethod
+    @transaction.atomic
+    def update_service_charge(*, provider, provider_service_id, custom_price):
+        provider = ProviderService_._lock_assignment_provider(provider)
+        assignment = ProviderService_._lock_assignment(provider, provider_service_id)
+        assignment.custom_price = custom_price
+        assignment.save(update_fields=['custom_price'])
+        return assignment
+
+    @staticmethod
+    @transaction.atomic
+    def remove_service_from_provider(*, provider, provider_service_id):
+        provider = ProviderService_._lock_assignment_provider(provider)
+        ps = ProviderService_._lock_assignment(provider, provider_service_id)
         ps.delete()
 
     # ------------------------------------------------------------------
