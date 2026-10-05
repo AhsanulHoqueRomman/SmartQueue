@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    OrganizationCategoriesView,
     OrganizationListCreateView,
     OrganizationDetailView,
     OrganizationMemberListAddView,
@@ -20,14 +21,19 @@ from .views import (
     OrganizationStaffInvitationCancelView,
     OrganizationStaffActivateView,
     OrganizationStaffDeactivateView,
+    OrganizationCredentialListCreateView,
+    OrganizationOperatingHoursView,
 )
 
 app_name = 'organizations'
 
 urlpatterns = [
     path('', OrganizationListCreateView.as_view(), name='organization_list_create'),
+    path('categories/', OrganizationCategoriesView.as_view(), name='organization_categories'),
     path('admin/verification/', AdminOrganizationVerificationQueueView.as_view(), name='admin_verification_queue'),
     path('<uuid:organization_id>/', OrganizationDetailView.as_view(), name='organization_detail'),
+    path('<uuid:organization_id>/credentials/', OrganizationCredentialListCreateView.as_view(), name='credential_list_create'),
+    path('<uuid:organization_id>/operating-hours/', OrganizationOperatingHoursView.as_view(), name='operating_hours'),
     path('<uuid:organization_id>/verification/submit/', ManagerVerificationSubmitView.as_view(), name='verification_submit'),
     path('<uuid:organization_id>/documents/', OrganizationDocumentListUploadView.as_view(), name='document_list_upload'),
     path('<uuid:organization_id>/documents/<uuid:document_id>/', OrganizationDocumentDetailDeleteView.as_view(), name='document_detail_delete'),

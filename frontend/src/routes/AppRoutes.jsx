@@ -94,6 +94,7 @@ export const AppRoutes = () => {
       <Route path="/favorites" element={<CustomerFavoritesPage />} />
       <Route path="/organizations" element={<OrganizationsPage />} />
       <Route path="/organizations/:organizationId" element={<OrganizationProfilePage />} />
+      <Route path="/organizations/:organizationId/services/:serviceId" element={<OrganizationProfilePage />} />
       <Route path="/organizations/:organizationId/providers/:providerId" element={<ProviderPublicProfilePage />} />
       <Route
         path="/dashboard"

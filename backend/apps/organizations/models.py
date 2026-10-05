@@ -39,6 +39,7 @@ class Organization(models.Model):
     email = models.EmailField(_('email'), blank=True)
     logo = models.URLField(_('logo url'), max_length=500, blank=True)
     cover_image = models.URLField(_('cover image url'), max_length=500, blank=True)
+    tagline = models.CharField(_('tagline / motto'), max_length=255, blank=True)
     description = models.TextField(_('description'), blank=True)
     is_active = models.BooleanField(_('active'), default=True)
     verification_status = models.CharField(
@@ -239,5 +240,130 @@ class OrganizationInvitation(models.Model):
             self.cancelled_at is None and
             self.expires_at > timezone.now()
         )
+
+
+class OrganizationCredential(models.Model):
+    """
+    Multi-industry credential, registration, license, permit, or accreditation for an Organization.
+    Manager uploads/submits -> verification_status = PENDING.
+    Only SmartQueue admin can VERIFY or REJECT.
+    Only VERIFIED and is_public credentials appear on the public storefront.
+    """
+    class CredentialType(models.TextChoices):
+        BUSINESS_REGISTRATION = 'BUSINESS_REGISTRATION', _('Business / Trade Registration')
+        OPERATING_LICENSE = 'OPERATING_LICENSE', _('Operating / Facility License')
+        PROFESSIONAL_ACCREDITATION = 'PROFESSIONAL_ACCREDITATION', _('Professional Accreditation')
+        TAX_REGISTRATION = 'TAX_REGISTRATION', _('Tax / TIN Registration')
+        OTHER = 'OTHER', _('Other Official Credential')
+
+    class VerificationStatus(models.TextChoices):
+        PENDING = 'PENDING', _('Pending Verification')
+        VERIFIED = 'VERIFIED', _('Verified')
+        REJECTED = 'REJECTED', _('Rejected')
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='credentials'
+    )
+    credential_type = models.CharField(
+        max_length=40,
+        choices=CredentialType.choices,
+        default=CredentialType.BUSINESS_REGISTRATION
+    )
+    credential_name = models.CharField(_('credential name'), max_length=255)
+    credential_number = models.CharField(_('credential number / license ID'), max_length=100, blank=True)
+    issuing_authority = models.CharField(_('issuing authority / board'), max_length=255, blank=True)
+    issued_date = models.DateField(_('issued date'), null=True, blank=True)
+    expiry_date = models.DateField(_('expiry date'), null=True, blank=True)
+    verification_status = models.CharField(
+        max_length=20,
+        choices=VerificationStatus.choices,
+        default=VerificationStatus.PENDING
+    )
+    document = models.FileField(
+        upload_to='org_credentials/%Y/%m/',
+        null=True,
+        blank=True,
+        validators=[validate_document_file]
+    )
+    is_public = models.BooleanField(_('display publicly'), default=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='verified_organization_credentials'
+    )
+    rejection_reason = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _('organization credential')
+        verbose_name_plural = _('organization credentials')
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['organization', 'verification_status', 'is_public'], name='org_cred_pub_status_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.organization.name} - {self.credential_name} ({self.verification_status})"
+
+    @property
+    def masked_credential_number(self):
+        """Privacy-safe masking showing only last 4 chars if long enough."""
+        if not self.credential_number:
+            return ""
+        clean = self.credential_number.strip()
+        if len(clean) <= 4:
+            return "•••• " + clean
+        return "•••• " + clean[-4:]
+
+
+class OrganizationOperatingHours(models.Model):
+    """
+    Weekly operating hours for an Organization.
+    Distinct from Provider working hours (which dictate appointment booking availability).
+    """
+    class DayOfWeek(models.IntegerChoices):
+        MONDAY = 0, _('Monday')
+        TUESDAY = 1, _('Tuesday')
+        WEDNESDAY = 2, _('Wednesday')
+        THURSDAY = 3, _('Thursday')
+        FRIDAY = 4, _('Friday')
+        SATURDAY = 5, _('Saturday')
+        SUNDAY = 6, _('Sunday')
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='operating_hours'
+    )
+    day_of_week = models.IntegerField(choices=DayOfWeek.choices)
+    open_time = models.TimeField(null=True, blank=True)
+    close_time = models.TimeField(null=True, blank=True)
+    is_closed = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = _('organization operating hours')
+        verbose_name_plural = _('organization operating hours')
+        ordering = ['day_of_week']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['organization', 'day_of_week'],
+                name='unique_org_day_operating_hours'
+            )
+        ]
+
+    def __str__(self):
+        day_name = self.get_day_of_week_display()
+        if self.is_closed:
+            return f"{self.organization.name} - {day_name}: Closed"
+        return f"{self.organization.name} - {day_name}: {self.open_time} - {self.close_time}"
+
 
 

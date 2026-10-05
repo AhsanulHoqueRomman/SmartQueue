@@ -300,14 +300,16 @@ class PhaseE1OperationalGuardsTest(TestCase):
 
     def test_valid_appointment_can_check_in(self):
         """Customer can check in valid confirmed appointment."""
-        now = timezone.now()
-        dt = now + timedelta(minutes=15)
+        from apps.queue.services import current_business_date
+        today = current_business_date()
+        dt = timezone.now()
 
         appt = Appointment.objects.create(
             organization=self.org,
             customer=self.customer_user,
             provider=self.provider,
             service=self.service,
+            appointment_date=today,
             start_datetime=dt,
             end_datetime=dt + timedelta(minutes=30),
             status=Appointment.Status.CONFIRMED
@@ -319,12 +321,15 @@ class PhaseE1OperationalGuardsTest(TestCase):
 
     def test_check_in_fails_if_org_becomes_suspended_after_booking(self):
         """If org becomes SUSPENDED after booking, customer check-in fails."""
-        dt = timezone.now() + timedelta(minutes=15)
+        from apps.queue.services import current_business_date
+        today = current_business_date()
+        dt = timezone.now()
         appt = Appointment.objects.create(
             organization=self.org,
             customer=self.customer_user,
             provider=self.provider,
             service=self.service,
+            appointment_date=today,
             start_datetime=dt,
             end_datetime=dt + timedelta(minutes=30),
             status=Appointment.Status.CONFIRMED

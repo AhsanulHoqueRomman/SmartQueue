@@ -200,7 +200,10 @@ class AppointmentCreateSerializer(serializers.Serializer):
         if data.get('appointment_date'):
             appt_date = data['appointment_date']
         else:
-            appt_date = timezone.localtime(data['start_datetime'], get_project_tz()).date()
+            appt_date = None
+
+        if appt_date and appt_date < today:
+            raise serializers.ValidationError({'appointment_date': 'Appointments cannot be booked for a past date.'})
 
         data['appointment_date'] = appt_date
         return data

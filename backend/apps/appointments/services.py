@@ -341,6 +341,24 @@ class AppointmentAvailabilityService:
 
         duration = get_effective_duration_minutes(provider=provider, service=service)
 
+        from apps.queue.services import current_business_date
+        today = current_business_date()
+        if on_date < today:
+            return {
+                'date': on_date.isoformat(),
+                'provider_id': str(provider.id),
+                'service_id': str(service.id),
+                'duration_minutes': duration,
+                'is_available': False,
+                'reason': 'PAST_DATE',
+                'message': 'Appointments cannot be booked for a past date.',
+                'working_hours_display': None,
+                'start_time': None,
+                'end_time': None,
+                'remaining_capacity_minutes': 0,
+                'slots': [],
+            }
+
         schedule = _get_working_schedule(provider, on_date)
         if schedule is None or not schedule.is_working_day:
             return {
@@ -398,7 +416,7 @@ class AppointmentAvailabilityService:
         working_hours_display = f"{start_str} – {end_str}"
 
         breaks = list(ScheduleBreak.objects.filter(weekly_schedule=schedule))
-        blocking_appts = list(_blocking_appointment_qs(provider))
+        blocking_appts = list(_blocking_appointment_qs(provider).filter(appointment_date=on_date))
 
         slots = []
         if has_capacity:

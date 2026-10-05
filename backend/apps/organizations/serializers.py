@@ -1,8 +1,64 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Organization, OrganizationMembership, OrganizationDocument
+from datetime import date
+from .models import Organization, OrganizationMembership, OrganizationDocument, OrganizationCredential, OrganizationOperatingHours
 
 User = get_user_model()
+
+
+class OrganizationCredentialPublicSerializer(serializers.ModelSerializer):
+    """
+    Public representation of an Organization credential.
+    Strictly masks the credential number and excludes private verification documents.
+    """
+    credential_type_label = serializers.CharField(source='get_credential_type_display', read_only=True)
+    masked_number = serializers.CharField(source='masked_credential_number', read_only=True)
+
+    class Meta:
+        model = OrganizationCredential
+        fields = (
+            'id', 'credential_type', 'credential_type_label', 'credential_name',
+            'masked_number', 'issuing_authority', 'issued_date', 'expiry_date',
+            'verification_status', 'verified_at'
+        )
+        read_only_fields = fields
+
+
+class OrganizationCredentialManagerSerializer(serializers.ModelSerializer):
+    """
+    Manager serializer for submitting credentials.
+    Submissions are strictly created with status PENDING and verified_by=None.
+    """
+    credential_type_label = serializers.CharField(source='get_credential_type_display', read_only=True)
+    masked_number = serializers.CharField(source='masked_credential_number', read_only=True)
+
+    class Meta:
+        model = OrganizationCredential
+        fields = (
+            'id', 'organization', 'credential_type', 'credential_type_label',
+            'credential_name', 'credential_number', 'masked_number',
+            'issuing_authority', 'issued_date', 'expiry_date',
+            'verification_status', 'document', 'is_public',
+            'verified_at', 'rejection_reason', 'created_at', 'updated_at'
+        )
+        read_only_fields = ('id', 'organization', 'verification_status', 'verified_at', 'rejection_reason', 'created_at', 'updated_at')
+
+    def create(self, validated_data):
+        validated_data['verification_status'] = OrganizationCredential.VerificationStatus.PENDING
+        validated_data['verified_at'] = None
+        validated_data['verified_by'] = None
+        return super().create(validated_data)
+
+
+class OrganizationOperatingHoursSerializer(serializers.ModelSerializer):
+    """
+    Serializer for weekly Organization operating hours.
+    """
+    day_name = serializers.CharField(source='get_day_of_week_display', read_only=True)
+
+    class Meta:
+        model = OrganizationOperatingHours
+        fields = ('id', 'day_of_week', 'day_name', 'open_time', 'close_time', 'is_closed')
 
 
 class OrganizationMembershipUserSerializer(serializers.ModelSerializer):
@@ -65,7 +121,7 @@ class OrganizationDocumentSerializer(serializers.ModelSerializer):
 class OrganizationSerializer(serializers.ModelSerializer):
     """
     Serializer for public & management Organization information.
-    Exposes read-only verification status and timestamps.
+    Exposes read-only verification status, credentials, and operating hours.
     """
     industry_label = serializers.SerializerMethodField()
     services_count = serializers.SerializerMethodField()
@@ -74,18 +130,22 @@ class OrganizationSerializer(serializers.ModelSerializer):
     reviews_count = serializers.SerializerMethodField()
     documents = serializers.SerializerMethodField()
     documents_count = serializers.SerializerMethodField()
+    credentials = serializers.SerializerMethodField()
+    operating_hours = serializers.SerializerMethodField()
+    today_hours = serializers.SerializerMethodField()
+    smartqueue_verified = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
         fields = (
             'id', 'name', 'slug', 'industry_type', 'industry_label',
-            'address', 'phone_number', 'email', 'logo', 'cover_image', 'description',
-            'is_active', 'verification_status',
+            'address', 'phone_number', 'email', 'logo', 'cover_image', 'tagline', 'description',
+            'is_active', 'verification_status', 'smartqueue_verified',
             'verification_submitted_at', 'verification_reviewed_at',
             'verification_rejection_reason', 'verification_suspension_reason',
             'created_at', 'updated_at',
             'services_count', 'providers_count', 'rating', 'reviews_count',
-            'documents', 'documents_count'
+            'documents', 'documents_count', 'credentials', 'operating_hours', 'today_hours'
         )
         read_only_fields = (
             'id', 'is_active', 'verification_status',
@@ -93,6 +153,58 @@ class OrganizationSerializer(serializers.ModelSerializer):
             'verification_rejection_reason', 'verification_suspension_reason',
             'created_at', 'updated_at'
         )
+
+    def get_smartqueue_verified(self, obj):
+        return obj.verification_status == Organization.VerificationStatus.APPROVED
+
+    def get_credentials(self, obj):
+        verified_creds = obj.credentials.filter(
+            verification_status=OrganizationCredential.VerificationStatus.VERIFIED,
+            is_public=True
+        )
+        return OrganizationCredentialPublicSerializer(verified_creds, many=True).data
+
+    def get_operating_hours(self, obj):
+        hours = obj.operating_hours.all().order_by('day_of_week')
+        return OrganizationOperatingHoursSerializer(hours, many=True).data
+
+    def get_today_hours(self, obj):
+        # 0=Monday, 6=Sunday
+        today_idx = date.today().weekday()
+        today_record = obj.operating_hours.filter(day_of_week=today_idx).first()
+        if not today_record:
+            return {
+                'is_open': True,
+                'is_closed': False,
+                'text': 'Open today (Standard Hours)',
+                'open_time': None,
+                'close_time': None,
+            }
+        if today_record.is_closed:
+            return {
+                'is_open': False,
+                'is_closed': True,
+                'text': 'Closed today',
+                'open_time': None,
+                'close_time': None,
+            }
+        
+        # Format times for clean reading
+        def format_time_clean(t):
+            if not t:
+                return ''
+            return t.strftime('%I:%M %p').lstrip('0')
+
+        open_str = format_time_clean(today_record.open_time)
+        close_str = format_time_clean(today_record.close_time)
+        return {
+            'is_open': True,
+            'is_closed': False,
+            'open_time': str(today_record.open_time) if today_record.open_time else None,
+            'close_time': str(today_record.close_time) if today_record.close_time else None,
+            'text': f"Open today until {close_str}" if close_str else "Open today",
+            'window_text': f"{open_str} – {close_str}" if open_str and close_str else "Open today",
+        }
 
     def get_industry_label(self, obj):
         return obj.get_industry_type_display() if obj.industry_type else 'Other Services'

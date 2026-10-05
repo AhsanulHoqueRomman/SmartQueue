@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -9,7 +9,7 @@ from apps.organizations.models import Organization, OrganizationMembership
 
 from .models import Review
 from .permissions import CanReviewAppointment, CanViewOrganizationReviews
-from .serializers import ReviewCreateSerializer, ReviewSerializer
+from .serializers import ReviewCreateSerializer, ReviewSerializer, PublicReviewSerializer
 from .services import ReviewService
 from config.api import apply_list_query, list_response
 
@@ -42,33 +42,43 @@ class AppointmentReviewView(APIView):
 
 
 class OrganizationReviewListView(APIView):
-    permission_classes = [IsAuthenticated, CanViewOrganizationReviews]
+    """
+    GET: Return reviews for organization.
+         Public / customer users receive privacy-safe PublicReviewSerializer.
+         Managers and staff receive full ReviewSerializer.
+    """
+    permission_classes = [AllowAny]
     serializer_class = ReviewSerializer
 
     def get(self, request, organization_id):
         organization = get_object_or_404(Organization, id=organization_id, is_active=True)
-        reviews = organization.reviews.select_related('customer', 'provider', 'appointment').all()
-        membership = OrganizationMembership.objects.filter(
-            user=request.user, organization=organization, is_active=True,
-        ).first()
+        reviews = organization.reviews.select_related('customer', 'provider', 'appointment', 'appointment__service').all()
 
-        if request.user.is_staff or request.user.is_superuser:
-            pass
-        elif membership and membership.role in (OrganizationMembership.Role.MANAGER, OrganizationMembership.Role.STAFF):
-            pass
-        elif membership and membership.role == OrganizationMembership.Role.PROVIDER:
-            reviews = reviews.filter(provider__membership=membership)
-        else:
-            reviews = reviews.filter(customer=request.user)
+        is_internal = False
+        if request.user.is_authenticated:
+            if request.user.is_staff or request.user.is_superuser:
+                is_internal = True
+            else:
+                membership = OrganizationMembership.objects.filter(
+                    user=request.user, organization=organization, is_active=True,
+                ).first()
+                if membership and membership.role in (OrganizationMembership.Role.MANAGER, OrganizationMembership.Role.STAFF):
+                    is_internal = True
+                elif membership and membership.role == OrganizationMembership.Role.PROVIDER:
+                    reviews = reviews.filter(provider__membership=membership)
+                    is_internal = True
+
+        target_serializer = ReviewSerializer if is_internal else PublicReviewSerializer
 
         reviews = apply_list_query(
             reviews, request,
             filter_fields=('rating', 'provider_id'),
-            search_fields=('comment', 'customer__email', 'provider__membership__user__email'),
+            search_fields=('comment', 'customer__email', 'provider__membership__user__email') if is_internal else ('comment',),
             ordering_fields=('rating', 'created_at', 'updated_at'),
             default_ordering=('-created_at',),
         )
-        return list_response(reviews, ReviewSerializer, request)
+        return list_response(reviews, target_serializer, request)
+
 
 
 class CustomerMyReviewsView(APIView):

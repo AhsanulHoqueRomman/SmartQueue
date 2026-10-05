@@ -58,6 +58,13 @@ class Service(models.Model):
     )
     name = models.CharField(_('name'), max_length=255)
     description = models.TextField(_('description'), blank=True)
+    short_description = models.CharField(_('short description'), max_length=255, blank=True)
+    detailed_description = models.TextField(_('detailed description'), blank=True)
+    image = models.URLField(_('service image url'), max_length=500, blank=True)
+    service_scope = models.JSONField(_('service scope / highlights'), default=list, blank=True)
+    process_steps = models.JSONField(_('process steps'), default=list, blank=True)
+    preparation_notes = models.JSONField(_('preparation notes / requirements'), default=list, blank=True)
+    important_information = models.JSONField(_('important information'), default=list, blank=True)
     duration_minutes = models.PositiveIntegerField(_('duration (minutes)'))
     price = models.DecimalField(
         _('price'),

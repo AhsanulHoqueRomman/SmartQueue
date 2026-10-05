@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from config.api import apply_list_query, list_response
-from .models import Organization, OrganizationMembership, OrganizationDocument, OrganizationInvitation
+from .models import Organization, OrganizationMembership, OrganizationDocument, OrganizationInvitation, OrganizationCredential, OrganizationOperatingHours
 from .permissions import IsOrganizationManager, IsOrganizationMember, IsSystemAdmin
 from .services import OrganizationService
 from .serializers import (
@@ -15,6 +15,9 @@ from .serializers import (
     OrganizationCreateSerializer,
     OrganizationMembershipSerializer,
     OrganizationDocumentSerializer,
+    OrganizationCredentialPublicSerializer,
+    OrganizationCredentialManagerSerializer,
+    OrganizationOperatingHoursSerializer,
     MemberAddSerializer,
     MemberUpdateSerializer,
     AdminActionReasonSerializer,
@@ -27,6 +30,28 @@ from .serializers import (
 
 
 User = get_user_model()
+
+
+class OrganizationCategoriesView(APIView):
+    """
+    GET: Return available organization categories (industry types) for discovery.
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary="List active organization categories"
+    )
+    def get(self, request):
+        categories = [
+            {
+                'id': choice.value,
+                'name': str(choice.label),
+                'slug': choice.value.lower(),
+                'industry_type': choice.value,
+            }
+            for choice in Organization.IndustryType
+        ]
+        return Response(categories, status=status.HTTP_200_OK)
 
 
 class OrganizationListCreateView(APIView):
@@ -48,10 +73,18 @@ class OrganizationListCreateView(APIView):
             is_active=True,
             verification_status=Organization.VerificationStatus.APPROVED
         )
+        category_param = (
+            request.query_params.get('category') or 
+            request.query_params.get('category_id') or 
+            request.query_params.get('industry_type')
+        )
+        if category_param:
+            orgs = orgs.filter(industry_type__iexact=category_param)
+
         orgs = apply_list_query(
             orgs, request,
             filter_fields=('is_active', 'industry_type'),
-            search_fields=('name', 'address', 'email', 'slug', 'description'),
+            search_fields=('name', 'address', 'email', 'slug', 'description', 'tagline'),
             ordering_fields=('name', 'created_at'),
             default_ordering=('name',),
         )
@@ -740,6 +773,98 @@ class OrganizationStaffDeactivateView(APIView):
             actor=request.user
         )
         return Response(StaffMemberSerializer(updated_membership).data, status=status.HTTP_200_OK)
+
+
+class OrganizationCredentialListCreateView(APIView):
+    """
+    GET: List credentials for organization.
+         Public users see only verified & public credentials with masked IDs.
+         Managers see all credentials for their own organization.
+    POST: Submit a new credential for organization verification (Manager only).
+          Always created with verification_status=PENDING and cannot be self-verified.
+    """
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticated(), IsOrganizationManager()]
+
+    def get(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id, is_active=True)
+        is_manager_or_admin = False
+        if request.user.is_authenticated:
+            if request.user.is_staff or request.user.is_superuser:
+                is_manager_or_admin = True
+            else:
+                is_manager_or_admin = OrganizationMembership.objects.filter(
+                    user=request.user, organization=org, role=OrganizationMembership.Role.MANAGER, is_active=True
+                ).exists()
+
+        if is_manager_or_admin:
+            creds = org.credentials.all().order_by('-created_at')
+            serializer = OrganizationCredentialManagerSerializer(creds, many=True, context={'request': request})
+        else:
+            creds = org.credentials.filter(
+                verification_status=OrganizationCredential.VerificationStatus.VERIFIED,
+                is_public=True
+            ).order_by('-created_at')
+            serializer = OrganizationCredentialPublicSerializer(creds, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id, is_active=True)
+        serializer = OrganizationCredentialManagerSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        credential = serializer.save(
+            organization=org,
+            verification_status=OrganizationCredential.VerificationStatus.PENDING,
+            verified_by=None,
+            verified_at=None
+        )
+        return Response(OrganizationCredentialManagerSerializer(credential).data, status=status.HTTP_201_CREATED)
+
+
+class OrganizationOperatingHoursView(APIView):
+    """
+    GET: Return weekly operating hours for organization (Public).
+    POST / PUT: Set weekly operating hours (Manager only).
+    """
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticated(), IsOrganizationManager()]
+
+    def get(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id, is_active=True)
+        hours = org.operating_hours.all().order_by('day_of_week')
+        return Response(OrganizationOperatingHoursSerializer(hours, many=True).data, status=status.HTTP_200_OK)
+
+    def post(self, request, organization_id):
+        return self.put(request, organization_id)
+
+    def put(self, request, organization_id):
+        org = get_object_or_404(Organization, id=organization_id, is_active=True)
+        days_data = request.data
+        if not isinstance(days_data, list):
+            days_data = request.data.get('hours', [])
+
+        saved = []
+        for item in days_data:
+            day = item.get('day_of_week')
+            if day is None:
+                continue
+            rec, _ = OrganizationOperatingHours.objects.update_or_create(
+                organization=org,
+                day_of_week=int(day),
+                defaults={
+                    'open_time': item.get('open_time') or None,
+                    'close_time': item.get('close_time') or None,
+                    'is_closed': bool(item.get('is_closed', False)),
+                }
+            )
+            saved.append(rec)
+        hours = org.operating_hours.all().order_by('day_of_week')
+        return Response(OrganizationOperatingHoursSerializer(hours, many=True).data, status=status.HTTP_200_OK)
+
 
 
 

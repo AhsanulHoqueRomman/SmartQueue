@@ -99,7 +99,8 @@ class TestPhaseA2RuntimeStability:
 
     def test_appointment_detail_access_and_permissions(self):
         """Customer can retrieve their own appointment detail; another customer is denied (403)."""
-        today = timezone.now().date()
+        from apps.queue.services import current_business_date
+        today = current_business_date()
         appt = Appointment.objects.create(
             organization=self.org1,
             customer=self.customer,
@@ -129,7 +130,8 @@ class TestPhaseA2RuntimeStability:
 
     def test_future_appointment_can_check_in_is_false(self):
         """Future appointment must have can_check_in=False."""
-        tomorrow = timezone.now().date() + timedelta(days=1)
+        from apps.queue.services import current_business_date
+        tomorrow = current_business_date() + timedelta(days=1)
         appt = Appointment.objects.create(
             organization=self.org1,
             customer=self.customer,
@@ -149,7 +151,8 @@ class TestPhaseA2RuntimeStability:
 
     def test_customer_dashboard_multi_org_appointments(self):
         """Customer dashboard returns all customer appointments across Org 1 & Org 2 with serials."""
-        today = timezone.now().date()
+        from apps.queue.services import current_business_date
+        today = current_business_date()
         appt1 = Appointment.objects.create(
             organization=self.org1,
             customer=self.customer,

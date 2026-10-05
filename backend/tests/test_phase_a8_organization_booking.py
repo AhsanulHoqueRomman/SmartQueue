@@ -365,13 +365,13 @@ def test_phase_a72_in_progress_and_downstream_eta(a8_setup):
     q3 = QueueEntry.objects.get(appointment=appt3)
 
     # #1 completed
-    QueueService.check_in_appointment(appointment=appt1, actor=custs[0])
+    QueueService.check_in_appointment(appointment=appt1, actor=custs[0], bypass_window=True)
     QueueService.call_next(organization_id=org.id, provider_id=provider.id, actor=custs[0])
     QueueService.start_queue_entry(organization_id=org.id, queue_entry_id=q1.id, actor=custs[0])
     QueueService.complete_queue_entry(organization_id=org.id, queue_entry_id=q1.id, actor=custs[0])
 
     # #2 IN_PROGRESS
-    QueueService.check_in_appointment(appointment=appt2, actor=custs[1])
+    QueueService.check_in_appointment(appointment=appt2, actor=custs[1], bypass_window=True)
     QueueService.call_next(organization_id=org.id, provider_id=provider.id, actor=custs[1])
     QueueService.start_queue_entry(organization_id=org.id, queue_entry_id=q2.id, actor=custs[1])
 
@@ -382,7 +382,7 @@ def test_phase_a72_in_progress_and_downstream_eta(a8_setup):
     assert readiness2['estimated_start_time'] is None
 
     # #3 checked-in waiting
-    QueueService.check_in_appointment(appointment=appt3, actor=custs[2])
+    QueueService.check_in_appointment(appointment=appt3, actor=custs[2], bypass_window=True)
     readiness3 = QueueService.calculate_readiness_and_eta(q3)
     assert readiness3['now_serving_serial'] == 2
     assert readiness3['scheduled_ahead'] == 0
@@ -402,7 +402,7 @@ def test_provider_started_vs_active_consultation_semantics(a8_setup):
     q1 = QueueEntry.objects.get(appointment=appt1)
 
     # Complete #1 consultation
-    QueueService.check_in_appointment(appointment=appt1, actor=cust)
+    QueueService.check_in_appointment(appointment=appt1, actor=cust, bypass_window=True)
     QueueService.call_next(organization_id=org.id, provider_id=provider.id, actor=cust)
     QueueService.start_queue_entry(organization_id=org.id, queue_entry_id=q1.id, actor=cust)
     QueueService.complete_queue_entry(organization_id=org.id, queue_entry_id=q1.id, actor=cust)

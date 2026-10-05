@@ -19,6 +19,38 @@ export const organizationService = {
   },
 
   /**
+   * Fetch public verified credentials for an organization.
+   */
+  async getCredentials(orgId) {
+    const response = await apiClient.get(`/organizations/${orgId}/credentials/`);
+    return response.data;
+  },
+
+  /**
+   * Fetch operating hours for an organization.
+   */
+  async getOperatingHours(orgId) {
+    const response = await apiClient.get(`/organizations/${orgId}/operating-hours/`);
+    return response.data;
+  },
+
+  /**
+   * Fetch public reviews for an organization.
+   */
+  async getReviews(orgId, params = {}) {
+    const response = await apiClient.get(`/organizations/${orgId}/reviews/`, { params });
+    return response.data;
+  },
+
+  /**
+   * Fetch single service detail profile.
+   */
+  async getServiceDetail(orgId, serviceId) {
+    const response = await apiClient.get(`/organizations/${orgId}/services/${serviceId}/`);
+    return response.data;
+  },
+
+  /**
    * Fetch active services for a given organization.
    */
   async getServices(orgId) {
@@ -36,9 +68,19 @@ export const organizationService = {
 
   /**
    * Fetch active provider profiles for a given organization.
+   * @param {string} orgId
+   * @param {Object} params - optional query parameters e.g. { service_id }
    */
-  async getProviders(orgId) {
-    const response = await apiClient.get(`/organizations/${orgId}/providers/`);
+  async getProviders(orgId, params = {}) {
+    const response = await apiClient.get(`/organizations/${orgId}/providers/`, { params });
+    return response.data;
+  },
+
+  /**
+   * Fetch global organization categories (industry types).
+   */
+  async getGlobalCategories() {
+    const response = await apiClient.get('/organizations/categories/');
     return response.data;
   },
 

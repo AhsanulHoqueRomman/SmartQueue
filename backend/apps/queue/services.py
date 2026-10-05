@@ -633,8 +633,7 @@ class QueueService:
         is_confirmed = (queue_entry.appointment.status in (Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN)) if queue_entry.appointment else True
         can_check_in = bool(
             not queue_entry.is_checked_in and
-            is_confirmed and
-            now >= check_in_available_at
+            is_confirmed
         )
 
         rec_arrival_iso = None if queue_entry.is_checked_in else rec_arrival.isoformat()

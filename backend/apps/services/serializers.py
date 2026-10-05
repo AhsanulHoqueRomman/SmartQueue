@@ -54,13 +54,15 @@ class CategoryCreateUpdateSerializer(serializers.ModelSerializer):
 
 
 class ServiceSerializer(serializers.ModelSerializer):
-    """Read serializer for Service — includes organization ID and nested Category."""
+    """Read serializer for Service — includes organization ID, nested Category, and rich detail fields."""
     category = CategoryNestedSerializer(read_only=True)
 
     class Meta:
         model = Service
         fields = [
             'id', 'organization', 'category', 'name', 'description',
+            'short_description', 'detailed_description', 'image',
+            'service_scope', 'process_steps', 'preparation_notes', 'important_information',
             'duration_minutes', 'price', 'is_active',
             'created_at', 'updated_at',
         ]
@@ -75,7 +77,12 @@ class ServiceCreateUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Service
-        fields = ['category_id', 'name', 'description', 'duration_minutes', 'price', 'is_active']
+        fields = [
+            'category_id', 'name', 'description',
+            'short_description', 'detailed_description', 'image',
+            'service_scope', 'process_steps', 'preparation_notes', 'important_information',
+            'duration_minutes', 'price', 'is_active'
+        ]
 
     def validate_duration_minutes(self, value):
         if value <= 0:
