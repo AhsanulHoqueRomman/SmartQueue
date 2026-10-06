@@ -1,19 +1,21 @@
 import random
-from datetime import date, datetime, time, timedelta
+from datetime import datetime, time, timedelta
+from decimal import Decimal
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models.deletion import Collector, ProtectedError
 from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.organizations.models import Organization, OrganizationMembership
+from apps.organizations.models import Organization, OrganizationMembership, OrganizationOperatingHours
+from apps.accounts.management.demo_enrichment import enrich_definitions, provider_day_hours
+from apps.providers.pricing import effective_customer_charge
 from apps.services.models import Category, Service
 from apps.providers.models import (
     ProviderProfile,
     ProviderService,
     WeeklySchedule,
     ScheduleBreak,
-    ProviderLeave,
 )
 from apps.appointments.models import Appointment
 from apps.queue.models import QueueEntry
@@ -531,7 +533,7 @@ class Command(BaseCommand):
             },
         ]
 
-        return accounts, bangla_customers_data, orgs_definition
+        return accounts, bangla_customers_data, enrich_definitions(orgs_definition)
 
     def seed_all(self):
         accounts, bangla_customers_data, orgs_definition = self.demo_definitions()
@@ -567,6 +569,13 @@ class Command(BaseCommand):
                 }
             )
             org_instances.append(org)
+            for day, hours in odef['operating_hours'].items():
+                OrganizationOperatingHours.objects.update_or_create(
+                    organization=org, day_of_week=day,
+                    defaults={'is_closed': hours is None,
+                              'open_time': time(hours[0]) if hours else None,
+                              'close_time': time(hours[1]) if hours else None},
+                )
 
             # B. Manager Membership
             m_data = odef['manager']
@@ -659,46 +668,36 @@ class Command(BaseCommand):
                 )
                 provider_instances.append(profile)
 
-                # Link ProviderServices (Supports Multi-category provider in 1 ProviderProfile!)
+                # Source charges only; computed customer pricing stays in pricing.py.
                 for sname in p_item['service_names']:
-                    svc_obj = org_services_by_name.get(sname)
-                    if svc_obj:
-                        ProviderService.objects.get_or_create(
-                            provider=profile,
-                            service=svc_obj,
-                        )
-
-                # Weekly Schedule (Saturday - Thursday, 09:00 - 17:00)
-                work_start = time(9, 0) if idx % 2 == 1 else time(10, 0)
-                work_end = time(17, 0) if work_start.hour == 9 else time(18, 0)
-
-                for day_idx in range(7):
-                    is_work = (day_idx != 4)  # Friday OFF in BD
-                    ws, _ = WeeklySchedule.objects.update_or_create(
-                        provider=profile,
-                        day_of_week=day_idx,
-                        defaults={
-                            'start_time': work_start,
-                            'end_time': work_end,
-                            'is_working_day': is_work,
-                        }
+                    charge = p_item['custom_prices'][sname]
+                    ProviderService.objects.update_or_create(
+                        provider=profile, service=org_services_by_name[sname],
+                        defaults={'custom_price': Decimal(charge) if charge is not None else None},
                     )
-                    if is_work:
-                        ScheduleBreak.objects.get_or_create(
-                            weekly_schedule=ws,
-                            title='Lunch & Prayer Break',
-                            defaults={
-                                'start_time': time(13, 0),
-                                'end_time': time(14, 0),
-                            }
+
+                for day_idx, public_hours in odef['operating_hours'].items():
+                    work_start, work_end, is_work = provider_day_hours(public_hours, idx - 1, day_idx)
+                    ws, _ = WeeklySchedule.objects.update_or_create(
+                        provider=profile, day_of_week=day_idx,
+                        defaults={'start_time': work_start, 'end_time': work_end, 'is_working_day': is_work},
+                    )
+                    ws.breaks.filter(title='Lunch & Prayer Break').delete()
+                    if is_work and work_end.hour - work_start.hour >= 5:
+                        break_hour = work_start.hour + 3
+                        ScheduleBreak.objects.update_or_create(
+                            weekly_schedule=ws, title='Rest & Prayer Break',
+                            defaults={'start_time': time(break_hour), 'end_time': time(break_hour, 30)},
                         )
+                    else:
+                        ws.breaks.filter(title='Rest & Prayer Break').delete()
 
         # 4. Generate Appointments, Queue Entries, Reviews
         appointment_instances = []
         queue_instances = []
         review_instances = []
 
-        today_date = date.today()
+        today_date = timezone.localdate()
 
         sample_review_comments = [
             "Very helpful and professional service. Highly recommended!",
@@ -711,23 +710,27 @@ class Command(BaseCommand):
         token_counter_map = {}
 
         # Historical Completed Appointments (Past 14 days)
-        for i in range(35):
+        for i in range(70):
             days_ago = (i % 14) + 1
             appt_date = today_date - timedelta(days=days_ago)
             provider = provider_instances[i % len(provider_instances)]
             org = provider.organization
-            available_services = [ps.service for ps in provider.provider_services.all()]
+            assignments = list(provider.provider_services.select_related('service').order_by('service__name'))
+            available_services = [assignment.service for assignment in assignments]
             if not available_services:
                 continue
-            service = available_services[i % len(available_services)]
+            assignment = assignments[i % len(assignments)]
+            service = assignment.service
             customer = customers[i % len(customers)]
 
-            slot_hour = 9 + (i % 7)
-            start_dt = timezone.make_aware(datetime.combine(appt_date, time(slot_hour, 0)))
-            end_dt = start_dt + timedelta(minutes=service.duration_minutes)
-
+            # Historical fixtures occur on a valid provider working day.
+            schedule = provider.weekly_schedules.get(day_of_week=appt_date.weekday())
+            while not schedule.is_working_day:
+                appt_date -= timedelta(days=1)
+                schedule = provider.weekly_schedules.get(day_of_week=appt_date.weekday())
             q_key = (provider.id, appt_date)
             t_num = token_counter_map.get(q_key, 1)
+            start_dt, end_dt = self.fixture_forecast(schedule, appt_date, service.duration_minutes, t_num)
 
             appt, _ = Appointment.objects.get_or_create(
                 organization=org,
@@ -742,7 +745,8 @@ class Command(BaseCommand):
                     'booking_channel': Appointment.BookingChannel.ONLINE,
                     'arrival_type': Appointment.ArrivalType.SCHEDULED,
                     'status': Appointment.Status.COMPLETED,
-                    'notes': 'Historical appointment completed successfully.',
+                    'notes': 'Fictional demo historical appointment completed successfully.',
+                    **self.fixture_snapshots(assignment, customer),
                 }
             )
             appointment_instances.append(appt)
@@ -782,13 +786,16 @@ class Command(BaseCommand):
             review_instances.append(rev)
 
         # Today's Active Live Queue Entries for Primary Demo Providers
-        active_demo_providers = provider_instances[:3]
+        active_demo_providers = self.live_fixture_providers(provider_instances, today_date)
         for p_idx, provider in enumerate(active_demo_providers):
             org = provider.organization
-            available_services = [ps.service for ps in provider.provider_services.all()]
+            assignments = list(provider.provider_services.select_related('service').order_by('service__name'))
+            available_services = [assignment.service for assignment in assignments]
             if not available_services:
                 continue
-            service = available_services[0]
+            assignment = assignments[0]
+            service = assignment.service
+            schedule = provider.weekly_schedules.get(day_of_week=today_date.weekday())
             now_dt = timezone.now()
 
             today_queue_states = [
@@ -802,8 +809,7 @@ class Command(BaseCommand):
 
             for s_num, q_status, b_chan, a_type, checked_in, note in today_queue_states:
                 cust = customers[(p_idx * 5 + s_num) % len(customers)]
-                start_dt = timezone.make_aware(datetime.combine(today_date, time(9 + s_num, 0)))
-                end_dt = start_dt + timedelta(minutes=service.duration_minutes)
+                start_dt, end_dt = self.fixture_forecast(schedule, today_date, service.duration_minutes, s_num)
 
                 appt_status = Appointment.Status.CONFIRMED
                 if q_status == QueueEntry.Status.IN_PROGRESS:
@@ -825,6 +831,7 @@ class Command(BaseCommand):
                         'arrival_type': a_type,
                         'status': appt_status,
                         'notes': note,
+                        **self.fixture_snapshots(assignment, cust),
                     }
                 )
                 appointment_instances.append(appt)
@@ -848,3 +855,42 @@ class Command(BaseCommand):
 
         demo_accounts = [admin_user, manager_demo, provider_demo_user, staff_demo_user, customer_demo_user]
         return demo_accounts, org_instances, category_instances, service_instances, provider_instances, appointment_instances, queue_instances, review_instances
+
+    @staticmethod
+    def fixture_snapshots(assignment, customer):
+        # Used only as defaults for new fixtures; existing history is never rewritten.
+        return {'booked_service_charge': effective_customer_charge(assignment),
+                'contact_name': customer.get_full_name(), 'contact_phone': customer.phone_number}
+
+    @classmethod
+    def live_fixture_providers(cls, providers, day):
+        selected = []
+        for provider in providers:
+            schedule = provider.weekly_schedules.get(day_of_week=day.weekday())
+            if not schedule.is_working_day:
+                continue
+            assignment = provider.provider_services.select_related('service').order_by('service__name').first()
+            if assignment is None:
+                continue
+            _, end = cls.fixture_forecast(schedule, day, assignment.service.duration_minutes, 5)
+            if timezone.localtime(end).time() <= schedule.end_time:
+                selected.append(provider)
+                if len(selected) == 3:
+                    break
+        return selected
+
+    @staticmethod
+    def fixture_forecast(schedule, day, duration, serial):
+        """Deterministic fixture forecast within availability, not patient time slots."""
+        cursor = timezone.make_aware(datetime.combine(day, schedule.start_time))
+        for position in range(serial):
+            end = cursor + timedelta(minutes=duration)
+            for rest in schedule.breaks.order_by('start_time'):
+                rest_start = timezone.make_aware(datetime.combine(day, rest.start_time))
+                rest_end = timezone.make_aware(datetime.combine(day, rest.end_time))
+                if cursor < rest_end and end > rest_start:
+                    cursor = rest_end
+                    end = cursor + timedelta(minutes=duration)
+            if position < serial - 1:
+                cursor = end
+        return cursor, end
