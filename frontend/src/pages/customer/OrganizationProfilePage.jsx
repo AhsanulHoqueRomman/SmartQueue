@@ -118,6 +118,8 @@ export function OrganizationProfilePage() {
   const [showReviewsModal, setShowReviewsModal] = useState(false);
   const [showCredentialsModal, setShowCredentialsModal] = useState(false);
   const [showHoursModal, setShowHoursModal] = useState(false);
+  const [showBookingReview, setShowBookingReview] = useState(false);
+  const submissionPending = useRef(false);
 
   // Booking Selection States
   const [selectedServiceId, setSelectedServiceId] = useState('');
@@ -149,6 +151,7 @@ export function OrganizationProfilePage() {
         setShowReviewsModal(false);
         setShowCredentialsModal(false);
         setShowHoursModal(false);
+        if (!submissionPending.current) setShowBookingReview(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -313,19 +316,38 @@ export function OrganizationProfilePage() {
     }, 150);
   };
 
-  // Serial Booking Submit
-  const handleBookSubmit = async (e) => {
-    e.preventDefault();
-    if (!contact.valid) { setBookingError('Enter a customer name and a valid Bangladesh mobile number.'); return; }
+  const selectedService = services.find(service => service.id === selectedServiceId);
+  const selectedProvider = providers.find(provider => provider.id === selectedProviderId);
+  const selectedCharge = providerCharge(selectedProvider, selectedServiceId);
+  const hasCharge = selectedCharge !== null && selectedCharge !== undefined && selectedCharge !== '' && Number.isFinite(Number(selectedCharge));
+  const reviewReady = Boolean(selectedService && selectedProvider && selectedDate && contact.valid && hasCharge && !isPastDate);
+
+  const validateBookingReview = () => {
+    if (!contact.valid) { setBookingError('Enter a customer name and a valid Bangladesh mobile number.'); return false; }
     if (!orgId || !selectedProviderId || !selectedServiceId || !selectedDate) {
       setBookingError('Please select a service, professional, and date.');
-      return;
+      return false;
     }
 
     if (isPastDate) {
       setBookingError('Appointments cannot be booked for a past date.');
-      return;
+      return false;
     }
+    if (!hasCharge) { setBookingError('Service charge is unavailable. Please select another professional or try again.'); return false; }
+    return true;
+  };
+
+  const handleReviewBooking = (e) => {
+    e.preventDefault();
+    if (submissionPending.current || !validateBookingReview()) return;
+    setBookingError(null);
+    setShowBookingReview(true);
+  };
+
+  // The review action never books; only modal confirmation reaches this request.
+  const handleBookSubmit = async () => {
+    if (!showBookingReview || submissionPending.current || !validateBookingReview()) return;
+    submissionPending.current = true;
 
     setSubmitting(true);
     setBookingError(null);
@@ -339,11 +361,13 @@ export function OrganizationProfilePage() {
         ...contact.payload,
       });
       setBookedAppointment(result);
+      setShowBookingReview(false);
     } catch (err) {
       const msg = getBookingError(err, 'Failed to book appointment.');
       setBookingError(typeof msg === 'object' ? JSON.stringify(msg) : msg);
     } finally {
       setSubmitting(false);
+      submissionPending.current = false;
     }
   };
 
@@ -471,12 +495,13 @@ export function OrganizationProfilePage() {
 
           {/* 3. ABOUT + TRUST & CREDENTIALS / CONTACT & HOURS (BALANCED 2-COLUMN) */}
           <section ref={aboutRef} className="org-about-contact-section org-reveal-section">
-            {/* LEFT COLUMN: About & Trust/Credentials */}
+            {/* Full-width About, followed by two naturally stretched cards. */}
             <div className="org-about-col">
               <h3 className="org-subheading">About {org.name}</h3>
               <p className="org-about-text">
                 {org.description || 'Welcome to our organization. We provide professional queue-based consultations and services tailored to your specific needs with transparent serial allocation.'}
               </p>
+            </div>
 
               {/* TRUST & CREDENTIALS SECTION (FILLS SPACE INTELLIGENTLY) */}
               <div className="org-trust-block">
@@ -533,8 +558,6 @@ export function OrganizationProfilePage() {
                   )}
                 </div>
               </div>
-            </div>
-
             {/* RIGHT COLUMN: Contact, Reviews & Operating Hours */}
             <div className="org-contact-col">
               <h4 className="org-contact-heading">Contact & Location</h4>
@@ -722,7 +745,7 @@ export function OrganizationProfilePage() {
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleBookSubmit} className="org-booking-form-card">
+              <form onSubmit={handleReviewBooking} className="org-booking-form-card">
                 {bookingError && (
                   <div className="org-booking-error-banner">
                     {bookingError}
@@ -830,7 +853,7 @@ export function OrganizationProfilePage() {
 
                 {/* Additional Notes */}
                 <BookingContactFields contact={contact} />
-                <BookingSummary organization={org} service={services.find(s => s.id === selectedServiceId)} provider={providers.find(p => p.id === selectedProviderId)} date={selectedDate} contact={contact} charge={providerCharge(providers.find(p => p.id === selectedProviderId), selectedServiceId)} notes={notes} />
+                {selectedServiceId && selectedProviderId && !hasCharge && <p className="org-form-error" role="alert">Service charge is unavailable. Please select another professional or try again.</p>}
                 <div className="org-form-group" style={{ marginTop: '1.25rem' }}>
                   <label className="org-form-label">
                     Additional Notes for Provider (Optional)
@@ -848,10 +871,10 @@ export function OrganizationProfilePage() {
                 <div className="org-form-submit-wrap">
                   <button
                     type="submit"
-                    disabled={submitting || isPastDate || !selectedServiceId || !selectedProviderId}
+                    disabled={submitting || loadingAvailability || !reviewReady}
                     className="lp-btn-primary org-submit-btn"
                   >
-                    {submitting ? 'Booking & Allocating Serial...' : 'Confirm Serial Booking & Join Queue'}
+                    Review & Confirm Booking
                   </button>
                 </div>
               </form>
@@ -859,6 +882,28 @@ export function OrganizationProfilePage() {
           </section>
 
         </div>
+
+        {showBookingReview && (
+          <div className="org-modal-overlay" onClick={() => { if (!submissionPending.current) setShowBookingReview(false); }}>
+            <div className="org-modal-card org-booking-review-card" role="dialog" aria-modal="true" aria-labelledby="booking-review-title" onClick={e => e.stopPropagation()}>
+              <div className="org-modal-body org-booking-review-body">
+                <h2 className="org-modal-title" id="booking-review-title">Review Your Booking</h2>
+                <p className="org-about-text">Check your details before confirming your queue serial.</p>
+                <BookingSummary organization={org} service={selectedService} provider={selectedProvider}
+                  date={new Date(`${selectedDate}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  contact={{ ...contact, name: contact.payload.contact_name, phone: contact.payload.contact_phone }} charge={selectedCharge} notes={notes.trim()} />
+                <div className="org-modal-serial-notice">You are booking a queue serial, not a fixed consultation start time.</div>
+                {bookingError && <p className="org-form-error" role="alert">{bookingError}</p>}
+              </div>
+              <div className="org-booking-review-actions">
+                <button type="button" className="lp-btn-outline" autoFocus disabled={submitting} onClick={() => setShowBookingReview(false)}>Back & Edit</button>
+                <button type="button" className="lp-btn-primary" disabled={submitting || !reviewReady} onClick={handleBookSubmit}>
+                  {submitting ? 'Booking & Allocating Serial...' : 'Confirm Serial Booking'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* ── ENRICHED SERVICE DETAILS MODAL (PHASE A.9.4) ─────────────── */}
