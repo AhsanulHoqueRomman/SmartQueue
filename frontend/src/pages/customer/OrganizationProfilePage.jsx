@@ -8,6 +8,7 @@ import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import { deriveProfessionalDisplay } from '../../utils/providerDisplay';
 import { startingPrice, providerCharge, bookingError as getBookingError, currentBusinessDate } from '../../utils/bookingDisplay';
+import BookingReviewModal from '../../components/BookingReviewModal';
 import { BookingContactFields, BookingSummary } from '../../components/BookingContact';
 import { useBookingContact } from '../../hooks/useBookingContact';
 import '../../styles/LandingPage.css';
@@ -887,27 +888,11 @@ export function OrganizationProfilePage() {
 
         </div>
 
-        {showBookingReview && (
-          <div className="org-modal-overlay" onClick={() => { if (!submissionPending.current) setShowBookingReview(false); }}>
-            <div className="org-modal-card org-booking-review-card" role="dialog" aria-modal="true" aria-labelledby="booking-review-title" onClick={e => e.stopPropagation()}>
-              <div className="org-modal-body org-booking-review-body">
-                <h2 className="org-modal-title" id="booking-review-title">Review Your Booking</h2>
-                <p className="org-about-text">Check your details before confirming your queue serial.</p>
-                <BookingSummary organization={org} service={selectedService} provider={selectedProvider}
-                  date={new Date(`${selectedDate}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  contact={{ ...contact, name: contact.payload.contact_name, phone: contact.payload.contact_phone }} charge={selectedCharge} notes={notes.trim()} />
-                <div className="org-modal-serial-notice">You are booking a queue serial, not a fixed consultation start time.</div>
-                {bookingError && <p className="org-form-error" role="alert">{bookingError}</p>}
-              </div>
-              <div className="org-booking-review-actions">
-                <button type="button" className="lp-btn-outline" autoFocus disabled={submitting} onClick={() => setShowBookingReview(false)}>Back & Edit</button>
-                <button type="button" className="lp-btn-primary" disabled={submitting || !reviewReady} onClick={handleBookSubmit}>
-                  {submitting ? 'Booking & Allocating Serial...' : 'Confirm Serial Booking'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <BookingReviewModal open={showBookingReview} onBack={() => { if (!submissionPending.current) setShowBookingReview(false); }}
+          onConfirm={handleBookSubmit} submitting={submitting} ready={reviewReady} error={bookingError}
+          organization={org} service={selectedService} provider={selectedProvider}
+          date={new Date(`${selectedDate}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+          contact={{ ...contact, name: contact.payload.contact_name, phone: contact.payload.contact_phone }} charge={selectedCharge} notes={notes.trim()} />
       </main>
 
       {/* ── ENRICHED SERVICE DETAILS MODAL (PHASE A.9.4) ─────────────── */}

@@ -1,817 +1,332 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTenant } from '../../contexts/TenantContext';
 import organizationService from '../../services/organizationService';
+import providerManagementService from '../../services/providerManagementService';
 import appointmentService from '../../services/appointmentService';
 import BookingStepper from '../../components/BookingStepper';
+import BookingReviewModal from '../../components/BookingReviewModal';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import { deriveProfessionalDisplay } from '../../utils/providerDisplay';
-import { formatCurrency, startingPrice, providerCharge, bookingError, currentBusinessDate } from '../../utils/bookingDisplay';
+import { formatCurrency, providerCharge, bookingError, currentBusinessDate } from '../../utils/bookingDisplay';
+import { weeklyWindows } from '../../utils/scheduleDisplay';
 import { BookingContactFields, BookingSummary } from '../../components/BookingContact';
 import { useBookingContact } from '../../hooks/useBookingContact';
+import '../../styles/DirectBooking.css';
+
+const STEPS = ['Category', 'Organization', 'Service', 'Professional', 'Date', 'Confirm'].map(label => ({ id: label, label }));
+const DEPENDENCIES = ['category', 'organization', 'service', 'provider'];
+const asList = data => Array.isArray(data) ? data : data?.results || [];
+const displayDate = date => new Date(`${date}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+function ScheduleSummary({ records, provider = false }) {
+  const windows = weeklyWindows(records, provider);
+  return <div className="direct-weekly-hours" aria-label={provider ? 'Professional working schedule' : 'Organization operating hours'}>
+    {windows.length ? windows.map(row => <div key={row.days}><span>{row.days}</span><span>{row.window}</span></div>) : <span>Hours unavailable</span>}
+  </div>;
+}
+
+function SelectionSection({ number, title, selected, onChange, children }) {
+  return <section className="booking-step-section" aria-labelledby={`direct-step-${number}`}>
+    <div className="booking-step-header">
+      <h2 className="booking-step-title" id={`direct-step-${number}`}><span className="booking-step-badge">{number}</span>{title}</h2>
+      {selected && <button type="button" className="booking-step-change-btn" onClick={onChange}>Change {STEPS[number - 1].label}</button>}
+    </div>
+    {children}
+  </section>;
+}
+
+function StartingCharge({ service }) {
+  return service.starting_from_price == null ? <span className="direct-muted">Price unavailable</span>
+    : <span className="direct-starting-charge"><small>Starting from</small><strong>{formatCurrency(service.starting_from_price)}</strong></span>;
+}
+
+function ProfessionalAvatar({ provider, name }) {
+  const [failed, setFailed] = useState(false);
+  return provider.profile_photo && !failed ? <img className="direct-avatar" src={provider.profile_photo} alt="" onError={() => setFailed(true)} />
+    : <span className="direct-avatar direct-avatar-fallback" aria-hidden="true">{name.split(' ').filter(word => word !== 'Dr.').slice(0, 2).map(word => word[0]).join('')}</span>;
+}
 
 export function BookAppointmentPage() {
   const navigate = useNavigate();
   const contact = useBookingContact();
   const [searchParams] = useSearchParams();
   const { selectOrg } = useTenant();
-
-  // Progress Stepper steps
-  const STEPPER_STEPS = [
-    { id: 'category', label: 'Category' },
-    { id: 'organization', label: 'Organization' },
-    { id: 'service', label: 'Service' },
-    { id: 'provider', label: 'Professional' },
-    { id: 'date', label: 'Date' },
-    { id: 'confirm', label: 'Confirm' },
-  ];
-
-  // Current Active Step (1 to 6)
-  const [currentStep, setCurrentStep] = useState(1);
-
-  // Dynamic Data Lists
+  const today = currentBusinessDate();
+  const [selection, setSelection] = useState({ category: '', organization: '', service: '', provider: '', date: today });
+  const selectionRef = useRef(selection);
+  const initialLink = useRef(searchParams);
+  const allowDeepLink = useRef(true);
+  const availabilityRequest = useRef(0);
+  const submissionPending = useRef(false);
   const [categories, setCategories] = useState([]);
   const [organizations, setOrganizations] = useState([]);
   const [services, setServices] = useState([]);
   const [providers, setProviders] = useState([]);
-
-  // Selection States
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedOrgId, setSelectedOrgId] = useState('');
-  const [selectedServiceId, setSelectedServiceId] = useState('');
-  const [selectedProviderId, setSelectedProviderId] = useState('');
-
-  // Date State (default to today's date in local ISO YYYY-MM-DD)
-  const todayStr = currentBusinessDate();
-  const [selectedDate, setSelectedDate] = useState(todayStr);
-
-  // Availability State
-  const [availability, setAvailability] = useState(null);
+  const [schedules, setSchedules] = useState({});
+  const [loading, setLoading] = useState({ categories: true, organizations: false, services: false, providers: false });
+  const [availabilityResult, setAvailabilityResult] = useState(null);
+  const [availabilityRevision, setAvailabilityRevision] = useState(0);
   const [loadingAvailability, setLoadingAvailability] = useState(false);
-
-  // Notes & Booking State
+  const [availabilityError, setAvailabilityError] = useState(null);
   const [notes, setNotes] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [showReview, setShowReview] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [bookedAppointment, setBookedAppointment] = useState(null);
+  const closeReview = useCallback(() => { if (!submissionPending.current) setShowReview(false); }, []);
 
-  // Loading Flags
-  const [loadingCategories, setLoadingCategories] = useState(true);
-  const [loadingOrgs, setLoadingOrgs] = useState(false);
-  const [loadingServices, setLoadingServices] = useState(false);
-  const [loadingProviders, setLoadingProviders] = useState(false);
+  // One cascading transition for selects, Change buttons, and completed stepper steps.
+  // Contact/notes are deliberately outside this dependency chain. Keep the preferred date,
+  // but discard every old availability response immediately, including in-flight responses.
+  const choose = (dependency, value = '') => {
+    allowDeepLink.current = false;
+    const next = { ...selectionRef.current, [dependency]: value };
+    const index = DEPENDENCIES.indexOf(dependency);
+    if (index >= 0) DEPENDENCIES.slice(index + 1).forEach(key => { next[key] = ''; });
+    selectionRef.current = next;
+    availabilityRequest.current += 1;
+    setAvailabilityRevision(old => old + 1);
+    setSelection(next);
+    setAvailabilityResult(null);
+    setAvailabilityError(null);
+    setLoadingAvailability(false);
+    setShowReview(false);
+    setError(null);
+    if (index === 0) setOrganizations([]);
+    if (index <= 1 && index >= 0) setServices([]);
+    if (index <= 2 && index >= 0) { setProviders([]); setSchedules({}); }
+    if (dependency === 'organization' && value) selectOrg(value);
+  };
 
-  // 1. Fetch Global Categories on Mount
+  const applyDeepLink = useCallback((key, value) => {
+    if (!allowDeepLink.current || !value) return;
+    const next = { ...selectionRef.current, [key]: value };
+    selectionRef.current = next;
+    setSelection(next);
+    if (key === 'organization') selectOrg(value);
+  }, [selectOrg]);
+
   useEffect(() => {
-    let isMounted = true;
-    setLoadingCategories(true);
-    organizationService.getGlobalCategories()
-      .then((data) => {
-        if (!isMounted) return;
-        const list = Array.isArray(data) ? data : data.results || [];
-        setCategories(list);
+    let active = true;
+    organizationService.getGlobalCategories().then(data => {
+      if (!active) return;
+      const list = asList(data);
+      setCategories(list);
+      const category = initialLink.current.get('category') || initialLink.current.get('category_id');
+      const match = list.find(row => row.id.toLowerCase() === category?.toLowerCase());
+      if (match) applyDeepLink('category', match.id);
+    }).catch(() => { if (active) setError('Failed to load categories. Please refresh.'); })
+      .finally(() => { if (active) setLoading(old => ({ ...old, categories: false })); });
+    return () => { active = false; };
+    // Query parameters initialize the journey once; changing a selection never reapplies them.
+  }, [applyDeepLink]);
 
-        // Check deep-link query parameter for category
-        const paramCategory = searchParams.get('category') || searchParams.get('category_id');
-        if (paramCategory && list.some(c => c.id.toLowerCase() === paramCategory.toLowerCase())) {
-          setSelectedCategory(paramCategory);
-          setCurrentStep(2);
-        }
-      })
-      .catch(() => {
-        if (isMounted) setError('Failed to load categories. Please refresh.');
-      })
-      .finally(() => {
-        if (isMounted) setLoadingCategories(false);
+  useEffect(() => {
+    if (!selection.category) return;
+    let active = true;
+    const category = selection.category;
+    setLoading(old => ({ ...old, organizations: true }));
+    organizationService.getOrganizations({ category }).then(data => {
+      if (!active || selectionRef.current.category !== category) return;
+      const list = asList(data);
+      setOrganizations(list);
+      const id = initialLink.current.get('organization_id') || initialLink.current.get('org_id');
+      if (list.some(row => row.id === id)) applyDeepLink('organization', id);
+    }).catch(() => { if (active) setError('Unable to load organizations. Please try again.'); })
+      .finally(() => { if (active) setLoading(old => ({ ...old, organizations: false })); });
+    return () => { active = false; };
+  }, [selection.category, applyDeepLink]);
+
+  useEffect(() => {
+    if (!selection.organization) return;
+    let active = true;
+    const organization = selection.organization;
+    setLoading(old => ({ ...old, services: true }));
+    organizationService.getServices(organization).then(data => {
+      if (!active || selectionRef.current.organization !== organization) return;
+      const list = asList(data).filter(row => row.is_active !== false);
+      setServices(list);
+      const id = initialLink.current.get('service_id');
+      if (list.some(row => row.id === id)) applyDeepLink('service', id);
+    }).catch(() => { if (active) setError('Unable to load services. Please try again.'); })
+      .finally(() => { if (active) setLoading(old => ({ ...old, services: false })); });
+    return () => { active = false; };
+  }, [selection.organization, applyDeepLink]);
+
+  useEffect(() => {
+    if (!selection.organization || !selection.service) return;
+    let active = true;
+    const organization = selection.organization;
+    const service = selection.service;
+    setLoading(old => ({ ...old, providers: true }));
+    organizationService.getProviders(organization, { service_id: service }).then(data => {
+      if (!active || selectionRef.current.organization !== organization || selectionRef.current.service !== service) return;
+      const list = asList(data).filter(row => row.is_active !== false && row.is_operationally_active !== false);
+      setProviders(list);
+      const id = initialLink.current.get('provider_id');
+      if (list.some(row => row.id === id)) applyDeepLink('provider', id);
+      // Existing authenticated schedule endpoint. Retain only customer-safe weekly windows.
+      list.forEach(provider => {
+        providerManagementService.getSchedules(organization, provider.id).then(data => {
+          if (!active || selectionRef.current.organization !== organization || selectionRef.current.service !== service) return;
+          const windows = asList(data).map(({ day_of_week, start_time, end_time, is_working_day }) => ({ day_of_week, start_time, end_time, is_working_day }));
+          setSchedules(old => ({ ...old, [provider.id]: windows }));
+        }).catch(() => { /* Unknown schedules display honestly; date availability remains authoritative. */ });
       });
-    return () => { isMounted = false; };
-  }, [searchParams]);
+    }).catch(() => { if (active) setError('Unable to load professionals. Please try again.'); })
+      .finally(() => { if (active) setLoading(old => ({ ...old, providers: false })); });
+    return () => { active = false; };
+  }, [selection.organization, selection.service, applyDeepLink]);
 
-  // 2. Fetch Organizations when selectedCategory changes
+  const availabilityKey = [selection.organization, selection.service, selection.provider, selection.date, availabilityRevision].join(':');
+  const selectedCategory = categories.find(row => row.id === selection.category);
+  const selectedOrg = organizations.find(row => row.id === selection.organization);
+  const selectedService = services.find(row => row.id === selection.service);
+  const selectedProvider = providers.find(row => row.id === selection.provider);
+  const charge = providerCharge(selectedProvider, selection.service);
+  const isPastDate = selection.date < today;
+  const availability = availabilityResult?.key === availabilityKey ? availabilityResult.data : null;
+  const validDate = Boolean(selection.date && !isPastDate && availability?.is_available === true && !loadingAvailability);
+  const ready = Boolean(selectedCategory && selectedOrg && selectedService && selectedProvider && validDate && charge != null && Number.isFinite(Number(charge)) && contact.valid);
+  const currentStep = !selectedCategory ? 1 : !selectedOrg ? 2 : !selectedService ? 3 : !selectedProvider ? 4 : !validDate ? 5 : 6;
+
   useEffect(() => {
-    if (!selectedCategory) {
-      setOrganizations([]);
+    setAvailabilityResult(null);
+    setAvailabilityError(null);
+    if (!selection.organization || !selection.service || !selection.provider || !selection.date || selection.date < today) {
+      setLoadingAvailability(false);
       return;
     }
-
-    let isMounted = true;
-    setLoadingOrgs(true);
-    organizationService.getOrganizations({ category: selectedCategory })
-      .then((data) => {
-        if (!isMounted) return;
-        const list = Array.isArray(data) ? data : data.results || [];
-        setOrganizations(list);
-
-        // Check deep-link query parameter for organization
-        const paramOrg = searchParams.get('organization_id') || searchParams.get('org_id');
-        if (paramOrg && list.some(o => o.id === paramOrg)) {
-          setSelectedOrgId(paramOrg);
-          selectOrg(paramOrg);
-          setCurrentStep(3);
-        }
-      })
-      .catch(() => {
-        if (isMounted) setOrganizations([]);
-      })
-      .finally(() => {
-        if (isMounted) setLoadingOrgs(false);
-      });
-    return () => { isMounted = false; };
-  }, [selectedCategory, searchParams, selectOrg]);
-
-  // 3. Fetch Services when selectedOrgId changes
-  useEffect(() => {
-    if (!selectedOrgId) {
-      setServices([]);
-      return;
-    }
-
-    let isMounted = true;
-    setLoadingServices(true);
-    organizationService.getServices(selectedOrgId)
-      .then((data) => {
-        if (!isMounted) return;
-        const list = Array.isArray(data) ? data : data.results || [];
-        const activeList = list.filter(s => s.is_active !== false);
-        setServices(activeList);
-
-        // Check deep-link query parameter for service
-        const paramService = searchParams.get('service_id');
-        if (paramService && activeList.some(s => s.id === paramService)) {
-          setSelectedServiceId(paramService);
-          setCurrentStep(4);
-        }
-      })
-      .catch(() => {
-        if (isMounted) setServices([]);
-      })
-      .finally(() => {
-        if (isMounted) setLoadingServices(false);
-      });
-    return () => { isMounted = false; };
-  }, [selectedOrgId, searchParams]);
-
-  // 4. Fetch Providers when selectedOrgId or selectedServiceId changes
-  useEffect(() => {
-    if (!selectedOrgId || !selectedServiceId) {
-      setProviders([]);
-      return;
-    }
-
-    let isMounted = true;
-    setLoadingProviders(true);
-    organizationService.getProviders(selectedOrgId, { service_id: selectedServiceId })
-      .then((data) => {
-        if (!isMounted) return;
-        const list = Array.isArray(data) ? data : data.results || [];
-        const activeList = list.filter(p => p.is_active !== false);
-        setProviders(activeList);
-
-        // Check deep-link query parameter for provider
-        const paramProvider = searchParams.get('provider_id');
-        if (paramProvider && activeList.some(p => p.id === paramProvider)) {
-          setSelectedProviderId(paramProvider);
-          setCurrentStep(5);
-        } else if (activeList.length === 1) {
-          // Preselect if single eligible provider
-          setSelectedProviderId(activeList[0].id);
-        }
-      })
-      .catch(() => {
-        if (isMounted) setProviders([]);
-      })
-      .finally(() => {
-        if (isMounted) setLoadingProviders(false);
-      });
-    return () => { isMounted = false; };
-  }, [selectedOrgId, selectedServiceId, searchParams]);
-
-  // 5. Fetch Availability Telemetry when Provider, Service, and Date are selected
-  useEffect(() => {
-    if (!selectedOrgId || !selectedProviderId || !selectedServiceId || !selectedDate) {
-      setAvailability(null);
-      return;
-    }
-
-    // Invalidate stale state immediately
-    setAvailability(null);
-    let isMounted = true;
+    let active = true;
+    const request = ++availabilityRequest.current;
     setLoadingAvailability(true);
-    appointmentService.getAvailability(selectedOrgId, selectedProviderId, selectedServiceId, selectedDate)
-      .then((data) => {
-        if (!isMounted) return;
-        setAvailability(data);
-      })
-      .catch(() => {
-        if (isMounted) setAvailability(null);
-      })
-      .finally(() => {
-        if (isMounted) setLoadingAvailability(false);
-      });
-    return () => { isMounted = false; };
-  }, [selectedOrgId, selectedProviderId, selectedServiceId, selectedDate]);
+    appointmentService.getAvailability(selection.organization, selection.provider, selection.service, selection.date).then(data => {
+      if (active && availabilityRequest.current === request) setAvailabilityResult({ key: availabilityKey, data });
+    }).catch(() => {
+      if (active && availabilityRequest.current === request) setAvailabilityError('Unable to check availability. Choose the date again to retry.');
+    }).finally(() => {
+      if (active && availabilityRequest.current === request) setLoadingAvailability(false);
+    });
+    return () => { active = false; };
+  }, [availabilityKey, selection.organization, selection.service, selection.provider, selection.date, today]);
 
-  // --- Cascade Reset Handlers ---
-  const handleCategorySelect = (catId) => {
-    setSelectedCategory(catId);
-    setSelectedOrgId('');
-    setSelectedServiceId('');
-    setSelectedProviderId('');
-    setAvailability(null);
+  const reviewBooking = event => {
+    event.preventDefault();
+    if (!ready) { setError('Complete the selections, check availability, and enter valid booking contact details.'); return; }
     setError(null);
-    if (catId) setCurrentStep(2);
+    setShowReview(true);
   };
-
-  const handleOrgSelect = (orgId) => {
-    setSelectedOrgId(orgId);
-    if (orgId) selectOrg(orgId);
-    setSelectedServiceId('');
-    setSelectedProviderId('');
-    setAvailability(null);
-    setError(null);
-    if (orgId) setCurrentStep(3);
-  };
-
-  const handleServiceSelect = (svcId) => {
-    setSelectedServiceId(svcId);
-    setSelectedProviderId('');
-    setAvailability(null);
-    setError(null);
-    if (svcId) setCurrentStep(4);
-  };
-
-  const handleProviderSelect = (provId) => {
-    setSelectedProviderId(provId);
-    setError(null);
-    if (provId) setCurrentStep(5);
-  };
-
-  const handleDateSelect = (dateStr) => {
-    setSelectedDate(dateStr);
-    setError(null);
-    if (selectedProviderId && dateStr) {
-      setCurrentStep(6);
-    }
-  };
-
-  // --- Derived Active Selected Objects ---
-  const selectedOrg = useMemo(() => organizations.find(o => o.id === selectedOrgId), [organizations, selectedOrgId]);
-  const selectedService = useMemo(() => services.find(s => s.id === selectedServiceId), [services, selectedServiceId]);
-  const selectedProvider = useMemo(() => providers.find(p => p.id === selectedProviderId), [providers, selectedProviderId]);
-
-  // Check if selected date is in the past
-  const isPastDate = useMemo(() => {
-    if (!selectedDate) return false;
-    return selectedDate < todayStr;
-  }, [selectedDate, todayStr]);
-
-  // Handle Serial Queue Booking Submit
-  const handleBookSubmit = async (e) => {
-    e.preventDefault();
-    if (!contact.valid) { setError('Enter a customer name and a valid Bangladesh mobile number.'); return; }
-    if (!selectedOrgId || !selectedProviderId || !selectedServiceId || !selectedDate) {
-      setError('Please complete all selection steps.');
-      return;
-    }
-
-    if (isPastDate) {
-      setError('Appointments cannot be booked for a past date.');
-      return;
-    }
-
+  const confirmBooking = async () => {
+    if (!showReview || !ready || submissionPending.current) return;
+    submissionPending.current = true;
     setSubmitting(true);
     setError(null);
-
     try {
-      const result = await appointmentService.bookAppointment(selectedOrgId, {
-        provider_id: selectedProviderId,
-        service_id: selectedServiceId,
-        appointment_date: selectedDate,
-        notes,
-        ...contact.payload,
+      const result = await appointmentService.bookAppointment(selection.organization, {
+        provider_id: selection.provider, service_id: selection.service,
+        appointment_date: selection.date, notes, ...contact.payload,
       });
       setBookedAppointment(result);
-    } catch (err) {
-      const msg = bookingError(err, 'Failed to book appointment. Please try again.');
-      setError(typeof msg === 'object' ? JSON.stringify(msg) : msg);
-    } finally {
-      setSubmitting(false);
-    }
+      setShowReview(false);
+    } catch (err) { setError(bookingError(err, 'Failed to book appointment. Please try again.')); }
+    finally { submissionPending.current = false; setSubmitting(false); }
   };
 
-  // Render Confirmation Screen after Successful Booking
-  if (bookedAppointment) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-12">
-        <div className="bg-sand-50 dark:bg-navy-900 border border-sand-200 dark:border-navy-800 rounded-2xl p-8 shadow-lg text-center space-y-6">
-          <div className="w-16 h-16 bg-emerald-100 dark:bg-teal-900/50 text-emerald-600 dark:text-teal-400 rounded-full flex items-center justify-center mx-auto text-3xl shadow-sm">
-            ✓
+  if (bookedAppointment) return <div className="direct-booking-success">
+    <h1>Appointment Confirmed & Serial Allocated!</h1>
+    <p>Your Serial Number <strong>#{bookedAppointment.serial_number ?? bookedAppointment.queue_number ?? '—'}</strong></p>
+    <BookingSummary organization={selectedOrg} service={selectedService} provider={selectedProvider} appointment={bookedAppointment} confirmation />
+    <p>You booked a queue serial. Expected service time remains a live forecast.</p>
+    <div className="direct-success-actions"><button className="btn btn-primary" onClick={() => navigate('/customer/appointments')}>View My Appointments & Live Queue</button>
+      <button className="btn btn-secondary" onClick={() => { setBookedAppointment(null); choose('category'); }}>Book Another Appointment</button></div>
+  </div>;
+
+  const summaryContent = <div className="direct-summary-content">
+    {!selectedCategory ? <p>Start by choosing a category. Your selections will appear here as you continue.</p> : <>
+      <span className="direct-summary-category">{selectedCategory.name}</span>
+      {selectedOrg && <h3>{selectedOrg.name}</h3>}
+      {selectedService && <p className="direct-summary-service">{selectedService.name}</p>}
+      {selectedService && !selectedProvider && <StartingCharge service={selectedService} />}
+      {selectedProvider && <><p>{deriveProfessionalDisplay(selectedProvider).displayName}</p><div className="direct-summary-charge"><small>Service Charge</small><strong>{formatCurrency(charge)}</strong></div></>}
+      {selectedProvider && selection.date && <p>{displayDate(selection.date)}</p>}
+      {availability?.is_available && <p className="direct-summary-availability">Available{availability.working_hours_display ? ` · ${availability.working_hours_display}` : ''} · Capacity Available</p>}
+      {loadingAvailability && selectedProvider && <p>Checking date availability…</p>}
+      {availability?.is_available === false && <p>{availability.reason || 'Not available on this date'}</p>}
+      <p className="direct-summary-next">{!selectedOrg ? 'Choose an organization next' : !selectedService ? 'Choose a service next' : !selectedProvider ? 'Choose a professional next' : !validDate ? 'Choose an available date to continue' : 'Add your contact details, then review your booking'}</p>
+    </>}
+  </div>;
+
+  return <div className="booking-wizard-page direct-booking-page">
+    <div className="booking-header"><h1 className="booking-title">Book an Appointment & Join Queue</h1>
+      <p className="booking-subtitle">Choose a category, organization, service and professional. Book a queue serial; expected service time is a forecast.</p></div>
+    <BookingStepper steps={STEPS} currentStep={currentStep} onStepClick={step => choose(DEPENDENCIES[step - 1] || 'date', step === 5 ? selection.date : '')} />
+    {error && !showReview && <div className="banner banner-danger" role="alert">{error}</div>}
+    <details className="direct-mobile-summary"><summary>Your Booking</summary>{summaryContent}</details>
+    <div className="booking-workspace-grid">
+      <div className="booking-journey-column">
+        <SelectionSection number={1} title="Category" selected={selection.category} onChange={() => choose('category')}>
+          {loading.categories ? <LoadingState message="Loading categories..." /> : <select id="category_select_input" aria-label="Select Category" value={selection.category} onChange={e => choose('category', e.target.value)} className="booking-select-control">
+            <option value="">-- Select a Category --</option>{categories.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}
+          </select>}
+          {!selection.category && <p className="direct-guidance">Select a category first to see relevant organizations and continue your booking.</p>}
+        </SelectionSection>
+        {selectedCategory && <SelectionSection number={2} title="Organization" selected={selection.organization} onChange={() => choose('organization')}>
+          {loading.organizations ? <LoadingState message="Loading organizations..." /> : !organizations.length ? <EmptyState title="No Organizations Found" description="No active organizations are available in this category." /> :
+            <div className="direct-choice-list" role="group" aria-label="Select Organization">{organizations.map(org => <div key={org.id} className={`direct-choice-card ${selection.organization === org.id ? 'is-selected' : ''}`}>
+              <label className="direct-choice-label"><input type="radio" name="organization" value={org.id} checked={selection.organization === org.id} onChange={() => choose('organization', org.id)} /><span className="direct-choice-info"><strong>{org.name}</strong>
+                {org.smartqueue_verified && <span className="direct-verified">✓ SmartQueue Verified</span>}<span className="direct-muted">{org.industry_label}</span></span></label>
+              <div className="direct-choice-details"><ScheduleSummary records={org.operating_hours || []} /><p className="direct-muted">{org.address || 'Location unavailable'}</p>
+                <Link to={`/organizations/${org.id}`} target="_blank" rel="noopener noreferrer">View Organization Profile</Link></div>
+            </div>)}</div>}
+        </SelectionSection>}
+        {selectedOrg && <SelectionSection number={3} title="Service" selected={selection.service} onChange={() => choose('service')}>
+          {loading.services ? <LoadingState message="Loading services..." /> : !services.length ? <EmptyState title="No Services Available" /> :
+            <div className="direct-choice-list" role="group" aria-label="Select Service">{services.map(service => <label key={service.id} className={`direct-choice-card direct-choice-label ${selection.service === service.id ? 'is-selected' : ''}`}>
+              <input type="radio" name="service" value={service.id} checked={selection.service === service.id} onChange={() => choose('service', service.id)} />
+              <span className="direct-choice-info"><strong>{service.name}</strong><span className="direct-service-description">{service.description}</span>
+                <span className="direct-service-meta"><span className="direct-muted">Typical duration · {service.duration_minutes} min</span><StartingCharge service={service} /></span></span>
+            </label>)}</div>}
+        </SelectionSection>}
+        {selectedService && <SelectionSection number={4} title="Eligible Professional" selected={selection.provider} onChange={() => choose('provider')}>
+          {loading.providers ? <LoadingState message="Loading professionals..." /> : !providers.length ? <EmptyState title="No Eligible Professionals" /> :
+            <div className="direct-choice-list" role="group" aria-label="Select Professional">{providers.map(provider => {
+              const display = deriveProfessionalDisplay(provider);
+              return <div key={provider.id} className={`direct-choice-card ${selection.provider === provider.id ? 'is-selected' : ''}`}>
+                <label className="direct-choice-label"><input type="radio" name="provider" value={provider.id} checked={selection.provider === provider.id} onChange={() => choose('provider', provider.id)} />
+                  <ProfessionalAvatar provider={provider} name={display.displayName} /><span className="direct-choice-info"><strong>{display.displayName}</strong>
+                    {display.showDesignation && <span className="direct-muted">{display.designation}</span>}{provider.experience_years != null && <span className="direct-muted">{provider.experience_years} years experience</span>}
+                    <span className="direct-professional-charge">Service Charge <strong>{formatCurrency(providerCharge(provider, selection.service))}</strong></span></span></label>
+                <div className="direct-choice-details"><ScheduleSummary records={schedules[provider.id] || []} provider />
+                  <Link to={`/organizations/${selection.organization}/providers/${provider.id}`} target="_blank" rel="noopener noreferrer">View Full Profile</Link></div>
+              </div>;
+            })}</div>}
+        </SelectionSection>}
+        {selectedProvider && <SelectionSection number={5} title="Appointment Date">
+          <label className="form-label" htmlFor="appointment_date_input">Appointment Date</label>
+          <input id="appointment_date_input" className="form-control direct-date-input" type="date" min={today} value={selection.date} onChange={e => choose('date', e.target.value)} />
+          <div className="direct-availability" aria-live="polite">
+            {isPastDate && <p className="banner banner-danger">Appointments cannot be booked for a past date.</p>}
+            {loadingAvailability && <p>Checking provider availability…</p>}
+            {availabilityError && <p role="alert">{availabilityError}</p>}
+            {availability && <p className={`banner ${availability.is_available ? 'banner-success' : 'banner-warning'}`}>{availability.is_available ? `Available${availability.working_hours_display ? ` · ${availability.working_hours_display}` : ''} · Capacity Available` : availability.reason || 'Not available on this date'}</p>}
           </div>
-
-          <h2 className="text-2xl font-extrabold text-espresso-900 dark:text-sand-50 tracking-tight">
-            Appointment Confirmed & Serial Allocated!
-          </h2>
-
-          <p className="text-sm text-sand-600 dark:text-sand-300 max-w-md mx-auto">
-            You have successfully joined the queue. Below is your allocated serial position and forecast window.
-          </p>
-
-          <div className="bg-sand-100/70 dark:bg-navy-800/70 rounded-xl p-6 border border-sand-200/80 dark:border-navy-700/80 max-w-md mx-auto text-left space-y-3">
-            <div className="flex justify-between items-center pb-3 border-b border-sand-200 dark:border-navy-700">
-              <span className="text-xs uppercase tracking-wider text-sand-500 dark:text-sand-400 font-semibold">Your Serial Number</span>
-              <span className="text-2xl font-black text-espresso-900 dark:text-teal-400">#{bookedAppointment.serial_number || '1'}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-sand-600 dark:text-sand-400">Organization:</span>
-              <span className="font-semibold text-espresso-900 dark:text-sand-100">{selectedOrg?.name}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-sand-600 dark:text-sand-400">Service:</span>
-              <span className="font-semibold text-espresso-900 dark:text-sand-100">{selectedService?.name}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-sand-600 dark:text-sand-400">Professional:</span>
-              <span className="font-semibold text-espresso-900 dark:text-sand-100">
-                {selectedProvider ? deriveProfessionalDisplay(selectedProvider).displayName : 'Professional'}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-sand-600 dark:text-sand-400">Date:</span>
-              <span className="font-semibold text-espresso-900 dark:text-sand-100">{selectedDate}</span>
-            </div>
-          </div>
-
-          <BookingSummary organization={selectedOrg} service={selectedService} provider={selectedProvider} appointment={bookedAppointment} />
-          <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
-            <button
-              onClick={() => navigate('/customer/appointments')}
-              className="px-6 py-3 bg-espresso-900 hover:bg-espresso-800 text-sand-50 dark:bg-teal-400 dark:hover:bg-teal-300 dark:text-navy-950 font-bold rounded-xl shadow-md transition-all duration-200"
-            >
-              View My Appointments & Live Queue
-            </button>
-            <button
-              onClick={() => {
-                setBookedAppointment(null);
-                setCurrentStep(1);
-                setSelectedCategory('');
-                setSelectedOrgId('');
-                setSelectedServiceId('');
-                setSelectedProviderId('');
-                setAvailability(null);
-              }}
-              className="px-6 py-3 bg-sand-200 hover:bg-sand-300 dark:bg-navy-800 dark:hover:bg-navy-700 text-espresso-900 dark:text-sand-100 font-semibold rounded-xl transition-all duration-200"
-            >
-              Book Another Appointment
-            </button>
-          </div>
-        </div>
+        </SelectionSection>}
+        {selectedProvider && validDate && <SelectionSection number={6} title="Review & Confirm Booking">
+          <form onSubmit={reviewBooking}><BookingContactFields contact={contact} />
+            <label className="form-label" htmlFor="direct-booking-notes">Additional Notes (optional)</label>
+            <textarea id="direct-booking-notes" className="form-control" rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Add any relevant request or information for the provider..." />
+            <button className="btn btn-primary direct-review-button" type="submit" disabled={!ready || submitting}>Review & Confirm Booking</button>
+          </form>
+        </SelectionSection>}
       </div>
-    );
-  }
-
-  return (
-    <div className="booking-wizard-page animate-page-entrance">
-      {/* Page Header */}
-      <div className="booking-header">
-        <h1 className="booking-title">
-          Book an Appointment & Join Queue
-        </h1>
-        <p className="booking-subtitle">
-          Choose a category, organization, service and professional. Your serial and live estimated service window are assigned after booking.
-        </p>
-      </div>
-
-      {/* Progress Stepper */}
-      <BookingStepper
-        steps={STEPPER_STEPS}
-        currentStep={currentStep}
-        onStepClick={(stepNum) => setCurrentStep(stepNum)}
-      />
-
-      {/* Error Alert */}
-      {error && (
-        <div className="banner banner-danger mb-6 flex justify-between items-center" style={{ borderRadius: 'var(--radius-md)', padding: '0.85rem 1.25rem' }}>
-          <span>{error}</span>
-          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '1.25rem' }}>×</button>
-        </div>
-      )}
-
-      {/* Main 2-Column Workspace (Unboxed Continuous Flow) */}
-      <div className="booking-workspace-grid">
-        
-        {/* Left Column: Selection Journey */}
-        <div className="booking-journey-column">
-          
-          {/* STEP 1: CATEGORY SELECTION (FILTER / DROPDOWN CONTROL) */}
-          <section className="booking-step-section animate-section">
-            <div className="booking-step-header">
-              <h2 className="booking-step-title">
-                <span className="booking-step-badge">1</span>
-                Category
-              </h2>
-              {selectedCategory && (
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep(1)}
-                  className="booking-step-change-btn"
-                >
-                  Change Category
-                </button>
-              )}
-            </div>
-
-            {loadingCategories ? (
-              <LoadingState message="Loading categories..." />
-            ) : (
-              <div>
-                <select
-                  id="category_select_input"
-                  aria-label="Select Category"
-                  value={selectedCategory}
-                  onChange={(e) => handleCategorySelect(e.target.value)}
-                  className="booking-select-control"
-                >
-                  <option value="">-- Select a Category --</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name} ({cat.industry_label || 'Professional Services'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </section>
-
-          {/* STEP 2: ORGANIZATION SELECTION */}
-          {selectedCategory && (
-            <section className="booking-step-section animate-section">
-              <div className="booking-step-header">
-                <h2 className="booking-step-title">
-                  <span className="booking-step-badge">2</span>
-                  Organization
-                </h2>
-                {selectedOrgId && (
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(2)}
-                    className="booking-step-change-btn"
-                  >
-                    Change Organization
-                  </button>
-                )}
-              </div>
-
-              {loadingOrgs ? (
-                <LoadingState message="Loading organizations..." />
-              ) : organizations.length === 0 ? (
-                <EmptyState title="No Organizations Found" description="No verified active organizations are available in this category." />
-              ) : (
-                <div>
-                  <select
-                    id="org_select_input"
-                    aria-label="Select Organization"
-                    value={selectedOrgId}
-                    onChange={(e) => handleOrgSelect(e.target.value)}
-                    className="booking-select-control"
-                  >
-                    <option value="">-- Select an Organization --</option>
-                    {organizations.map((org) => (
-                      <option key={org.id} value={org.id}>
-                        {org.name} — {org.address || 'Location N/A'} {org.verification_status === 'APPROVED' ? '✓ Verified' : ''}
-                      </option>
-                    ))}
-                  </select>
-
-                  {/* Contextual org detail preview */}
-                  {selectedOrg && (
-                    <div style={{ marginTop: '0.75rem', padding: '0.85rem 1rem', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div>
-                        <strong style={{ fontSize: '0.9375rem', color: 'var(--color-text-main)' }}>{selectedOrg.name}</strong>
-                        {selectedOrg.tagline && <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>"{selectedOrg.tagline}"</div>}
-                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>📍 {selectedOrg.address || 'Dhanmondi, Dhaka'}</div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/organizations/${selectedOrg.id}`)}
-                        className="booking-step-change-btn"
-                        style={{ fontSize: '0.75rem' }}
-                      >
-                        View Storefront →
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* STEP 3: SERVICE SELECTION */}
-          {selectedOrgId && (
-            <section className="booking-step-section animate-section">
-              <div className="booking-step-header">
-                <h2 className="booking-step-title">
-                  <span className="booking-step-badge">3</span>
-                  Service
-                </h2>
-                {selectedServiceId && (
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(3)}
-                    className="booking-step-change-btn"
-                  >
-                    Change Service
-                  </button>
-                )}
-              </div>
-
-              {loadingServices ? (
-                <LoadingState message="Loading services..." />
-              ) : services.length === 0 ? (
-                <EmptyState title="No Services Found" description="No active services are configured for this organization." />
-              ) : (
-                <div>
-                  <select
-                    id="service_select_input"
-                    aria-label="Select Service"
-                    value={selectedServiceId}
-                    onChange={(e) => handleServiceSelect(e.target.value)}
-                    className="booking-select-control"
-                  >
-                    <option value="">-- Select a Service --</option>
-                    {services.map((svc) => (
-                      <option key={svc.id} value={svc.id}>
-                        {svc.name} — {startingPrice(svc)} (~{svc.duration_minutes || 30} min)
-                      </option>
-                    ))}
-                  </select>
-
-                  {/* Contextual service detail preview */}
-                  {selectedService && (
-                    <div style={{ marginTop: '0.75rem', padding: '0.85rem 1rem', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div>
-                        <strong style={{ fontSize: '0.9375rem', color: 'var(--color-text-main)' }}>{selectedService.name}</strong>
-                        {selectedService.description && <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: '0.15rem' }}>{selectedService.description}</div>}
-                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>
-                          Typical duration: <strong>~{selectedService.duration_minutes || 30} min</strong>
-                        </div>
-                      </div>
-                      {selectedService && (
-                        <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text-main)' }}>
-                          {startingPrice(selectedService)}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* STEP 4: ELIGIBLE PROFESSIONAL SELECTION (RADIO LIST) */}
-          {selectedServiceId && (
-            <section className="booking-step-section animate-section">
-              <div className="booking-step-header">
-                <h2 className="booking-step-title">
-                  <span className="booking-step-badge">4</span>
-                  Eligible Professional
-                </h2>
-                {selectedProviderId && (
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(4)}
-                    className="booking-step-change-btn"
-                  >
-                    Change Professional
-                  </button>
-                )}
-              </div>
-
-              {loadingProviders ? (
-                <LoadingState message="Loading eligible professionals..." />
-              ) : providers.length === 0 ? (
-                <EmptyState title="No Eligible Professionals" description="No active professionals currently offer this service." />
-              ) : (
-                <div className="professional-radio-list" role="radiogroup" aria-label="Select Professional">
-                  {providers.map((prov) => {
-                    const isSelected = selectedProviderId === prov.id;
-                    const { displayName: fullName, designation, showDesignation } = deriveProfessionalDisplay(prov, 'Professional');
-                    const u = prov.membership?.user || {};
-                    const initials = `${(u.first_name || 'P')[0]}${(u.last_name || '')[0] || ''}`.toUpperCase();
-
-                    return (
-                      <div
-                        key={prov.id}
-                        onClick={() => handleProviderSelect(prov.id)}
-                        role="radio"
-                        aria-checked={isSelected}
-                        tabIndex={0}
-                        onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') handleProviderSelect(prov.id); }}
-                        className={`professional-radio-card ${isSelected ? 'professional-radio-card-selected' : ''}`}
-                      >
-                        <input
-                          type="radio"
-                          name="provider_selection"
-                          checked={isSelected}
-                          onChange={() => handleProviderSelect(prov.id)}
-                          className="professional-radio-input"
-                        />
-
-                        <div className="professional-avatar-box">
-                          {prov.profile_photo ? (
-                            <img
-                              src={prov.profile_photo}
-                              alt={fullName}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              onError={(e) => { e.target.style.display = 'none'; }}
-                            />
-                          ) : (
-                            initials
-                          )}
-                        </div>
-
-                        <div className="professional-info-block">
-                          <div className="professional-name-text">{fullName}</div>
-                          <div className="professional-experience-text">Service Charge: {formatCurrency(providerCharge(prov, selectedServiceId))}</div>
-                          {showDesignation && <div className="professional-credentials-text">{designation}</div>}
-                          <div className="professional-designation-text">
-                            {prov.bio || 'Available for consultations'}
-                          </div>
-                          <div className="professional-experience-text">
-                            {prov.experience_years > 0 && `${prov.experience_years} years experience`}
-                            {prov.specialties && Array.isArray(prov.specialties) && prov.specialties.length > 0 && (
-                              ` • ${prov.specialties.join(', ')}`
-                            )}
-                          </div>
-                          {availability && isSelected && !isPastDate && (
-                            <div className="professional-schedule-pill">
-                              📅 {availability.working_hours_display || 'Available today'}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* STEP 5: DATE SELECTION & TEMPORAL VALIDATION */}
-          {selectedProviderId && (
-            <section className="booking-step-section animate-section">
-              <div className="booking-step-header">
-                <h2 className="booking-step-title">
-                  <span className="booking-step-badge">5</span>
-                  Appointment Date
-                </h2>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <label htmlFor="appointment_date_input" className="form-label" style={{ margin: 0, fontWeight: 700 }}>
-                    Date:
-                  </label>
-                  <input
-                    id="appointment_date_input"
-                    type="date"
-                    min={todayStr}
-                    value={selectedDate}
-                    onChange={(e) => handleDateSelect(e.target.value)}
-                    className="form-control"
-                    style={{ width: 'auto', padding: '0.55rem 0.85rem', fontWeight: 600 }}
-                  />
-                </div>
-
-                {/* Past Date Warning Banner */}
-                {isPastDate && (
-                  <div className="past-date-alert">
-                    <span>⚠️ This date has already passed. Choose today or a future date.</span>
-                  </div>
-                )}
-
-                {/* Real-time Availability State */}
-                {!isPastDate && loadingAvailability ? (
-                  <LoadingState message="Checking provider queue capacity..." />
-                ) : !isPastDate && availability ? (
-                  <div>
-                    {availability.is_available ? (
-                      <span className="status-badge status-confirmed" style={{ fontSize: '0.8125rem', padding: '0.4rem 0.85rem' }}>
-                        ✓ AVAILABLE {availability.working_hours_display || ''} • CAPACITY AVAILABLE
-                      </span>
-                    ) : (
-                      <span className="status-badge status-cancelled" style={{ fontSize: '0.8125rem', padding: '0.4rem 0.85rem' }}>
-                        ✕ {availability.reason || availability.message || 'Not available on this date'}
-                      </span>
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            </section>
-          )}
-
-          {/* STEP 6: REVIEW & CONFIRM SECTION */}
-          {selectedDate && (
-            <section className="booking-step-section animate-section">
-              <div className="booking-step-header">
-                <h2 className="booking-step-title">
-                  <span className="booking-step-badge">6</span>
-                  Review & Confirm Booking
-                </h2>
-              </div>
-
-              {/* Optional Notes */}
-              <BookingContactFields contact={contact} />
-              <BookingSummary organization={selectedOrg} service={selectedService} provider={selectedProvider} date={selectedDate} contact={contact} charge={providerCharge(selectedProvider, selectedServiceId)} notes={notes} />
-              <div className="form-group mb-4">
-                <label className="form-label" style={{ fontWeight: 700 }}>
-                  Additional Notes for Provider (optional)
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add any relevant request or information for the provider..."
-                  rows={3}
-                  className="form-control"
-                />
-              </div>
-
-              {/* Explanatory Notice */}
-              <div className="banner banner-warning mb-4" style={{ fontSize: '0.8125rem', lineHeight: 1.4 }}>
-                ⓘ Your serial is assigned after confirmation. Your estimated service time is a live forecast and may change as the queue progresses.
-              </div>
-
-              {/* Confirm CTA */}
-              <button
-                type="button"
-                onClick={handleBookSubmit}
-                disabled={submitting || !selectedOrgId || !selectedProviderId || !selectedServiceId || !selectedDate || isPastDate || (availability && availability.is_available === false)}
-                className="btn btn-primary"
-                style={{ width: '100%', padding: '0.9rem 1.5rem', fontSize: '1rem', fontWeight: 800 }}
-              >
-                {submitting ? 'Allocating Serial...' : 'Confirm Appointment & Join Queue'}
-              </button>
-            </section>
-          )}
-        </div>
-
-        {/* Right Column: Compact Sticky Booking Summary Sidebar */}
-        <div className="sticky-summary-sidebar">
-          <h3 className="sidebar-summary-title">
-            Current Selection
-          </h3>
-          <div className="sidebar-summary-row"><span className="sidebar-summary-label">Service Charge</span><span className="sidebar-summary-value">{formatCurrency(providerCharge(selectedProvider, selectedServiceId))}</span></div>
-
-          <div className="sidebar-summary-row">
-            <span className="sidebar-summary-label">Category</span>
-            <span className={selectedCategory ? "sidebar-summary-value" : "sidebar-summary-value-empty"}>
-              {selectedCategory ? (categories.find(c => c.id.toLowerCase() === selectedCategory.toLowerCase())?.name || selectedCategory) : 'Not selected'}
-            </span>
-          </div>
-
-          <div className="sidebar-summary-row">
-            <span className="sidebar-summary-label">Organization</span>
-            <span className={selectedOrg ? "sidebar-summary-value" : "sidebar-summary-value-empty"}>
-              {selectedOrg ? selectedOrg.name : 'Not selected'}
-            </span>
-          </div>
-
-          <div className="sidebar-summary-row">
-            <span className="sidebar-summary-label">Service</span>
-            <span className={selectedService ? "sidebar-summary-value" : "sidebar-summary-value-empty"}>
-              {selectedService ? selectedService.name : 'Not selected'}
-            </span>
-          </div>
-
-          <div className="sidebar-summary-row">
-            <span className="sidebar-summary-label">Professional</span>
-            <span className={selectedProvider ? "sidebar-summary-value" : "sidebar-summary-value-empty"}>
-              {selectedProvider ? deriveProfessionalDisplay(selectedProvider).displayName : 'Not selected'}
-            </span>
-          </div>
-
-          <div className="sidebar-summary-row">
-            <span className="sidebar-summary-label">Date</span>
-            <span className={selectedDate ? "sidebar-summary-value" : "sidebar-summary-value-empty"}>
-              {selectedDate || 'Not selected'}
-            </span>
-          </div>
-
-          {selectedService && (
-            <div className="sidebar-summary-row" style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--color-border-subtle)' }}>
-              <span className="sidebar-summary-label">Est. Duration</span>
-              <span className="sidebar-summary-value">~{selectedService.duration_minutes || 30} min</span>
-            </div>
-          )}
-
-          {availability && availability.working_hours_display && !isPastDate && (
-            <div className="sidebar-summary-row">
-              <span className="sidebar-summary-label">Provider Hours</span>
-              <span className="sidebar-summary-value" style={{ fontSize: '0.8125rem' }}>{availability.working_hours_display}</span>
-            </div>
-          )}
-        </div>
-      </div>
+      <aside className="direct-desktop-summary" aria-label="Your Booking"><h2>Your Booking</h2>{summaryContent}</aside>
     </div>
-  );
+    <BookingReviewModal open={showReview} onBack={closeReview} onConfirm={confirmBooking} submitting={submitting} ready={ready} error={error}
+      organization={selectedOrg} service={selectedService} provider={selectedProvider} date={displayDate(selection.date)}
+      contact={{ name: contact.payload.contact_name, phone: contact.payload.contact_phone }} charge={charge} notes={notes.trim()} />
+  </div>;
 }
+
+export default BookAppointmentPage;
