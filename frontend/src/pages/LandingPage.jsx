@@ -9,6 +9,8 @@ import { getApiDocsUrl } from '../api/client';
 import '../styles/LandingPage.css';
 import { HomepageLiveQueueWidget } from '../components/HomepageLiveQueueWidget';
 import { PublicNavbar } from '../components/PublicNavbar';
+import HeroProductStory from '../components/HeroProductStory';
+import '../styles/LandingPhaseOne.css';
 
 /* ─── Tiny SVG Icon Components ─────────────────────────────────────────── */
 const IconZap = () => (
@@ -906,7 +908,6 @@ export const LandingPage = () => {
   const location = useLocation();
   const [heroSearchQuery, setHeroSearchQuery] = useState('');
   const [allOrgs, setAllOrgs] = useState([]);
-  const [heroRef, heroIn] = useInView({ threshold: 0.05 });
   const [howItWorksRef, howItWorksIn] = useInView({ threshold: 0.1 });
   const [whyUsRef, whyUsIn] = useInView({ threshold: 0.1 });
   const [ctaRef, ctaIn] = useInView();
@@ -917,7 +918,7 @@ export const LandingPage = () => {
       const elem = document.getElementById(targetId);
       if (elem) {
         setTimeout(() => {
-          elem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          elem.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
         }, 150);
       }
     }
@@ -945,93 +946,27 @@ export const LandingPage = () => {
       <PublicNavbar activePage="" />
 
       {/* ── Hero ───────────────────────────────────────────────────────── */}
-      <section className="lp-hero" ref={heroRef}>
-        <div className="lp-hero-grid" aria-hidden="true" />
-        <div className="lp-hero-glow" aria-hidden="true" />
-
-        <div className="lp-hero-inner">
-          <div
-            className="lp-hero-eyebrow"
-            style={{
-              opacity: heroIn ? 1 : 0,
-              transform: heroIn ? 'translateY(0)' : 'translateY(12px)',
-              transition: 'opacity 0.55s cubic-bezier(0.16,1,0.3,1) 0.05s, transform 0.55s cubic-bezier(0.16,1,0.3,1) 0.05s',
-            }}
-          >
-            <span className="lp-eyebrow-dot" />
-            Appointment & Queue Discovery Platform
+      <section className="lp-product-hero" aria-labelledby="landing-hero-title">
+        <div className="lp-product-hero-inner">
+          <div className="lp-product-hero-copy">
+            <div className="lp-product-eyebrow"><span aria-hidden="true" />YOUR TIME. BETTER PLANNED.</div>
+            <h1 id="landing-hero-title">Book a serial.<br /><span>Arrive smarter.<br />Wait less.</span></h1>
+            <p>Discover trusted service providers, reserve your queue serial, and receive an estimated service window. Know when to arrive, with live queue updates along the way.</p>
+            <form onSubmit={handleHeroSearch} className="lp-product-search" role="search">
+              <span aria-hidden="true"><IconSearch /></span>
+              <input aria-label="Search organizations, services or professionals" type="search" placeholder="Organizations, services, professionals…" value={heroSearchQuery} onChange={event => setHeroSearchQuery(event.target.value)} />
+              <button type="submit" className="lp-btn-primary">Search</button>
+            </form>
+            <div className="lp-product-actions">
+              <Link to="/customer/book" className="lp-btn-primary lp-btn-lg">Find an Appointment <IconArrow /></Link>
+              <Link to="/organizations" className="lp-btn-outline lp-btn-lg">Browse Organizations</Link>
+            </div>
+            <div className="lp-product-footnote"><span aria-hidden="true">✓</span> Reserve a serial. Track your queue. Plan your arrival.</div>
           </div>
-
-          <h1
-            className="lp-hero-h1"
-            style={{
-              opacity: heroIn ? 1 : 0,
-              transform: heroIn ? 'translateY(0)' : 'translateY(16px)',
-              transition: 'opacity 0.6s cubic-bezier(0.16,1,0.3,1) 0.12s, transform 0.6s cubic-bezier(0.16,1,0.3,1) 0.12s',
-            }}
-          >
-            Find and book your next<br />
-            <span className="lp-hero-accent">appointment easily.</span>
-          </h1>
-
-          <p
-            className="lp-hero-sub"
-            style={{
-              opacity: heroIn ? 1 : 0,
-              transform: heroIn ? 'translateY(0)' : 'translateY(12px)',
-              transition: 'opacity 0.6s cubic-bezier(0.16,1,0.3,1) 0.2s, transform 0.6s cubic-bezier(0.16,1,0.3,1) 0.2s',
-            }}
-          >
-            Discover top-rated clinics, medical centers, and specialists. Check real-time time slot availability and track your live queue status online.
-          </p>
-
-          {/* Hero Search Bar */}
-          <form
-            onSubmit={handleHeroSearch}
-            className="lp-hero-search-form"
-          >
-            <span style={{ color: 'var(--lp-muted)', display: 'flex', alignItems: 'center' }}><IconSearch /></span>
-            <input
-              type="text"
-              placeholder="Search clinics, services, or doctors..."
-              value={heroSearchQuery}
-              onChange={(e) => setHeroSearchQuery(e.target.value)}
-              className="lp-hero-search-input"
-            />
-            <button
-              type="submit"
-              style={{
-                background: 'var(--lp-sage)',
-                color: '#FFFFFF',
-                border: 'none',
-                borderRadius: '9999px',
-                padding: '0.75rem 1.5rem',
-                fontWeight: 600,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-              }}
-            >
-              Search
-            </button>
-          </form>
-
-          <div
-            className="lp-hero-actions"
-            style={{
-              opacity: heroIn ? 1 : 0,
-              transform: heroIn ? 'translateY(0)' : 'translateY(12px)',
-              transition: 'opacity 0.6s cubic-bezier(0.16,1,0.3,1) 0.28s, transform 0.6s cubic-bezier(0.16,1,0.3,1) 0.28s',
-            }}
-          >
-            <Link to="/organizations" className="lp-btn-primary lp-btn-lg">
-              Browse Organizations <IconArrow />
-            </Link>
-            <Link to="/customer/book" className="lp-btn-outline lp-btn-lg">
-              Find an Appointment
-            </Link>
-          </div>
+          <HeroProductStory />
         </div>
-
+      </section>
+      <section className="lp-discovery-content" aria-label="Discover SmartQueue services">
         {/* Categories */}
         <CategoryDiscoverySection />
 
