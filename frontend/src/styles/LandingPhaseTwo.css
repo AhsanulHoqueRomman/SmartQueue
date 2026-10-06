@@ -7,8 +7,17 @@
 .phase-two-section h2 { font-size: clamp(1.7rem, 3vw, 2.2rem); line-height: 1.2; margin: 10px 0 16px; color: var(--lp-text); }
 .discovery-eyebrow { color: var(--lp-sage); font-size: .72rem; letter-spacing: .08em; font-weight: 700; text-transform: uppercase; }
 .discovery-intro { color: var(--lp-text-sec); line-height: 1.7; font-size: .95rem; max-width: 640px; margin: 0 0 28px; }
-.discovery-rail { display: grid; grid-template-columns: 36px minmax(0, 1fr) 36px; gap: 12px; align-items: center; min-width: 0; }
-.discovery-arrow { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--lp-border-med); color: var(--lp-text); background: var(--lp-surface); font-size: 1.65rem; cursor: pointer; }
+.discovery-rail { position: relative; width: 100%; min-width: 0; padding-top: 44px; }
+.discovery-arrow { position: absolute; top: 0; z-index: 1; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--lp-border-med); color: var(--lp-text); background: var(--lp-surface); font-size: 1.65rem; cursor: pointer; }
+.discovery-arrow:first-child { right: 48px; }
+.discovery-arrow:last-child { right: 0; }
+/* The 1240px content frame leaves enough outer gutter at this width. */
+@media (min-width: 1400px) {
+  .discovery-rail { padding-top: 0; }
+  .discovery-arrow { top: 50%; transform: translateY(-50%); }
+  .discovery-arrow:first-child { left: -48px; right: auto; }
+  .discovery-arrow:last-child { right: -48px; }
+}
 .discovery-arrow:disabled { opacity: .3; cursor: default; }
 .discovery-rail-viewport { min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; padding: 8px 0; touch-action: pan-x pan-y; }
 .discovery-rail-viewport::-webkit-scrollbar { display: none; }
@@ -77,8 +86,9 @@
 @media (max-width: 600px) {
   .phase-two-section { margin: 32px auto; }
   .phase-two-section.category-discovery { margin-top: 8px; }
-  .discovery-rail { grid-template-columns: 28px minmax(0, 1fr) 28px; gap: 6px; }
+  .discovery-rail { padding-top: 38px; }
   .discovery-arrow { width: 28px; height: 32px; }
+  .discovery-arrow:first-child { right: 40px; }
   .discovery-category { width: 224px; flex-basis: 224px; }
   .discovery-org-card { width: 260px; flex-basis: 260px; }
   .discovery-org-body { padding: 20px; }
