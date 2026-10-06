@@ -13,6 +13,7 @@ import { publicOrganizations } from '../services/discoveryService';
 import { useTenant } from '../contexts/TenantContext';
 import { PublicNavbar } from '../components/PublicNavbar';
 import HeroProductStory from '../components/HeroProductStory';
+import { HowSmartQueueWorks, WhySmartQueue, ForOrganizations } from '../components/LandingPhaseThree';
 import '../styles/LandingPhaseOne.css';
 
 /* ─── Tiny SVG Icon Components ─────────────────────────────────────────── */
@@ -634,21 +635,20 @@ export const LandingPage = () => {
       .finally(() => { if (current) setOrgsLoading(false); });
     return () => { current = false; };
   }, []);
-  const [howItWorksRef, howItWorksIn] = useInView({ threshold: 0.1 });
-  const [whyUsRef, whyUsIn] = useInView({ threshold: 0.1 });
   const [ctaRef, ctaIn] = useInView();
 
   useEffect(() => {
-    if (location.hash) {
+    if (location.hash && !orgsLoading) {
       const targetId = location.hash.replace('#', '');
       const elem = document.getElementById(targetId);
       if (elem) {
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           elem.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
         }, 150);
+        return () => clearTimeout(timer);
       }
     }
-  }, [location]);
+  }, [location, orgsLoading]);
 
   const handleHeroSearch = (e) => {
     e.preventDefault();
@@ -708,106 +708,9 @@ export const LandingPage = () => {
         <PopularOrganizationsSection organizations={allOrgs} loading={orgsLoading} error={orgsError} />
       </section>
 
-      {/* ── How It Works ───────────────────────────────────────────────── */}
-      <section
-        id="how-it-works"
-        ref={howItWorksRef}
-        className="lp-section lp-section--alt"
-        style={{
-          opacity: howItWorksIn ? 1 : 0,
-          transform: howItWorksIn ? 'translateY(0)' : 'translateY(35px)',
-          transition: 'opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)',
-        }}
-      >
-        <div className="lp-section-inner">
-          <div
-            className="lp-section-header"
-            style={{
-              opacity: howItWorksIn ? 1 : 0,
-              transform: howItWorksIn ? 'translateY(0)' : 'translateY(20px)',
-              transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s',
-            }}
-          >
-            <div className="lp-section-label">Simple 6-Step Journey</div>
-            <h2 className="lp-section-h2">How SmartQueue Works</h2>
-          </div>
-
-          <div className="lp-steps" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
-            {[
-              { num: '01', title: 'Find an Organization', desc: 'Explore verified clinics, diagnostic centers, and care facilities.' },
-              { num: '02', title: 'Choose a Service', desc: 'Select consultations, checkups, or specialized procedures.' },
-              { num: '03', title: 'Select a Provider', desc: 'Pick your preferred doctor or specialist from the roster.' },
-              { num: '04', title: 'Pick a Time Slot', desc: 'Choose an available time slot matching provider working schedules.' },
-              { num: '05', title: 'Instant Check-In', desc: 'Arrive and check in online or at the desk to receive your token.' },
-              { num: '06', title: 'Track Live Queue', desc: 'Monitor serving tokens and people ahead in real time on your phone.' },
-            ].map((step, idx) => (
-              <div
-                key={idx}
-                className="lp-step"
-                style={{
-                  opacity: howItWorksIn ? 1 : 0,
-                  transform: howItWorksIn ? 'translateY(0) scale(1)' : 'translateY(25px) scale(0.96)',
-                  transition: `opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1) ${0.15 + idx * 0.08}s, transform 0.55s cubic-bezier(0.16, 1, 0.3, 1) ${0.15 + idx * 0.08}s`,
-                }}
-              >
-                <div className="lp-step-number">{step.num}</div>
-                <div className="lp-step-body">
-                  <div className="lp-step-title">{step.title}</div>
-                  <div className="lp-step-desc">{step.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Why SmartQueue ────────────────────────────────────────────── */}
-      <section
-        id="why-smartqueue"
-        ref={whyUsRef}
-        className="lp-section"
-        style={{
-          opacity: whyUsIn ? 1 : 0,
-          transform: whyUsIn ? 'translateY(0)' : 'translateY(35px)',
-          transition: 'opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)',
-        }}
-      >
-        <div className="lp-section-inner">
-          <div
-            className="lp-section-header"
-            style={{
-              opacity: whyUsIn ? 1 : 0,
-              transform: whyUsIn ? 'translateY(0)' : 'translateY(20px)',
-              transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s',
-            }}
-          >
-            <div className="lp-section-label">Core Platform Benefits</div>
-            <h2 className="lp-section-h2">Why Patients & Clinics Choose SmartQueue</h2>
-          </div>
-
-          <div className="lp-features-grid">
-            {[
-              { icon: '⚡', accent: '#52796F', title: 'Zero Waiting Room Chaos', desc: 'Know your exact token position and estimated call time before arriving.' },
-              { icon: '📊', accent: '#2C221E', title: 'Real-Time Queue Telemetry', desc: 'Live updating token indicators for complete transparency.' },
-              { icon: '🏥', accent: '#B06D2E', title: 'Multi-Tenant Clinic Discovery', desc: 'Browse diagnostic labs, hospitals, and wellness centers in one place.' },
-            ].map((feat, idx) => (
-              <div
-                key={idx}
-                className="lp-feature-card"
-                style={{
-                  opacity: whyUsIn ? 1 : 0,
-                  transform: whyUsIn ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.95)',
-                  transition: `opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1) ${0.15 + idx * 0.12}s, transform 0.55s cubic-bezier(0.16, 1, 0.3, 1) ${0.15 + idx * 0.12}s`,
-                }}
-              >
-                <div className="lp-feature-icon" style={{ '--accent': feat.accent }}>{feat.icon}</div>
-                <h3 className="lp-feature-title">{feat.title}</h3>
-                <p className="lp-feature-desc">{feat.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <HowSmartQueueWorks />
+      <WhySmartQueue />
+      <ForOrganizations />
 
       {/* ── Testimonials ──────────────────────────────────────────────── */}
       <TestimonialsSection />

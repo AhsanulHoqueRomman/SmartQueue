@@ -1,0 +1,88 @@
+/* Phase 3: customer journey, benefits and organization operations only. */
+.sq-phase3 { background: var(--lp-bg); padding: 88px 24px; color: var(--lp-text); scroll-margin-top: 80px; }
+.sq-phase3-inner { width: 100%; max-width: 1240px; margin: auto; min-width: 0; }
+.sq-journey-section, .sq-organizations-section { background: var(--lp-surface); border-block: 1px solid var(--lp-border); }
+.sq-section-heading { max-width: 700px; margin-bottom: 40px; }
+.sq-eyebrow { color: var(--lp-sage); font-size: .73rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.sq-phase3 h2 { font-size: clamp(1.9rem, 3vw, 2.6rem); line-height: 1.18; letter-spacing: -.035em; margin: 14px 0 18px; }
+.sq-phase3 p { color: var(--lp-text-sec); font-size: .96rem; line-height: 1.75; margin: 0; }
+.sq-journey-wrap { position: relative; }
+.sq-journey-grid { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px 24px; list-style: none; padding: 0; margin: 0; }
+.sq-journey-card { padding: 28px; min-width: 0; min-height: 242px; border: 1px solid var(--lp-border-med); border-radius: 18px; background: var(--lp-bg); }
+.sq-journey-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+.sq-icon-tile { display: grid; place-items: center; width: 56px; height: 56px; background: var(--lp-sage-bg); color: var(--lp-sage); border: 1px solid var(--lp-sage-border); border-radius: 14px; }
+.sq-icon-tile svg { width: 30px; height: 30px; }
+.sq-step-number { font-size: 1.8rem; font-weight: 700; color: var(--lp-sage); font-variant-numeric: tabular-nums; opacity: .65; }
+.sq-phase3 h3 { font-size: 1.17rem; line-height: 1.4; margin: 0 0 12px; }
+.sq-journey-path { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; fill: none; stroke: var(--lp-sage); stroke-width: 1.5; opacity: .5; }
+.sq-phase3.is-observed:not(.is-revealed) .sq-entry { opacity: 0; transform: translateY(18px); }
+.sq-phase3.is-revealed .sq-entry { animation: sq-entry .65s ease-out var(--entry-delay, 0s) both; }
+.sq-phase3.is-observed:not(.is-revealed) .sq-journey-path path { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.sq-phase3.is-revealed .sq-journey-path path { stroke-dasharray: 1; animation: sq-journey-progress 1.8s ease-in-out both; }
+@keyframes sq-entry { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes sq-journey-progress { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.sq-benefits-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.sq-benefit-card { min-width: 0; padding: 32px; border: 1px solid var(--lp-border); border-radius: 20px; background: var(--lp-surface); }
+.sq-benefit-card h3 { margin-top: 24px; font-size: 1.35rem; }
+.sq-benefit-detail { border-top: 1px solid var(--lp-border); margin-top: 24px; padding-top: 20px; color: var(--lp-muted); font-size: .8rem; }
+.sq-benefit-detail > div { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.sq-benefit-detail > div > span { color: var(--lp-sage); border: 1px solid var(--lp-border-med); background: var(--lp-sage-bg); border-radius: 6px; padding: 7px 10px; font-size: .75rem; }
+.sq-organizations-split { display: grid; grid-template-columns: 1.05fr 1fr; gap: 64px; align-items: center; }
+.sq-organizations-split > div { min-width: 0; }
+.sq-organization-copy h2 { max-width: 550px; font-size: clamp(2rem, 3.1vw, 2.8rem); }
+.sq-capabilities { display: grid; gap: 20px; list-style: none; padding: 0; margin: 32px 0; }
+.sq-capabilities li { display: flex; gap: 14px; align-items: center; font-size: .95rem; font-weight: 600; line-height: 1.5; }
+.sq-capabilities svg { width: 23px; height: 23px; flex-shrink: 0; color: var(--lp-sage); }
+.sq-business-actions { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; }
+.sq-business-actions .lp-btn-primary { font-size: .85rem; }
+.sq-secondary-action { font-size: .85rem; color: var(--lp-text-sec); text-underline-offset: 4px; }
+.sq-phase3 a:focus-visible { outline: 2px solid var(--lp-sage); outline-offset: 4px; }
+.sq-operations-preview { margin: 0; background: var(--lp-bg); border: 1px solid var(--lp-border-med); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow-md); }
+.sq-operations-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 1px solid var(--lp-border); padding: 18px 24px; color: var(--lp-muted); font-size: .75rem; }
+.sq-operations-brand { display: inline-flex; gap: 10px; align-items: center; color: var(--lp-text); font-weight: 700; font-size: .9rem; }
+.sq-operations-brand svg { width: 22px; height: 22px; color: var(--lp-sage); }
+.sq-operations-body { padding: 24px; }
+.sq-operations-body h3 { margin: 10px 0 20px; }
+.sq-operation-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 16px 0; margin: 0 0 20px; border-block: 1px solid var(--lp-border); }
+.sq-operation-stats dt { color: var(--lp-muted); font-size: .75rem; }
+.sq-operation-stats dd { margin: 8px 0 0; font-size: 1.7rem; font-weight: 700; color: var(--lp-sage); }
+.sq-activity-heading { display: flex; align-items: center; justify-content: space-between; }
+.sq-operations-preview h4 { font-size: .82rem; margin: 0; }
+.sq-activity-heading > span, .sq-chart-axis { font-size: .7rem; color: var(--lp-muted); }
+.sq-activity-chart { display: block; width: 100%; height: auto; margin-top: 18px; overflow: hidden; }
+.sq-chart-grid { fill: none; stroke: var(--lp-border); stroke-width: 1; }
+.sq-chart-line { fill: none; stroke: var(--lp-sage); stroke-width: 2.4; stroke-linecap: round; }
+.sq-chart-tracer { fill: var(--lp-sage); offset-path: path('M8 94H48Q64 94 70 74T96 54H145Q160 54 170 32T198 20H235Q250 20 258 44T282 62H325Q340 62 350 82T392 94'); offset-distance: 36%; animation: sq-queue-activity 14s linear infinite; animation-play-state: paused; }
+.sq-operations-preview.is-active .sq-chart-tracer { animation-play-state: running; }
+@keyframes sq-queue-activity { from { offset-distance: 0%; opacity: .5; } 15%, 85% { opacity: 1; } to { offset-distance: 100%; opacity: .5; } }
+.sq-chart-axis { display: flex; justify-content: space-between; margin-top: 4px; }
+.sq-current-queue { margin-top: 24px; }
+.sq-current-queue ul { padding: 0; margin: 10px 0 0; list-style: none; }
+.sq-current-queue li { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--lp-border); align-items: center; font-size: .74rem; color: var(--lp-text-sec); }
+.sq-current-queue strong { color: var(--lp-text); font-variant-numeric: tabular-nums; }
+.sq-preview-state { color: var(--lp-sage); font-weight: 600; }
+.sq-provider-activity { display: flex; gap: 12px; align-items: center; margin-top: 20px; color: var(--lp-text-sec); font-size: .78rem; }
+.sq-provider-activity svg { width: 32px; height: 32px; color: var(--lp-sage); flex-shrink: 0; }
+.sq-provider-activity strong { display: block; margin-top: 5px; color: var(--lp-muted); font-size: .7rem; font-weight: 400; }
+.sq-operations-preview figcaption { padding: 14px 24px; border-top: 1px solid var(--lp-border); color: var(--lp-muted); font-size: .72rem; line-height: 1.6; }
+@media (max-width: 1000px) {
+  .sq-phase3 { padding-block: 64px; }
+  .sq-journey-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sq-journey-path { display: none; }
+  .sq-organizations-split { grid-template-columns: 1fr; gap: 40px; }
+  .sq-operations-preview { max-width: 620px; }
+}
+@media (max-width: 600px) {
+  .sq-phase3 { padding: 52px 20px; }
+  .sq-journey-grid, .sq-benefits-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .sq-journey-card { min-height: auto; padding: 24px; }
+  .sq-benefit-card { padding: 24px; }
+  .sq-operations-header, .sq-operations-body { padding: 20px; }
+  .sq-current-queue li { grid-template-columns: 30px minmax(0, 1fr) auto; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sq-phase3 .sq-entry { opacity: 1 !important; transform: none !important; animation: none !important; }
+  .sq-phase3 .sq-journey-path path { animation: none !important; stroke-dashoffset: 0 !important; }
+  .sq-phase3 .sq-chart-tracer { animation: none !important; offset-distance: 36%; opacity: 1; }
+  html:has(.sq-phase3) { scroll-behavior: auto; }
+}

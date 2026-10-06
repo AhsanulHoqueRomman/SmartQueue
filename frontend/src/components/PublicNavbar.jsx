@@ -48,7 +48,7 @@ export const PublicNavbar = ({ activePage = '' }) => {
         <Link to="/search" className="lp-nav-link" onClick={() => setMenuOpen(false)}>Search</Link>
         <Link to="/#how-it-works" className="lp-nav-link" onClick={event => anchorClick(event, '#how-it-works')}>How It Works</Link>
         <Link to="/#why-smartqueue" className="lp-nav-link" onClick={event => anchorClick(event, '#why-smartqueue')}>Why SmartQueue</Link>
-        <Link to="/register/manager" className="lp-nav-link" onClick={() => setMenuOpen(false)}>For Organizations</Link>
+        <Link to="/#for-organizations" className="lp-nav-link" onClick={event => anchorClick(event, '#for-organizations')}>For Organizations</Link>
         <Link to="/contact" className="lp-nav-link" aria-current={activePage === 'contact' ? 'page' : undefined} onClick={() => setMenuOpen(false)}>Contact Us</Link>
       </nav>
       <div className="lp-nav-cta"><ThemeToggle />{user ? <UserAccountMenu /> : <><Link to="/login" className="lp-btn-ghost lp-nav-sign-in">Sign in</Link><Link to="/register" className="lp-btn-primary lp-nav-get-started">Get Started</Link></>}
