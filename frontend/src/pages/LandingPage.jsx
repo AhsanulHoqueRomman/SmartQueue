@@ -949,7 +949,7 @@ export const LandingPage = () => {
       <section className="lp-product-hero" aria-labelledby="landing-hero-title">
         <div className="lp-product-hero-inner">
           <div className="lp-product-hero-copy">
-            <div className="lp-product-eyebrow"><span aria-hidden="true" />YOUR TIME. BETTER PLANNED.</div>
+            <div className="lp-product-eyebrow"><span aria-hidden="true" />MULTI-SERVICE APPOINTMENT &amp; QUEUE PLATFORM</div>
             <h1 id="landing-hero-title">Book a serial.<br /><span>Arrive smarter.<br />Wait less.</span></h1>
             <p>Discover trusted service providers, reserve your queue serial, and receive an estimated service window. Know when to arrive, with live queue updates along the way.</p>
             <form onSubmit={handleHeroSearch} className="lp-product-search" role="search">
