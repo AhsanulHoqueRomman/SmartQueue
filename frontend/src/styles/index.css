@@ -829,6 +829,23 @@ p {
   padding: 0 1.5rem;
 }
 
+@media (max-width: 639px) {
+  .app-navbar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 64px;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  .app-navbar .nav-actions-group {
+    max-width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
 .navbar-brand {
   display: flex;
   align-items: center;

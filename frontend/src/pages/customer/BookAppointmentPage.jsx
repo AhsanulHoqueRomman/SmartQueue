@@ -7,9 +7,13 @@ import BookingStepper from '../../components/BookingStepper';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import { deriveProfessionalDisplay } from '../../utils/providerDisplay';
+import { formatCurrency, startingPrice, providerCharge, bookingError, currentBusinessDate } from '../../utils/bookingDisplay';
+import { BookingContactFields, BookingSummary } from '../../components/BookingContact';
+import { useBookingContact } from '../../hooks/useBookingContact';
 
 export function BookAppointmentPage() {
   const navigate = useNavigate();
+  const contact = useBookingContact();
   const [searchParams] = useSearchParams();
   const { selectOrg } = useTenant();
 
@@ -39,7 +43,7 @@ export function BookAppointmentPage() {
   const [selectedProviderId, setSelectedProviderId] = useState('');
 
   // Date State (default to today's date in local ISO YYYY-MM-DD)
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = currentBusinessDate();
   const [selectedDate, setSelectedDate] = useState(todayStr);
 
   // Availability State
@@ -265,6 +269,7 @@ export function BookAppointmentPage() {
   // Handle Serial Queue Booking Submit
   const handleBookSubmit = async (e) => {
     e.preventDefault();
+    if (!contact.valid) { setError('Enter a customer name and a valid Bangladesh mobile number.'); return; }
     if (!selectedOrgId || !selectedProviderId || !selectedServiceId || !selectedDate) {
       setError('Please complete all selection steps.');
       return;
@@ -284,10 +289,11 @@ export function BookAppointmentPage() {
         service_id: selectedServiceId,
         appointment_date: selectedDate,
         notes,
+        ...contact.payload,
       });
       setBookedAppointment(result);
     } catch (err) {
-      const msg = err.response?.data?.detail || err.response?.data?.message || err.response?.data?.appointment_date || 'Failed to book appointment. Please try again.';
+      const msg = bookingError(err, 'Failed to book appointment. Please try again.');
       setError(typeof msg === 'object' ? JSON.stringify(msg) : msg);
     } finally {
       setSubmitting(false);
@@ -327,7 +333,7 @@ export function BookAppointmentPage() {
             <div className="flex justify-between text-sm">
               <span className="text-sand-600 dark:text-sand-400">Professional:</span>
               <span className="font-semibold text-espresso-900 dark:text-sand-100">
-                {selectedProvider?.membership?.user?.first_name || 'Dr.'} {selectedProvider?.membership?.user?.last_name || selectedProvider?.title}
+                {selectedProvider ? deriveProfessionalDisplay(selectedProvider).displayName : 'Professional'}
               </span>
             </div>
             <div className="flex justify-between text-sm">
@@ -336,6 +342,7 @@ export function BookAppointmentPage() {
             </div>
           </div>
 
+          <BookingSummary organization={selectedOrg} service={selectedService} provider={selectedProvider} appointment={bookedAppointment} />
           <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={() => navigate('/customer/appointments')}
@@ -534,7 +541,7 @@ export function BookAppointmentPage() {
                     <option value="">-- Select a Service --</option>
                     {services.map((svc) => (
                       <option key={svc.id} value={svc.id}>
-                        {svc.name} — ৳{svc.price || '0'} (~{svc.duration_minutes || 30} min)
+                        {svc.name} — {startingPrice(svc)} (~{svc.duration_minutes || 30} min)
                       </option>
                     ))}
                   </select>
@@ -549,9 +556,9 @@ export function BookAppointmentPage() {
                           Typical duration: <strong>~{selectedService.duration_minutes || 30} min</strong>
                         </div>
                       </div>
-                      {selectedService.price && (
+                      {selectedService && (
                         <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text-main)' }}>
-                          ৳{selectedService.price}
+                          {startingPrice(selectedService)}
                         </div>
                       )}
                     </div>
@@ -625,6 +632,7 @@ export function BookAppointmentPage() {
 
                         <div className="professional-info-block">
                           <div className="professional-name-text">{fullName}</div>
+                          <div className="professional-experience-text">Service Charge: {formatCurrency(providerCharge(prov, selectedServiceId))}</div>
                           {showDesignation && <div className="professional-credentials-text">{designation}</div>}
                           <div className="professional-designation-text">
                             {prov.bio || 'Available for consultations'}
@@ -713,6 +721,8 @@ export function BookAppointmentPage() {
               </div>
 
               {/* Optional Notes */}
+              <BookingContactFields contact={contact} />
+              <BookingSummary organization={selectedOrg} service={selectedService} provider={selectedProvider} date={selectedDate} contact={contact} charge={providerCharge(selectedProvider, selectedServiceId)} notes={notes} />
               <div className="form-group mb-4">
                 <label className="form-label" style={{ fontWeight: 700 }}>
                   Additional Notes for Provider (optional)
@@ -750,6 +760,7 @@ export function BookAppointmentPage() {
           <h3 className="sidebar-summary-title">
             Current Selection
           </h3>
+          <div className="sidebar-summary-row"><span className="sidebar-summary-label">Service Charge</span><span className="sidebar-summary-value">{formatCurrency(providerCharge(selectedProvider, selectedServiceId))}</span></div>
 
           <div className="sidebar-summary-row">
             <span className="sidebar-summary-label">Category</span>
@@ -775,7 +786,7 @@ export function BookAppointmentPage() {
           <div className="sidebar-summary-row">
             <span className="sidebar-summary-label">Professional</span>
             <span className={selectedProvider ? "sidebar-summary-value" : "sidebar-summary-value-empty"}>
-              {selectedProvider ? `${selectedProvider.membership?.user?.first_name || ''} ${selectedProvider.membership?.user?.last_name || selectedProvider.title}` : 'Not selected'}
+              {selectedProvider ? deriveProfessionalDisplay(selectedProvider).displayName : 'Not selected'}
             </span>
           </div>
 

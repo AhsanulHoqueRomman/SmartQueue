@@ -7,6 +7,9 @@ import PublicNavbar from '../../components/PublicNavbar';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import { deriveProfessionalDisplay } from '../../utils/providerDisplay';
+import { startingPrice, providerCharge, bookingError as getBookingError, currentBusinessDate } from '../../utils/bookingDisplay';
+import { BookingContactFields, BookingSummary } from '../../components/BookingContact';
+import { useBookingContact } from '../../hooks/useBookingContact';
 import '../../styles/LandingPage.css';
 
 // ─── Format Currency Helper ────────────────────────────────────────────────
@@ -94,6 +97,7 @@ export const getServiceImage = (service, org) => {
 };
 
 export function OrganizationProfilePage() {
+  const contact = useBookingContact();
   const { organizationId, id, serviceId } = useParams();
   const orgId = organizationId || id;
   const navigate = useNavigate();
@@ -120,7 +124,7 @@ export function OrganizationProfilePage() {
   const [selectedProviderId, setSelectedProviderId] = useState('');
 
   // Date & Availability States
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = currentBusinessDate();
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [availability, setAvailability] = useState(null);
   const [loadingAvailability, setLoadingAvailability] = useState(false);
@@ -212,6 +216,20 @@ export function OrganizationProfilePage() {
 
   // 2. Fetch Availability Telemetry when Provider, Service, and Date are selected
   useEffect(() => {
+    if (!orgId) return;
+    let active = true;
+    const refreshStatus = () => {
+      if (document.visibilityState !== 'visible') return;
+      organizationService.getOrganizationDetail(orgId).then(data => {
+        if (active) setOrg(previous => previous ? { ...previous, current_status: data.current_status, today_hours: data.today_hours } : previous);
+      }).catch(() => { /* Retain the last response until the next refresh. */ });
+    };
+    const interval = setInterval(refreshStatus, 60000);
+    window.addEventListener('focus', refreshStatus);
+    return () => { active = false; clearInterval(interval); window.removeEventListener('focus', refreshStatus); };
+  }, [orgId]);
+
+  useEffect(() => {
     if (!orgId || !selectedProviderId || !selectedServiceId || !selectedDate) {
       setAvailability(null);
       return;
@@ -245,8 +263,7 @@ export function OrganizationProfilePage() {
   const filteredBookingProviders = useMemo(() => {
     if (!selectedServiceId) return providers;
     return providers.filter(p => {
-      if (!p.services || !Array.isArray(p.services)) return true;
-      return p.services.some(s => s.id === selectedServiceId || s.service_id === selectedServiceId);
+      return p.service_charges?.some(s => s.service_id === selectedServiceId);
     });
   }, [providers, selectedServiceId]);
 
@@ -299,6 +316,7 @@ export function OrganizationProfilePage() {
   // Serial Booking Submit
   const handleBookSubmit = async (e) => {
     e.preventDefault();
+    if (!contact.valid) { setBookingError('Enter a customer name and a valid Bangladesh mobile number.'); return; }
     if (!orgId || !selectedProviderId || !selectedServiceId || !selectedDate) {
       setBookingError('Please select a service, professional, and date.');
       return;
@@ -318,10 +336,11 @@ export function OrganizationProfilePage() {
         service_id: selectedServiceId,
         appointment_date: selectedDate,
         notes,
+        ...contact.payload,
       });
       setBookedAppointment(result);
     } catch (err) {
-      const msg = err.response?.data?.detail || err.response?.data?.message || err.response?.data?.appointment_date || 'Failed to book appointment.';
+      const msg = getBookingError(err, 'Failed to book appointment.');
       setBookingError(typeof msg === 'object' ? JSON.stringify(msg) : msg);
     } finally {
       setSubmitting(false);
@@ -562,11 +581,12 @@ export function OrganizationProfilePage() {
               <div className="org-hours-summary">
                 <div className="org-hours-info">
                   <span className="org-hours-icon">🕒</span>
-                  <span className="org-hours-text">
-                    {org.today_hours?.text || 'Open today (Standard Hours)'}
+                  <span className="org-hours-text" style={{ color: org.current_status?.is_open_now === true ? 'var(--color-success)' : 'var(--color-text-secondary)' }}>
+                    {org.current_status?.status_label || 'Hours unavailable'}
+                    {org.current_status?.status_detail && <span style={{ display: 'block', fontWeight: 400 }}>{org.current_status.status_detail}</span>}
                   </span>
                 </div>
-                {org.operating_hours && org.operating_hours.length > 0 && (
+                {(
                   <button
                     type="button"
                     onClick={() => setShowHoursModal(true)}
@@ -623,8 +643,8 @@ export function OrganizationProfilePage() {
                         <div className="org-service-card-footer">
                           <div className="org-service-card-meta">
                             <span className="org-service-duration">⏱ ~{durationMins} min</span>
-                            {svc.price && (
-                              <span className="org-service-price">{formatCurrency(svc.price)}</span>
+                            {svc && (
+                              <span className="org-service-price">{startingPrice(svc)}</span>
                             )}
                           </div>
                           <button
@@ -676,6 +696,7 @@ export function OrganizationProfilePage() {
                   <div><strong>Serial Number:</strong> #{bookedAppointment.serial_number || bookedAppointment.queue_number || '1'}</div>
                   <div><strong>Date:</strong> {bookedAppointment.appointment_date || selectedDate}</div>
                   <div><strong>Status:</strong> {bookedAppointment.status || 'CONFIRMED'}</div>
+                  <BookingSummary organization={org} service={services.find(s => s.id === selectedServiceId)} provider={providers.find(p => p.id === selectedProviderId)} appointment={bookedAppointment} />
                   {bookedAppointment.estimated_service_time && (
                     <div><strong>Estimated Time:</strong> {new Date(bookedAppointment.estimated_service_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                   )}
@@ -721,7 +742,7 @@ export function OrganizationProfilePage() {
                       <option value="">Select a service ▾</option>
                       {services.map(s => (
                         <option key={s.id} value={s.id}>
-                          {s.name} ({s.duration_minutes || 30} min{s.price ? ` - ${formatCurrency(s.price)}` : ''})
+                          {s.name} ({s.duration_minutes || 30} min) — {startingPrice(s)}
                         </option>
                       ))}
                     </select>
@@ -741,11 +762,10 @@ export function OrganizationProfilePage() {
                         {!selectedServiceId ? 'Select a service first' : 'Select professional ▾'}
                       </option>
                       {filteredBookingProviders.map(p => {
-                        const u = p.membership?.user || {};
-                        const name = `${u.first_name || ''} ${u.last_name || ''}`.trim() || p.title || 'Professional';
+                        const { displayName: name, designation, showDesignation } = deriveProfessionalDisplay(p);
                         return (
                           <option key={p.id} value={p.id}>
-                            {name} {p.title ? `(${p.title})` : ''}
+                            {name} {showDesignation ? `(${designation})` : ''} — {formatCurrency(providerCharge(p, selectedServiceId)) || 'Price unavailable'}
                           </option>
                         );
                       })}
@@ -809,6 +829,8 @@ export function OrganizationProfilePage() {
                 )}
 
                 {/* Additional Notes */}
+                <BookingContactFields contact={contact} />
+                <BookingSummary organization={org} service={services.find(s => s.id === selectedServiceId)} provider={providers.find(p => p.id === selectedProviderId)} date={selectedDate} contact={contact} charge={providerCharge(providers.find(p => p.id === selectedProviderId), selectedServiceId)} notes={notes} />
                 <div className="org-form-group" style={{ marginTop: '1.25rem' }}>
                   <label className="org-form-label">
                     Additional Notes for Provider (Optional)
@@ -868,8 +890,8 @@ export function OrganizationProfilePage() {
 
               <h2 className="org-modal-title">{activeDetailService.name}</h2>
 
-              {activeDetailService.price && (
-                <div className="org-modal-price">{formatCurrency(activeDetailService.price)}</div>
+              {activeDetailService && (
+                <div className="org-modal-price">{startingPrice(activeDetailService)}</div>
               )}
 
               {/* Service Overview */}
@@ -957,8 +979,7 @@ export function OrganizationProfilePage() {
                   <div className="org-modal-prov-rows">
                     {providers
                       .filter(p => {
-                        if (!p.services || !Array.isArray(p.services)) return true;
-                        return p.services.some(s => s.id === activeDetailService.id || s.service_id === activeDetailService.id);
+                        return p.service_charges?.some(s => s.service_id === activeDetailService.id);
                       })
                       .map(p => {
                         const { displayName, designation, showDesignation } = deriveProfessionalDisplay(p, 'Professional');
@@ -968,6 +989,7 @@ export function OrganizationProfilePage() {
                               <span className="org-modal-prov-avatar">👤</span>
                               <div>
                                 <span className="org-modal-prov-name">{displayName}</span>
+                                <span className="org-modal-prov-exp">Service Charge: {formatCurrency(providerCharge(p, activeDetailService.id)) || 'Price unavailable'}</span>
                                 {showDesignation && <span className="org-modal-prov-desig">{designation}</span>}
                                 {p.experience_years > 0 && (
                                   <span className="org-modal-prov-exp">{p.experience_years} yrs exp</span>
@@ -992,7 +1014,7 @@ export function OrganizationProfilePage() {
                   type="button"
                   onClick={() => handleScheduleFromServiceDetail(activeDetailService)}
                   className="lp-btn-primary"
-                  style={{ width: '100%', padding: '0.9rem 1.25rem', fontSize: '0.95rem', fontWeight: 800 }}
+                  style={{ width: '100%', padding: '0.9rem 1.25rem', fontSize: '0.95rem', fontWeight: 800, whiteSpace: 'normal', display: 'block' }}
                 >
                   Schedule Appointment for this Service <span className="org-arrow">→</span>
                 </button>
@@ -1135,7 +1157,7 @@ export function OrganizationProfilePage() {
                   })
                 ) : (
                   <p style={{ fontSize: '0.85rem', color: 'var(--lp-muted)' }}>
-                    Standard operating hours: Sunday to Thursday, 9:00 AM – 8:00 PM.
+                    Operating hours are unavailable. Contact the organization for details.
                   </p>
                 )}
               </div>

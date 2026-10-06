@@ -1873,6 +1873,7 @@
 }
 
 .org-service-card-footer {
+  flex-wrap: wrap;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1882,6 +1883,7 @@
 }
 
 .org-service-card-meta {
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -1894,6 +1896,7 @@
 }
 
 .org-service-price {
+  white-space: nowrap;
   color: var(--lp-text);
   font-weight: 800;
 }
@@ -2648,6 +2651,7 @@
 }
 
 .org-modal-prov-row {
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3283,10 +3287,12 @@ a:hover > .org-arrow {
 
 /* Provider row in service modal: avatar + info + link */
 .org-modal-prov-info {
+  min-width: 0;
+  overflow-wrap: anywhere;
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  flex: 1;
+  flex: 1 1 180px;
 }
 
 .org-modal-prov-avatar {

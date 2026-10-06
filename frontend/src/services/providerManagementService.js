@@ -1,6 +1,10 @@
 import apiClient from '../api/client';
 
 export const providerManagementService = {
+  async updateServiceCharge(orgId, providerId, assignmentId, customPrice) {
+    const response = await apiClient.patch(`/organizations/${orgId}/providers/${providerId}/services/${assignmentId}/`, { custom_price: customPrice });
+    return response.data;
+  },
   /**
    * Get provider profile detail.
    */
@@ -191,4 +195,3 @@ export const providerManagementService = {
 };
 
 export default providerManagementService;
-

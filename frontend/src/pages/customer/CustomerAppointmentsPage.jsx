@@ -397,6 +397,9 @@ export function CustomerAppointmentsPage() {
                   <h3 style={{ margin: '0.2rem 0 0.35rem 0', fontSize: '1.2rem', color: 'var(--lp-text)', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
                     {appt.service_name || 'Service Consultation'}
                   </h3>
+                  {appt.contact_name && <div>Customer: {appt.contact_name}</div>}
+                  {appt.contact_phone && <div>Phone: {appt.contact_phone}</div>}
+                  {appt.booked_service_charge != null && <div>Service Charge: ৳{Number(appt.booked_service_charge).toLocaleString('en-US', { maximumFractionDigits: 2 })}</div>}
                   <div style={{ fontSize: '0.875rem', color: 'var(--lp-text-subtle)', marginBottom: '0.5rem' }}>
                     Specialist: <strong style={{ color: 'var(--lp-text)' }}>{appt.provider_name || appt.provider_title || 'Assigned Specialist'}</strong>
                   </div>

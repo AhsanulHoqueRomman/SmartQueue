@@ -7,6 +7,23 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { LoadingState } from '../../components/LoadingState';
 import { EmptyState } from '../../components/EmptyState';
 import { useToast } from '../../contexts/ToastContext';
+import { formatCurrency, bookingError } from '../../utils/bookingDisplay';
+
+function AssignedChargeEditor({ assignment, basePrice, onSave }) {
+  const [value, setValue] = useState(assignment.custom_price ?? '');
+  const [saving, setSaving] = useState(false);
+  return <form onSubmit={async e => { e.preventDefault(); setSaving(true); try { await onSave(value === '' ? null : value); } finally { setSaving(false); } }} style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--color-border-subtle)' }}>
+    <strong>{assignment.service_name}</strong>
+    <p>Default: {formatCurrency(basePrice)} · Current Service Charge: {formatCurrency(assignment.effective_customer_charge)}</p>
+    <label className="form-label">Customer Service Charge
+      <input className="form-control" type="number" min="0" step="0.01" value={value} onChange={e => setValue(e.target.value)} placeholder="Use service default" />
+    </label>
+    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+      <button type="button" className="btn btn-sm btn-secondary" onClick={() => setValue('')} disabled={saving}>Clear Override</button>
+      <button className="btn btn-sm btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Charge'}</button>
+    </div>
+  </form>;
+}
 
 export function ManagerProvidersPage() {
   const { currentOrg } = useTenant();
@@ -35,6 +52,8 @@ export function ManagerProvidersPage() {
   // Assign Service Modal State
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState(null);
+  const [assignedCharges, setAssignedCharges] = useState([]);
+  const [loadingCharges, setLoadingCharges] = useState(false);
   const [assignForm, setAssignForm] = useState({
     service_id: '',
     custom_duration_minutes: '',
@@ -62,6 +81,27 @@ export function ManagerProvidersPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    if (!assignModalOpen || !selectedProvider || !currentOrg?.id) return;
+    let active = true;
+    setLoadingCharges(true);
+    setAssignedCharges([]);
+    providerManagementService.getProviderServices(currentOrg.id, selectedProvider.id)
+      .then(data => { if (active) setAssignedCharges(Array.isArray(data) ? data : data.results || []); })
+      .catch(err => { if (active) showError(bookingError(err)); })
+      .finally(() => { if (active) setLoadingCharges(false); });
+    return () => { active = false; };
+  }, [assignModalOpen, selectedProvider, currentOrg?.id, showError]);
+
+  const saveCharge = async (assignment, price) => {
+    try {
+      const updated = await providerManagementService.updateServiceCharge(currentOrg.id, selectedProvider.id, assignment.id, price);
+      setAssignedCharges(rows => rows.map(row => row.id === updated.id ? updated : row));
+      showSuccess('Customer service charge saved.');
+      fetchData();
+    } catch (err) { showError(bookingError(err)); }
   };
 
   useEffect(() => {
@@ -146,7 +186,7 @@ export function ManagerProvidersPage() {
       payload.custom_duration_minutes = parseInt(assignForm.custom_duration_minutes, 10);
     }
     if (assignForm.custom_price) {
-      payload.custom_price = parseFloat(assignForm.custom_price);
+      payload.custom_price = assignForm.custom_price;
     }
 
     try {
@@ -155,7 +195,7 @@ export function ManagerProvidersPage() {
       setAssignModalOpen(false);
       fetchData();
     } catch (err) {
-      showError(err.response?.data?.detail || 'Failed to assign service.');
+      showError(bookingError(err, 'Failed to assign service.'));
     }
   };
 
@@ -203,7 +243,7 @@ export function ManagerProvidersPage() {
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid #E6E1D9', paddingBottom: '0.5rem' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid #E6E1D9', paddingBottom: '0.5rem' }}>
         <button
           onClick={() => setActiveTab('active')}
           style={{
@@ -306,10 +346,11 @@ export function ManagerProvidersPage() {
                                 className="btn btn-sm btn-secondary"
                                 onClick={() => {
                                   setSelectedProvider(prov);
+                                  setAssignForm({ service_id: '', custom_duration_minutes: '', custom_price: '' });
                                   setAssignModalOpen(true);
                                 }}
                               >
-                                + Assign Service
+                                Services & Charges
                               </button>
                               <button className="btn btn-sm btn-danger" onClick={() => handleDeleteProfile(prov.id)}>
                                 Delete Profile
@@ -563,8 +604,12 @@ export function ManagerProvidersPage() {
         <div className="modal-backdrop" onClick={() => setAssignModalOpen(false)}>
           <div className="modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Assign Service to {selectedProvider.user_first_name}</h3>
+              <h3>Services & Charges — {selectedProvider.user_first_name}</h3>
               <button className="modal-close-btn" onClick={() => setAssignModalOpen(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <p>Leaving or clearing an override uses the service's default charge. Save to apply changes.</p>
+              {loadingCharges ? <LoadingState message="Loading assigned services..." /> : assignedCharges.map(assignment => <AssignedChargeEditor key={assignment.id} assignment={assignment} basePrice={services.find(s => s.id === assignment.service_id)?.price} onSave={price => saveCharge(assignment, price)} />)}
             </div>
             <form onSubmit={handleAssignService}>
               <div className="modal-body flex flex-col gap-md">
@@ -577,13 +622,16 @@ export function ManagerProvidersPage() {
                     required
                   >
                     <option value="">-- Select Service --</option>
-                    {services.map((svc) => (
+                      {services.filter(svc => !assignedCharges.some(assignment => assignment.service_id === svc.id)).map((svc) => (
                       <option key={svc.id} value={svc.id}>
                         {svc.name} ({svc.duration_minutes} min)
                       </option>
                     ))}
                   </select>
                 </div>
+                <label className="form-label">Customer Service Charge (optional)
+                  <input className="form-control" type="number" min="0" step="0.01" value={assignForm.custom_price} onChange={e => setAssignForm({ ...assignForm, custom_price: e.target.value })} placeholder="Use service default" />
+                </label>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setAssignModalOpen(false)}>

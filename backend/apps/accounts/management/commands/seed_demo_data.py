@@ -1,6 +1,7 @@
 import random
 from datetime import date, datetime, time, timedelta
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
+from django.db.models.deletion import Collector, ProtectedError
 from django.db import transaction
 from django.utils import timezone
 
@@ -28,7 +29,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--reset',
             action='store_true',
-            help='Clean existing development data before seeding',
+            help='Remove and rebuild only the deterministic SmartQueue demo dataset',
         )
 
     def handle(self, *args, **options):
@@ -54,7 +55,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  - Notifications:  {Notification.objects.count()}")
         self.stdout.write(f"  - Audit Logs:     {AuditLog.objects.count()}")
 
-        self.stdout.write(self.style.SUCCESS("\n--- DEMO LOGIN ACCOUNTS (Password: password123) ---"))
+        self.stdout.write(self.style.SUCCESS("\n--- DEMO LOGIN ACCOUNTS (New accounts: password123; retained accounts keep their passwords) ---"))
         self.stdout.write("  - Admin / Superuser: admin@example.com")
         self.stdout.write("  - Manager:           manager.demo@example.com (Dhaka Care Clinic)")
         self.stdout.write("  - Provider:          provider.demo@example.com (Dr. Tanvir Ahmed)")
@@ -62,24 +63,61 @@ class Command(BaseCommand):
         self.stdout.write("  - Customer:          customer.demo@example.com (Sadia Rahman)")
         self.stdout.write(self.style.SUCCESS("=" * 65 + "\n"))
 
+    @transaction.atomic
     def clean_demo_data(self):
-        self.stdout.write("Cleaning existing development records...")
-        AuditLog.objects.all().delete()
-        Notification.objects.all().delete()
-        Review.objects.all().delete()
-        QueueEntry.objects.all().delete()
-        Appointment.objects.all().delete()
-        ProviderLeave.objects.all().delete()
-        ScheduleBreak.objects.all().delete()
-        WeeklySchedule.objects.all().delete()
-        ProviderService.objects.all().delete()
-        ProviderProfile.objects.all().delete()
-        Service.objects.all().delete()
-        Category.objects.all().delete()
-        OrganizationMembership.objects.all().delete()
-        Organization.objects.all().delete()
-        User.objects.all().delete()
-        self.stdout.write(self.style.WARNING("Existing demo data cleaned successfully."))
+        """Exact seed identities are reserved demo roots, never namespace patterns.
+
+        Keep a seed user if any relationship remains after demo roots are removed.
+        This includes non-demo memberships/bookings and standalone audit history.
+        """
+        accounts, customers, definitions = self.demo_definitions()
+        slugs = [definition['slug'] for definition in definitions]
+        emails = {account[0] for account in accounts}
+        emails.update(customer[2] for customer in customers)
+        for definition in definitions:
+            identities = [definition['manager'], *definition['staff']]
+            identities.extend(provider['user'] for provider in definition['providers_data'])
+            emails.update(identity[2] for identity in identities)
+        org_ids = list(Organization.objects.filter(slug__in=slugs).values_list('pk', flat=True))
+
+        def delete_owned(queryset):
+            # Inspect the actual cascade before mutation. Mixed tenant references
+            # must fail closed rather than delete a record owned by another org.
+            collector = Collector(using=queryset.db)
+            try:
+                collector.collect(queryset)
+            except ProtectedError as error:
+                raise CommandError('Demo reset blocked by protected cross-dataset references.') from error
+            collected = [(model, model.objects.filter(pk__in=[obj.pk for obj in objects]))
+                         for model, objects in collector.data.items()]
+            collected.extend((query.model, query) for query in collector.fast_deletes)
+            for model, query in collected:
+                fields = {field.name for field in model._meta.fields}
+                if 'organization' in fields and query.exclude(organization_id__in=org_ids).exists():
+                    raise CommandError('Demo reset blocked: cascade would remove non-demo organization data.')
+                if model is ProviderService and query.exclude(service__organization_id__in=org_ids).exists():
+                    raise CommandError('Demo reset blocked: provider assignment references a non-demo service.')
+            queryset.delete()
+
+        self.stdout.write('Cleaning recognized SmartQueue demo roots...')
+        # PROTECT requires appointments before services, and services before
+        # categories. Remaining organization-owned records cascade from roots.
+        delete_owned(Appointment.objects.filter(organization_id__in=org_ids))
+        delete_owned(Service.objects.filter(organization_id__in=org_ids))
+        delete_owned(Organization.objects.filter(pk__in=org_ids))
+        retained = 0
+        for user in User.objects.filter(email__in=emails):
+            related = any(
+                relation.related_model._base_manager.filter(**{relation.field.name: user.pk}).exists()
+                for relation in User._meta.related_objects
+            )
+            if related:
+                retained += 1
+            else:
+                user.delete()
+        self.stdout.write(self.style.SUCCESS(
+            f'Demo roots cleaned; retained {retained} demo identities with remaining relationships.'
+        ))
 
     def _get_or_create_user(self, email, password, first_name, last_name, phone_number, is_superuser=False):
         user, created = User.objects.get_or_create(
@@ -93,18 +131,24 @@ class Command(BaseCommand):
                 'is_superuser': is_superuser,
             }
         )
-        if created or not user.check_password(password):
+        if created:
             user.set_password(password)
             user.save()
         return user
 
-    def seed_all(self):
-        # 1. Create Core Superuser & Demo Accounts
-        admin_user = self._get_or_create_user('admin@example.com', 'password123', 'System', 'Admin', '+8801700000000', is_superuser=True)
-        manager_demo = self._get_or_create_user('manager.demo@example.com', 'password123', 'Ahsanul', 'Hoque', '+8801711112222')
-        provider_demo_user = self._get_or_create_user('provider.demo@example.com', 'password123', 'Dr. Tanvir', 'Ahmed', '+8801722223333')
-        staff_demo_user = self._get_or_create_user('staff.demo@example.com', 'password123', 'Nusrat', 'Jahan', '+8801733334444')
-        customer_demo_user = self._get_or_create_user('customer.demo@example.com', 'password123', 'Sadia', 'Rahman', '+8801744445555')
+    @staticmethod
+    def demo_definitions():
+        # Shared source for creation and the exact reset allowlists.
+        accounts = [
+            ('admin@example.com', 'password123', 'System', 'Admin', '+8801700000000', True),
+            ('manager.demo@example.com', 'password123', 'Ahsanul', 'Hoque', '+8801711112222', False),
+            ('provider.demo@example.com', 'password123', 'Dr. Tanvir', 'Ahmed', '+8801722223333', False),
+            ('staff.demo@example.com', 'password123', 'Nusrat', 'Jahan', '+8801733334444', False),
+            ('customer.demo@example.com', 'password123', 'Sadia', 'Rahman', '+8801744445555', False),
+        ]
+        manager_demo = ('Ahsanul', 'Hoque', accounts[1][0])
+        provider_demo_user = ('Dr. Tanvir', 'Ahmed', accounts[2][0])
+        staff_demo_user = ('Nusrat', 'Jahan', accounts[3][0])
 
         # 2. Customer Pool
         bangla_customers_data = [
@@ -129,11 +173,6 @@ class Command(BaseCommand):
             ('Subrata', 'Chowdhury', 'subrata.chowdhury@example.com'),
             ('Tahmidur', 'Rahman', 'tahmidur.rahman@example.com'),
         ]
-
-        customers = [customer_demo_user]
-        for fn, ln, em in bangla_customers_data:
-            u = self._get_or_create_user(em, 'password123', fn, ln, f"+88018{random.randint(10000000, 99999999)}")
-            customers.append(u)
 
         # 3. Multi-Industry Organizations Definition (All 6 Industries Represented)
         orgs_definition = [
@@ -491,6 +530,19 @@ class Command(BaseCommand):
                 ]
             },
         ]
+
+        return accounts, bangla_customers_data, orgs_definition
+
+    def seed_all(self):
+        accounts, bangla_customers_data, orgs_definition = self.demo_definitions()
+        admin_user, manager_demo, provider_demo_user, staff_demo_user, customer_demo_user = [
+            self._get_or_create_user(*account) for account in accounts
+        ]
+        customers = [customer_demo_user]
+        for fn, ln, em in bangla_customers_data:
+            customers.append(self._get_or_create_user(
+                em, 'password123', fn, ln, f"+88018{random.randint(10000000, 99999999)}"
+            ))
 
         org_instances = []
         category_instances = []

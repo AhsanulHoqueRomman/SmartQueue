@@ -11,6 +11,7 @@ import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import ReportIssueModal from '../../components/ReportIssueModal';
 import { getNormalizedCustomerQueueState } from '../../utils/queueDisplay';
+import { BookingSummary } from '../../components/BookingContact';
 
 export function CustomerAppointmentDetailPage() {
   const { id } = useParams();
@@ -412,6 +413,7 @@ export function CustomerAppointmentDetailPage() {
         </div>
 
         {/* Additional Notes section */}
+        <BookingSummary appointment={appointment} organization={{ name: appointment.organization_name }} />
         {appointment.notes && (
           <div style={{ borderBottom: '1px solid var(--lp-border)', paddingBottom: '1.5rem' }}>
             <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.5rem 0' }}>
