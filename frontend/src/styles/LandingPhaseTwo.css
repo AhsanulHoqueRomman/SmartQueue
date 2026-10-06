@@ -1,5 +1,9 @@
 /* Phase 2 is scoped to discovery sections and the public professional directory. */
 .phase-two-section { width: 100%; max-width: 1240px; min-width: 0; margin: 48px auto; text-align: left; }
+/* Trim only the empty section boundary; hero content and artwork stay in place. */
+@media (min-width: 1101px) { .lp-product-hero:has(+ .lp-discovery-content) { min-height: 760px; } }
+.phase-two-section.category-discovery { margin-top: 40px; }
+@media (max-width: 1100px) { .phase-two-section.category-discovery { margin-top: 20px; } }
 .phase-two-section h2 { font-size: clamp(1.7rem, 3vw, 2.2rem); line-height: 1.2; margin: 10px 0 16px; color: var(--lp-text); }
 .discovery-eyebrow { color: var(--lp-sage); font-size: .72rem; letter-spacing: .08em; font-weight: 700; text-transform: uppercase; }
 .discovery-intro { color: var(--lp-text-sec); line-height: 1.7; font-size: .95rem; max-width: 640px; margin: 0 0 28px; }
@@ -11,11 +15,11 @@
 .discovery-rail-track { display: flex; width: max-content; }
 .discovery-rail-group { display: flex; gap: 20px; padding-right: 20px; }
 .discovery-category { flex: 0 0 224px; width: 224px; min-height: 178px; padding: 24px; display: flex; flex-direction: column; align-items: flex-start; border: 1px solid var(--lp-border); background: var(--lp-surface); border-radius: 16px; text-decoration: none; color: var(--lp-text); }
-.discovery-category-icon { display: grid; place-items: center; width: 48px; height: 48px; font-size: 2rem; line-height: 1; background: var(--lp-sage-bg); color: var(--lp-sage); border-radius: 12px; margin-bottom: 16px; }
+.discovery-category-icon { display: grid; place-items: center; width: 56px; height: 56px; background: var(--lp-sage-bg); border: 1px solid var(--lp-border-med); color: var(--lp-sage); border-radius: 14px; margin-bottom: 16px; }
+.discovery-category-icon svg { width: 32px; height: 32px; }
 .discovery-category h3 { font-size: 1rem; margin: 0 0 8px; line-height: 1.4; }
 .discovery-category > span:last-child { color: var(--lp-muted); font-size: .78rem; margin-top: auto; }
 .discovery-category:hover, .discovery-org-card:hover { border-color: var(--lp-sage); }
-.discovery-motion { grid-column: 2; justify-self: end; border: none; background: transparent; color: var(--lp-muted); font-size: .75rem; padding: 6px 0; cursor: pointer; }
 .discovery-org-card { flex: 0 0 340px; width: 340px; border: 1px solid var(--lp-border); border-radius: 20px; overflow: hidden; background: var(--lp-surface); }
 .discovery-org-art { width: 100%; height: 174px; display: block; object-fit: cover; }
 .discovery-org-body { padding: 24px; display: flex; flex-direction: column; min-height: 280px; }
@@ -30,8 +34,13 @@
 .customer-home-card { padding: 28px; border: 1px solid var(--lp-border); border-radius: 20px; background: var(--lp-surface); display: flex; flex-direction: column; align-items: flex-start; }
 .customer-home-card h3 { margin: 14px 0 8px; color: var(--lp-text); font-size: 1.25rem; }
 .customer-home-card p { color: var(--lp-text-sec); font-size: .9rem; line-height: 1.6; margin: 0 0 8px; }
-.customer-booking-facts { display: flex; flex-wrap: wrap; gap: 12px 20px; font-size: .85rem; color: var(--lp-text); padding: 20px 0; }
-.customer-home-card > a { margin-top: auto; }
+.customer-booking-facts { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 18px 20px; width: 100%; font-size: .9rem; color: var(--lp-text); padding: 20px 0; margin: 4px 0 0; border-top: 1px solid var(--lp-border); }
+.customer-booking-facts dt { color: var(--lp-muted); font-size: .75rem; margin-bottom: 7px; }
+.customer-booking-facts dd { margin: 0; font-weight: 600; line-height: 1.5; }
+.customer-booking-status { display: inline-block; font-size: .75rem; padding: 3px 9px; color: var(--lp-sage); background: var(--lp-sage-bg); border: 1px solid var(--lp-border); border-radius: 20px; }
+.customer-home-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; width: 100%; border-top: 1px solid var(--lp-border); padding-top: 18px; margin-top: 4px; }
+.customer-more-bookings { font-size: .8rem; color: var(--lp-sage); line-height: 1.5; text-decoration: none; }
+.customer-more-bookings:hover { text-decoration: underline; }
 .customer-queue-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; width: 100%; padding: 16px 0; }
 .customer-queue-facts div { display: flex; flex-direction: column; gap: 8px; }
 .customer-queue-facts span { font-size: .75rem; color: var(--lp-muted); }
@@ -67,6 +76,7 @@
 @media (max-width: 1000px) { .professionals-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .professional-filters { grid-template-columns: 1fr 1fr; } .professional-filters label:first-child { grid-column: 1 / -1; } }
 @media (max-width: 600px) {
   .phase-two-section { margin: 32px auto; }
+  .phase-two-section.category-discovery { margin-top: 8px; }
   .discovery-rail { grid-template-columns: 28px minmax(0, 1fr) 28px; gap: 6px; }
   .discovery-arrow { width: 28px; height: 32px; }
   .discovery-category { width: 224px; flex-basis: 224px; }

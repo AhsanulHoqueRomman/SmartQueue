@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import appointmentService from '../services/appointmentService';
 import getNormalizedCustomerQueueState from '../utils/queueDisplay';
 import { formatCurrency } from '../utils/bookingDisplay';
+import { formatBookingDate, getUpcomingBookings } from '../utils/homeBookingDisplay';
 
 export default function CustomerHomeSection({ user }) {
   const [items, setItems] = useState([]);
@@ -26,7 +27,9 @@ export default function CustomerHomeSection({ user }) {
     return () => { current = false; clearInterval(timer); window.removeEventListener('focus', load); };
   }, [user.id]);
   const active = items.filter(item => !getNormalizedCustomerQueueState(item).isTerminal).sort((a, b) => String(a.appointment_date).localeCompare(String(b.appointment_date)) || (a.serial_number ?? 0) - (b.serial_number ?? 0));
-  const booking = active.find(item => ['today', 'future'].includes(item.temporal_classification));
+  const upcoming = getUpcomingBookings(items);
+  const booking = upcoming[0];
+  const additionalCount = Math.max(0, upcoming.length - 1);
   const live = active.find(item => item.is_live_queue && item.queue_entry);
   const queue = live ? getNormalizedCustomerQueueState(live) : null;
   return <section className="phase-two-section customer-home" aria-labelledby="customer-home-heading">
@@ -34,8 +37,15 @@ export default function CustomerHomeSection({ user }) {
     {loading ? <p role="status">Loading your bookings…</p> : error ? <p role="status">Your booking status is temporarily unavailable. <Link to="/customer/appointments">Open My Appointments</Link></p> : <div className="customer-home-grid">
       <article className="customer-home-card"><span className="discovery-eyebrow">Upcoming Booking</span>
         {booking ? <><h3>{booking.service_name}</h3><p>{booking.organization_name}</p><p>{booking.provider_name}</p>
-          <div className="customer-booking-facts"><strong>{booking.appointment_date}</strong>{booking.serial_number != null && <span>Serial #{booking.serial_number}</span>}{booking.booked_service_charge != null && <span>Service Charge {formatCurrency(booking.booked_service_charge)}</span>}</div>
-          <Link className="lp-btn-outline" to={`/customer/appointments/${booking.id}`}>View Appointment</Link></>
+          <dl className="customer-booking-facts">
+            <div><dt>Appointment date</dt><dd>{formatBookingDate(booking.appointment_date)}</dd></div>
+            {booking.serial_number != null && <div><dt>Your serial</dt><dd>#{booking.serial_number}</dd></div>}
+            {booking.booked_service_charge != null && <div><dt>Service Charge</dt><dd>{formatCurrency(booking.booked_service_charge)}</dd></div>}
+            <div><dt>Booking status</dt><dd><span className="customer-booking-status">{getNormalizedCustomerQueueState(booking).displayStatus}</span></dd></div>
+          </dl>
+          <div className="customer-home-actions"><Link className="lp-btn-outline" to={`/customer/appointments/${booking.id}`}>View Appointment</Link>
+            {additionalCount > 0 && <Link className="customer-more-bookings" to="/customer/appointments">View {additionalCount} more upcoming →</Link>}
+          </div></>
           : <><h3>Your next visit starts here.</h3><p>No upcoming booking yet. Explore a service and reserve your serial when you’re ready.</p><Link className="lp-btn-outline" to="/customer/book">Find an Appointment</Link></>}
       </article>
       <article className="customer-home-card"><span className="discovery-eyebrow">Live Queue Status</span>
