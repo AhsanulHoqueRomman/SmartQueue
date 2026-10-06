@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import './HeroProductStory.css';
 
-const STAGES = ['Discover', 'Serial Assigned', 'Live Queue'];
+const QUEUE_PATHS = [
+  'M30 168V78Q30 24 88 24H486Q578 24 578 118V480Q578 578 498 578H144Q22 578 22 460V338',
+  'M8 282Q8 196 76 196H452Q548 196 548 280V432Q548 524 454 524H74',
+];
 
 function OrganizationImage() {
   return <svg className="hero-org-image" viewBox="0 0 280 140" role="img" aria-label="Illustration of fictional Dhaka Care Clinic in Dhanmondi">
@@ -23,47 +26,48 @@ function OrganizationImage() {
 
 export default function HeroProductStory() {
   const root = useRef(null);
-  const [stage, setStage] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const [entered, setEntered] = useState(false);
+  const [inView, setInView] = useState(false);
   const [documentVisible, setDocumentVisible] = useState(() => !document.hidden);
   useEffect(() => {
-    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const onPreference = () => setReducedMotion(preference.matches);
     const onVisibility = () => setDocumentVisible(!document.hidden);
-    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { threshold: .2 });
+    const observer = new IntersectionObserver(([entry]) => {
+      setInView(entry.isIntersecting);
+      if (entry.isIntersecting) setEntered(true);
+    }, { threshold: .15 });
     observer.observe(root.current);
-    preference.addEventListener('change', onPreference);
     document.addEventListener('visibilitychange', onVisibility);
-    return () => { observer.disconnect(); preference.removeEventListener('change', onPreference); document.removeEventListener('visibilitychange', onVisibility); };
+    return () => { observer.disconnect(); document.removeEventListener('visibilitychange', onVisibility); };
   }, []);
-  useEffect(() => {
-    if (paused || reducedMotion || !visible || !documentVisible) return;
-    const timer = window.setInterval(() => setStage(old => (old + 1) % STAGES.length), 4800);
-    return () => window.clearInterval(timer);
-  }, [paused, reducedMotion, visible, documentVisible]);
 
-  return <div className={`hero-product-story ${reducedMotion ? 'is-reduced-motion' : ''}`} ref={root} aria-label="Illustrative SmartQueue product walkthrough">
-    <div className="hero-story-canvas" data-stage={stage}>
-      <svg className="hero-queue-path" viewBox="0 0 560 600" aria-hidden="true"><rect x="85" y="56" width="420" height="470" rx="80" fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="4 9" /></svg>
-      <div className={`hero-phone ${stage === 0 ? 'is-highlighted' : ''}`}>
+  return <div className={`hero-product-story ${entered ? 'has-entered' : ''} ${!documentVisible || !inView ? 'is-motion-paused' : ''}`} ref={root} aria-label="Illustrative SmartQueue product walkthrough">
+    <div className="hero-story-canvas">
+      <svg className="hero-queue-path" viewBox="0 0 600 600" preserveAspectRatio="none" aria-hidden="true">
+        <g fill="none" stroke="currentColor" strokeWidth="1.2">
+          {QUEUE_PATHS.map(path => <path key={path} className="hero-network-line" d={path} strokeDasharray="3 8" />)}
+          <path d="M420 70Q496 70 496 140M22 338H54M486 24V60" />
+        </g>
+        <g className="hero-network-nodes" fill="currentColor">
+          <circle cx="88" cy="24" r="3" /><circle cx="486" cy="24" r="4" /><circle cx="578" cy="118" r="3" /><circle cx="498" cy="578" r="4" /><circle cx="22" cy="460" r="4" /><circle cx="454" cy="524" r="3" />
+        </g>
+        <g className="hero-network-active" fill="currentColor"><circle cx="496" cy="140" r="3" /><circle cx="22" cy="338" r="3" /><circle cx="144" cy="578" r="3" /></g>
+        <g fill="currentColor" className="hero-network-tracers">
+          {[QUEUE_PATHS[0], QUEUE_PATHS[1], QUEUE_PATHS[0]].map((path, index) => <circle key={index} className="hero-network-tracer" r="3" style={{ offsetPath: `path('${path}')` }} />)}
+        </g>
+      </svg>
+      <div className="hero-phone">
         <div className="hero-phone-speaker" aria-hidden="true" />
         <div className="hero-phone-brand"><span className="hero-mini-mark">S</span><strong>SmartQueue</strong><span>9:41</span></div>
         <div className="hero-phone-top"><small>YOUR NEXT VISIT, SIMPLIFIED</small><h2>Discover your next visit.</h2></div>
         <div className="hero-phone-screen">
           <div className="hero-demo-search">⌕ <span>Organizations in Dhaka</span></div>
           <div className="hero-demo-org"><div className="hero-org-illustration"><OrganizationImage /></div><small>HEALTHCARE · DHANMONDI</small><h3>Dhaka Care Clinic</h3><p>★ 4.6 <span>· 14 reviews</span></p><div className="hero-org-stats"><span><strong>7</strong> professionals</span><span><strong>4</strong> services</span></div><span className="hero-demo-action">Book Appointment <span aria-hidden="true">↗</span></span></div>
-          <div className="hero-device-progress" key={stage}><span aria-hidden="true">{stage === 0 ? '⌕' : stage === 1 ? '✓' : '≋'}</span><div><strong>{stage === 0 ? 'Choose a service & professional' : stage === 1 ? 'Your serial is reserved' : 'Know when to arrive'}</strong><small>{stage === 0 ? 'Find the right fit for your visit.' : stage === 1 ? 'Serial #24 · 18 October' : 'Get Ready · Follow your live estimate.'}</small></div></div>
+          <p className="hero-illustrative-note">Illustrative visit · Live estimates, not fixed start times.</p>
         </div>
         <div className="hero-phone-home" aria-hidden="true" />
       </div>
-      <div className={`hero-support-card hero-support-serial ${stage === 1 ? 'is-highlighted' : ''}`}><div className="hero-support-heading"><span className="hero-support-icon" aria-hidden="true">✓</span><small>SERIAL ASSIGNED</small></div><div className="hero-assigned-number"><strong>#24</strong><span>You're in the queue</span></div><div className="hero-support-context"><span>18 October · Dhaka Care Clinic</span><strong>11:30 AM – 12:00 PM</strong><small>Estimated service window</small></div></div>
-      <div className={`hero-support-card hero-support-live ${stage === 2 ? 'is-highlighted' : ''}`}><div className="hero-support-heading"><span className="hero-support-icon" aria-hidden="true">≋</span><small>LIVE QUEUE</small><span className="hero-queue-ready">Get Ready</span></div><div className="hero-support-serials"><div><small>Now Serving</small><strong>21</strong></div><div><small>Your Serial</small><strong>24</strong></div></div><p className="hero-support-ahead"><strong>2</strong> people ahead <span>Live estimate updates</span></p></div>
+      <div className="hero-support-card hero-support-serial"><div className="hero-support-heading"><span className="hero-support-icon" aria-hidden="true">✓</span><small>SERIAL ASSIGNED</small></div><div className="hero-assigned-number"><strong>#24</strong><span>You're in the queue</span></div><div className="hero-support-context"><span>18 October · Dhaka Care Clinic</span><strong>11:30 AM – 12:00 PM</strong><small>Estimated service window</small></div></div>
+      <div className="hero-support-card hero-support-live"><div className="hero-support-heading"><span className="hero-support-icon" aria-hidden="true">≋</span><small>LIVE QUEUE</small><span className="hero-queue-ready">Get Ready</span></div><div className="hero-support-serials"><div><small>Now Serving</small><strong>21</strong></div><div><small>Your Serial</small><strong>24</strong></div></div><p className="hero-support-ahead"><strong>2</strong> people ahead <span>Live estimate updates</span></p></div>
     </div>
-    <div className="hero-story-stages" role="group" aria-label="Product preview stages">{STAGES.map((label, index) => <button key={label} type="button" aria-pressed={stage === index} onClick={() => { setStage(index); setPaused(true); }}><span>{index + 1}</span>{label}</button>)}
-      {!reducedMotion && <button type="button" className="hero-story-motion" onClick={() => setPaused(old => !old)} aria-label={paused ? 'Play product preview' : 'Pause product preview'} title={paused ? 'Play animation' : 'Pause animation'}><svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true" fill="currentColor">{paused ? <path d="m6 3 11 7-11 7z" /> : <path d="M5 3h3v14H5zm7 0h3v14h-3z" />}</svg></button>}
-    </div>
-    <p className="hero-story-disclaimer">Illustrative visit. Service windows are estimates, not fixed start times.</p>
   </div>;
 }

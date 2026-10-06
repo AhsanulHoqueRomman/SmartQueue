@@ -9,8 +9,8 @@
 .lp-public-menu-button { display: none; place-items: center; width: 36px; height: 36px; border: 1px solid var(--lp-border); border-radius: 8px; color: var(--lp-text); background: var(--lp-surface); cursor: pointer; }
 .lp-phase-one-nav a:focus-visible, .lp-phase-one-nav button:focus-visible { outline: 2px solid var(--lp-sage); outline-offset: 3px; }
 .lp-product-hero { background: var(--lp-bg); padding: 112px 2rem 72px; min-height: 820px; display: flex; align-items: flex-start; }
-.lp-product-hero-inner { max-width: 1240px; width: 100%; margin: auto; display: grid; grid-template-columns: 1.05fr 1fr; gap: 64px; align-items: start; }
-.lp-product-hero-copy { min-width: 0; }
+.lp-product-hero-inner { max-width: 1240px; width: 100%; margin: 0 auto; display: grid; grid-template-columns: 1.05fr 1fr; gap: 64px; align-items: stretch; }
+.lp-product-hero-copy { min-width: 0; display: flex; flex-direction: column; }
 .lp-product-eyebrow { font-size: .7rem; letter-spacing: .14em; color: var(--lp-muted); font-weight: 600; display: flex; align-items: center; gap: .6rem; margin-bottom: 24px; }
 .lp-product-eyebrow > span { width: 22px; height: 2px; background: var(--lp-sage); }
 .lp-product-hero h1 { color: var(--lp-text); font-size: clamp(3rem, 4.5vw, 4.75rem); line-height: 1.06; letter-spacing: -.055em; margin: 0 0 28px; font-weight: 800; }
@@ -24,7 +24,7 @@
 .lp-product-search input::placeholder { color: var(--lp-muted); }
 .lp-product-search button { padding: .75rem 1rem; }
 .lp-product-actions { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 20px; }
-.lp-product-footnote { margin-top: 24px; color: var(--lp-muted); font-size: .75rem; line-height: 1.5; }
+.lp-product-footnote { margin-top: auto; padding-top: 24px; color: var(--lp-muted); font-size: .75rem; line-height: 1.5; }
 .lp-product-footnote > span { color: var(--lp-sage); margin-right: .3rem; }
 .lp-discovery-content { display: flex; flex-direction: column; align-items: center; padding: 0 1.5rem 80px; background: var(--lp-bg); text-align: center; }
 #how-it-works, #why-smartqueue { scroll-margin-top: 85px; }
