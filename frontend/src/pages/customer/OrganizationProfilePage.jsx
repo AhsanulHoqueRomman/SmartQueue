@@ -665,18 +665,20 @@ export function OrganizationProfilePage() {
 
                         <div className="org-service-card-footer">
                           <div className="org-service-card-meta">
-                            <span className="org-service-duration">⏱ ~{durationMins} min</span>
-                            {svc && (
-                              <span className="org-service-price">{startingPrice(svc)}</span>
-                            )}
+                            <span className="org-service-price">
+                              {svc.starting_from_price != null ? <><span className="org-service-price-label">Starting from</span><span className="org-service-price-amount">{formatCurrency(svc.starting_from_price)}</span></> : <span className="org-service-price-label">Price unavailable</span>}
+                            </span>
                           </div>
+                          <div className="org-service-action-row">
+                          <span className="org-service-duration">⏱ ~{durationMins} min</span>
                           <button
                             type="button"
                             onClick={() => handleViewServiceDetails(svc)}
                             className="org-view-details-btn"
                           >
-                            View Service Details <span className="org-arrow">→</span>
+                            View Service Details
                           </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -716,13 +718,15 @@ export function OrganizationProfilePage() {
                   Your serial queue reservation has been created for {org.name}.
                 </p>
                 <div className="org-booking-success-details">
-                  <div><strong>Serial Number:</strong> #{bookedAppointment.serial_number || bookedAppointment.queue_number || '1'}</div>
-                  <div><strong>Date:</strong> {bookedAppointment.appointment_date || selectedDate}</div>
-                  <div><strong>Status:</strong> {bookedAppointment.status || 'CONFIRMED'}</div>
-                  <BookingSummary organization={org} service={services.find(s => s.id === selectedServiceId)} provider={providers.find(p => p.id === selectedProviderId)} appointment={bookedAppointment} />
+                  <div className="org-booking-serial-row">
+                    <strong className="org-booking-serial">Queue Serial #{bookedAppointment.serial_number ?? bookedAppointment.queue_number ?? '—'}</strong>
+                    <span className="org-booking-status">{(bookedAppointment.status || 'CONFIRMED').toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase())}</span>
+                  </div>
+                  <BookingSummary organization={org} service={services.find(s => s.id === selectedServiceId)} provider={providers.find(p => p.id === selectedProviderId)} appointment={bookedAppointment} confirmation />
                   {bookedAppointment.estimated_service_time && (
                     <div><strong>Estimated Time:</strong> {new Date(bookedAppointment.estimated_service_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                   )}
+                  <p className="org-booking-serial-note">Your booking reserves a queue serial, not a fixed consultation start time.</p>
                 </div>
                 <div className="org-booking-success-actions">
                   <button
@@ -731,7 +735,7 @@ export function OrganizationProfilePage() {
                       setBookedAppointment(null);
                       setNotes('');
                     }}
-                    className="lp-btn-secondary"
+                    className="lp-btn-outline"
                   >
                     Book Another Appointment
                   </button>
@@ -740,7 +744,7 @@ export function OrganizationProfilePage() {
                     onClick={() => navigate('/customer/appointments')}
                     className="lp-btn-primary"
                   >
-                    View My Appointments <span className="org-arrow">→</span>
+                    View My Appointments
                   </button>
                 </div>
               </div>
