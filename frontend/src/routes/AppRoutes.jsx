@@ -68,6 +68,7 @@ import { AdminOrganizationsPage } from '../pages/admin/AdminOrganizationsPage';
 import { AdminUsersPage } from '../pages/admin/AdminUsersPage';
 import { AdminContactPage } from '../pages/admin/AdminContactPage';
 import { LandingPage } from '../pages/LandingPage';
+import ProfessionalsPage from '../pages/ProfessionalsPage';
 import { ProfilePage } from '../pages/ProfilePage';
 
 export const AppRoutes = () => {
@@ -90,6 +91,7 @@ export const AppRoutes = () => {
       {/* Root & Auth Routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/search" element={<GlobalSearchPage />} />
+      <Route path="/professionals" element={<ProfessionalsPage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/favorites" element={<CustomerFavoritesPage />} />
       <Route path="/organizations" element={<OrganizationsPage />} />

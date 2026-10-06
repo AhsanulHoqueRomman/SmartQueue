@@ -4,10 +4,13 @@ import { useAuth } from '../contexts/AuthContext';
 import organizationService from '../services/organizationService';
 import appointmentService from '../services/appointmentService';
 import reviewService from '../services/reviewService';
-import { getRecentlyViewedOrgs, getFavoriteOrgs, toggleFavoriteOrg, isFavoriteOrg } from '../utils/recentAndFavorites';
+import { getRecentlyViewedOrgs } from '../utils/recentAndFavorites';
 import { getApiDocsUrl } from '../api/client';
 import '../styles/LandingPage.css';
-import { HomepageLiveQueueWidget } from '../components/HomepageLiveQueueWidget';
+import CustomerHomeSection from '../components/CustomerHomeSection';
+import { CategoryDiscoverySection, PopularOrganizationsSection } from '../components/LandingDiscovery';
+import { publicOrganizations } from '../services/discoveryService';
+import { useTenant } from '../contexts/TenantContext';
 import { PublicNavbar } from '../components/PublicNavbar';
 import HeroProductStory from '../components/HeroProductStory';
 import '../styles/LandingPhaseOne.css';
@@ -30,22 +33,6 @@ const IconSearch = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}>
     <circle cx="11" cy="11" r="8"/>
     <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-  </svg>
-);
-
-const BookmarkIcon = ({ active = false, size = 18 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill={active ? 'var(--lp-sage)' : 'none'}
-    stroke={active ? 'var(--lp-sage)' : 'var(--lp-muted)'}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{ transition: 'all 0.2s ease', display: 'inline-block', verticalAlign: 'middle' }}
-  >
-    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
   </svg>
 );
 
@@ -445,82 +432,6 @@ const AvailabilityDiscoveryWidget = ({ organizations }) => {
   );
 };
 
-/* ─── Browse by Category Component ────────────────────────────────────────── */
-const CategoryDiscoverySection = () => {
-  const [ref, inView] = useInView({ threshold: 0.1 });
-
-  const categories = [
-    { title: 'Healthcare', icon: '🏥', count: 'Diagnostic & Medical' },
-    { title: 'Salon & Beauty', icon: '💇‍♀️', count: 'Wellness & Grooming' },
-    { title: 'Dental Care', icon: '🦷', count: 'Orthodontics & Dental' },
-    { title: 'Diagnostic', icon: '🔬', count: 'Labs & Scans' },
-    { title: 'Consulting', icon: '👔', count: 'Legal & Professional' },
-  ];
-
-  return (
-    <div
-      ref={ref}
-      style={{ margin: '3.5rem auto 2rem auto', maxWidth: '1150px', padding: '0 1.5rem', textAlign: 'center' }}
-    >
-      <span style={{ color: 'var(--lp-sage)', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-        Service Categorization
-      </span>
-      <h2 style={{ fontSize: '2rem', color: 'var(--lp-text)', marginTop: '0.25rem', marginBottom: '1.75rem' }}>
-        Browse by Service Category
-      </h2>
-
-      {/* Side-by-side horizontal grid layout */}
-      <div
-        className="lp-categories-grid"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: '1.25rem',
-          alignItems: 'stretch',
-        }}
-      >
-        {categories.map((cat, idx) => (
-          <Link
-            key={cat.title}
-            to={`/organizations?category=${encodeURIComponent(cat.title)}`}
-            style={{
-              background: 'var(--lp-surface)',
-              borderRadius: '16px',
-              border: '1px solid var(--lp-border)',
-              padding: '1.5rem 0.75rem',
-              textDecoration: 'none',
-              color: 'var(--lp-text)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              boxShadow: 'var(--shadow-xs)',
-              opacity: inView ? 1 : 0,
-              transform: inView ? 'translateY(0) scale(1)' : 'translateY(35px) scale(0.92)',
-              transition: `opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 0.08}s, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 0.08}s, box-shadow 0.25s ease`,
-            }}
-            onMouseEnter={e => {
-              if (inView) {
-                e.currentTarget.style.transform = 'translateY(-6px) scale(1.03)';
-                e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-              }
-            }}
-            onMouseLeave={e => {
-              if (inView) {
-                e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
-              }
-            }}
-          >
-            <span style={{ fontSize: '2.4rem', marginBottom: '0.5rem', display: 'inline-block', transition: 'transform 0.3s ease' }}>{cat.icon}</span>
-            <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1.05rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{cat.title}</h4>
-            <span style={{ fontSize: '0.75rem', color: 'var(--lp-muted)', lineHeight: 1.3 }}>{cat.count}</span>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 /* ─── Real Reviews & Testimonials ────────────────────────────────────────── */
 const TestimonialsSection = () => {
   const [reviews, setReviews] = useState([]);
@@ -707,207 +618,22 @@ const LocalStorageDiscoveryWidgets = () => {
   );
 };
 
-/* ─── Featured Organizations Component for Landing Page ──────────────────── */
-const FeaturedOrganizationsSection = ({ onOrgLoaded }) => {
-  const [ref, inView] = useInView({ threshold: 0.1 });
-  const [organizations, setOrganizations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [favMap, setFavMap] = useState({});
-
-  useEffect(() => {
-    let isMounted = true;
-    organizationService.getOrganizations({ page_size: 3 })
-      .then(res => {
-        if (!isMounted) return;
-        const list = Array.isArray(res) ? res : (res.results || []);
-        setOrganizations(list.slice(0, 3));
-        if (onOrgLoaded) onOrgLoaded(list);
-
-        // Build favorite map
-        const map = {};
-        list.forEach(o => { map[o.id] = isFavoriteOrg(o.id); });
-        setFavMap(map);
-      })
-      .catch(err => {
-        console.error('Failed to load featured organizations:', err);
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
-    return () => { isMounted = false; };
-  }, []);
-
-  const handleToggleFav = (e, org) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const newState = toggleFavoriteOrg(org);
-    setFavMap(prev => ({ ...prev, [org.id]: newState }));
-  };
-
-  return (
-    <div
-      ref={ref}
-      style={{
-        margin: '1.5rem auto 2rem auto',
-        maxWidth: '1150px',
-        width: '100%',
-        padding: '0 1.5rem',
-        textAlign: 'center'
-      }}
-    >
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'var(--lp-sage-bg)', color: 'var(--lp-sage)', padding: '0.35rem 0.85rem', borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem' }}>
-        <span>🏥</span> Verified Partner Network
-      </div>
-      <h2 style={{ fontSize: '2rem', color: 'var(--lp-text)', marginBottom: '0.5rem' }}>
-        Popular Care Providers & Clinics
-      </h2>
-      <p style={{ color: 'var(--lp-muted)', maxWidth: '600px', margin: '0 auto 2.5rem auto', fontSize: '0.95rem' }}>
-        Explore top-rated medical centers, diagnostic clinics, and wellness facilities offering instant online booking and live queue telemetry.
-      </p>
-
-      {loading ? (
-        <div className="lp-featured-grid">
-          {[1, 2, 3].map(i => (
-            <div key={i} style={{ background: 'var(--lp-surface)', borderRadius: '16px', border: '1px solid var(--lp-border)', padding: '1.75rem', height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--lp-border)', marginBottom: '1rem', animation: 'pulse 1.5s infinite' }} />
-              <div style={{ width: '60%', height: '16px', background: 'var(--lp-border)', borderRadius: '4px', marginBottom: '0.5rem' }} />
-              <div style={{ width: '40%', height: '12px', background: 'var(--lp-border)', borderRadius: '4px' }} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="lp-featured-grid">
-          {organizations.map((org, idx) => {
-            const rating = org.rating ? parseFloat(org.rating).toFixed(1) : '4.9';
-            const reviewsCount = org.reviews_count || 12;
-            const servicesCount = org.services_count || (org.services ? org.services.length : 0) || 4;
-            const providersCount = org.providers_count || 3;
-            const isFav = favMap[org.id];
-
-            return (
-              <div
-                key={org.id}
-                style={{
-                  background: 'var(--lp-surface)',
-                  borderRadius: '16px',
-                  border: '1px solid var(--lp-border)',
-                  padding: '1.75rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  boxShadow: 'var(--shadow-xs)',
-                  opacity: inView ? 1 : 0,
-                  transform: inView ? 'translateY(0) scale(1)' : 'translateY(35px) scale(0.95)',
-                  transition: `opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 0.12}s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 0.12}s, box-shadow 0.25s ease`,
-                  textAlign: 'left',
-                  position: 'relative'
-                }}
-                onMouseEnter={e => {
-                  if (inView) {
-                    e.currentTarget.style.transform = 'translateY(-6px) scale(1.02)';
-                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (inView) {
-                    e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                    e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
-                  }
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                    <span style={{ background: 'var(--lp-bg-subtle)', color: 'var(--lp-sage)', border: '1px solid var(--lp-border)', fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem 0.6rem', borderRadius: '6px' }}>
-                      {org.category || 'HEALTHCARE'}
-                    </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-warning)' }}>
-                        ★ {rating} <span style={{ fontWeight: 400, color: 'var(--lp-muted)', fontSize: '0.75rem' }}>({reviewsCount})</span>
-                      </span>
-                      <button
-                        onClick={(e) => handleToggleFav(e, org)}
-                        title={isFav ? 'Remove from favorites' : 'Save to favorites'}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
-                      >
-                        <BookmarkIcon active={isFav} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.4rem' }}>
-                    {org.name}
-                  </h3>
-
-                  <p style={{ color: 'var(--lp-muted)', fontSize: '0.85rem', lineHeight: '1.4', marginBottom: '1rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                    {org.description || 'Providing world-class medical and wellness services with online queue management.'}
-                  </p>
-                </div>
-
-                <div>
-                  <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 0', borderTop: '1px solid var(--lp-border-subtle)', borderBottom: '1px solid var(--lp-border-subtle)', marginBottom: '1.25rem', fontSize: '0.8rem', color: 'var(--lp-text-sec)' }}>
-                    <span>⚡ <strong>{servicesCount}</strong> Services</span>
-                    <span>👨‍⚕️ <strong>{providersCount}</strong> Doctors</span>
-                  </div>
-
-                  <Link
-                    to={`/organizations/${org.id}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justify: 'center',
-                      gap: '0.4rem',
-                      width: '100%',
-                      padding: '0.7rem',
-                      background: 'var(--lp-sage)',
-                      color: '#FFFFFF',
-                      borderRadius: '8px',
-                      fontWeight: 600,
-                      fontSize: '0.9rem',
-                      textDecoration: 'none',
-                      transition: 'background 0.2s ease'
-                    }}
-                  >
-                    View Services & Book <IconArrow />
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <div style={{ marginTop: '2.5rem' }}>
-        <Link
-          to="/organizations"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.85rem 1.75rem',
-            background: 'var(--lp-btn-primary-bg)',
-            color: 'var(--lp-btn-primary-text)',
-            borderRadius: '10px',
-            fontWeight: 600,
-            fontSize: '0.95rem',
-            textDecoration: 'none',
-            boxShadow: 'var(--shadow-md)',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          Browse All Organizations <IconArrow />
-        </Link>
-      </div>
-    </div>
-  );
-};
-
-/* ─── Main Landing Page ─────────────────────────────────────────────────── */
 export const LandingPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [heroSearchQuery, setHeroSearchQuery] = useState('');
   const [allOrgs, setAllOrgs] = useState([]);
+  const [orgsLoading, setOrgsLoading] = useState(true);
+  const [orgsError, setOrgsError] = useState(false);
+  const { effectiveRole } = useTenant();
+  useEffect(() => {
+    let current = true;
+    publicOrganizations().then(list => { if (current) setAllOrgs(list); })
+      .catch(() => { if (current) setOrgsError(true); })
+      .finally(() => { if (current) setOrgsLoading(false); });
+    return () => { current = false; };
+  }, []);
   const [howItWorksRef, howItWorksIn] = useInView({ threshold: 0.1 });
   const [whyUsRef, whyUsIn] = useInView({ threshold: 0.1 });
   const [ctaRef, ctaIn] = useInView();
@@ -968,19 +694,18 @@ export const LandingPage = () => {
       </section>
       <section className="lp-discovery-content" aria-label="Discover SmartQueue services">
         {/* Categories */}
-        <CategoryDiscoverySection />
+        <CategoryDiscoverySection organizations={allOrgs} />
+        {user && effectiveRole === 'CUSTOMER' && !user.memberships?.some(membership => ['PROVIDER', 'STAFF', 'MANAGER'].includes(membership.role)) && <CustomerHomeSection user={user} />}
 
         {/* Availability Lookup Widget */}
         <AvailabilityDiscoveryWidget organizations={allOrgs} />
 
-        {/* Logged-in Customer Live Queue Preview Widget */}
-        {user && <HomepageLiveQueueWidget />}
 
         {/* Recently Viewed & Saved Clinics */}
         <LocalStorageDiscoveryWidgets />
 
         {/* Featured Organizations */}
-        <FeaturedOrganizationsSection onOrgLoaded={(list) => setAllOrgs(list)} />
+        <PopularOrganizationsSection organizations={allOrgs} loading={orgsLoading} error={orgsError} />
       </section>
 
       {/* ── How It Works ───────────────────────────────────────────────── */}

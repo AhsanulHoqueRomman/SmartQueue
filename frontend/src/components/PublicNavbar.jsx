@@ -44,7 +44,7 @@ export const PublicNavbar = ({ activePage = '' }) => {
       }}><span className="lp-brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg></span><span className="lp-brand-name">SmartQueue</span></Link>
       <nav id="public-discovery-navigation" aria-label="Public navigation" className={`lp-nav-links ${menuOpen ? 'is-menu-open' : ''}`}>
         <Link to="/organizations" className="lp-nav-link" onClick={() => setMenuOpen(false)}>Organizations</Link>
-        <button type="button" className="lp-nav-link lp-nav-coming-soon" aria-disabled="true" title="Professional discovery is coming soon">Professionals <span>Coming soon</span></button>
+        <Link to="/professionals" className="lp-nav-link" aria-current={activePage === 'professionals' ? 'page' : undefined} onClick={() => setMenuOpen(false)}>Professionals</Link>
         <Link to="/search" className="lp-nav-link" onClick={() => setMenuOpen(false)}>Search</Link>
         <Link to="/#how-it-works" className="lp-nav-link" onClick={event => anchorClick(event, '#how-it-works')}>How It Works</Link>
         <Link to="/#why-smartqueue" className="lp-nav-link" onClick={event => anchorClick(event, '#why-smartqueue')}>Why SmartQueue</Link>
