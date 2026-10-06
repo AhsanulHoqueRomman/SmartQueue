@@ -14,7 +14,7 @@ function ProductIcon({ name }) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{icons[name]}</svg>;
 }
 
-function useSectionMotion() {
+function useSectionMotion(threshold = .08) {
   const ref = useRef(null);
   const observed = 'IntersectionObserver' in window;
   const [revealed, setRevealed] = useState(false);
@@ -25,12 +25,12 @@ function useSectionMotion() {
     const observer = new IntersectionObserver(([entry]) => {
       setVisible(entry.isIntersecting);
       if (entry.isIntersecting) setRevealed(true);
-    }, { threshold: .08 });
+    }, { threshold });
     observer.observe(ref.current);
     const onVisibility = () => setPageVisible(!document.hidden);
     document.addEventListener('visibilitychange', onVisibility);
     return () => { observer.disconnect(); document.removeEventListener('visibilitychange', onVisibility); };
-  }, []);
+  }, [threshold]);
   return [ref, `sq-phase3 ${observed ? 'is-observed' : ''} ${revealed ? 'is-revealed' : ''}`, visible && pageVisible];
 }
 
@@ -44,13 +44,13 @@ const steps = [
 ];
 
 export function HowSmartQueueWorks() {
-  const [sectionRef, motionClass] = useSectionMotion();
+  const [sectionRef, motionClass] = useSectionMotion(.18);
   return <section ref={sectionRef} id="how-it-works" className={`${motionClass} sq-journey-section`} aria-labelledby="sq-journey-heading">
     <div className="sq-phase3-inner">
       <header className="sq-section-heading"><span className="sq-eyebrow">From discovery to your turn</span><h2 id="sq-journey-heading">How SmartQueue Works</h2><p>Six simple steps. A queue serial, with live guidance along the way.</p></header>
       <div className="sq-journey-wrap">
-        <svg className="sq-journey-path" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true"><path d="M165 145H920Q975 145 975 220V245Q975 300 920 300H80Q25 300 25 355V390Q25 445 80 445H835" pathLength="1" /></svg>
-        <ol className="sq-journey-grid">{steps.map(([icon, title, description], index) => <li key={title} className="sq-journey-card sq-entry" style={{ '--entry-delay': `${index * .16}s` }}>
+        <svg className="sq-journey-path" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">{['M165 145H500', 'M500 145H835', 'M835 145H920Q975 145 975 220V245Q975 300 920 300H80Q25 300 25 355V390Q25 445 80 445H165', 'M165 445H500', 'M500 445H835'].map((path, index) => <path key={path} d={path} pathLength="1" style={{ '--path-delay': `${.25 + index * .66}s` }} />)}</svg>
+        <ol className="sq-journey-grid">{steps.map(([icon, title, description], index) => <li key={title} className="sq-journey-card sq-entry" style={{ '--entry-delay': `${index * .66}s` }}>
           <div className="sq-journey-card-top"><span className="sq-icon-tile"><ProductIcon name={icon} /></span><span className="sq-step-number">{String(index + 1).padStart(2, '0')}</span></div>
           <h3>{title}</h3><p>{description}</p>
         </li>)}</ol>
@@ -66,11 +66,16 @@ const benefits = [
   ['professional', 'Transparent Service Choice', 'Compare professionals, customer-facing charges, organization information and availability before booking.', 'Choose with useful information', ['Professional', 'Service Charge', 'Availability']],
 ];
 export function WhySmartQueue() {
-  const [sectionRef, motionClass] = useSectionMotion();
-  return <section ref={sectionRef} id="why-smartqueue" className={motionClass} aria-labelledby="sq-benefits-heading"><div className="sq-phase3-inner">
+  const [sectionRef, motionClass, active] = useSectionMotion();
+  return <section ref={sectionRef} id="why-smartqueue" className={`${motionClass} sq-benefits-section ${active ? 'is-active' : ''}`} aria-labelledby="sq-benefits-heading">
+    <svg className="sq-benefits-network" viewBox="0 0 1240 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <g className="sq-network-routes"><path d="M-40 170H140Q180 170 180 210V440Q180 480 220 480H1070Q1110 480 1110 520V800Q1110 840 1150 840H1280" /><path d="M1260 80H990Q950 80 950 120V270Q950 310 910 310H60Q20 310 20 350V900" /></g>
+      <g className="sq-network-nodes"><circle cx="180" cy="210" r="6" /><circle cx="950" cy="120" r="5" /><circle cx="1110" cy="520" r="6" /><circle cx="20" cy="740" r="5" /></g>
+      <circle className="sq-network-tracer sq-network-tracer-one" r="4" /><circle className="sq-network-tracer sq-network-tracer-two" r="4" />
+    </svg><div className="sq-phase3-inner">
     <header className="sq-section-heading"><span className="sq-eyebrow">More clarity. Less guesswork.</span><h2 id="sq-benefits-heading">Why Patients &amp; Clients Choose SmartQueue</h2><p>Useful information before your visit, and better visibility while you wait.</p></header>
-    <div className="sq-benefits-grid">{benefits.map(([icon, title, description, detail, chips], index) => <article className="sq-benefit-card sq-entry" key={title} style={{ '--entry-delay': `${index * .13}s` }}>
-      <span className="sq-icon-tile"><ProductIcon name={icon} /></span><h3>{title}</h3><p>{description}</p>
+    <div className="sq-benefits-grid">{benefits.map(([icon, title, description, detail, chips], index) => <article className="sq-benefit-card sq-entry" tabIndex={0} aria-labelledby={`sq-benefit-title-${index}`} key={title} style={{ '--entry-delay': `${index * .18}s` }}>
+      <span className="sq-icon-tile"><ProductIcon name={icon} /></span><h3 id={`sq-benefit-title-${index}`}>{title}</h3><p>{description}</p>
       <div className="sq-benefit-detail" aria-hidden="true"><span>{detail}</span><div>{chips.map(chip => <span key={chip}>{chip}</span>)}</div></div>
     </article>)}</div>
   </div></section>;
@@ -98,7 +103,7 @@ export function ForOrganizations() {
   return <section ref={sectionRef} id="for-organizations" className={`${motionClass} sq-organizations-section`} aria-labelledby="sq-organizations-heading"><div className="sq-phase3-inner sq-organizations-split">
     <div className="sq-organization-copy sq-entry"><span className="sq-eyebrow">For organizations</span><h2 id="sq-organizations-heading">Built for organizations that serve people in queues.</h2><p>Manage appointments, serials, your team and customer queue visibility from one system. Built for clinics, salons, legal firms, consultants, service centers and counters.</p>
       <ul className="sq-capabilities">{[['professional', 'Provider & Staff Management'], ['serial', 'Appointment & Serial Management'], ['queue', 'Live Queue Operations'], ['service', 'Services, Schedules & Customer Charges']].map(([icon, title]) => <li key={title}><ProductIcon name={icon} /><span>{title}</span></li>)}</ul>
-      <div className="sq-business-actions"><Link className="lp-btn-primary" to="/register/manager">Register Your Organization <span aria-hidden="true">→</span></Link><a href="#how-it-works" className="sq-secondary-action">Learn How It Works</a></div>
+      <div className="sq-business-actions"><Link className="lp-btn-primary" to="/register/manager">Register Your Organization <span aria-hidden="true">→</span></Link></div>
     </div><div className="sq-entry" style={{ '--entry-delay': '.15s' }}><OperationsPreview active={active} /></div>
   </div></section>;
 }

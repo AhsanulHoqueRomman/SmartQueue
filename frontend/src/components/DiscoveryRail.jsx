@@ -51,7 +51,7 @@ export default function DiscoveryRail({ label, items, renderItem, automatic = fa
       if (document.hidden || !cycle) previous = null;
       else {
         if (previous !== null) {
-          position += Math.min(time - previous, 40) * .018;
+          position += Math.min(time - previous, 40) * .024;
           if (position >= cycle) position -= cycle;
           node.scrollLeft = position;
         }
