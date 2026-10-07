@@ -37,6 +37,14 @@
   --lp-btn-primary-bg: #2F2520;
   --lp-btn-primary-text: #FFFFFF;
 
+  /* Shared public navigation vocabulary; dimensions remain component-specific. */
+  --lp-public-link-rest: var(--lp-text-sec);
+  --lp-public-link-emphasis: var(--lp-text);
+  --lp-public-link-hover-surface: var(--lp-bg-subtle);
+  --lp-public-link-duration: 0.15s;
+  --lp-public-link-easing: ease;
+  --lp-public-link-transition: color var(--lp-public-link-duration) var(--lp-public-link-easing), background-color var(--lp-public-link-duration) var(--lp-public-link-easing);
+
   /* Motion & Micro-interaction Tokens */
   --motion-fast: 160ms;
   --motion-normal: 220ms;
@@ -180,15 +188,20 @@
   padding: 0.4rem 0.75rem;
   font-size: 0.84rem;
   font-weight: 500;
-  color: var(--lp-muted);
+  color: var(--lp-public-link-rest);
   text-decoration: none;
   border-radius: 6px;
-  transition: color 0.15s ease, background-color 0.15s ease;
+  transition: var(--lp-public-link-transition);
 }
 
 .lp-nav-link:hover {
-  color: var(--lp-text);
-  background-color: var(--lp-bg-subtle);
+  color: var(--lp-public-link-emphasis);
+  background-color: var(--lp-public-link-hover-surface);
+}
+
+.lp-phase-one-nav .lp-nav-link[aria-current="page"] {
+  color: var(--lp-public-link-emphasis);
+  background-color: var(--lp-public-link-hover-surface);
 }
 
 .lp-nav-cta {

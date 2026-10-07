@@ -1,4 +1,26 @@
 /* Scoped closing sections retain the approved 1240px landing frame and theme. */
+.lp-landing-shell {
+  /* Boundary surfaces derived from the existing palette, only on the homepage. */
+  --lp-shell-nav-surface: color-mix(in srgb, var(--lp-surface) 70%, var(--lp-bg));
+  --lp-shell-cta-surface: color-mix(in srgb, var(--lp-sage) 8%, var(--lp-surface));
+  --lp-shell-footer-surface: color-mix(in srgb, var(--lp-bg-subtle) 55%, var(--lp-bg-deeper));
+  --lp-shell-footer-muted: color-mix(in srgb, var(--lp-muted) 85%, var(--lp-text));
+}
+[data-theme="dark"] .lp-landing-shell, .lp-landing-shell[data-theme="dark"] {
+  --lp-shell-nav-surface: color-mix(in srgb, var(--lp-bg), rgb(from var(--color-overlay) r g b / 1) 30%);
+  --lp-shell-footer-surface: color-mix(in srgb, var(--lp-bg), rgb(from var(--color-overlay) r g b / 1) 55%);
+}
+.lp-landing-shell > .lp-nav {
+  background-color: var(--lp-shell-nav-surface) !important;
+  border-bottom-color: var(--lp-border) !important;
+  box-shadow: none;
+}
+.lp-landing-shell .lp-nav-links.is-menu-open { background-color: var(--lp-shell-nav-surface); }
+.lp-landing-shell .closing-panel { background: var(--lp-shell-cta-surface); }
+.lp-landing-shell .phase-four-footer { background: var(--lp-shell-footer-surface); }
+.lp-landing-shell .production-footer-bottom { color: var(--lp-shell-footer-muted); }
+.lp-landing-shell .footer-socials > * { color: var(--lp-text-sec); }
+.lp-landing-shell .footer-socials > :is(:hover,:focus-visible) { color: var(--lp-sage); }
 .phase-four-inner { width: 100%; max-width: 1240px; min-width: 0; margin-inline: auto; }
 .phase-four-reviews { padding: 80px 24px; background: var(--lp-bg); }
 .phase-four-heading { margin-bottom: 32px; }
@@ -35,7 +57,11 @@
 .production-footer-grid nav, .production-footer-contact { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
 .production-footer-grid h2 { color: var(--lp-text); font-size: .75rem; letter-spacing: .07em; text-transform: uppercase; margin: 0 0 10px; }
 .production-footer-grid nav a, .production-footer-contact a, .footer-contact-row, .production-footer-bottom a { color: var(--lp-text-sec); text-decoration: none; font-size: .85rem; line-height: 1.65; overflow-wrap: anywhere; }
-.production-footer-grid nav a:hover, .production-footer-contact a:hover, .production-footer-bottom a:hover { color: var(--lp-sage); text-decoration: underline; text-underline-offset: 4px; }
+.phase-four-footer :is(.production-footer-grid nav a,.production-footer-contact a,.production-footer-bottom a) { position: relative; isolation: isolate; border-radius: 6px; transition: var(--lp-public-link-transition); }
+/* Paint a compact hover surface outside the text box without changing its layout. */
+.phase-four-footer :is(.production-footer-grid nav a,.production-footer-contact a,.production-footer-bottom a)::before { content: ''; position: absolute; z-index: -1; inset: -3px -6px; border-radius: inherit; background: var(--lp-public-link-hover-surface); opacity: 0; transition: opacity var(--lp-public-link-duration) var(--lp-public-link-easing); pointer-events: none; }
+.phase-four-footer :is(.production-footer-grid nav a,.production-footer-contact a,.production-footer-bottom a):is(:hover,:focus-visible) { color: var(--lp-public-link-emphasis); text-decoration: none; }
+.phase-four-footer :is(.production-footer-grid nav a,.production-footer-contact a,.production-footer-bottom a):is(:hover,:focus-visible)::before { opacity: .65; }
 .production-footer-contact p { margin: 0; font-size: .8rem; }
 .production-footer-contact a, .footer-contact-row { display: flex; align-items: flex-start; gap: 9px; max-width: 100%; }
 .production-footer-contact svg { width: 17px; height: 17px; flex: 0 0 17px; margin-top: 3px; color: var(--lp-sage); }
@@ -43,7 +69,9 @@
 .footer-socials { display: flex; gap: 9px; }
 .footer-socials > * { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--lp-border-med); border-radius: 50%; background: var(--lp-surface); color: var(--lp-text-sec); }
 .footer-socials svg { width: 17px; height: 17px; }
-.footer-socials a:hover { color: var(--lp-sage); border-color: var(--lp-sage); background: var(--lp-sage-bg); }
+.footer-socials > * { transition: var(--lp-public-link-transition), border-color var(--lp-public-link-duration) var(--lp-public-link-easing), transform var(--lp-public-link-duration) var(--lp-public-link-easing); }
+.footer-socials > :is(:hover,:focus-visible) { color: var(--lp-sage); border-color: var(--lp-sage); background: var(--lp-sage-bg); transform: translateY(-2px); }
+.footer-socials > :focus-visible { outline: 2px solid var(--lp-sage); outline-offset: 4px; }
 .footer-socials a:active { transform: translateY(1px); }
 .footer-social-unavailable { color: var(--lp-muted); }
 .production-footer-bottom { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; padding-top: 24px; border-top: 1px solid var(--lp-border); font-size: .8rem; color: var(--lp-muted); }
@@ -55,3 +83,4 @@
  .phase-four-footer { padding: 32px 20px 24px; } .production-footer-grid { grid-template-columns: minmax(0,1fr); gap: 26px; } .production-footer-grid p { max-width: none; } .production-footer-grid nav { gap: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { .phase-four-reviews .phase-four-heading, .phase-four-reviews .community-review { opacity: 1 !important; transform: none !important; animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .phase-four-footer a, .phase-four-footer a::before, .footer-socials > * { transition: none !important; } .footer-socials > :is(:hover,:focus-visible,:active) { transform: none !important; } }

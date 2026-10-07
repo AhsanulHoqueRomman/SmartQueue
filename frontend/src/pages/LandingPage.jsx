@@ -80,7 +80,7 @@ export const LandingPage = () => {
   };
 
   return (
-    <div className="lp-root">
+    <div className="lp-root lp-landing-shell">
       {/* ── Navbar ─────────────────────────────────────────────────────── */}
       <PublicNavbar activePage="" />
 
