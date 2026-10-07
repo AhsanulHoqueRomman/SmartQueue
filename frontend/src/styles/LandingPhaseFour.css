@@ -38,10 +38,27 @@
 .community-reviewer > div { min-width: 0; }
 .community-reviewer strong { display: block; font-size: .9rem; margin-bottom: 5px; }
 .community-reviewer span:not(.community-avatar) { display: block; font-size: .75rem; line-height: 1.65; color: var(--lp-muted); overflow-wrap: anywhere; }
-.phase-four-reviews.is-observed:not(.is-revealed) .phase-four-heading, .phase-four-reviews.is-observed:not(.is-revealed) .community-review { opacity: 0; transform: translateY(16px); }
-.phase-four-reviews.is-revealed .phase-four-heading { animation: community-reveal .5s ease-out both; }
-.phase-four-reviews.is-revealed .community-review { animation: community-reveal .65s ease-out var(--review-delay) both; }
-@keyframes community-reveal { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.testimonial-stage { position: relative; width: 100%; min-width: 0; overflow: hidden; }
+.testimonial-stage .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.testimonial-viewport { scroll-snap-type: x mandatory; scroll-behavior: auto; }
+.testimonial-page { scroll-snap-align: start; scroll-snap-stop: always; }
+.testimonial-entry { flex: 0 0 calc((100% - 48px)/3); min-width: 0; display: flex; }
+.testimonial-entry .community-review { flex: 1; }
+.testimonial-page.is-departing { position: absolute; inset: 8px 0; pointer-events: none; animation: testimonial-depart .4s ease-out both; }
+.testimonial-page.is-arriving { animation: testimonial-arrive .4s ease-out both; }
+@keyframes testimonial-arrive { from { opacity: .15; transform: translateX(calc(var(--page-direction) * 28px)); } to { opacity: 1; transform: none; } }
+@keyframes testimonial-depart { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(calc(var(--page-direction) * -28px)); } }
+.phase-four-reviews.is-observed:not(.is-revealed) :is(.phase-four-heading > *, .testimonial-stage, .testimonial-entry, .discovery-arrow) { opacity: 0; }
+.phase-four-reviews.is-revealed .phase-four-heading > * { animation: community-reveal .4s ease-out both; }
+.phase-four-reviews.is-revealed .phase-four-heading h2 { animation-delay: .06s; }
+.phase-four-reviews.is-revealed .phase-four-heading p { animation-delay: .12s; }
+.phase-four-reviews.is-revealed .testimonial-stage { animation: community-reveal .35s ease-out .18s both; }
+.phase-four-reviews.is-revealed .testimonial-entry { animation: community-reveal .42s ease-out var(--review-delay) both; }
+.phase-four-reviews.is-revealed .discovery-arrow { animation: community-control-reveal .35s ease-out .3s both; }
+.phase-four-reviews .discovery-arrow:disabled { --control-opacity: .3; }
+.phase-four-reviews .is-departing .testimonial-entry { animation: none; }
+@keyframes community-reveal { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+@keyframes community-control-reveal { from { opacity: 0; } to { opacity: var(--control-opacity, 1); } }
 .phase-four-closing { padding: 16px 24px 36px; background: var(--lp-bg); }
 .closing-panel { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 24px; padding: 28px 32px; border: 1px solid var(--lp-sage-border); border-radius: 18px; background: color-mix(in srgb,var(--lp-sage) 6%,var(--lp-surface)); }
 .closing-mark { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 12px; color: var(--lp-sage); background: var(--lp-sage-bg); }
@@ -76,11 +93,11 @@
 .footer-social-unavailable { color: var(--lp-muted); }
 .production-footer-bottom { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; padding-top: 24px; border-top: 1px solid var(--lp-border); font-size: .8rem; color: var(--lp-muted); }
 .phase-four-reviews :is(button,a):focus-visible, .phase-four-closing a:focus-visible, .phase-four-footer a:focus-visible { outline: 2px solid var(--lp-sage); outline-offset: 4px; }
-@media (max-width: 1000px) { .community-review { flex-basis: calc((100% - 24px)/2); padding: 26px; } .production-footer-grid { grid-template-columns: 1.2fr 1fr 1fr; gap: 28px; } .closing-panel { gap: 18px; padding: 24px; } }
+@media (max-width: 1000px) { .testimonial-entry { flex-basis: calc((100% - 24px)/2); } .community-review { flex-basis: calc((100% - 24px)/2); padding: 26px; } .production-footer-grid { grid-template-columns: 1.2fr 1fr 1fr; gap: 28px; } .closing-panel { gap: 18px; padding: 24px; } }
 @media (max-width: 600px) {
- .phase-four-reviews { padding: 52px 20px; } .phase-four-reviews .discovery-rail-group { gap: 20px; } .community-review { flex-basis: 100%; padding: 24px; min-height: 300px; }
+ .phase-four-reviews { padding: 52px 20px; } .phase-four-reviews .discovery-rail-group { gap: 20px; } .testimonial-entry { flex-basis: 100%; } .community-review { flex-basis: 100%; padding: 24px; min-height: 300px; }
  .phase-four-closing { padding: 12px 20px 28px; } .closing-panel { grid-template-columns: auto minmax(0,1fr); gap: 16px; padding: 22px 20px; align-items: start; } .closing-mark { width: 36px; height: 36px; } .closing-actions { grid-column: 1 / -1; } .closing-actions a { justify-content: center; width: 100%; white-space: normal; }
  .phase-four-footer { padding: 32px 20px 24px; } .production-footer-grid { grid-template-columns: minmax(0,1fr); gap: 26px; } .production-footer-grid p { max-width: none; } .production-footer-grid nav { gap: 10px; }
 }
-@media (prefers-reduced-motion: reduce) { .phase-four-reviews .phase-four-heading, .phase-four-reviews .community-review { opacity: 1 !important; transform: none !important; animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .phase-four-reviews :is(.phase-four-heading > *, .testimonial-stage, .testimonial-entry, .testimonial-page, .community-review) { opacity: 1 !important; transform: none !important; animation: none !important; } .phase-four-reviews .discovery-arrow { opacity: var(--control-opacity, 1) !important; animation: none !important; } }
 @media (prefers-reduced-motion: reduce) { .phase-four-footer a, .phase-four-footer a::before, .footer-socials > * { transition: none !important; } .footer-socials > :is(:hover,:focus-visible,:active) { transform: none !important; } }

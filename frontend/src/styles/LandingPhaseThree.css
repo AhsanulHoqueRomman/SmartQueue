@@ -18,13 +18,13 @@
 .sq-phase3.is-observed:not(.is-revealed) .sq-entry { opacity: 0; transform: translateY(18px); }
 .sq-phase3.is-revealed .sq-entry { animation: sq-entry .65s ease-out var(--entry-delay, 0s) both; }
 .sq-phase3.is-observed:not(.is-revealed) .sq-journey-path path { stroke-dasharray: 1; stroke-dashoffset: 1; }
-.sq-phase3.is-revealed .sq-journey-path path { stroke-dasharray: 1; animation: sq-journey-progress .66s linear var(--path-delay, 0s) both; }
+.sq-phase3.is-revealed .sq-journey-path path { stroke-dasharray: 1; animation: sq-journey-progress .26s linear var(--path-delay, 0s) both; }
 /* Cards remain readable while attention travels through the six steps. */
 .sq-journey-section.is-observed:not(.is-revealed) .sq-entry { opacity: 1; transform: none; }
-.sq-journey-section.is-revealed .sq-journey-card { animation: sq-journey-activate .7s ease-out var(--entry-delay) both; }
+.sq-journey-section.is-revealed .sq-journey-card { animation: sq-journey-activate .9s ease-out var(--entry-delay) both; }
 .sq-journey-section.is-revealed .sq-icon-tile svg { animation: sq-icon-reveal .65s ease-out var(--entry-delay) both; }
 .sq-journey-section.is-revealed .sq-step-number { animation: sq-number-activate .7s ease-out var(--entry-delay) both; }
-@keyframes sq-journey-activate { from { opacity: .6; translate: 0 22px; border-color: var(--lp-border-med); } to { opacity: 1; translate: 0 0; border-color: var(--lp-sage-border); } }
+@keyframes sq-journey-activate { from { opacity: .6; translate: 0 14px; border-color: var(--lp-border-med); } to { opacity: 1; translate: 0 0; border-color: var(--lp-sage-border); } }
 @keyframes sq-icon-reveal { from { opacity: .55; transform: scale(.88); } 65% { opacity: 1; transform: scale(1.04); } to { opacity: 1; transform: scale(1); } }
 @keyframes sq-number-activate { from { opacity: .45; } to { opacity: 1; } }
 @keyframes sq-entry { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }

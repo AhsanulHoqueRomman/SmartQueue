@@ -42,8 +42,8 @@ export function HowSmartQueueWorks() {
     <div className="sq-phase3-inner">
       <header className="sq-section-heading"><span className="sq-eyebrow">From discovery to your turn</span><h2 id="sq-journey-heading">How SmartQueue Works</h2><p>Six simple steps. A queue serial, with live guidance along the way.</p></header>
       <div ref={journeyRef} className="sq-journey-wrap">
-        <svg className="sq-journey-path" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">{['M165 145H500', 'M500 145H835', 'M835 145H920Q975 145 975 220V245Q975 300 920 300H80Q25 300 25 355V390Q25 445 80 445H165', 'M165 445H500', 'M500 445H835'].map((path, index) => <path key={path} d={path} pathLength="1" style={{ '--path-delay': `${.25 + index * .66}s` }} />)}</svg>
-        <ol className="sq-journey-grid">{steps.map(([icon, title, description], index) => <li key={title} className="sq-journey-card sq-entry" style={{ '--entry-delay': `${index * .66}s` }}>
+        <svg className="sq-journey-path" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">{['M165 145H500', 'M500 145H835', 'M835 145H920Q975 145 975 220V245Q975 300 920 300H80Q25 300 25 355V390Q25 445 80 445H165', 'M165 445H500', 'M500 445H835'].map((path, index) => <path key={path} d={path} pathLength="1" style={{ '--path-delay': `${.12 + index * .26}s` }} />)}</svg>
+        <ol className="sq-journey-grid">{steps.map(([icon, title, description], index) => <li key={title} className="sq-journey-card sq-entry" style={{ '--entry-delay': `${index * .26}s` }}>
           <div className="sq-journey-card-top"><span className="sq-icon-tile"><ProductIcon name={icon} /></span><span className="sq-step-number">{String(index + 1).padStart(2, '0')}</span></div>
           <h3>{title}</h3><p>{description}</p>
         </li>)}</ol>

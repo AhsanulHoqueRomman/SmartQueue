@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import reviewService from '../services/reviewService';
-import DiscoveryRail from './DiscoveryRail';
+import TestimonialPages from './TestimonialPages';
 import useScrollPresence from '../hooks/useScrollPresence';
 import { getApiDocsUrl } from '../api/client';
 import { footerSocials, publicContact } from '../config/publicContact';
@@ -34,7 +34,7 @@ function CommunityReviewRail({ reviews }) {
   const [ref, entered, , supported] = useScrollPresence(.12);
   return <section ref={ref} className={`phase-four-reviews ${supported ? 'is-observed' : ''} ${entered ? 'is-revealed' : ''}`} aria-labelledby="community-heading"><div className="phase-four-inner">
     <header className="phase-four-heading"><span className="discovery-eyebrow">What our community says</span><h2 id="community-heading">What Our Patients &amp; Visitors Say</h2><p>Real experiences from people using SmartQueue across different services.</p></header>
-    <DiscoveryRail label="customer experiences" items={reviews} renderItem={(review) => <article className="community-review" key={review.id} style={{ '--review-delay': `${reviews.indexOf(review) % 3 * .12}s` }}>
+    <TestimonialPages items={reviews} renderItem={(review, index) => <article className="community-review" key={review.id} style={{ '--review-delay': `${.22 + index * .12}s` }}>
       <div className="community-stars" role="img" aria-label={`${review.rating} out of 5 stars`}><span aria-hidden="true">{'★'.repeat(review.rating)}<span className="community-empty-stars">{'☆'.repeat(5 - review.rating)}</span></span></div>
       <blockquote><p>“{review.comment}”</p></blockquote>
       <div className="community-reviewer"><span className="community-avatar" aria-hidden="true">{review.name.split(/\s+/).slice(0, 2).map(word => word[0]).join('')}</span><div><strong>{review.name}</strong><span>{review.organization}</span>{review.service && <span>{review.service}</span>}</div></div>
