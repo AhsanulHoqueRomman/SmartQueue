@@ -1,0 +1,57 @@
+/* Small semantic accents stay inside artwork; the SmartQueue brand tokens are unchanged. */
+:root { --sq-medical: #386f66; --sq-rose: #a45060; --sq-cyan: #326d86; --sq-blue: #4b7094; --sq-gold: #856523; --sq-violet: #6c5897; --sq-orange: #a26031; }
+:root[data-theme="dark"] { --sq-medical: #62b5a8; --sq-rose: #ce8795; --sq-cyan: #76b5c6; --sq-blue: #8baed1; --sq-gold: #c7aa68; --sq-violet: #ab9bc8; --sq-orange: #cba17a; }
+.sq-semantic-healthcare { --semantic-primary: var(--sq-medical); --semantic-detail: var(--sq-rose); }
+.sq-semantic-diagnostics { --semantic-primary: var(--sq-cyan); --semantic-detail: var(--sq-blue); }
+.sq-semantic-dental { --semantic-primary: var(--sq-blue); --semantic-detail: var(--sq-cyan); }
+.sq-semantic-beauty { --semantic-primary: var(--sq-rose); --semantic-detail: var(--sq-orange); }
+.sq-semantic-legal { --semantic-primary: var(--sq-gold); --semantic-detail: var(--lp-text-sec); }
+.sq-semantic-repair { --semantic-primary: var(--sq-blue); --semantic-detail: var(--sq-orange); }
+.sq-semantic-consulting { --semantic-primary: var(--sq-violet); --semantic-detail: var(--sq-cyan); }
+.sq-semantic-other { --semantic-primary: var(--lp-sage); --semantic-detail: var(--sq-gold); }
+.discovery-category-icon[class*="sq-semantic"], .sq-benefit-card .sq-icon-tile { color: var(--semantic-primary); background: color-mix(in srgb, var(--semantic-primary) 12%, var(--lp-surface)); border-color: color-mix(in srgb, var(--semantic-primary) 30%, var(--lp-border)); }
+.category-icon-detail { stroke: var(--semantic-detail, var(--lp-sage)); }
+.discovery-org-body .discovery-profile-button { color: var(--lp-text); background: var(--lp-sage-bg); border-color: var(--lp-sage); }
+.discovery-org-body .discovery-profile-button:hover { color: var(--lp-text); background: color-mix(in srgb, var(--lp-sage) 22%, var(--lp-surface)); }
+.sq-benefit-card:focus-visible .sq-icon-tile { border-color: var(--semantic-primary); }
+@media (hover: hover) and (pointer: fine) { .sq-benefit-card:hover .sq-icon-tile { border-color: var(--semantic-primary); } }
+.availability-finder { width: 100%; max-width: 1240px; margin: 64px auto; padding: 32px; border: 1px solid var(--lp-border-med); border-radius: 24px; background: var(--lp-surface); box-shadow: var(--shadow-sm); min-width: 0; }
+.availability-finder.is-observed:not(.is-revealed) { opacity: 0; transform: translateY(24px); }
+.availability-finder.is-revealed { animation: availability-enter .6s cubic-bezier(.16,1,.3,1) both; }
+@keyframes availability-enter { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+.availability-header { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; padding-bottom: 26px; border-bottom: 1px solid var(--lp-border); }
+.availability-heading-label { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.availability-mark { display: grid; place-items: center; flex: 0 0 32px; height: 32px; color: var(--lp-sage); background: var(--lp-sage-bg); border: 1px solid var(--lp-sage-border); border-radius: 10px; }
+.availability-mark svg { width: 20px; height: 20px; }
+.availability-header h2 { width: 100%; color: var(--lp-text); font-size: clamp(1.5rem,2.5vw,2rem); margin: 0; letter-spacing: -.025em; }
+.availability-header p, .availability-actions p, .availability-results p { color: var(--lp-text-sec); font-size: .88rem; line-height: 1.65; margin: 0; }
+.availability-header p { width: 100%; max-width: 640px; }
+.availability-fields { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 22px; padding-top: 26px; }
+.availability-fields > div { min-width: 0; }
+.availability-fields label { display: block; font-weight: 600; color: var(--lp-text-sec); font-size: .8rem; margin-bottom: 8px; }
+.availability-fields :is(select,input) { width: 100%; min-width: 0; min-height: 46px; padding: 10px 12px; color: var(--lp-text); background: var(--lp-bg); border: 1px solid var(--lp-border-med); border-radius: 10px; font: inherit; font-size: .86rem; color-scheme: light dark; }
+:root[data-theme="light"] .availability-fields :is(select,input) { color-scheme: light; }
+:root[data-theme="dark"] .availability-fields :is(select,input) { color-scheme: dark; }
+.availability-fields :is(select,input):focus-visible { outline: 2px solid var(--lp-sage); outline-offset: 2px; }
+.availability-fields :is(select,input):disabled { opacity: .6; }
+.availability-actions { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; padding-top: 4px; }
+.availability-actions .lp-btn-primary { min-height: 46px; padding: 12px 24px; }
+.availability-actions button:disabled { opacity: .5; cursor: default; }
+.availability-finder :is(button,a):focus-visible { outline: 2px solid var(--lp-sage); outline-offset: 3px; }
+.availability-results { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--lp-border); animation: availability-enter .35s ease-out both; }
+.availability-results h3 { color: var(--lp-text); font-size: 1rem; margin: 0 0 16px; }
+.availability-results article { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 16px 0; border-bottom: 1px solid var(--lp-border); color: var(--lp-text); }
+.customer-recent-history { margin-top: 28px; padding: 22px; background: var(--lp-surface); border: 1px solid var(--lp-border); border-radius: 16px; }
+.customer-recent-history header { display: flex; justify-content: space-between; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.customer-recent-history h2 { font-size: 1.15rem; color: var(--lp-text); margin: 6px 0 0; }
+.customer-recent-history header > span { font-size: .75rem; color: var(--lp-muted); }
+.customer-recent-history > div { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(220px,100%),1fr)); gap: 12px; }
+.customer-recent-history a { display: flex; flex-direction: column; gap: 6px; padding: 16px; background: var(--lp-bg); border: 1px solid var(--lp-border); border-radius: 12px; color: var(--lp-text); text-decoration: none; }
+.customer-recent-history a:hover { border-color: var(--lp-sage); }
+.customer-recent-history a:focus-visible { outline: 2px solid var(--lp-sage); outline-offset: 3px; }
+.customer-recent-history a > span { font-size: .75rem; color: var(--lp-muted); }
+.customer-recent-history .recent-rating { color: var(--sq-gold); }
+.customer-recent-history .recent-profile { color: var(--lp-sage); margin-top: auto; padding-top: 8px; font-weight: 600; }
+@media (max-width: 1000px) { .availability-fields { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 600px) { .availability-finder { padding: 22px; margin-block: 48px; } .availability-fields { grid-template-columns: minmax(0,1fr); gap: 18px; } .availability-actions { align-items: stretch; } .availability-actions .lp-btn-primary { width: 100%; justify-content: center; } .customer-recent-history { padding: 18px; } }
+@media (prefers-reduced-motion: reduce) { .availability-finder, .availability-results { animation: none !important; transform: none !important; opacity: 1 !important; } }

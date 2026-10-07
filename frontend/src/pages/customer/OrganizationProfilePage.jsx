@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import organizationService from '../../services/organizationService';
+import { addRecentlyViewedOrg } from '../../utils/recentAndFavorites';
 import appointmentService from '../../services/appointmentService';
 import ProfessionalCarousel from '../../components/ProfessionalCarousel';
 import PublicNavbar from '../../components/PublicNavbar';
@@ -176,6 +177,7 @@ export function OrganizationProfilePage() {
       .then(([orgData, servicesData, providersData, credsData, reviewsData]) => {
         if (!isMounted) return;
         setOrg(orgData);
+        addRecentlyViewedOrg(orgData);
 
         const svcList = Array.isArray(servicesData) ? servicesData : servicesData?.results || [];
         const provList = Array.isArray(providersData) ? providersData : providersData?.results || [];

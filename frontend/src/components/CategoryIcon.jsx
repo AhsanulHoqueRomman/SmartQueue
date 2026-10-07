@@ -8,5 +8,6 @@ const paths = {
 };
 
 export default function CategoryIcon({ industry }) {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[industry] || paths.OTHER}</svg>;
+  const details = { HEALTHCARE: <path d="M8 12h2l1-2 2 4 1-2h2" />, LEGAL: <path d="M4 7h16M7 21h10" />, BEAUTY: <path d="M20 2v4m-2-2h4" />, REPAIR: <path d="m14 6 4 4 3-3" />, CONSULTING: <path d="M8 7V3h8v4m-4 6v4" /> };
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="6" fill="currentColor" opacity=".08" stroke="none" /><g fill="currentColor" fillOpacity=".08">{paths[industry] || paths.OTHER}</g><g className="category-icon-detail">{details[industry] || <path d="M6 14h6m-6 3h4" />}</g></svg>;
 }

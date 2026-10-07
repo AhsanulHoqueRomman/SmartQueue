@@ -4,7 +4,8 @@ const FAVORITES_KEY = 'sq_favorite_orgs';
 export const getRecentlyViewedOrgs = () => {
   try {
     const raw = localStorage.getItem(RECENT_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const rows = raw ? JSON.parse(raw) : [];
+    return Array.isArray(rows) ? rows.filter(item => item && item.id) : [];
   } catch (err) {
     return [];
   }
@@ -20,10 +21,10 @@ export const addRecentlyViewedOrg = (org) => {
     const item = {
       id: org.id,
       name: org.name,
-      category: org.category || 'HEALTHCARE',
-      rating: org.rating || '4.9',
-      reviews_count: org.reviews_count || 12,
-      services_count: org.services_count || 4,
+      category: org.category ?? org.industry_type ?? null,
+      rating: org.rating ?? null,
+      reviews_count: org.reviews_count ?? null,
+      services_count: org.services_count ?? null,
       address: org.address || '',
       viewed_at: new Date().toISOString(),
     };

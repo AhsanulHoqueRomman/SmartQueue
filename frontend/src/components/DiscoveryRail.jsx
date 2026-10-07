@@ -1,25 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
+import useScrollPresence from '../hooks/useScrollPresence';
 
 export default function DiscoveryRail({ label, items, renderItem, automatic = false }) {
   const viewport = useRef(null);
+  const [, visible] = useScrollPresence(.12, true, viewport);
   const group = useRef(null);
   const drag = useRef(null);
   const suppressClick = useRef(false);
-  const resumeTimer = useRef(null);
-  const interacting = useRef(false);
+  const interaction = useRef({ hovered: false, focused: false, resumeAt: 0 });
   const [edges, setEdges] = useState({ start: true, end: false });
-  const [paused, setPaused] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const [visible, setVisible] = useState(false);
   const [reduced, setReduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const looping = automatic && items.length > 1 && !reduced;
-  useEffect(() => () => clearTimeout(resumeTimer.current), []);
-  const pauseInteraction = () => { clearTimeout(resumeTimer.current); setPaused(true); };
-  const resumeSoon = () => {
-    clearTimeout(resumeTimer.current);
-    resumeTimer.current = setTimeout(() => setPaused(false), 2000);
-  };
+  const resumeSoon = () => { interaction.current.resumeAt = performance.now() + 2000; };
+  useEffect(() => {
+    interaction.current.resumeAt = 0;
+    drag.current = null;
+    interaction.current.hovered = visible && viewport.current.matches(':hover');
+    interaction.current.focused = visible && viewport.current.parentElement.contains(document.activeElement) && document.activeElement.matches(':focus-visible');
+  }, [visible]);
 
   useEffect(() => {
     const node = viewport.current;
@@ -30,28 +28,27 @@ export default function DiscoveryRail({ label, items, renderItem, automatic = fa
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     const onMotion = () => setReduced(media.matches);
     const observer = new ResizeObserver(update);
-    const intersection = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting));
     observer.observe(node);
     if (group.current) observer.observe(group.current);
-    intersection.observe(node);
     node.addEventListener('scroll', update, { passive: true });
     media.addEventListener('change', onMotion);
     update();
-    return () => { observer.disconnect(); intersection.disconnect(); node.removeEventListener('scroll', update); media.removeEventListener('change', onMotion); };
+    return () => { observer.disconnect(); node.removeEventListener('scroll', update); media.removeEventListener('change', onMotion); };
   }, [items.length, looping]);
 
   useEffect(() => {
-    if (!looping || paused || hovered || focused || !visible) return;
+    if (!looping || !visible) return;
     let frame;
     let previous = null;
-    let position = viewport.current.scrollLeft;
+    const node = viewport.current;
+    let position = node.scrollLeft;
     const move = time => {
-      const node = viewport.current;
       const cycle = group.current?.offsetWidth || 0;
-      if (document.hidden || !cycle) previous = null;
+      const { hovered, focused, resumeAt } = interaction.current;
+      if (document.hidden || !cycle || hovered || focused || drag.current || time < resumeAt) { previous = null; position = node.scrollLeft; }
       else {
         if (previous !== null) {
-          position += Math.min(time - previous, 40) * .024;
+          position += Math.min(time - previous, 40) * .0375;
           if (position >= cycle) position -= cycle;
           node.scrollLeft = position;
         }
@@ -61,10 +58,9 @@ export default function DiscoveryRail({ label, items, renderItem, automatic = fa
     };
     frame = requestAnimationFrame(move);
     return () => cancelAnimationFrame(frame);
-  }, [looping, paused, hovered, focused, visible]);
+  }, [looping, visible]);
 
   const moveBy = direction => {
-    pauseInteraction();
     const node = viewport.current;
     if (looping && direction < 0 && node.scrollLeft < 1) node.scrollLeft = group.current.offsetWidth;
     const card = group.current.firstElementChild;
@@ -75,31 +71,33 @@ export default function DiscoveryRail({ label, items, renderItem, automatic = fa
     resumeSoon();
   };
   const pointerDown = event => {
-    pauseInteraction();
-    interacting.current = true;
-    setFocused(false); // Pointer focus must not leave autoplay permanently paused after a swipe/drag.
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    interaction.current.focused = false;
     suppressClick.current = false;
-    if (event.pointerType !== 'mouse' || event.button !== 0) return; // Native touch scrolling.
-    drag.current = { x: event.clientX, scroll: viewport.current.scrollLeft, pointer: event.pointerId };
+    drag.current = { x: event.clientX, y: event.clientY, scroll: viewport.current.scrollLeft, pointer: event.pointerId, type: event.pointerType, horizontal: false };
   };
   const pointerMove = event => {
     if (!drag.current) return;
     const distance = event.clientX - drag.current.x;
+    if (Math.abs(distance) <= Math.abs(event.clientY - drag.current.y)) return;
     if (Math.abs(distance) < 6 && !suppressClick.current) return;
+    drag.current.horizontal = true;
+    if (drag.current.type !== 'mouse') return; // Preserve native touch scrolling.
     suppressClick.current = true;
     viewport.current.setPointerCapture(drag.current.pointer);
     viewport.current.scrollLeft = drag.current.scroll - distance;
   };
-  const endDrag = () => { drag.current = null; interacting.current = false; resumeSoon(); };
+  const endDrag = () => { if (drag.current?.horizontal) resumeSoon(); drag.current = null; };
 
-  return <div className={`discovery-rail ${automatic ? 'discovery-rail-organizations' : ''}`}>
+  return <div className={`discovery-rail ${automatic ? 'discovery-rail-organizations' : ''}`}
+    onFocusCapture={event => { interaction.current.focused = event.target.matches(':focus-visible'); }}
+    onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) interaction.current.focused = false; }}>
     <button type="button" className="discovery-arrow" aria-label={`Previous ${label}`} disabled={!looping && edges.start} onClick={() => moveBy(-1)}>‹</button>
     <div ref={viewport} className="discovery-rail-viewport" role="region" aria-label={label} tabIndex={0}
-      onMouseEnter={() => setHovered(true)} onMouseLeave={() => { setHovered(false); endDrag(); }}
-      onFocusCapture={event => setFocused(event.target.matches(':focus-visible'))} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}
-      onKeyDown={event => { setFocused(true); if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); moveBy(event.key === 'ArrowLeft' ? -1 : 1); } }}
+      onMouseEnter={() => { interaction.current.hovered = true; }} onMouseLeave={() => { interaction.current.hovered = false; endDrag(); }}
+      onKeyDown={event => { interaction.current.focused = true; if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); moveBy(event.key === 'ArrowLeft' ? -1 : 1); } }}
       onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={endDrag} onPointerCancel={endDrag}
-      onWheel={() => { pauseInteraction(); resumeSoon(); }} onScroll={() => { if (paused && !interacting.current) resumeSoon(); }} onDragStart={event => event.preventDefault()}
+      onWheel={event => { if (Math.abs(event.deltaX) > Math.abs(event.deltaY) || (event.shiftKey && event.deltaY !== 0)) resumeSoon(); }} onDragStart={event => event.preventDefault()}
       onClickCapture={event => { if (suppressClick.current) { event.preventDefault(); event.stopPropagation(); suppressClick.current = false; } }}>
       <div className="discovery-rail-track">
         <div ref={group} className="discovery-rail-group">{items.map(item => renderItem(item, false))}</div>

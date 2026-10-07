@@ -5,6 +5,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { useToast } from '../../contexts/ToastContext';
 import appointmentService from '../../services/appointmentService';
 import CustomerBookingCard from '../../components/CustomerBookingCard';
+import RecentlyViewedOrganizations from '../../components/RecentlyViewedOrganizations';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import StatusBadge from '../../components/StatusBadge';
@@ -447,6 +448,7 @@ export const CustomerDashboard = () => {
           </div>
         )}
       </div>
+      <RecentlyViewedOrganizations />
     </div>
   );
 };

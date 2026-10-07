@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import useScrollPresence from '../hooks/useScrollPresence';
 import { Link } from 'react-router-dom';
 import '../styles/LandingPhaseThree.css';
+import '../styles/LandingPolish.css';
 
 const icons = {
   organization: <><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5M8 9h1m6 0h1M8 12h1m6 0h1" /></>,
@@ -14,30 +16,15 @@ function ProductIcon({ name }) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{icons[name]}</svg>;
 }
 
-function useSectionMotion(threshold = .08, ambientDelay = 0) {
-  const ref = useRef(null);
-  const observed = 'IntersectionObserver' in window;
-  const [revealed, setRevealed] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const [ambientReady, setAmbientReady] = useState(ambientDelay === 0);
+function useSectionMotion(threshold = .08, replay = true) {
+  const [ref, revealed, visible, observed] = useScrollPresence(threshold, replay);
   const [pageVisible, setPageVisible] = useState(() => !document.hidden);
   useEffect(() => {
-    if (!window.IntersectionObserver) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      setVisible(entry.isIntersecting);
-      if (entry.isIntersecting && entry.intersectionRatio >= threshold) setRevealed(true);
-    }, { threshold: [0, threshold], rootMargin: '0px 0px -8% 0px' });
-    observer.observe(ref.current);
     const onVisibility = () => setPageVisible(!document.hidden);
     document.addEventListener('visibilitychange', onVisibility);
-    return () => { observer.disconnect(); document.removeEventListener('visibilitychange', onVisibility); };
-  }, [threshold]);
-  useEffect(() => {
-    if (!revealed || ambientDelay === 0) return;
-    const timer = window.setTimeout(() => setAmbientReady(true), ambientDelay);
-    return () => window.clearTimeout(timer);
-  }, [revealed, ambientDelay]);
-  return [ref, `sq-phase3 ${observed ? 'is-observed' : ''} ${revealed ? 'is-revealed' : ''}`, visible && pageVisible && ambientReady];
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+  return [ref, `sq-phase3 ${observed ? 'is-observed' : ''} ${revealed ? 'is-revealed' : ''}`, visible && pageVisible && revealed];
 }
 
 const steps = [
@@ -72,17 +59,12 @@ const benefits = [
   ['professional', 'Transparent Service Choice', 'Compare professionals, customer-facing charges, organization information and availability before booking.', 'Choose with useful information', ['Professional', 'Service Charge', 'Availability']],
 ];
 export function WhySmartQueue() {
-  const [clusterRef, motionClass, active] = useSectionMotion(.25, 1250);
-  return <section id="why-smartqueue" className={`${motionClass} sq-benefits-section ${active ? 'is-active' : ''}`} aria-labelledby="sq-benefits-heading">
+  const [clusterRef, motionClass] = useSectionMotion(.25);
+  return <section id="why-smartqueue" className={`${motionClass} sq-benefits-section `} aria-labelledby="sq-benefits-heading">
     <div className="sq-phase3-inner">
     <header className="sq-section-heading sq-benefits-heading"><span className="sq-eyebrow">More clarity. Less guesswork.</span><h2 id="sq-benefits-heading">Why Patients &amp; Clients Choose SmartQueue</h2><p>Useful information before your visit, and better visibility while you wait.</p></header>
     <div ref={clusterRef} className="sq-benefits-cluster">
-    <svg className="sq-benefits-network" viewBox="0 0 1240 1000" preserveAspectRatio="none" aria-hidden="true">
-      <g className="sq-network-routes"><path d="M-40 170H140Q180 170 180 210V440Q180 480 220 480H1070Q1110 480 1110 520V800Q1110 840 1150 840H1280" /><path d="M1260 80H990Q950 80 950 120V270Q950 310 910 310H60Q20 310 20 350V900" /></g>
-      <g className="sq-network-nodes"><circle cx="180" cy="210" r="6" /><circle cx="950" cy="120" r="5" /><circle cx="1110" cy="520" r="6" /><circle cx="20" cy="740" r="5" /></g>
-      <circle className="sq-network-tracer sq-network-tracer-one" r="4" /><circle className="sq-network-tracer sq-network-tracer-two" r="4" />
-    </svg>
-    <div className="sq-benefits-grid">{benefits.map(([icon, title, description, detail, chips], index) => <article className="sq-benefit-card sq-entry" tabIndex={0} aria-labelledby={`sq-benefit-title-${index}`} key={title} style={{ '--entry-delay': `${.12 + index * .16}s` }}>
+    <div className="sq-benefits-grid">{benefits.map(([icon, title, description, detail, chips], index) => <article className={`sq-benefit-card sq-entry sq-semantic-${['healthcare', 'diagnostics', 'legal', 'consulting'][index]}`} tabIndex={0} aria-labelledby={`sq-benefit-title-${index}`} key={title} style={{ '--entry-delay': `${.12 + index * .16}s` }}>
       <span className="sq-icon-tile"><ProductIcon name={icon} /></span><h3 id={`sq-benefit-title-${index}`}>{title}</h3><p>{description}</p>
       <div className="sq-benefit-detail" aria-hidden="true"><span>{detail}</span><div>{chips.map(chip => <span key={chip}>{chip}</span>)}</div></div>
     </article>)}</div>
@@ -107,7 +89,7 @@ function OperationsPreview({ active }) {
 }
 
 export function ForOrganizations() {
-  const [sectionRef, motionClass, active] = useSectionMotion();
+  const [sectionRef, motionClass, active] = useSectionMotion(.08, false);
   return <section ref={sectionRef} id="for-organizations" className={`${motionClass} sq-organizations-section`} aria-labelledby="sq-organizations-heading"><div className="sq-phase3-inner sq-organizations-split">
     <div className="sq-organization-copy sq-entry"><span className="sq-eyebrow">For organizations</span><h2 id="sq-organizations-heading">Built for organizations that serve people in queues.</h2><p>Manage appointments, serials, your team and customer queue visibility from one system. Built for clinics, salons, legal firms, consultants, service centers and counters.</p>
       <ul className="sq-capabilities">{[['professional', 'Provider & Staff Management'], ['serial', 'Appointment & Serial Management'], ['queue', 'Live Queue Operations'], ['service', 'Services, Schedules & Customer Charges']].map(([icon, title]) => <li key={title}><ProductIcon name={icon} /><span>{title}</span></li>)}</ul>

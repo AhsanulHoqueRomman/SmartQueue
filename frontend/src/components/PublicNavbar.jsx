@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ThemeToggle } from './ThemeToggle';
 import { UserAccountMenu } from './UserAccountMenu';
@@ -9,6 +9,7 @@ import '../styles/LandingPhaseOne.css';
 export const PublicNavbar = ({ activePage = '' }) => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButton = useRef(null);
@@ -31,10 +32,14 @@ export const PublicNavbar = ({ activePage = '' }) => {
     return () => { document.removeEventListener('keydown', close); document.removeEventListener('pointerdown', close); };
   }, [menuOpen]);
   const anchorClick = (event, anchor) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     setMenuOpen(false);
-    if (location.pathname !== '/') return;
     event.preventDefault();
-    document.querySelector(anchor)?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' });
+    if (location.pathname !== '/') navigate('/', { state: { landingAnchor: anchor } });
+    else {
+      if (location.hash) navigate('/', { replace: true, state: null });
+      document.querySelector(anchor)?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' });
+    }
   };
   return <header ref={header} className={`lp-nav lp-phase-one-nav ${scrolled ? 'lp-nav--scrolled' : ''}`}>
     <div className="lp-nav-inner">
@@ -46,9 +51,9 @@ export const PublicNavbar = ({ activePage = '' }) => {
         <Link to="/organizations" className="lp-nav-link" onClick={() => setMenuOpen(false)}>Organizations</Link>
         <Link to="/professionals" className="lp-nav-link" aria-current={activePage === 'professionals' ? 'page' : undefined} onClick={() => setMenuOpen(false)}>Professionals</Link>
         <Link to="/search" className="lp-nav-link" onClick={() => setMenuOpen(false)}>Search</Link>
-        <Link to="/#how-it-works" className="lp-nav-link" onClick={event => anchorClick(event, '#how-it-works')}>How It Works</Link>
-        <Link to="/#why-smartqueue" className="lp-nav-link" onClick={event => anchorClick(event, '#why-smartqueue')}>Why SmartQueue</Link>
-        <Link to="/#for-organizations" className="lp-nav-link" onClick={event => anchorClick(event, '#for-organizations')}>For Organizations</Link>
+        <Link to="/" className="lp-nav-link" onClick={event => anchorClick(event, '#how-it-works')}>How It Works</Link>
+        <Link to="/" className="lp-nav-link" onClick={event => anchorClick(event, '#why-smartqueue')}>Why SmartQueue</Link>
+        <Link to="/" className="lp-nav-link" onClick={event => anchorClick(event, '#for-organizations')}>For Organizations</Link>
         <Link to="/contact" className="lp-nav-link" aria-current={activePage === 'contact' ? 'page' : undefined} onClick={() => setMenuOpen(false)}>Contact Us</Link>
       </nav>
       <div className="lp-nav-cta"><ThemeToggle />{user ? <UserAccountMenu /> : <><Link to="/login" className="lp-btn-ghost lp-nav-sign-in">Sign in</Link><Link to="/register" className="lp-btn-primary lp-nav-get-started">Get Started</Link></>}

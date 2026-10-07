@@ -4,7 +4,10 @@ import organizationService from '../services/organizationService';
 import DiscoveryRail from './DiscoveryRail';
 import OrganizationArtwork from './OrganizationArtwork';
 import CategoryIcon from './CategoryIcon';
+import { categoryAccent } from '../utils/categoryAccent';
+import useScrollPresence from '../hooks/useScrollPresence';
 import '../styles/LandingPhaseTwo.css';
+import '../styles/LandingPolish.css';
 
 export function CategoryDiscoverySection({ organizations }) {
   const [categories, setCategories] = useState([]);
@@ -21,14 +24,15 @@ export function CategoryDiscoverySection({ organizations }) {
       : <DiscoveryRail label="service categories" items={categories} renderItem={category => {
         const count = organizations.filter(org => org.industry_type === category.industry_type).length;
         return <Link key={category.id} className="discovery-category" to={`/organizations?industry=${encodeURIComponent(category.industry_type)}`}>
-        <span className="discovery-category-icon" aria-hidden="true"><CategoryIcon industry={category.industry_type} /></span>
+        <span className={`discovery-category-icon sq-semantic-${categoryAccent(category.industry_type, category.name)}`} aria-hidden="true"><CategoryIcon industry={category.industry_type} /></span>
         <h3>{category.name}</h3><span>{count} {count === 1 ? 'organization' : 'organizations'}</span>
       </Link>; }} />}
   </section>;
 }
 
 export function PopularOrganizationsSection({ organizations, loading, error }) {
-  return <section className="phase-two-section" aria-labelledby="popular-heading">
+  const [sectionRef, entered, , supported] = useScrollPresence(.12);
+  return <section ref={sectionRef} className={`phase-two-section popular-discovery ${supported ? 'is-observed' : ''} ${entered ? 'is-revealed' : ''}`} aria-labelledby="popular-heading">
     <span className="discovery-eyebrow">Explore the community</span><h2 id="popular-heading">Popular Organizations</h2>
     <p className="discovery-intro">Meet organizations across Bangladesh, and find the right professional for your next visit.</p>
     {loading ? <p role="status">Loading organizations…</p> : error ? <p role="status">Organizations are unavailable right now. Please try again later.</p> : !organizations.length ? <p>No organizations available yet.</p>
@@ -38,7 +42,7 @@ export function PopularOrganizationsSection({ organizations, loading, error }) {
           {org.reviews_count > 0 && org.rating != null && <p className="discovery-rating">★ {Number(org.rating).toFixed(1)} <span>· {org.reviews_count} reviews</span></p>}
           <p className="discovery-location">{org.address || 'Location not listed'}</p>
           <p className="discovery-counts">{org.services_count != null && <span>{org.services_count} services</span>}{org.providers_count != null && <span>{org.providers_count} professionals</span>}</p>
-          <Link tabIndex={duplicate ? -1 : undefined} to={`/organizations/${org.id}`} className="lp-btn-outline">View Organization Profile</Link>
+          <Link tabIndex={duplicate ? -1 : undefined} to={`/organizations/${org.id}`} className="lp-btn-outline discovery-profile-button">View Organization Profile</Link>
         </div>
       </article>} />}
     <Link to="/organizations" className="lp-btn-primary discovery-all">Browse All Organizations</Link>

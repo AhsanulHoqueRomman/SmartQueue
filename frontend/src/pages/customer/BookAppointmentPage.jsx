@@ -54,7 +54,11 @@ export function BookAppointmentPage() {
   const [searchParams] = useSearchParams();
   const { selectOrg } = useTenant();
   const today = currentBusinessDate();
-  const [selection, setSelection] = useState({ category: '', organization: '', service: '', provider: '', date: today });
+  const [selection, setSelection] = useState(() => {
+    const requestedDate = searchParams.get('date');
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate || '') && requestedDate >= today ? requestedDate : today;
+    return { category: '', organization: '', service: '', provider: '', date };
+  });
   const selectionRef = useRef(selection);
   const initialLink = useRef(searchParams);
   const allowDeepLink = useRef(true);
