@@ -51,24 +51,24 @@
 }
 .hero-illustrative-note { color: var(--lp-muted); font-size: .58rem; line-height: 1.5; margin: 12px 0 0; }
 .hero-product-story:not(.has-entered) .hero-phone,
-.hero-product-story:not(.has-entered) .hero-support-card,
-.hero-product-story:not(.has-entered) .hero-queue-path { opacity: 0; }
-.hero-product-story.has-entered .hero-phone { animation: hero-product-enter 440ms ease-out both; }
-.hero-product-story.has-entered .hero-support-serial { animation: hero-product-enter 440ms 180ms ease-out both; }
-.hero-product-story.has-entered .hero-support-live { animation: hero-product-enter 440ms 340ms ease-out both; }
-.hero-product-story.has-entered .hero-queue-path { animation: hero-network-enter 700ms 520ms ease-out both; }
-.hero-product-story.has-entered .hero-network-line { animation: hero-network-flow 18s linear infinite; opacity: .65; }
-.hero-product-story.has-entered .hero-network-line:nth-child(2) { animation-duration: 22s; animation-direction: reverse; }
+.hero-product-story:not(.has-entered) .hero-support-card { opacity: 0; }
+.hero-product-story.has-entered .hero-phone { animation: hero-product-enter 550ms 300ms ease-out backwards; }
+.hero-product-story.has-entered .hero-support-serial { animation: hero-context-enter 550ms 500ms ease-out backwards; }
+.hero-product-story.has-entered .hero-support-live { animation: hero-context-enter 550ms 650ms ease-out backwards; }
+/* Always mounted loops: replaying the foreground never resets network progress. */
+.hero-network-line { animation: hero-network-flow 13s linear infinite; opacity: .65; }
+.hero-network-line:nth-child(2) { animation-duration: 16s; animation-direction: reverse; }
 .hero-network-nodes { opacity: .6; }
-.hero-network-active circle { transform-box: fill-box; transform-origin: center; animation: hero-node-pulse 5s -1s ease-in-out infinite; }
-.hero-network-active circle:nth-child(2) { animation-duration: 6.5s; animation-delay: -3s; }
-.hero-network-active circle:nth-child(3) { animation-duration: 4.5s; animation-delay: -2s; }
-.hero-network-tracer { offset-rotate: 0deg; animation: hero-tracer-travel 16s -3s linear infinite; opacity: .9; }
-.hero-network-tracer:nth-child(2) { animation-duration: 12s; animation-delay: -7s; }
-.hero-network-tracer:nth-child(3) { animation-duration: 18s; animation-delay: -11s; }
-.hero-product-story.is-motion-paused * { animation-play-state: paused !important; }
-@keyframes hero-product-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes hero-network-enter { from { opacity: 0; } to { opacity: .65; } }
+.hero-network-active circle { transform-box: fill-box; transform-origin: center; animation: hero-node-pulse 3.8s -1s ease-in-out infinite; }
+.hero-network-active circle:nth-child(2) { animation-duration: 4.8s; animation-delay: -3s; }
+.hero-network-active circle:nth-child(3) { animation-duration: 3.4s; animation-delay: -2s; }
+.hero-network-tracer { offset-rotate: 0deg; animation: hero-tracer-travel 11.5s -3s linear infinite; opacity: .9; }
+.hero-network-tracer:nth-child(2) { animation-duration: 8.5s; animation-delay: -7s; }
+.hero-network-tracer:nth-child(3) { animation-duration: 13s; animation-delay: -11s; }
+.hero-product-story.is-motion-paused .hero-queue-path * { animation-play-state: paused !important; }
+@keyframes hero-product-enter { from { opacity: 0; transform: translateY(16px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes hero-context-enter { from { opacity: 0; transform: translateX(16px) translateY(8px); } to { opacity: 1; transform: none; } }
+@media (max-width: 540px) { @keyframes hero-context-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } } }
 @keyframes hero-network-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -110; } }
 @keyframes hero-node-pulse { 0%, 100% { opacity: .5; transform: scale(1); } 50% { opacity: .9; transform: scale(1.18); } }
 @keyframes hero-tracer-travel { from { offset-distance: 0%; } to { offset-distance: 100%; } }

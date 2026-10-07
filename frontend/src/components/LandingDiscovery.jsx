@@ -10,6 +10,7 @@ import '../styles/LandingPhaseTwo.css';
 import '../styles/LandingPolish.css';
 
 export function CategoryDiscoverySection({ organizations }) {
+  const [sectionRef, entered, , supported] = useScrollPresence(.2);
   const [categories, setCategories] = useState([]);
   const [error, setError] = useState(false);
   useEffect(() => {
@@ -17,13 +18,13 @@ export function CategoryDiscoverySection({ organizations }) {
     organizationService.getGlobalCategories().then(data => { if (current) setCategories(data); }).catch(() => { if (current) setError(true); });
     return () => { current = false; };
   }, []);
-  return <section className="phase-two-section category-discovery" aria-labelledby="category-heading">
+  return <section ref={sectionRef} className={`phase-two-section category-discovery ${supported ? 'is-observed' : ''} ${entered ? 'is-revealed' : ''}`} aria-labelledby="category-heading">
     <span className="discovery-eyebrow">Find your next service</span><h2 id="category-heading">Browse by Service Category</h2>
     <p className="discovery-intro">Everyday care, expert advice and practical services. Start with what you need.</p>
     {error ? <p role="status">Categories are unavailable. <Link to="/organizations">Browse organizations</Link></p> : !categories.length ? <p role="status">Loading categories…</p>
       : <DiscoveryRail label="service categories" items={categories} renderItem={category => {
         const count = organizations.filter(org => org.industry_type === category.industry_type).length;
-        return <Link key={category.id} className="discovery-category" to={`/organizations?industry=${encodeURIComponent(category.industry_type)}`}>
+        return <Link key={category.id} className="discovery-category" style={{ '--category-enter-delay': `${.28 + Math.min(categories.indexOf(category), 5) * .09}s` }} to={`/organizations?industry=${encodeURIComponent(category.industry_type)}`}>
         <span className={`discovery-category-icon sq-semantic-${categoryAccent(category.industry_type, category.name)}`} aria-hidden="true"><CategoryIcon industry={category.industry_type} /></span>
         <h3>{category.name}</h3><span>{count} {count === 1 ? 'organization' : 'organizations'}</span>
       </Link>; }} />}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import './HeroProductStory.css';
 
 const QUEUE_PATHS = [
@@ -24,23 +24,15 @@ function OrganizationImage() {
   </svg>;
 }
 
-export default function HeroProductStory() {
-  const root = useRef(null);
-  const [entered, setEntered] = useState(false);
-  const [inView, setInView] = useState(false);
+export default function HeroProductStory({ entered, visible }) {
   const [documentVisible, setDocumentVisible] = useState(() => !document.hidden);
   useEffect(() => {
     const onVisibility = () => setDocumentVisible(!document.hidden);
-    const observer = new IntersectionObserver(([entry]) => {
-      setInView(entry.isIntersecting);
-      if (entry.isIntersecting) setEntered(true);
-    }, { threshold: .15 });
-    observer.observe(root.current);
     document.addEventListener('visibilitychange', onVisibility);
-    return () => { observer.disconnect(); document.removeEventListener('visibilitychange', onVisibility); };
+    return () => { document.removeEventListener('visibilitychange', onVisibility); };
   }, []);
 
-  return <div className={`hero-product-story ${entered ? 'has-entered' : ''} ${!documentVisible || !inView ? 'is-motion-paused' : ''}`} ref={root} aria-label="Illustrative SmartQueue product walkthrough">
+  return <div className={`hero-product-story ${entered ? 'has-entered' : ''} ${!documentVisible || !visible ? 'is-motion-paused' : ''}`} aria-label="Illustrative SmartQueue product walkthrough">
     <div className="hero-story-canvas">
       <svg className="hero-queue-path" viewBox="0 0 600 600" preserveAspectRatio="none" aria-hidden="true">
         <g fill="none" stroke="currentColor" strokeWidth="1.2">

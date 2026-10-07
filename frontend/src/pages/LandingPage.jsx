@@ -13,6 +13,7 @@ import HeroProductStory from '../components/HeroProductStory';
 import { HowSmartQueueWorks, WhySmartQueue, ForOrganizations } from '../components/LandingPhaseThree';
 import '../styles/LandingPhaseOne.css';
 import { CommunityExperiences, ClosingCallToAction, ProductionFooter } from '../components/LandingPhaseFour';
+import useScrollPresence from '../hooks/useScrollPresence';
 
 /* ─── Tiny SVG Icon Components ─────────────────────────────────────────── */
 const IconArrow = () => (
@@ -30,6 +31,7 @@ const IconSearch = () => (
 );
 
 export const LandingPage = () => {
+  const [heroRef, heroEntered, heroVisible, heroObserved] = useScrollPresence(.25);
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -85,7 +87,7 @@ export const LandingPage = () => {
       <PublicNavbar activePage="" />
 
       {/* ── Hero ───────────────────────────────────────────────────────── */}
-      <section className="lp-product-hero" aria-labelledby="landing-hero-title">
+      <section ref={heroRef} className={`lp-product-hero ${heroObserved ? 'is-observed' : ''} ${heroEntered ? 'is-revealed' : ''}`} aria-labelledby="landing-hero-title">
         <div className="lp-product-hero-inner">
           <div className="lp-product-hero-copy">
             <div className="lp-product-eyebrow"><span aria-hidden="true" />MULTI-SERVICE APPOINTMENT &amp; QUEUE PLATFORM</div>
@@ -102,7 +104,7 @@ export const LandingPage = () => {
             </div>
             <div className="lp-product-footnote"><span aria-hidden="true">✓</span> Reserve a serial. Track your queue. Plan your arrival.</div>
           </div>
-          <HeroProductStory />
+          <HeroProductStory entered={heroEntered} visible={heroVisible} />
         </div>
       </section>
       <section className="lp-discovery-content" aria-label="Discover SmartQueue services">

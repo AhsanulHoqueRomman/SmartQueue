@@ -4,8 +4,10 @@ import appointmentService from '../services/appointmentService';
 import getNormalizedCustomerQueueState from '../utils/queueDisplay';
 import { formatCurrency } from '../utils/bookingDisplay';
 import { formatBookingDate, getUpcomingBookings } from '../utils/homeBookingDisplay';
+import useScrollPresence from '../hooks/useScrollPresence';
 
 export default function CustomerHomeSection({ user }) {
+  const [sectionRef, entered, , supported] = useScrollPresence(.2);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -32,7 +34,7 @@ export default function CustomerHomeSection({ user }) {
   const additionalCount = Math.max(0, upcoming.length - 1);
   const live = active.find(item => item.is_live_queue && item.queue_entry);
   const queue = live ? getNormalizedCustomerQueueState(live) : null;
-  return <section className="phase-two-section customer-home" aria-labelledby="customer-home-heading">
+  return <section ref={sectionRef} className={`phase-two-section customer-home ${supported ? 'is-observed' : ''} ${entered ? 'is-revealed' : ''}`} aria-labelledby="customer-home-heading">
     <span className="discovery-eyebrow">Your next visit</span><h2 id="customer-home-heading">Welcome back{user.first_name ? `, ${user.first_name}` : ''}</h2>
     {loading ? <p role="status">Loading your bookings…</p> : error ? <p role="status">Your booking status is temporarily unavailable. <Link to="/customer/appointments">Open My Appointments</Link></p> : <div className="customer-home-grid">
       <article className="customer-home-card"><span className="discovery-eyebrow">Upcoming Booking</span>

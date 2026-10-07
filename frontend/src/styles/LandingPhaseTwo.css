@@ -1,4 +1,32 @@
 /* Phase 2 is scoped to discovery sections and the public professional directory. */
+/* Finite entrances share the established presence/re-arm lifecycle. */
+.category-discovery.is-observed:not(.is-revealed) > :is(.discovery-eyebrow,h2,.discovery-intro,.discovery-rail),
+.customer-home.is-observed:not(.is-revealed) > :is(.discovery-eyebrow,h2),
+.customer-home.is-observed:not(.is-revealed) .customer-home-card { opacity: 0; }
+.category-discovery.is-revealed > :is(.discovery-eyebrow,h2,.discovery-intro,.discovery-rail),
+.customer-home.is-revealed > :is(.discovery-eyebrow,h2) { animation: discovery-layer-enter .55s ease-out backwards; }
+.category-discovery.is-revealed > h2, .customer-home.is-revealed > h2 { animation-delay: .08s; }
+.category-discovery.is-revealed > .discovery-intro { animation-delay: .16s; }
+.category-discovery.is-revealed > .discovery-rail { animation-delay: .22s; }
+.category-discovery.is-revealed .discovery-category { animation: category-card-enter .55s ease-out var(--category-enter-delay) backwards; }
+.category-discovery.is-revealed .discovery-category-icon { animation: category-icon-enter .35s ease-out calc(var(--category-enter-delay) + .1s) backwards; }
+.customer-home .customer-home-card { --visit-card-delay: .2s; --visit-enter-x: -18px; box-shadow: var(--shadow-sm), var(--shadow-lg); border-color: var(--lp-border-med); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.customer-home-card:nth-child(2) { --visit-card-delay: .34s; --visit-enter-x: 18px; }
+.customer-home.is-revealed .customer-home-card { animation: visit-card-enter .6s ease-out var(--visit-card-delay) backwards; }
+.customer-home.is-revealed .customer-home-card > * { animation: visit-content-enter .3s ease-out calc(var(--visit-card-delay) + .12s) backwards; }
+.customer-home.is-revealed .customer-home-card > :nth-child(2) { animation-delay: calc(var(--visit-card-delay) + .18s); }
+.customer-home.is-revealed .customer-home-card > :nth-child(3) { animation-delay: calc(var(--visit-card-delay) + .24s); }
+.customer-home.is-revealed .customer-home-card > :nth-child(4) { animation-delay: calc(var(--visit-card-delay) + .3s); }
+.customer-home.is-revealed .customer-home-card > :nth-child(n+5) { animation-delay: calc(var(--visit-card-delay) + .36s); }
+.customer-home-card:focus-within { transform: translateY(-2px); border-color: var(--lp-sage); box-shadow: var(--shadow-md), var(--shadow-lg); }
+@media (hover: hover) { .customer-home-card:hover { transform: translateY(-2px); border-color: var(--lp-sage); box-shadow: var(--shadow-md), var(--shadow-lg); } }
+@keyframes discovery-layer-enter { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes category-card-enter { from { opacity: 0; transform: translateY(26px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes category-icon-enter { from { opacity: 0; transform: scale(.88); } to { opacity: 1; transform: none; } }
+@keyframes visit-card-enter { from { opacity: 0; transform: translate(var(--visit-enter-x),16px); } to { opacity: 1; transform: none; } }
+@keyframes visit-content-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (max-width: 600px) { .customer-home .customer-home-card { --visit-enter-x: 0px; } .customer-home-card:nth-child(2) { --visit-enter-x: 0px; } @keyframes category-card-enter { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: none; } } }
+@media (prefers-reduced-motion: reduce) { .category-discovery > *, .category-discovery .discovery-category, .category-discovery .discovery-category-icon, .customer-home > *, .customer-home .customer-home-card, .customer-home .customer-home-card > * { opacity: 1 !important; transform: none !important; animation: none !important; } }
 .phase-two-section { width: 100%; max-width: 1240px; min-width: 0; margin: 48px auto; text-align: left; }
 /* Trim only the empty section boundary; hero content and artwork stay in place. */
 @media (min-width: 1101px) { .lp-product-hero:has(+ .lp-discovery-content) { min-height: 760px; } }
