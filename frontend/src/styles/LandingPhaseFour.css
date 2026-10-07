@@ -44,10 +44,10 @@
 .testimonial-page { scroll-snap-align: start; scroll-snap-stop: always; }
 .testimonial-entry { flex: 0 0 calc((100% - 48px)/3); min-width: 0; display: flex; }
 .testimonial-entry .community-review { flex: 1; }
-.testimonial-page.is-departing { position: absolute; inset: 8px 0; pointer-events: none; animation: testimonial-depart .4s ease-out both; }
-.testimonial-page.is-arriving { animation: testimonial-arrive .4s ease-out both; }
-@keyframes testimonial-arrive { from { opacity: .15; transform: translateX(calc(var(--page-direction) * 28px)); } to { opacity: 1; transform: none; } }
-@keyframes testimonial-depart { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(calc(var(--page-direction) * -28px)); } }
+.testimonial-page.is-departing { position: absolute; inset: 8px 0; pointer-events: none; animation: testimonial-depart .5s ease-out both; }
+.testimonial-page.is-arriving { animation: testimonial-arrive .5s ease-out both; }
+@keyframes testimonial-arrive { from { opacity: .35; transform: translateX(calc(var(--page-direction) * 100%)); } to { opacity: 1; transform: none; } }
+@keyframes testimonial-depart { from { opacity: 1; transform: none; } to { opacity: .35; transform: translateX(calc(var(--page-direction) * -100%)); } }
 .phase-four-reviews.is-observed:not(.is-revealed) :is(.phase-four-heading > *, .testimonial-stage, .testimonial-entry, .discovery-arrow) { opacity: 0; }
 .phase-four-reviews.is-revealed .phase-four-heading > * { animation: community-reveal .4s ease-out both; }
 .phase-four-reviews.is-revealed .phase-four-heading h2 { animation-delay: .06s; }
