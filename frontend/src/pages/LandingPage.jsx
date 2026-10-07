@@ -18,15 +18,15 @@ import useScrollPresence from '../hooks/useScrollPresence';
 /* ─── Tiny SVG Icon Components ─────────────────────────────────────────── */
 const IconArrow = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <line x1="5" y1="12" x2="19" y2="12"/>
-    <polyline points="12 5 19 12 12 19"/>
+    <line x1="5" y1="12" x2="19" y2="12" />
+    <polyline points="12 5 19 12 12 19" />
   </svg>
 );
 
 const IconSearch = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}>
-    <circle cx="11" cy="11" r="8"/>
-    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
   </svg>
 );
 
@@ -91,7 +91,7 @@ export const LandingPage = () => {
         <div className="lp-product-hero-inner">
           <div className="lp-product-hero-copy">
             <div className="lp-product-eyebrow"><span aria-hidden="true" />MULTI-SERVICE APPOINTMENT &amp; QUEUE PLATFORM</div>
-            <h1 id="landing-hero-title">Book a serial.<br /><span>Arrive smarter.<br />Wait less.</span></h1>
+            <h1 id="landing-hero-title">Book a Serial.<br /><span>Arrive Smarter.<br />Wait less.</span></h1>
             <p>Discover trusted service providers, reserve your queue serial, and receive an estimated service window. Know when to arrive, with live queue updates along the way.</p>
             <form onSubmit={handleHeroSearch} className="lp-product-search" role="search">
               <span aria-hidden="true"><IconSearch /></span>
