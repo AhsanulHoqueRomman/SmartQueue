@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import reviewService from '../services/reviewService';
 import TestimonialPages from './TestimonialPages';
+import ImageWithFallback from './ImageWithFallback';
 import useScrollPresence from '../hooks/useScrollPresence';
 import { getApiDocsUrl } from '../api/client';
 import { footerSocials, publicContact } from '../config/publicContact';
@@ -22,7 +23,7 @@ export function CommunityExperiences({ organizations }) {
       const rows = Array.isArray(data) ? data : data.results || [];
       return rows.filter(review => review.comment?.trim() && review.rating >= 1 && review.rating <= 5)
         .map(review => ({ id: review.id, rating: review.rating, comment: review.comment.trim(),
-          name: review.customer_name || 'Client', service: review.service_name || '', organization: organization.name }));
+          name: review.customer_name || 'Client', avatar: review.customer_avatar_url || null, service: review.service_name || '', organization: organization.name }));
     })).then(results => { if (current) setReviews(results.flatMap(result => result.status === 'fulfilled' ? result.value : [])); });
     return () => { current = false; };
   }, [organizations]);
@@ -37,7 +38,7 @@ function CommunityReviewRail({ reviews }) {
     <TestimonialPages active={entered && visible} items={reviews} renderItem={(review, index) => <article className="community-review" key={review.id} style={{ '--review-delay': `${.22 + index * .12}s` }}>
       <div className="community-stars" role="img" aria-label={`${review.rating} out of 5 stars`}><span aria-hidden="true">{'★'.repeat(review.rating)}<span className="community-empty-stars">{'☆'.repeat(5 - review.rating)}</span></span></div>
       <blockquote><p>“{review.comment}”</p></blockquote>
-      <div className="community-reviewer"><span className="community-avatar" aria-hidden="true">{review.name.split(/\s+/).slice(0, 2).map(word => word[0]).join('')}</span><div><strong>{review.name}</strong><span>{review.organization}</span>{review.service && <span>{review.service}</span>}</div></div>
+      <div className="community-reviewer"><span className="community-avatar" aria-hidden="true"><ImageWithFallback src={review.avatar} alt="" className="community-avatar-image" fallback={review.name.split(/\s+/).slice(0, 2).map(word => word[0]).join('')} /></span><div><strong>{review.name}</strong><span>{review.organization}</span>{review.service && <span>{review.service}</span>}</div></div>
     </article>} />
   </div></section>;
 }

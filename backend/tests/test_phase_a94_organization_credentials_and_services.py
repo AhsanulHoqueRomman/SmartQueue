@@ -256,7 +256,7 @@ def test_service_rich_details_endpoint(a94_setup):
 
 def test_public_review_endpoint_data_provenance(a94_setup):
     """Test public reviews list uses real appointment-backed reviews without leaking emails."""
-    customer = User.objects.create_user(email="client1@smartqueue.bd", password="password123", first_name="Ayman", last_name="Siddique")
+    customer = User.objects.create_user(email="client1@smartqueue.bd", password="password123", first_name="Ayman", last_name="Siddique", avatar='avatars/reviewer.png')
     org = a94_setup['org_legal']
     provider = a94_setup['provider_legal']
     svc = a94_setup['service_legal']
@@ -292,6 +292,7 @@ def test_public_review_endpoint_data_provenance(a94_setup):
     items = res.data['results'] if 'results' in res.data else res.data
     item = items[0]
     assert item['customer_name'] == "Ayman S."
+    assert item['customer_avatar_url'] == 'http://testserver/media/avatars/reviewer.png'
     assert item['rating'] == 5
     assert item['comment'] == "Outstanding contract review advice."
     assert 'customer_email' not in item  # Privacy safe

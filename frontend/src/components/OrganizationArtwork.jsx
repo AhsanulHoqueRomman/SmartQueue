@@ -1,11 +1,9 @@
-import { useState } from 'react';
+import ImageWithFallback from './ImageWithFallback';
 
-export default function OrganizationArtwork({ organization }) {
-  const [failed, setFailed] = useState(false);
+export default function OrganizationArtwork({ organization, preferConfiguredMedia = false }) {
   const source = organization.cover_image;
   const local = source && (source.startsWith('/') || source.startsWith(window.location.origin));
-  if (local && !failed) return <img className="discovery-org-art" src={source} alt={organization.name} onError={() => setFailed(true)} />;
-  return <svg className="discovery-org-art" viewBox="0 0 400 180" role="img" aria-label={`Illustrated storefront for ${organization.name}`}>
+  const fallback = <svg className="discovery-org-art" viewBox="0 0 400 180" role="img" aria-label={`Illustrated storefront for ${organization.name}`}>
     <rect width="400" height="180" fill="var(--lp-bg-subtle)" />
     <g fill="var(--lp-border)"><path d="M0 62h52v100H0zM340 30h60v132h-60zM20 44h46v118H20z" /></g>
     <path d="M80 164V40h238v124" fill="var(--lp-surface)" stroke="var(--lp-border-med)" strokeWidth="2" />
@@ -16,4 +14,5 @@ export default function OrganizationArtwork({ organization }) {
     <path d="M200 110v54M100 129h44M256 129h44M0 168h400" stroke="var(--lp-border-med)" strokeWidth="2" />
     <g fill="var(--lp-sage)"><path d="M45 164v-45h4v45M350 164v-52h4v52" /><circle cx="47" cy="107" r="19" /><circle cx="352" cy="97" r="22" /></g>
   </svg>;
+  return <ImageWithFallback src={preferConfiguredMedia || local ? source : null} alt={organization.name} className="discovery-org-art" fallback={fallback} />;
 }

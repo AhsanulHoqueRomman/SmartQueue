@@ -35,6 +35,8 @@
 .community-review blockquote p { margin: 0; line-height: 1.8; font-size: 1rem; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; overflow: hidden; overflow-wrap: anywhere; }
 .community-reviewer { display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--lp-border); padding-top: 20px; }
 .community-avatar { flex: 0 0 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--lp-sage-bg); border: 1px solid var(--lp-sage-border); color: var(--lp-sage); font-size: .85rem; font-weight: 700; }
+.community-avatar { overflow: hidden; }
+.community-avatar-image { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .community-reviewer > div { min-width: 0; }
 .community-reviewer strong { display: block; font-size: .9rem; margin-bottom: 5px; }
 .community-reviewer span:not(.community-avatar) { display: block; font-size: .75rem; line-height: 1.65; color: var(--lp-muted); overflow-wrap: anywhere; }

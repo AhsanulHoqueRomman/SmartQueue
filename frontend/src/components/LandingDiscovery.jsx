@@ -38,7 +38,7 @@ export function PopularOrganizationsSection({ organizations, loading, error }) {
     <p className="discovery-intro">Meet organizations across Bangladesh, and find the right professional for your next visit.</p>
     {loading ? <p role="status">Loading organizations…</p> : error ? <p role="status">Organizations are unavailable right now. Please try again later.</p> : !organizations.length ? <p>No organizations available yet.</p>
       : <DiscoveryRail automatic label="popular organizations" items={organizations} renderItem={(org, duplicate) => <article key={org.id} className="discovery-org-card">
-        <OrganizationArtwork organization={org} />
+        <OrganizationArtwork organization={org} preferConfiguredMedia />
         <div className="discovery-org-body"><span className="discovery-eyebrow">{org.industry_label}</span><h3>{org.name}</h3>
           {org.reviews_count > 0 && org.rating != null && <p className="discovery-rating">★ {Number(org.rating).toFixed(1)} <span>· {org.reviews_count} reviews</span></p>}
           <p className="discovery-location">{org.address || 'Location not listed'}</p>
