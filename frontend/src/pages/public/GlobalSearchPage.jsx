@@ -156,10 +156,10 @@ export function GlobalSearchPage() {
             Instant Network Search
           </span>
           <h1 style={{ fontSize: '2.2rem', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)', marginTop: '0.25rem', marginBottom: '0.5rem' }}>
-            Global SmartQueue Search
+            Global QueueTurn Search
           </h1>
           <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.975rem', maxWidth: '640px', margin: '0 auto' }}>
-            Find verified clinics, specialized services, doctors, and diagnostic centers across the SmartQueue network.
+            Find verified clinics, specialized services, doctors, and diagnostic centers across the QueueTurn network.
           </p>
 
           {/* Search Form */}

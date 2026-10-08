@@ -684,7 +684,7 @@ export function ContactPage() {
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                 </svg>
               </span>
-              <span className="lp-brand-name">SmartQueue</span>
+              <span className="lp-brand-name">QueueTurn</span>
             </a>
             <p className="lp-footer-tagline">
               Multi-tenant appointment & queue management SaaS platform.
@@ -714,7 +714,7 @@ export function ContactPage() {
         </div>
 
         <div className="lp-footer-bottom">
-          <span className="lp-footer-copy">© {new Date().getFullYear()} SmartQueue. All rights reserved.</span>
+          <span className="lp-footer-copy">© {new Date().getFullYear()} QueueTurn. All rights reserved.</span>
         </div>
       </footer>
 

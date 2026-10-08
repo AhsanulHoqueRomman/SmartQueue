@@ -1,4 +1,4 @@
-/* Small semantic accents stay inside artwork; the SmartQueue brand tokens are unchanged. */
+/* Small semantic accents stay inside artwork; the QueueTurn brand tokens are unchanged. */
 :root { --sq-medical: #386f66; --sq-rose: #a45060; --sq-cyan: #326d86; --sq-blue: #4b7094; --sq-gold: #856523; --sq-violet: #6c5897; --sq-orange: #a26031; }
 :root[data-theme="dark"] { --sq-medical: #62b5a8; --sq-rose: #ce8795; --sq-cyan: #76b5c6; --sq-blue: #8baed1; --sq-gold: #c7aa68; --sq-violet: #ab9bc8; --sq-orange: #cba17a; }
 .sq-semantic-healthcare { --semantic-primary: var(--sq-medical); --semantic-detail: var(--sq-rose); }

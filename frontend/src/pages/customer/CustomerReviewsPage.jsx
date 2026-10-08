@@ -40,7 +40,7 @@ export function CustomerReviewsPage() {
           My Reviews & Ratings
         </h1>
         <p style={{ color: 'var(--lp-text-subtle)', margin: 0, fontSize: '0.95rem' }}>
-          Feedback you've shared after completed service consultations across SmartQueue clinics.
+          Feedback you've shared after completed service consultations across QueueTurn clinics.
         </p>
       </div>
 

@@ -25,18 +25,18 @@ from apps.audit.models import AuditLog
 
 
 class Command(BaseCommand):
-    help = "Seeds SmartQueue with a rich, multi-industry, deterministic Bangladeshi demo dataset."
+    help = "Seeds QueueTurn with a rich, multi-industry, deterministic Bangladeshi demo dataset."
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--reset',
             action='store_true',
-            help='Remove and rebuild only the deterministic SmartQueue demo dataset',
+            help='Remove and rebuild only the deterministic QueueTurn demo dataset',
         )
 
     def handle(self, *args, **options):
         random.seed(42)
-        self.stdout.write(self.style.SUCCESS("Starting SmartQueue multi-industry demo data seeding..."))
+        self.stdout.write(self.style.SUCCESS("Starting QueueTurn multi-industry demo data seeding..."))
 
         with transaction.atomic():
             if options.get('reset'):
@@ -44,7 +44,7 @@ class Command(BaseCommand):
             demo_accounts, orgs, categories, services, providers, appointments, queue_entries, reviews = self.seed_all()
 
         self.stdout.write(self.style.SUCCESS("\n" + "=" * 65))
-        self.stdout.write(self.style.SUCCESS("SUCCESSFULLY SEEDED SMARTQUEUE MULTI-INDUSTRY DEMO DATASET!"))
+        self.stdout.write(self.style.SUCCESS("SUCCESSFULLY SEEDED QUEUETURN MULTI-INDUSTRY DEMO DATASET!"))
         self.stdout.write(self.style.SUCCESS("=" * 65))
         self.stdout.write(f"  - Organizations:  {len(orgs)}")
         self.stdout.write(f"  - Categories:     {len(categories)}")
@@ -101,7 +101,7 @@ class Command(BaseCommand):
                     raise CommandError('Demo reset blocked: provider assignment references a non-demo service.')
             queryset.delete()
 
-        self.stdout.write('Cleaning recognized SmartQueue demo roots...')
+        self.stdout.write('Cleaning recognized QueueTurn demo roots...')
         # PROTECT requires appointments before services, and services before
         # categories. Remaining organization-owned records cascade from roots.
         delete_owned(Appointment.objects.filter(organization_id__in=org_ids))

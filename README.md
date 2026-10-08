@@ -1,8 +1,8 @@
-# ⚡ SmartQueue — Multi-Tenant Appointment & Queue Management Platform
+# ⚡ QueueTurn — Multi-Tenant Appointment & Queue Management Platform
 
-**SmartQueue** is a production-ready, multi-tenant Appointment and Serial-Based Queue Management Platform designed for healthcare clinics, wellness centers, and professional service organizations.
+**QueueTurn** is a production-ready, multi-tenant Appointment and Serial-Based Queue Management Platform designed for healthcare clinics, wellness centers, and professional service organizations.
 
-Built with **Django REST Framework** and **React + Vite**, SmartQueue replaces static, rigid time-slot scheduling with dynamic **serial token queues**, **live queue telemetry**, **readiness indicators**, and **cross-organization customer dashboards**.
+Built with **Django REST Framework** and **React + Vite**, QueueTurn replaces static, rigid time-slot scheduling with dynamic **serial token queues**, **live queue telemetry**, **readiness indicators**, and **cross-organization customer dashboards**.
 
 ---
 
@@ -11,7 +11,7 @@ Built with **Django REST Framework** and **React + Vite**, SmartQueue replaces s
 ### The Problem
 Traditional appointment scheduling forces patients into fixed time slots (e.g., 10:00 AM, 10:15 AM). When consultations run over, waiting rooms overcrowd, patients experience anxiety due to unpredictable delays, and clinics suffer from front-desk operational bottlenecks.
 
-### The SmartQueue Solution
+### The QueueTurn Solution
 - **Serial Token Queue Model**: Customers book a serial position for a given date rather than a fixed minute slot.
 - **Fair Effective Ordering**: Queue sequence is strictly ordered by `-is_urgent, serial_number` (urgent cases prioritized, then ordered by serial number).
 - **Live Telemetry & ETA Windows**: Dynamic computation of *Your Serial*, *Now Serving*, *People Ahead*, *Estimated Service Time Range*, and *Recommended Arrival Time*.
@@ -38,7 +38,7 @@ Traditional appointment scheduling forces patients into fixed time slots (e.g., 
 
 ### Polling Architecture Note
 > [!NOTE]
-> SmartQueue uses **HTTP polling** for live telemetry and notifications:
+> QueueTurn uses **HTTP polling** for live telemetry and notifications:
 > - **Customer Dashboard**: ~10-second polling loop (`appointmentService.getCustomerDashboard()`)
 > - **Notification Bell**: ~20-second centralized polling loop (`notificationService.getCustomerNotifications()`)
 >
@@ -60,7 +60,7 @@ Traditional appointment scheduling forces patients into fixed time slots (e.g., 
 
 ## 🎨 Visual System & Aesthetic Direction
 
-SmartQueue uses the **Warm Sand & Espresso** visual system designed for calm, trustworthy, healthcare-focused user experiences:
+QueueTurn uses the **Warm Sand & Espresso** visual system designed for calm, trustworthy, healthcare-focused user experiences:
 
 - **Background**: `#FAF8F3` (Warm Sand)
 - **Primary / Espresso**: `#2F2520` (Dark Roasted Espresso)

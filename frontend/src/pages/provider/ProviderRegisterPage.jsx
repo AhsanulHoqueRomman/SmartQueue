@@ -235,7 +235,7 @@ export const ProviderRegisterPage = () => {
           >
             <span style={{ fontSize: '1.5rem' }}>⚡</span>
             <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: 'var(--lp-text)' }}>
-              SmartQueue
+              QueueTurn
             </span>
           </Link>
           <div style={{ display: 'inline-block', backgroundColor: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-warning)', marginBottom: '0.5rem' }}>
@@ -493,7 +493,7 @@ export const ProviderRegisterPage = () => {
                       🏥 {org.name}
                     </strong>
                     <span style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)' }}>
-                      {org.address || 'SmartQueue Registered Partner'}
+                      {org.address || 'QueueTurn Registered Partner'}
                     </span>
                   </div>
                 ))}

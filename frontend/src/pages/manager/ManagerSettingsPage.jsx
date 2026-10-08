@@ -51,7 +51,7 @@ const VERIFICATION_STATUS_CONFIG = {
     bannerBorder: 'var(--color-success-border, rgba(34, 197, 94, 0.3))',
     bannerTextColor: 'var(--color-success)',
     icon: '✅',
-    message: 'Your organization is officially verified and fully operational on SmartQueue.',
+    message: 'Your organization is officially verified and fully operational on QueueTurn.',
   },
   REJECTED: {
     label: 'Verification Rejected',

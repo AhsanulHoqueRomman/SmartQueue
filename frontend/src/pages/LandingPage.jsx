@@ -107,7 +107,7 @@ export const LandingPage = () => {
           <HeroProductStory entered={heroEntered} visible={heroVisible} />
         </div>
       </section>
-      <section className="lp-discovery-content" aria-label="Discover SmartQueue services">
+      <section className="lp-discovery-content" aria-label="Discover QueueTurn services">
         {/* Categories */}
         <CategoryDiscoverySection organizations={allOrgs} />
         {user && effectiveRole === 'CUSTOMER' && !user.memberships?.some(membership => ['PROVIDER', 'STAFF', 'MANAGER'].includes(membership.role)) && <CustomerHomeSection user={user} />}

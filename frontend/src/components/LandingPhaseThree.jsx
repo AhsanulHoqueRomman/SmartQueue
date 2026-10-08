@@ -31,7 +31,7 @@ const steps = [
   ['organization', 'Find an Organization', 'Discover verified clinics, salons, legal firms, service centers and more.'],
   ['service', 'Choose a Service', 'Find the service you need and see the professionals who offer it.'],
   ['professional', 'Select a Professional', 'Compare relevant experience, service charges and working availability.'],
-  ['serial', 'Reserve Your Serial', 'Choose your date and confirm. SmartQueue assigns your queue serial.'],
+  ['serial', 'Reserve Your Serial', 'Choose your date and confirm. QueueTurn assigns your queue serial.'],
   ['arrival', 'Check In / Get Ready', 'Follow arrival and readiness guidance, and check in when appropriate.'],
   ['queue', 'Track the Live Queue', 'Follow Now Serving, people ahead and readiness updates until your service.'],
 ];
@@ -40,7 +40,7 @@ export function HowSmartQueueWorks() {
   const [journeyRef, motionClass] = useSectionMotion(.25);
   return <section id="how-it-works" className={`${motionClass} sq-journey-section`} aria-labelledby="sq-journey-heading">
     <div className="sq-phase3-inner">
-      <header className="sq-section-heading"><span className="sq-eyebrow">From discovery to your turn</span><h2 id="sq-journey-heading">How SmartQueue Works</h2><p>Six simple steps. A queue serial, with live guidance along the way.</p></header>
+      <header className="sq-section-heading"><span className="sq-eyebrow">From discovery to your turn</span><h2 id="sq-journey-heading">How QueueTurn Works</h2><p>Six simple steps. A queue serial, with live guidance along the way.</p></header>
       <div ref={journeyRef} className="sq-journey-wrap">
         <svg className="sq-journey-path" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">{['M165 145H500', 'M500 145H835', 'M835 145H920Q975 145 975 220V245Q975 300 920 300H80Q25 300 25 355V390Q25 445 80 445H165', 'M165 445H500', 'M500 445H835'].map((path, index) => <path key={path} d={path} pathLength="1" style={{ '--path-delay': `${.12 + index * .26}s` }} />)}</svg>
         <ol className="sq-journey-grid">{steps.map(([icon, title, description], index) => <li key={title} className="sq-journey-card sq-entry" style={{ '--entry-delay': `${index * .26}s` }}>
@@ -62,7 +62,7 @@ export function WhySmartQueue() {
   const [clusterRef, motionClass] = useSectionMotion(.25);
   return <section id="why-smartqueue" className={`${motionClass} sq-benefits-section `} aria-labelledby="sq-benefits-heading">
     <div className="sq-phase3-inner">
-    <header className="sq-section-heading sq-benefits-heading"><span className="sq-eyebrow">More clarity. Less guesswork.</span><h2 id="sq-benefits-heading">Why Patients &amp; Clients Choose SmartQueue</h2><p>Useful information before your visit, and better visibility while you wait.</p></header>
+    <header className="sq-section-heading sq-benefits-heading"><span className="sq-eyebrow">More clarity. Less guesswork.</span><h2 id="sq-benefits-heading">Why Patients &amp; Clients Choose QueueTurn</h2><p>Useful information before your visit, and better visibility while you wait.</p></header>
     <div ref={clusterRef} className="sq-benefits-cluster">
     <div className="sq-benefits-grid">{benefits.map(([icon, title, description, detail, chips], index) => <article className={`sq-benefit-card sq-entry sq-semantic-${['healthcare', 'diagnostics', 'legal', 'consulting'][index]}`} tabIndex={0} aria-labelledby={`sq-benefit-title-${index}`} key={title} style={{ '--entry-delay': `${.12 + index * .16}s` }}>
       <span className="sq-icon-tile"><ProductIcon name={icon} /></span><h3 id={`sq-benefit-title-${index}`}>{title}</h3><p>{description}</p>
@@ -72,8 +72,8 @@ export function WhySmartQueue() {
 }
 
 function OperationsPreview({ active }) {
-  return <figure className={`sq-operations-preview ${active ? 'is-active' : ''}`} aria-label="Illustrative SmartQueue organization operations dashboard">
-    <div className="sq-operations-header"><span className="sq-operations-brand"><ProductIcon name="organization" />SmartQueue</span><span>Organization workspace</span></div>
+  return <figure className={`sq-operations-preview ${active ? 'is-active' : ''}`} aria-label="Illustrative QueueTurn organization operations dashboard">
+    <div className="sq-operations-header"><span className="sq-operations-brand"><ProductIcon name="organization" />QueueTurn</span><span>Organization workspace</span></div>
     <div className="sq-operations-body"><span className="sq-eyebrow">Today’s operations</span><h3>Dhaka Care Clinic</h3>
       <dl className="sq-operation-stats"><div><dt>Waiting</dt><dd>8</dd></div><div><dt>In Service</dt><dd>2</dd></div><div><dt>Completed</dt><dd>31</dd></div></dl>
       <div className="sq-activity-heading"><h4>Queue activity</h4><span>Today</span></div>

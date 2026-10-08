@@ -225,10 +225,10 @@ def send_contact_customer_confirmation(contact_message):
 
     reference = str(getattr(contact_message, 'id', '') or '')
 
-    subject = 'We received your message - SmartQueue Support'
+    subject = 'We received your message - QueueTurn Support'
     text = (
         f'Hello {contact_message.name},\n\n'
-        'Thank you for contacting SmartQueue. We have received your message and '
+        'Thank you for contacting QueueTurn. We have received your message and '
         'our support team will get back to you as soon as possible.\n\n'
     )
     if reference:
@@ -240,7 +240,7 @@ def send_contact_customer_confirmation(contact_message):
     )
     if config['support_email']:
         text += f'If you need to follow up, reach us at {config["support_email"]}.\n\n'
-    text += 'Thank you,\nSmartQueue Support Team'
+    text += 'Thank you,\nQueueTurn Support Team'
 
     return _send(
         to=contact_message.email,
@@ -273,7 +273,7 @@ def send_contact_admin_reply(contact_message, reply_text, admin_name=None):
         f'{reply_text}\n\n'
         'For reference, your original message was:\n'
         f'{contact_message.message}\n\n'
-        f'Best regards,\n{signature}SmartQueue Support Team'
+        f'Best regards,\n{signature}QueueTurn Support Team'
     )
 
     return _send(
@@ -303,20 +303,20 @@ def send_password_reset_email(user, reset_url):
     name_greeting = f" {user.get_short_name()}" if hasattr(user, 'get_short_name') and user.get_short_name() else ""
     text = (
         f'Hello{name_greeting},\n\n'
-        'We received a request to reset your SmartQueue password.\n\n'
+        'We received a request to reset your QueueTurn password.\n\n'
         'Reset your password:\n'
         f'{reset_url}\n\n'
         'This link is valid for a limited time.\n\n'
         'If you did not request a password reset, you can safely ignore this email.\n\n'
         'Regards,\n'
-        'SmartQueue Support'
+        'QueueTurn Support'
     )
 
     html = (
         f'<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #211C19;">'
-        f'<h2 style="color: #2F2520;">Reset your SmartQueue password</h2>'
+        f'<h2 style="color: #2F2520;">Reset your QueueTurn password</h2>'
         f'<p>Hello{name_greeting},</p>'
-        f'<p>We received a request to reset your SmartQueue password.</p>'
+        f'<p>We received a request to reset your QueueTurn password.</p>'
         f'<p style="margin: 25px 0;">'
         f'<a href="{escape(reset_url)}" style="background-color: #2F2520; color: #FAF8F3; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Reset Password</a>'
         f'</p>'
@@ -324,13 +324,13 @@ def send_password_reset_email(user, reset_url):
         f'<p style="font-size: 0.875rem; color: #78716C;">This link is valid for a limited time.</p>'
         f'<p style="font-size: 0.875rem; color: #78716C;">If you did not request a password reset, you can safely ignore this email.</p>'
         f'<hr style="border: none; border-top: 1px solid #E6E1D9; margin: 20px 0;" />'
-        f'<p style="font-size: 0.8125rem; color: #A8A29E;">Regards,<br />SmartQueue Support</p>'
+        f'<p style="font-size: 0.8125rem; color: #A8A29E;">Regards,<br />QueueTurn Support</p>'
         f'</div>'
     )
 
     return _send(
         to=user.email,
-        subject='Reset your SmartQueue password',
+        subject='Reset your QueueTurn password',
         text=text,
         html=html,
         reply_to=config['support_email'] or None,

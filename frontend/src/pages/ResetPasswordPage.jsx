@@ -112,7 +112,7 @@ export const ResetPasswordPage = () => {
                 </svg>
               </span>
               <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: 'var(--lp-text)' }}>
-                SmartQueue
+                QueueTurn
               </span>
             </Link>
 
@@ -178,7 +178,7 @@ export const ResetPasswordPage = () => {
                 Password Reset Successfully
               </h3>
               <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.75rem' }}>
-                Your SmartQueue account password has been updated. You can now sign in with your new password.
+                Your QueueTurn account password has been updated. You can now sign in with your new password.
               </p>
               <button
                 onClick={() => navigate('/login')}

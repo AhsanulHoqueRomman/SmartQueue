@@ -85,7 +85,7 @@ export const RegisterPage = () => {
                 letterSpacing: '-0.02em',
               }}
             >
-              SmartQueue
+              QueueTurn
             </span>
           </Link>
 
@@ -98,10 +98,10 @@ export const RegisterPage = () => {
               fontFamily: 'Cinzel, serif',
             }}
           >
-            Create your SmartQueue account
+            Create your QueueTurn account
           </h1>
           <p style={{ fontSize: '1.1rem', color: 'var(--lp-text-subtle)', margin: 0, fontWeight: 500 }}>
-            Choose how you'll use SmartQueue.
+            Choose how you'll use QueueTurn.
           </p>
         </div>
 

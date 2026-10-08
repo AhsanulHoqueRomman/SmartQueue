@@ -9,7 +9,7 @@ export const Navbar = () => {
   return (
     <nav className="navbar">
       <Link to="/" className="brand-logo">
-        ⚡ SmartQueue <span className="brand-badge">v1.0</span>
+        ⚡ QueueTurn <span className="brand-badge">v1.0</span>
       </Link>
 
       <div className="nav-links">

@@ -131,7 +131,7 @@ export const AdminDashboard = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <div>
             <h3 style={{ margin: 0 }}>System Organization Registry</h3>
-            <p className="subtitle" style={{ margin: '4px 0 0' }}>Manage all active tenant organizations across SmartQueue.</p>
+            <p className="subtitle" style={{ margin: '4px 0 0' }}>Manage all active tenant organizations across QueueTurn.</p>
           </div>
         </div>
 

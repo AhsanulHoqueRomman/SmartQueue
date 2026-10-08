@@ -95,7 +95,7 @@ def enrich_definitions(definitions):
             existing['title'] = title
             existing['custom_prices'] = {services[index]: value for index, value in charges.items()}
             existing['service_names'] = list(existing['custom_prices'])
-            existing['bio'] = 'Fictional SmartQueue demo professional. ' + existing['bio']
+            existing['bio'] = 'Fictional QueueTurn demo professional. ' + existing['bio']
             # Avoid depicting the pre-existing stylist as a real public figure.
             if org['slug'] == 'glow-beauty-studio':
                 existing['user'] = ('Farzana', 'Nahar', existing['user'][2])

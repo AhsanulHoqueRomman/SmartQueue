@@ -419,7 +419,7 @@ export function OrganizationProfilePage() {
 
   return (
     <div className="lp-root" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* 0. GLOBAL SMARTQUEUE PUBLIC NAVBAR */}
+      {/* 0. GLOBAL QUEUETURN PUBLIC NAVBAR */}
       <PublicNavbar activePage="organizations" />
 
       <main style={{ flex: 1, paddingTop: '84px', paddingBottom: '4rem' }}>
@@ -455,11 +455,11 @@ export function OrganizationProfilePage() {
                   {org.industry_label || org.industry_type || 'Professional Organization'}
                 </span>
                 {isSmartQueueVerified && (
-                  <span className="org-verified-badge" title="Verified by SmartQueue Platform">
+                  <span className="org-verified-badge" title="Verified by QueueTurn Platform">
                     <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
-                    SmartQueue Verified
+                    QueueTurn Verified
                   </span>
                 )}
               </div>
@@ -525,12 +525,12 @@ export function OrganizationProfilePage() {
                 </div>
 
                 <div className="org-trust-items">
-                  {/* SmartQueue Verification Notice */}
+                  {/* QueueTurn Verification Notice */}
                   <div className="org-trust-row">
                     <span className="org-trust-badge-icon">✓</span>
                     <div className="org-trust-row-content">
-                      <strong>SmartQueue Platform Verified</strong>
-                      <p>Identity, physical address, and storefront ownership verified by SmartQueue Platform.</p>
+                      <strong>QueueTurn Platform Verified</strong>
+                      <p>Identity, physical address, and storefront ownership verified by QueueTurn Platform.</p>
                     </div>
                   </div>
 
@@ -555,7 +555,7 @@ export function OrganizationProfilePage() {
                       <span className="org-trust-badge-icon">📋</span>
                       <div className="org-trust-row-content">
                         <strong>Official Organization Credentials</strong>
-                        <p>Regulatory trade and professional licenses are documented with SmartQueue Compliance.</p>
+                        <p>Regulatory trade and professional licenses are documented with QueueTurn Compliance.</p>
                       </div>
                     </div>
                   )}
@@ -1085,15 +1085,15 @@ export function OrganizationProfilePage() {
               </p>
 
               <div className="org-creds-modal-list">
-                {/* SmartQueue Platform Verification */}
+                {/* QueueTurn Platform Verification */}
                 <div className="org-cred-card">
                   <div className="org-cred-card-header">
                     <span className="org-cred-type-tag">Platform Standing</span>
-                    <span className="org-cred-verified-pill">✓ Verified by SmartQueue</span>
+                    <span className="org-cred-verified-pill">✓ Verified by QueueTurn</span>
                   </div>
-                  <h4 className="org-cred-card-title">SmartQueue Identity & Storefront Verification</h4>
+                  <h4 className="org-cred-card-title">QueueTurn Identity & Storefront Verification</h4>
                   <p className="org-cred-card-meta">
-                    Authority: SmartQueue Platform Trust & Safety Review<br />
+                    Authority: QueueTurn Platform Trust & Safety Review<br />
                     Scope: Physical address, business presence, and queue operational standing verified.
                   </p>
                 </div>
@@ -1103,7 +1103,7 @@ export function OrganizationProfilePage() {
                   <div key={cred.id} className="org-cred-card">
                     <div className="org-cred-card-header">
                       <span className="org-cred-type-tag">{cred.credential_type_label || 'Official Credential'}</span>
-                      <span className="org-cred-verified-pill">✓ Verified by SmartQueue</span>
+                      <span className="org-cred-verified-pill">✓ Verified by QueueTurn</span>
                     </div>
                     <h4 className="org-cred-card-title">{cred.credential_name}</h4>
                     <div className="org-cred-card-meta">
@@ -1125,7 +1125,7 @@ export function OrganizationProfilePage() {
               </div>
 
               <div className="org-cred-privacy-notice">
-                🔒 Official licenses and registrations are verified securely by SmartQueue Compliance. Sensitive personal documents and taxpayer identifiers are never exposed publicly.
+                🔒 Official licenses and registrations are verified securely by QueueTurn Compliance. Sensitive personal documents and taxpayer identifiers are never exposed publicly.
               </div>
 
               <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
@@ -1278,7 +1278,7 @@ export function OrganizationProfilePage() {
                     No Reviews Submitted Yet
                   </h4>
                   <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-sec)', margin: 0, lineHeight: 1.5 }}>
-                    SmartQueue enforces strict review authenticity. Only verified customers with completed appointments can submit ratings and reviews.
+                    QueueTurn enforces strict review authenticity. Only verified customers with completed appointments can submit ratings and reviews.
                   </p>
                 </div>
               )}
@@ -1302,7 +1302,7 @@ export function OrganizationProfilePage() {
       <footer className="lp-footer" style={{ marginTop: 'auto' }}>
         <div className="lp-footer-bottom" style={{ maxWidth: '1150px', margin: '0 auto', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderTop: '1px solid var(--lp-border)' }}>
           <div style={{ fontSize: '0.85rem', color: 'var(--lp-muted)' }}>
-            © 2026 SmartQueue Platform. All rights reserved.
+            © 2026 QueueTurn Platform. All rights reserved.
           </div>
           <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', color: 'var(--lp-text-sec)' }}>
             <Link to="/organizations" className="lp-footer-link">Organizations</Link>

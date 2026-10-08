@@ -106,7 +106,7 @@ export const ManagerDashboard = () => {
             </div>
             <h1 style={{ marginTop: '0.25rem' }}>Welcome, {user?.first_name || user?.email}!</h1>
             <p className="subtitle" style={{ marginTop: '0.25rem' }}>
-              Organization telemetry & operations for <strong>{currentOrg?.name || 'SmartQueue'}</strong>.
+              Organization telemetry & operations for <strong>{currentOrg?.name || 'QueueTurn'}</strong>.
             </p>
           </div>
           <div className="flex gap-sm flex-wrap">

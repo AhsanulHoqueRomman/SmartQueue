@@ -79,7 +79,7 @@ export const AppRoutes = () => {
     return (
       <div className="loading-screen">
         <div className="spinner"></div>
-        <p>Initializing SmartQueue Platform...</p>
+        <p>Initializing QueueTurn Platform...</p>
       </div>
     );
   }

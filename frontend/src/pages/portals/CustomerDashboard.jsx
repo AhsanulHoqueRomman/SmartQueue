@@ -352,7 +352,7 @@ export const CustomerDashboard = () => {
               Upcoming Schedule ({upcomingItems.length})
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', margin: '0.2rem 0 0 0' }}>
-              Scheduled future consultations across SmartQueue clinics.
+              Scheduled future consultations across QueueTurn clinics.
             </p>
           </div>
           <Link to="/customer/appointments" style={{ fontSize: '0.85rem', color: 'var(--lp-accent)', fontWeight: 700, textDecoration: 'none' }}>

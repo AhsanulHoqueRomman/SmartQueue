@@ -46,13 +46,13 @@ export const PublicNavbar = ({ activePage = '' }) => {
       <Link to="/" className="lp-brand" onClick={event => {
         setMenuOpen(false);
         if (location.pathname === '/') { event.preventDefault(); window.scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' }); }
-      }}><span className="lp-brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg></span><span className="lp-brand-name">SmartQueue</span></Link>
+      }}><span className="lp-brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg></span><span className="lp-brand-name">QueueTurn</span></Link>
       <nav id="public-discovery-navigation" aria-label="Public navigation" className={`lp-nav-links ${menuOpen ? 'is-menu-open' : ''}`}>
         <Link to="/organizations" className="lp-nav-link" onClick={() => setMenuOpen(false)}>Organizations</Link>
         <Link to="/professionals" className="lp-nav-link" aria-current={activePage === 'professionals' ? 'page' : undefined} onClick={() => setMenuOpen(false)}>Professionals</Link>
         <Link to="/search" className="lp-nav-link" onClick={() => setMenuOpen(false)}>Search</Link>
         <Link to="/" className="lp-nav-link" onClick={event => anchorClick(event, '#how-it-works')}>How It Works</Link>
-        <Link to="/" className="lp-nav-link" onClick={event => anchorClick(event, '#why-smartqueue')}>Why SmartQueue</Link>
+        <Link to="/" className="lp-nav-link" onClick={event => anchorClick(event, '#why-smartqueue')}>Why QueueTurn</Link>
         <Link to="/" className="lp-nav-link" onClick={event => anchorClick(event, '#for-organizations')}>For Organizations</Link>
         <Link to="/contact" className="lp-nav-link" aria-current={activePage === 'contact' ? 'page' : undefined} onClick={() => setMenuOpen(false)}>Contact Us</Link>
       </nav>

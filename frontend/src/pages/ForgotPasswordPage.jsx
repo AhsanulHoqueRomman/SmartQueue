@@ -76,7 +76,7 @@ export const ForgotPasswordPage = () => {
                 </svg>
               </span>
               <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: 'var(--lp-text)' }}>
-                SmartQueue
+                QueueTurn
               </span>
             </Link>
 
@@ -84,7 +84,7 @@ export const ForgotPasswordPage = () => {
               Forgot your password?
             </h2>
             <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem', margin: 0, lineHeight: 1.5 }}>
-              Enter the email associated with your SmartQueue account and we'll send you a password reset link.
+              Enter the email associated with your QueueTurn account and we'll send you a password reset link.
             </p>
           </div>
 

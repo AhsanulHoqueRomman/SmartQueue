@@ -248,7 +248,7 @@ export function CustomerAppointmentDetailPage() {
               Service outcome not recorded
             </h2>
             <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.925rem', margin: '0 0 1.25rem 0', lineHeight: 1.5 }}>
-              You checked in for this appointment, but SmartQueue does not have a final service outcome recorded for this consultation.
+              You checked in for this appointment, but QueueTurn does not have a final service outcome recorded for this consultation.
             </p>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--lp-border)' }}>

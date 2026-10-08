@@ -21,7 +21,7 @@ from apps.contact.models import ContactMessage
 
 API_KEY = 'test-api-key-not-real'
 FROM_EMAIL = 'noreply@smartqueue.test'
-FROM_NAME = 'SmartQueue Support'
+FROM_NAME = 'QueueTurn Support'
 SUPPORT_EMAIL = 'support@smartqueue.test'
 
 
@@ -94,7 +94,7 @@ class TestSendSuccess:
         params = send_mock.call_args.args[0]
         assert params['to'] == [message.email]
         assert params['from'] == f'{FROM_NAME} <{FROM_EMAIL}>'
-        assert params['subject'] == 'We received your message - SmartQueue Support'
+        assert params['subject'] == 'We received your message - QueueTurn Support'
         assert params['reply_to'] == SUPPORT_EMAIL
         assert message.name in params['text']
         assert message.subject in params['text']

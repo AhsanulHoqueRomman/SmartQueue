@@ -107,7 +107,7 @@ export const CustomerRegisterPage = () => {
           >
             <span style={{ fontSize: '1.5rem' }}>⚡</span>
             <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: 'var(--lp-text)' }}>
-              SmartQueue
+              QueueTurn
             </span>
           </Link>
           <div style={{ display: 'inline-block', backgroundColor: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: 700, color: 'var(--lp-accent)', marginBottom: '0.5rem' }}>

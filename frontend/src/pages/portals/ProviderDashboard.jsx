@@ -195,7 +195,7 @@ export const ProviderDashboard = () => {
               {user?.first_name || user?.email}!
             </h1>
             <p className="subtitle" style={{ marginTop: '0.25rem' }}>
-              Operational schedule & queue telemetry for <strong>{currentOrg?.name || 'SmartQueue'}</strong>.
+              Operational schedule & queue telemetry for <strong>{currentOrg?.name || 'QueueTurn'}</strong>.
             </p>
           </div>
           <div className="flex gap-sm flex-wrap">

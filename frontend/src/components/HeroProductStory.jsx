@@ -32,7 +32,7 @@ export default function HeroProductStory({ entered, visible }) {
     return () => { document.removeEventListener('visibilitychange', onVisibility); };
   }, []);
 
-  return <div className={`hero-product-story ${entered ? 'has-entered' : ''} ${!documentVisible || !visible ? 'is-motion-paused' : ''}`} aria-label="Illustrative SmartQueue product walkthrough">
+  return <div className={`hero-product-story ${entered ? 'has-entered' : ''} ${!documentVisible || !visible ? 'is-motion-paused' : ''}`} aria-label="Illustrative QueueTurn product walkthrough">
     <div className="hero-story-canvas">
       <svg className="hero-queue-path" viewBox="0 0 600 600" preserveAspectRatio="none" aria-hidden="true">
         <g fill="none" stroke="currentColor" strokeWidth="1.2">
@@ -49,7 +49,7 @@ export default function HeroProductStory({ entered, visible }) {
       </svg>
       <div className="hero-phone">
         <div className="hero-phone-speaker" aria-hidden="true" />
-        <div className="hero-phone-brand"><span className="hero-mini-mark">S</span><strong>SmartQueue</strong><span>9:41</span></div>
+        <div className="hero-phone-brand"><span className="hero-mini-mark">Q</span><strong>QueueTurn</strong><span>9:41</span></div>
         <div className="hero-phone-top"><small>YOUR NEXT VISIT, SIMPLIFIED</small><h2>Discover your next visit.</h2></div>
         <div className="hero-phone-screen">
           <div className="hero-demo-search">⌕ <span>Organizations in Dhaka</span></div>

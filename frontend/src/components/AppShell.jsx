@@ -114,7 +114,7 @@ export const AppShell = ({ children }) => {
             }}
           >
             <span className="brand-icon">⚡</span>
-            <span className="brand-title">SmartQueue</span>
+            <span className="brand-title">QueueTurn</span>
           </Link>
         </div>
 

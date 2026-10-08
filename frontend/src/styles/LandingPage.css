@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   SmartQueue — Landing Page  ·  Warm Sand & Espresso Theme
+   QueueTurn — Landing Page  ·  Warm Sand & Espresso Theme
    Palette:
      bg        #FBF9F5  (Warm Linen / Sand)
      surface   #FFFFFF  (Warm Pure White)
@@ -1310,7 +1310,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   SmartQueue — Organization Profile Storefront Styles (Phase A.9.3)
+   QueueTurn — Organization Profile Storefront Styles (Phase A.9.3)
    ═══════════════════════════════════════════════════════════════ */
 
 .org-profile-container {
@@ -3289,7 +3289,7 @@ a:hover > .org-arrow {
   border-radius: 5px;
 }
 
-/* SmartQueue verified status pill in credentials modal */
+/* QueueTurn verified status pill in credentials modal */
 .org-cred-verified-pill {
   display: inline-flex;
   align-items: center;

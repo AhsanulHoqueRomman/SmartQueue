@@ -280,7 +280,7 @@ export function BookAppointmentPage() {
           {loading.organizations ? <LoadingState message="Loading organizations..." /> : !organizations.length ? <EmptyState title="No Organizations Found" description="No active organizations are available in this category." /> :
             <div className="direct-choice-list" role="group" aria-label="Select Organization">{organizations.map(org => <div key={org.id} className={`direct-choice-card ${selection.organization === org.id ? 'is-selected' : ''}`}>
               <label className="direct-choice-label"><input type="radio" name="organization" value={org.id} checked={selection.organization === org.id} onChange={() => choose('organization', org.id)} /><span className="direct-choice-info"><strong>{org.name}</strong>
-                {org.smartqueue_verified && <span className="direct-verified">✓ SmartQueue Verified</span>}<span className="direct-muted">{org.industry_label}</span></span></label>
+                {org.smartqueue_verified && <span className="direct-verified">✓ QueueTurn Verified</span>}<span className="direct-muted">{org.industry_label}</span></span></label>
               <div className="direct-choice-details"><ScheduleSummary records={org.operating_hours || []} /><p className="direct-muted">{org.address || 'Location unavailable'}</p>
                 <Link to={`/organizations/${org.id}`} target="_blank" rel="noopener noreferrer">View Organization Profile</Link></div>
             </div>)}</div>}

@@ -97,7 +97,7 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
       displayStatus = 'Service outcome not recorded';
       statusTone = 'warning';
       headline = 'Service Outcome Not Recorded';
-      guidance = 'You checked in, but SmartQueue does not have a final service outcome recorded for this appointment.';
+      guidance = 'You checked in, but QueueTurn does not have a final service outcome recorded for this appointment.';
       isUnresolved = true;
     } else {
       displayStatus = 'Missed';

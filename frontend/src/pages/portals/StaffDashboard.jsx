@@ -105,7 +105,7 @@ export const StaffDashboard = () => {
             </span>
             <h1 style={{ marginTop: '0.25rem' }}>Welcome, {user?.first_name || user?.email}!</h1>
             <p className="subtitle" style={{ marginTop: '0.25rem' }}>
-              Patient check-in, identity verification & queue supervision for <strong>{currentOrg?.name || 'SmartQueue'}</strong>.
+              Patient check-in, identity verification & queue supervision for <strong>{currentOrg?.name || 'QueueTurn'}</strong>.
             </p>
           </div>
           <div className="flex gap-sm flex-wrap">

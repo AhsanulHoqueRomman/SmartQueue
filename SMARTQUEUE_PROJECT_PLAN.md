@@ -1,13 +1,13 @@
-# SMARTQUEUE PROJECT PLAN
+# QUEUETURN PROJECT PLAN
 
-> **Purpose:** Single source of truth for AI agents and developers continuing the SmartQueue project.
+> **Purpose:** Single source of truth for AI agents and developers continuing the QueueTurn project.
 > Read this file before changing code. Preserve completed architecture unless a real bug requires a targeted fix.
 
 ---
 
 ## 1. Project
 
-**SmartQueue — Appointment & Queue Management Platform**
+**QueueTurn — Multi-Tenant Appointment & Queue Management Platform**
 
 A multi-tenant appointment and queue management platform for clinics, salons, consulting offices, repair/service centers, and similar businesses.
 
@@ -1067,7 +1067,7 @@ pytest
 
 # 21. Explicitly DO NOT Add
 
-These are intentionally postponed/out of scope for SmartQueue v1:
+These are intentionally postponed/out of scope for QueueTurn v1:
 
 ```text
 Redis
@@ -1118,7 +1118,7 @@ Before editing code:
 
 # 23. Definition of Done
 
-SmartQueue is complete only when:
+QueueTurn is complete only when:
 
 ```text
 [x] M1 Authentication stable
@@ -1187,7 +1187,7 @@ The final project should support this complete demonstration:
 
 ## 25.1 Public Contact Us — Product Decision & Submission Flow
 
-SmartQueue's Contact Us page must be **publicly accessible**. Authentication is **NOT required**.
+QueueTurn's Contact Us page must be **publicly accessible**. Authentication is **NOT required**.
 
 A visitor who has never registered or logged in must be able to submit a contact request.
 
@@ -1285,7 +1285,7 @@ The system enforces these four exact statuses:
 
 ## 25.4 IMPORTANT — Architectural Decision: No Conversation History
 
-> **SmartQueue v1 will NOT implement conversation history or threaded contact conversations.**
+> **QueueTurn v1 will NOT implement conversation history or threaded contact conversations.**
 
 ### Explicit Exclusions & Simplifications
 
@@ -1382,15 +1382,15 @@ Visitor's Submitted Email Address
 
 ### Key Rules
 
-1. **Recipient Address**: The email address submitted in the `ContactMessage` form (`email` field) is the recipient. The visitor does **NOT** need a SmartQueue account.
-2. **Sender Address**: All outgoing emails must be sent from a verified SmartQueue support/sender email address configured on Resend (e.g., `support@smartqueue.com` or `noreply@smartqueue.com`).
+1. **Recipient Address**: The email address submitted in the `ContactMessage` form (`email` field) is the recipient. The visitor does **NOT** need a QueueTurn account.
+2. **Sender Address**: All outgoing emails must be sent from a verified QueueTurn support/sender email address configured on Resend (e.g., `support@smartqueue.com` or `noreply@smartqueue.com`).
 3. **No Header Spoofing**: Do **NOT** spoof the visitor's email as the `From` address.
 
 ---
 
 ## 25.8 Resend Integration Architecture
 
-Resend is the official transactional email provider for SmartQueue.
+Resend is the official transactional email provider for QueueTurn.
 
 ### Architecture Topology
 
@@ -1421,7 +1421,7 @@ Customer / Visitor Email Inbox
 
 When a visitor submits a Contact Us form:
 1. `ContactMessage` is saved to PostgreSQL.
-2. Django triggers Resend transactional email to SmartQueue Admin / Support inbox (`support@smartqueue.com`).
+2. Django triggers Resend transactional email to QueueTurn Admin / Support inbox (`support@smartqueue.com`).
 3. Notification email includes sender name, email, phone, subject, message preview, and link to Admin Contact Inbox.
 
 ### Flow B: Customer / Visitor Submission Confirmation
@@ -1471,7 +1471,7 @@ Database Persistence (PostgreSQL)  >>>  Email Delivery (Resend)
 
 * **Contact Us is a platform-level public support feature.**
 * It is **NOT** tied to or scoped by organization membership or tenant ID.
-* Any visitor can submit a general support request to SmartQueue without belonging to any organization.
+* Any visitor can submit a general support request to QueueTurn without belonging to any organization.
 
 ---
 
@@ -1487,7 +1487,7 @@ Publicly accessible in React Router (`AppRoutes.jsx`).
 
 ### Layout & UI Elements
 
-* Heading: **Contact SmartQueue Support**
+* Heading: **Contact QueueTurn Support**
 * Subheading: Send us a message and our team will get back to you.
 * Form Controls:
   * Name * (text input)
@@ -1501,7 +1501,7 @@ Publicly accessible in React Router (`AppRoutes.jsx`).
 
 ### Theme & Styling Integration Rules
 
-* Future React UI implementation must strictly use existing SmartQueue design tokens (`index.css`) and global CSS variables (`--bg-primary`, `--text-primary`, `--accent-color`, etc.).
+* Future React UI implementation must strictly use existing QueueTurn design tokens (`index.css`) and global CSS variables (`--bg-primary`, `--text-primary`, `--accent-color`, etc.).
 * Light/Dark theme compatibility will be automatically maintained by consuming global CSS variables.
 * **Separation of Concerns**: Dark theme logic and implementation must remain completely separate from Contact Us feature logic.
 
@@ -1593,7 +1593,7 @@ Contact Us Final: NOT STARTED (End-to-End Verification)
 
 # 28. Important Final Instruction to AI Agents
 
-**Do not redesign SmartQueue. Continue the existing architecture.**
+**Do not redesign QueueTurn. Continue the existing architecture.**
 
 When uncertain:
 

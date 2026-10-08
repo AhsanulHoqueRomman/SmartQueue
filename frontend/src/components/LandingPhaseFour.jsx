@@ -34,7 +34,7 @@ export function CommunityExperiences({ organizations }) {
 function CommunityReviewRail({ reviews }) {
   const [ref, entered, visible, supported] = useScrollPresence(.12);
   return <section ref={ref} className={`phase-four-reviews ${supported ? 'is-observed' : ''} ${entered ? 'is-revealed' : ''}`} aria-labelledby="community-heading"><div className="phase-four-inner">
-    <header className="phase-four-heading"><span className="discovery-eyebrow">What our community says</span><h2 id="community-heading">What Our Patients &amp; Visitors Say</h2><p>Real experiences from people using SmartQueue across different services.</p></header>
+    <header className="phase-four-heading"><span className="discovery-eyebrow">What our community says</span><h2 id="community-heading">What Our Patients &amp; Visitors Say</h2><p>Real experiences from people using QueueTurn across different services.</p></header>
     <TestimonialPages active={entered && visible} items={reviews} renderItem={(review, index) => <article className="community-review" key={review.id} style={{ '--review-delay': `${.22 + index * .12}s` }}>
       <div className="community-stars" role="img" aria-label={`${review.rating} out of 5 stars`}><span aria-hidden="true">{'★'.repeat(review.rating)}<span className="community-empty-stars">{'☆'.repeat(5 - review.rating)}</span></span></div>
       <blockquote><p>“{review.comment}”</p></blockquote>
@@ -75,12 +75,12 @@ export function ProductionFooter() {
     document.querySelector(selector)?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
   };
   return <footer className="phase-four-footer"><div className="phase-four-inner">
-    <div className="production-footer-grid"><div className="production-footer-brand"><Link to="/" className="lp-brand" onClick={event => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }}><span className="lp-brand-mark"><QueueMark /></span><span className="lp-brand-name">SmartQueue</span></Link><p>Multi-service appointment &amp; queue management platform.</p>
+    <div className="production-footer-grid"><div className="production-footer-brand"><Link to="/" className="lp-brand" onClick={event => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }}><span className="lp-brand-mark"><QueueMark /></span><span className="lp-brand-name">QueueTurn</span></Link><p>Multi-service appointment &amp; queue management platform.</p>
       <div className="footer-socials" aria-label="Social profiles">{footerSocials.map(social => social.url
         ? <a key={social.platform} href={social.url} target="_blank" rel="noopener noreferrer" aria-label={`${social.label} (opens in a new tab)`}><SocialIcon platform={social.platform} /></a>
         : <span key={social.platform} className="footer-social-unavailable" role="img" tabIndex={0} aria-label={`${social.label} profile not available yet`} title={`${social.label} profile not available yet`}><SocialIcon platform={social.platform} /></span>)}</div>
     </div>
-      <nav aria-label="Footer explore"><h2>Explore</h2><Link to="/organizations">Organizations</Link><Link to="/professionals">Professionals</Link><Link to="/search">Search</Link><Link to="/" onClick={event => anchor(event, '#how-it-works')}>How It Works</Link><Link to="/" onClick={event => anchor(event, '#why-smartqueue')}>Why SmartQueue</Link></nav>
+      <nav aria-label="Footer explore"><h2>Explore</h2><Link to="/organizations">Organizations</Link><Link to="/professionals">Professionals</Link><Link to="/search">Search</Link><Link to="/" onClick={event => anchor(event, '#how-it-works')}>How It Works</Link><Link to="/" onClick={event => anchor(event, '#why-smartqueue')}>Why QueueTurn</Link></nav>
       <nav aria-label="Footer for organizations"><h2>For Organizations</h2><Link to="/" onClick={event => anchor(event, '#for-organizations')}>Overview</Link><Link to="/register/manager">Register Your Organization</Link><Link to="/contact">Contact / Enquiry</Link></nav>
       <nav aria-label="Footer support"><h2>Support</h2><Link to="/contact">Contact Us</Link><a href={getApiDocsUrl()} target="_blank" rel="noopener noreferrer" aria-label="API Docs (opens in a new tab)">API Docs</a></nav>
       <div className="production-footer-contact"><h2>Contact</h2>
@@ -88,9 +88,9 @@ export function ProductionFooter() {
         {publicContact.email && <a href={`mailto:${encodeURIComponent(publicContact.email)}`}><ContactIcon kind="email" /><span>{publicContact.email}</span></a>}
         {publicContact.location && <div className="footer-contact-row"><ContactIcon kind="location" /><span>{publicContact.location}</span></div>}
         <Link to="/contact"><ContactIcon kind="email" /><span>Send an enquiry</span></Link>
-        <p>Need help with a visit or joining SmartQueue? Get in touch through our contact form.</p>
+        <p>Need help with a visit or joining QueueTurn? Get in touch through our contact form.</p>
       </div>
     </div>
-    <div className="production-footer-bottom"><span>© {new Date().getFullYear()} SmartQueue. All rights reserved.</span><Link to="/contact">Get in touch</Link></div>
+    <div className="production-footer-bottom"><span>© {new Date().getFullYear()} QueueTurn. All rights reserved.</span><Link to="/contact">Get in touch</Link></div>
   </div></footer>;
 }

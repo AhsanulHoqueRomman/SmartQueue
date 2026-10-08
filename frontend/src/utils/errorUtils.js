@@ -1,7 +1,7 @@
 /**
  * Utility to extract user-friendly error messages from API responses.
  * Safely handles:
- * - SmartQueue custom exception format: { error: { code, message, details } }
+ * - QueueTurn custom exception format: { error: { code, message, details } }
  * - Standard DRF detail format: { detail: "..." }
  * - Field error object: { field_name: ["error message"] }
  * - Plain string responses
@@ -25,7 +25,7 @@ export function formatApiError(err, fallback = 'An error occurred. Please try ag
     return data;
   }
 
-  // SmartQueue custom exception handler shape: { error: { code, message, details } }
+  // QueueTurn custom exception handler shape: { error: { code, message, details } }
   if (data.error && typeof data.error === 'object') {
     const { message, details } = data.error;
 

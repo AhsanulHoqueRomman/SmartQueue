@@ -174,8 +174,8 @@ SIMPLE_JWT = {
 
 # OpenAPI Docs (drf-spectacular)
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'SmartQueue API',
-    'DESCRIPTION': 'Real-World Appointment & Queue Management Platform API',
+    'TITLE': 'QueueTurn API',
+    'DESCRIPTION': 'QueueTurn — Multi-Tenant Appointment & Queue Management Platform API',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'ENUM_NAME_OVERRIDES': {

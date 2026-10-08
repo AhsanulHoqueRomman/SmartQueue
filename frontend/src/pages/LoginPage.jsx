@@ -72,10 +72,10 @@ export const LoginPage = () => {
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                 </svg>
               </span>
-              <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: 'var(--lp-text)' }}>SmartQueue</span>
+              <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: 'var(--lp-text)' }}>QueueTurn</span>
             </Link>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '0.35rem', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)', fontWeight: 700 }}>Welcome back</h2>
-            <p className="subtitle" style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem', margin: 0 }}>Sign in to your SmartQueue account</p>
+            <p className="subtitle" style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem', margin: 0 }}>Sign in to your QueueTurn account</p>
           </div>
 
         {error && (
