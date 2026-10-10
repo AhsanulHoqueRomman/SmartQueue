@@ -258,6 +258,20 @@ class OrganizationSerializer(serializers.ModelSerializer):
         return OrganizationDocumentSerializer(docs, many=True, context=ctx).data
 
 
+class OrganizationPublicSerializer(OrganizationSerializer):
+    """Public storefront projection without private verification material."""
+
+    class Meta(OrganizationSerializer.Meta):
+        fields = (
+            'id', 'name', 'slug', 'industry_type', 'industry_label',
+            'address', 'phone_number', 'email', 'logo', 'cover_image', 'tagline', 'description',
+            'is_active', 'verification_status', 'smartqueue_verified',
+            'created_at', 'updated_at', 'services_count', 'providers_count',
+            'rating', 'reviews_count', 'credentials', 'operating_hours', 'today_hours', 'current_status',
+        )
+        read_only_fields = fields
+
+
 class AdminActionReasonSerializer(serializers.Serializer):
     """
     Serializer for payload requiring a reason (e.g. Reject, Suspend).

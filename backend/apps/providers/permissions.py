@@ -41,3 +41,25 @@ class IsOrganizationManagerOrOwnProvider(BasePermission):
             membership__role=OrganizationMembership.Role.PROVIDER,
             membership__is_active=True,
         ).exists()
+
+
+class IsProviderOnboardingParticipant(IsOrganizationManagerOrOwnProvider):
+    """Own incomplete/review/rejected applications, without operational grants."""
+
+    def has_permission(self, request, view):
+        if super().has_permission(request, view):
+            return True
+        if not (request.user and request.user.is_authenticated):
+            return False
+        return ProviderProfile.objects.filter(
+            id=view.kwargs.get('provider_id'),
+            membership__organization_id=view.kwargs.get('organization_id'),
+            membership__organization__is_active=True,
+            membership__user=request.user,
+            membership__role=OrganizationMembership.Role.PROVIDER,
+            application_status__in=[
+                ProviderProfile.ApplicationStatus.INCOMPLETE,
+                ProviderProfile.ApplicationStatus.PENDING_REVIEW,
+                ProviderProfile.ApplicationStatus.REJECTED,
+            ],
+        ).exists()

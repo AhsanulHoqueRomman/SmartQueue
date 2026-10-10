@@ -4,10 +4,11 @@
 
 - **Phase/date:** Project Brain Phase 3, 2026-10-09.
 - **Source baseline:** `main` / `4a9920c3a648c2925dc30956005a1c28a015918f`; application source unchanged; Phase 2 documentation initially untracked.
-- **Purpose:** Canonical independent records for F-001–F-023, retaining original priority and evidence qualifications. No fixes or owner-policy decisions accompany this register.
+- **Purpose:** Canonical independent records for F-001–F-025, retaining baseline priorities and evidence qualifications. The original Phase 3 register introduced no fixes; the M1 closure update below records separately approved resolutions and follow-ups.
 - **Inputs:** [Historical handoff](references/ORIGINAL_BUSINESS_RULES_HANDOFF.md), [baseline assessment](references/BUSINESS_RULE_BASELINE_ASSESSMENT.md), completed Phase 1 mapping, current source and all three Phase 2 canonical documents.
 - **Ownership:** [BUSINESS_RULES](BUSINESS_RULES.md) owns BR-001–BR-062, C-01–C-18 index and D01–D20; [QUEUE_STATE_MACHINE](QUEUE_STATE_MACHINE.md) owns lifecycle/ETA; [ROLE_PERMISSION_MATRIX](ROLE_PERMISSION_MATRIX.md) owns authorization; [PRODUCT_ARCHITECTURE](PRODUCT_ARCHITECTURE.md) owns structure/data flow. This register owns detailed findings.
-- **Limits:** Source inspection/static checks only; no tests, build, browser, database, migrations, seeds, application execution, live emails or external requests. Inspected assertions are not passing results. No finding is reproduced or fixed by this documentation phase.
+- **Limits:** Original Phase 3 evidence was static only. This documentation closure phase runs no tests, builds, servers, migrations or seeds; it records earlier authorized execution separately from current source/test inspection. No production, browser or PostgreSQL concurrency certification is implied.
+- **M1 closure update:** 2026-10-10; owner explicitly approved formal closure and documentation updates. Current review baseline: `main` / `28b17dfd6c8e65e7854aa0359297acecb5b599e2` plus uncommitted M1 implementation and tests. No staging, commit or push authorized.
 - **Maintenance:** Reverify source and applicability before a separately authorized fix; record new baseline and appropriate evidence. Phase 2 metadata describing these documents as planned reflects creation-time history and was not rewritten.
 
 ## Evidence and severity legend
@@ -24,16 +25,16 @@
 
 P0 means critical/blocking; P1 high priority; P2 normal priority; P3 lower-priority refinement. Definitions do not reclassify the baseline. **P1: F-001, F-005, F-006, F-007, F-012. All other F-001–F-023 are P2. No baseline P0 is established; no baseline P3 record exists.**
 
-OPEN means the source condition remains, including policy-dependent gaps; it does not claim a live incident. UNVERIFIED means applicability/evidence remains insufficient. FIXED requires changed source and appropriate verification. All 23 records are OPEN, with consequences qualified separately.
+OPEN means the source condition remains, including policy-dependent gaps; it does not claim a live incident. UNVERIFIED means applicability/evidence remains insufficient. CLOSED means the owner accepted the implemented correction against its scoped acceptance criteria and recorded evidence; it is not universal production certification. The original 23 findings were OPEN at Phase 3. Six are now CLOSED under M1; the other 17 remain OPEN. F-024 (P1 / High) and F-025 (P3 / Low) are new OPEN follow-ups, not reclassifications of baseline findings.
 
 ## Findings index
 
 | ID / detail | Priority | Title | Subsystem | Evidence | BR IDs | Decisions | Status |
 |---|---|---|---|---|---|---|---|
-| [F-001](#f-001) | P1 | Public document metadata | Discovery projections | S/H | BR-004,006,056 | None | OPEN |
-| [F-002](#f-002) | P2 | Incorrect document field | Onboarding docs | S | BR-004,010,056 | None | OPEN |
-| [F-003](#f-003) | P2 | Inactive applicant blocked | Onboarding permissions | S/H | BR-002,010,056 | None | OPEN |
-| [F-004](#f-004) | P2 | Partial account persists | Registration transaction | S | BR-001,002 | None | OPEN |
+| [F-001](#f-001) | P1 | Public document metadata | Discovery projections | S/T/H; historical R | BR-004,006,056 | None | CLOSED |
+| [F-002](#f-002) | P2 | Incorrect document field | Onboarding docs | S/T; historical R | BR-004,010,056 | None | CLOSED |
+| [F-003](#f-003) | P2 | Inactive applicant blocked | Onboarding permissions | S/T/H; historical R | BR-002,010,056 | None | CLOSED |
+| [F-004](#f-004) | P2 | Partial account persists | Registration transaction | S/T; historical R | BR-001,002 | None | CLOSED |
 | [F-005](#f-005) | P1 | Reschedule parity missing | Destination booking | S/H | BR-010,016–024,030,031 | D01–D03,D11 | OPEN |
 | [F-006](#f-006) | P1 | Stale lifecycle mutations | Concurrency | S/I | BR-024,035,041,042,044 | D08,D11,D19,D20 | OPEN |
 | [F-007](#f-007) | P1 | Global/overnight cleanup | Reconciliation | S/T/H | BR-004,039,041,045,049 | D08,D15–D20 | OPEN |
@@ -48,15 +49,45 @@ OPEN means the source condition remains, including policy-dependent gaps; it doe
 | [F-016](#f-016) | P2 | Active person dropped | Queue display | S | BR-046,047,049 | D05 | OPEN |
 | [F-017](#f-017) | P2 | Browser business-date mismatch | Temporal display | S/I | BR-022,049 | D08 context | OPEN |
 | [F-018](#f-018) | P2 | Break integrity gaps | Schedule writers | S/I | BR-016,017,021 | D01,D02 | OPEN |
-| [F-019](#f-019) | P2 | Internal schedule text exposed | Authenticated projections | S/H | BR-004,016,018 | None | OPEN |
-| [F-020](#f-020) | P2 | Detail publication differs | Service discovery | S | BR-004,006 | None | OPEN |
+| [F-019](#f-019) | P2 | Internal schedule text exposed | Authenticated projections | S/T/H; historical R | BR-004,016,018 | None | CLOSED |
+| [F-020](#f-020) | P2 | Detail publication differs | Service discovery | S/T; historical R | BR-004,006 | None | CLOSED |
 | [F-021](#f-021) | P2 | Send outcomes discarded | Support/reset | S/T | BR-057–061 | D13 | OPEN |
 | [F-022](#f-022) | P2 | Route/signature mismatch | Analytics | S | BR-004 | None | OPEN |
 | [F-023](#f-023) | P2 | Obsolete polling responses | Frontend state | S/I | BR-004,049,053,054 | None | OPEN |
+| [F-024](#f-024) | P1 / High | Private Verification Document Serving and Production Storage Authorization | Storage/deployment | S; production U | BR-004,056 context | Storage design approval | OPEN — Mandatory Pre-Production Security Gate |
+| [F-025](#f-025) | P3 / Low | Role-Dependent OpenAPI Response Schema Mismatch | API documentation | S | Contract context | None | OPEN |
+
+## M1 closure and acceptance evidence
+
+**Milestone M1 — Security, Privacy & Onboarding Correctness: CLOSED, owner authorized 2026-10-10.** This closes F-001/F-002/F-003/F-004/F-019/F-020 only. No M2, capacity, emergency-recovery, storage implementation or policy change is authorized by closure.
+
+The final source and assertions were rechecked during this documentation phase. Evidence below is **historical execution from earlier authorized implementation/correction phases**, not newly executed tests:
+
+| Verification | Recorded result | Scope and limitation |
+|---|---|---|
+| Final integrated backend selection after the public-name correction | **191 passed, 0 failed, 0 skipped**, no deselections; 189.44 seconds | 123 M1 regression cases (original 98 + final 25) and 68 existing cases; supersedes the earlier 166-case integration run |
+| Earlier final registration/onboarding selection | 15 passed, 89 deselected | Historical intermediate verification after additive `provider_profile_id`; the final 191 selection includes registration/onboarding again |
+| Frontend display-name tests | **5 passed, 0 failed, 0 skipped** | Node helper tests; not mounted-page or browser QA |
+| Frontend production build | Passed | Existing dependencies; large-chunk advisory; focused lint had no errors and five warnings in unchanged queue code |
+| Python syntax and `git diff --check` | Passed in final correction | Documentation phase repeats only read-only diff/static documentation validation; no tests or build rerun |
+
+Final backend command, from `backend`:
+
+```powershell
+..\.venv\Scripts\python.exe -m pytest tests/test_m1_security_onboarding.py apps/providers/tests/test_providers.py apps/providers/tests/test_provider_profile_api.py apps/providers/tests/test_phase_c_onboarding.py apps/accounts/tests/test_auth.py::TestRegistration apps/services/tests/test_services.py apps/organizations/tests/test_organizations.py::TestOrganizationBootstrapAndDiscovery tests/test_m11_security.py::TestTenantIsolationBOLA::test_cross_tenant_service_update_rejected tests/test_m11_security.py::TestTenantIsolationBOLA::test_cross_tenant_provider_profile_access_rejected -q
+```
+
+Frontend commands, from `frontend`: `node --test src/utils/providerDisplay.test.js`, `.\node_modules\.bin\oxlint.cmd src/pages/staff/StaffQueuePage.jsx src/utils/providerDisplay.test.js`, and `npm.cmd run build`.
+
+`backend/pytest.ini` selects development test settings and `--nomigrations`; `config/settings/base.py` selects **isolated in-memory SQLite** under pytest. The suite did not operate on the development/production database. It proves neither PostgreSQL concurrency nor migration application.
+
+The staff provider-label regression is corrected using the existing `deriveProfessionalDisplay` helper without changing IDs, tenant scope, polling or queue actions. The public professional-profile email fallback is corrected to trimmed first/last name → public title → `Service Provider`, preserving `provider_name` and routes. Tests recursively reject account-email values in public endpoint payloads and preserve entitled private reads.
+
+**Remaining verification:** Staff Queue browser-level provider switching is not verified; PostgreSQL concurrency is not verified by this SQLite selection; migration application is not covered by `--nomigrations`; production private-file authorization is not verified. Storage/deployment work is owned by F-024, schema corrections by F-025. These are not duplicate M1 reopenings or a production-ready certificate.
 
 ## Canonical finding records
 
-All verification plans and acceptance criteria are future work. Source paths below are repository-relative; important symbols must be rechecked after edits.
+Baseline defect descriptions and verification plans are retained as history. For the six M1 findings, the CLOSED status and resolution entries supersede their baseline behavior; other findings remain unchanged. Source paths below are repository-relative; important symbols must be rechecked after edits.
 
 ## F-001
 
@@ -65,18 +96,19 @@ All verification plans and acceptance criteria are future work. Source paths bel
 3. **Components:** Organization/provider discovery views and shared serializers.
 4. **Roles/tenants:** Guests/customers; public organizations/providers and reviewers.
 5. **Intended behavior:** Approved trust/profile information without private files, original filenames, reviewer emails or rejection administration.
-6. **Current behavior:** Public org GET uses OrganizationSerializer.get_documents; provider list/detail use ProviderProfileSerializer with documents, user email and application-reviewer email. Separate safer public-profile route does not repair other routes.
+6. **Baseline behavior (pre-M1):** Public org GET uses OrganizationSerializer.get_documents; provider list/detail use ProviderProfileSerializer with documents, user email and application-reviewer email. Separate safer public-profile route does not repair other routes.
 7. **Source:** `backend/apps/organizations/views.py::OrganizationListCreateView, OrganizationDetailView`; `backend/apps/organizations/serializers.py::OrganizationSerializer.get_documents, OrganizationDocumentSerializer`; `backend/apps/providers/views.py::ProviderProfileListCreateView, ProviderProfileDetailView`; `backend/apps/providers/serializers.py::ProviderProfileSerializer`.
 8. **Evidence:** S/H — source projection versus historical privacy intent.
-9. **Confirmed gap:** Private administrative metadata included in public projections.
-10. **Unverified consequences:** Live payload/file-download/exploitation U; disclosure opportunity I, not a demonstrated incident.
+9. **Baseline confirmed gap:** Private administrative metadata included in public projections.
+10. **Baseline unverified consequences:** Live payload/file-download/exploitation U; disclosure opportunity I, not a demonstrated incident.
 11. **BR:** BR-004, BR-006, BR-056.
 12. **Contradictions:** C-11.
 13. **Decisions:** None directly mapped; public safe-field inventory needed.
 14. **Minimum verification:** Fixtures with private metadata; anonymous public list/detail/profile absence assertions and own-manager positive reads; no real document disclosure.
 15. **Acceptance:** Public private fields absent; approved trust/pricing preserved; authorized verification data remains available.
 16. **Regression:** Guest/customer/foreign tenant versus manager projections; all shared serializer consumers; download access tested separately if authorized.
-17. **Status:** OPEN — no fix or runtime incident verified.
+17. **Status:** CLOSED — owner-approved M1 acceptance, 2026-10-10; baseline status was OPEN, with no fix/runtime incident verified then.
+18. **M1 resolution / acceptance:** `OrganizationPublicSerializer` and `ProviderDiscoverySerializer` explicitly omit verification files, document metadata, reviewer identities and rejection administration. Entitled operational projections remain available; approved trust, credentials and effective prices are retained. `ProviderPublicProfileSerializer.get_provider_name` no longer uses account email and handles whitespace-only names. Recursive public-field/value absence and authorized-positive endpoint assertions are in `tests/test_m1_security_onboarding.py`, included in the historical final 191-pass run. Staff labels use safe public names; five helper tests and the frontend build passed. Private file-serving protection is separately OPEN under F-024; closure covers API projections, not storage authorization.
 
 ## F-002
 
@@ -85,18 +117,19 @@ All verification plans and acceptance criteria are future work. Source paths bel
 3. **Components:** Document list/upload/review model, serializer, view and service.
 4. **Roles/tenants:** Own providers/managers and their document ownership boundaries.
 5. **Intended behavior:** Derive consistent provider_profile ownership from scoped URL, not arbitrary client owner.
-6. **Current behavior:** Model FK is provider_profile; query/create uses provider; review accesses document.provider. Upload serializer requires provider_profile input.
+6. **Baseline behavior (pre-M1):** Model FK is provider_profile; query/create uses provider; review accesses document.provider. Upload serializer requires provider_profile input.
 7. **Source:** `backend/apps/providers/models.py::ProviderDocument`; `backend/apps/providers/views.py::ProviderDocumentUploadView, ManagerProviderDocumentReviewView`; `backend/apps/providers/serializers.py::ProviderDocumentSerializer`; `backend/apps/providers/services.py::ProviderService_.review_provider_document`.
 8. **Evidence:** S — field/attribute/input contract inspected.
-9. **Confirmed gap:** Inconsistent model ownership reference and input derivation.
-10. **Unverified consequences:** First failure depends on permissions/input/operation; no upload performed.
+9. **Baseline confirmed gap:** Inconsistent model ownership reference and input derivation.
+10. **Baseline unverified consequences:** First failure depends on permissions/input/operation; no upload performed.
 11. **BR:** BR-004, BR-010, BR-056.
 12. **Contradictions:** C-11 context.
 13. **Decisions:** None directly mapped.
 14. **Minimum verification:** Authorized list/upload/review; distinguish serializer error from ORM/attribute failure; foreign document ID and conflicting owner input.
 15. **Acceptance:** All branches use provider_profile and safe URL ownership; no tenant substitution.
 16. **Regression:** Own/manager positive paths, foreign negatives, owner omitted/conflicting; F-003 remains independent.
-17. **Status:** OPEN — source defect, runtime not reproduced.
+17. **Status:** CLOSED — owner-approved M1 acceptance, 2026-10-10; baseline status was OPEN, defect not exercised then.
+18. **M1 resolution / acceptance:** Document list/upload/review and review audit references consistently use `provider_profile`. Upload ownership is derived from the authorized URL profile; omitted owner works, conflicting owner rejects, and review fields are read-only. Nested document/tenant lookups prevent substitution. Endpoint tests assert stored ownership, review state and denied foreign access; included in the historical final 191-pass run. Storage architecture and verification policy were not changed.
 
 ## F-003
 
@@ -105,18 +138,19 @@ All verification plans and acceptance criteria are future work. Source paths bel
 3. **Components:** Registration, own-provider permission, application/document gate.
 4. **Roles/tenants:** Newly registered inactive applicant and own organization manager.
 5. **Intended behavior:** Narrow own-application access without operational entitlement.
-6. **Current behavior:** Registration creates inactive PROVIDER membership. Permission requires active own membership before loader's require_active_membership=False can apply.
+6. **Baseline behavior (pre-M1):** Registration creates inactive PROVIDER membership. Permission requires active own membership before loader's require_active_membership=False can apply.
 7. **Source:** `backend/apps/accounts/views.py::RegisterProviderView`; `backend/apps/providers/permissions.py::IsOrganizationManagerOrOwnProvider`; `backend/apps/providers/views.py::ProviderApplicationSubmitView`.
 8. **Evidence:** S/H.
-9. **Confirmed gap:** Earlier gate conflicts with later pending-owner loader intent.
-10. **Unverified consequences:** Complete HTTP registration/submit not run; broad relaxation would introduce entitlement risk I.
+9. **Baseline confirmed gap:** Earlier gate conflicts with later pending-owner loader intent.
+10. **Baseline unverified consequences:** Complete HTTP registration/submit not run; broad relaxation would introduce entitlement risk I.
 11. **BR:** BR-002, BR-010, BR-056.
 12. **Contradictions:** C-11 context.
 13. **Decisions:** None directly mapped; narrow onboarding contract required.
 14. **Minimum verification:** Pending registration→own submit; manager and foreign pending actor; queue/catalog actions remain denied.
 15. **Acceptance:** Own pending application access works without active operational permissions or access to another applicant.
 16. **Regression:** Pending/active/rejected states; own/foreign/manager; F-002 document field issue separate.
-17. **Status:** OPEN — source permission mismatch.
+17. **Status:** CLOSED — owner-approved M1 acceptance, 2026-10-10; baseline status was OPEN for the permission mismatch.
+18. **M1 resolution / acceptance:** `IsProviderOnboardingParticipant` adds own INCOMPLETE/PENDING_REVIEW/REJECTED application access without weakening `IsOrganizationManagerOrOwnProvider`. Profile/document/submission views load the scoped inactive applicant. Approval/membership fields remain non-writable by applicants; manager/platform review remains separate. Tests cover JWT registration→upload→submission→authorized approval, rejected resubmission, foreign denial and queue/schedule/review denial while membership remains inactive; included in the historical final 191-pass run.
 
 ## F-004
 
@@ -125,18 +159,19 @@ All verification plans and acceptance criteria are future work. Source paths bel
 3. **Components:** Account/bootstrap transaction.
 4. **Roles/tenants:** New provider/global User and requested organization.
 5. **Intended behavior:** Failed bound registration leaves no unintended partial account; optional unbound registration is distinct.
-6. **Current behavior:** User created before invalid/inactive organization lookup; return 400 within atomic does not abort prior writes.
+6. **Baseline behavior (pre-M1):** User created before invalid/inactive organization lookup; return 400 within atomic does not abort prior writes.
 7. **Source:** `backend/apps/accounts/views.py::RegisterProviderView.post`.
 8. **Evidence:** S — transaction control flow.
-9. **Confirmed gap:** Failure return leaves earlier creation eligible to commit.
-10. **Unverified consequences:** Live orphan record/blocked retry not created; persistence effect follows transaction semantics.
+9. **Baseline confirmed gap:** Failure return leaves earlier creation eligible to commit.
+10. **Baseline unverified consequences:** Live orphan record/blocked retry not created; persistence effect follows transaction semantics.
 11. **BR:** BR-001, BR-002.
 12. **Contradictions:** None directly mapped.
 13. **Decisions:** None directly mapped.
 14. **Minimum verification:** User/membership/profile counts after nonexistent/inactive org request; retry and optional no-org registration.
 15. **Acceptance:** Invalid bound registration persists no unintended partial records; valid/unbound contracts retained.
 16. **Regression:** Email retries, rollback, customer/manager bootstrap unaffected.
-17. **Status:** OPEN — source control-flow defect.
+17. **Status:** CLOSED — owner-approved M1 acceptance, 2026-10-10; baseline status was OPEN for the control-flow defect.
+18. **M1 resolution / acceptance:** `RegisterProviderView` validates the requested active organization before creating a User; User/membership/profile creation stays inside `transaction.atomic()`. Invalid prerequisites leave no partial records and an injected profile-creation exception rolls back preceding writes. Valid bound/unbound registration and server-controlled PROVIDER role are retained. Additive `provider_profile_id` preserves existing response fields and enables the tested own-application HTTP path. Included in the historical final 191-pass run; no migration or new onboarding policy.
 
 ## F-005
 
@@ -425,18 +460,19 @@ All verification plans and acceptance criteria are future work. Source paths bel
 3. **Components:** Schedule/break/leave GET projections.
 4. **Roles/tenants:** Ordinary authenticated customers/nonmembers and provider tenant.
 5. **Intended behavior:** Customer-safe working windows; internal titles/reasons restricted.
-6. **Current behavior:** Authenticated scoped-provider GET without membership requirement includes break titles/leave reasons.
+6. **Baseline behavior (pre-M1):** Authenticated scoped-provider GET without membership requirement includes break titles/leave reasons.
 7. **Source:** `backend/apps/providers/views.py` schedule/break/leave GETs; `backend/apps/providers/serializers.py::WeeklyScheduleSerializer, ProviderLeaveSerializer`.
 8. **Evidence:** S/H.
-9. **Confirmed gap:** Authentication/resource scope alone permits internal operational text.
-10. **Unverified consequences:** Actual sensitive content/live read U; projection exposure S.
+9. **Baseline confirmed gap:** Authentication/resource scope alone permits internal operational text.
+10. **Baseline unverified consequences:** Actual sensitive content/live read U; projection exposure S.
 11. **BR:** BR-004, BR-016, BR-018.
 12. **Contradictions:** C-11.
 13. **Decisions:** None directly mapped; safe-field inventory needed.
 14. **Minimum verification:** Customer/foreign-member fixtures with private text; compare own-provider/manager operational versus safe projections.
 15. **Acceptance:** Discovery safe schedule only; entitled operational reads retain internal information.
 16. **Regression:** Anonymous/authenticated/own/foreign/operator matrix; customer schedule display and break capacity functional.
-17. **Status:** OPEN — source exposure; actual incident U.
+17. **Status:** CLOSED — owner-approved M1 acceptance, 2026-10-10; baseline status was OPEN, actual disclosure incident unverified.
+18. **M1 resolution / acceptance:** Safe weekly schedule/break/leave serializers omit break titles and leave reasons. `_can_read_operational_schedule` retains annotations for the active owner, active target manager/staff and platform flags; unauthorized readers receive safe fields only for operational providers. GET remains authenticated. Endpoint tests assert redaction, retained working windows, operational visibility and tenant scoping; included in the historical final 191-pass run. Capacity/schedule arithmetic and mutation permissions were not changed; schema mismatch is F-025.
 
 ## F-020
 
@@ -445,18 +481,19 @@ All verification plans and acceptance criteria are future work. Source paths bel
 3. **Components:** Catalog publication gates.
 4. **Roles/tenants:** Guests/customers and pending/unapproved tenant manager.
 5. **Intended behavior:** Consistent approved-public list/detail, separate authorized management access.
-6. **Current behavior:** List checks active APPROVED org; detail checks active org/active service for nonmanager without same approval gate.
+6. **Baseline behavior (pre-M1):** List checks active APPROVED org; detail checks active org/active service for nonmanager without same approval gate.
 7. **Source:** `backend/apps/services/views.py::ServiceListCreateView, ServiceDetailView`.
 8. **Evidence:** S.
-9. **Confirmed gap:** Detail publication differs from listing.
-10. **Unverified consequences:** Known UUID source-visible under unapproved tenant; live API not requested.
+9. **Baseline confirmed gap:** Detail publication differs from listing.
+10. **Baseline unverified consequences:** Known UUID source-visible under unapproved tenant; live API not requested.
 11. **BR:** BR-004, BR-006.
 12. **Contradictions:** C-11 context.
 13. **Decisions:** None directly mapped.
 14. **Minimum verification:** Pending/rejected/suspended/approved org service list/detail; own/foreign manager.
 15. **Acceptance:** Public gates agree; legitimate own-manager records remain manageable.
 16. **Regression:** Inactive service/org, price minimum/null semantics, foreign management denial.
-17. **Status:** OPEN — filter inconsistency.
+17. **Status:** CLOSED — owner-approved M1 acceptance, 2026-10-10; baseline status was OPEN for the filter inconsistency.
+18. **M1 resolution / acceptance:** `ServiceDetailView.get` matches public listing: active service plus active APPROVED organization. Own active manager/platform GET can inspect unpublished records, including inactive organizations, matching existing operational listing. Default active-organization checks for mutations and manager permissions remain unchanged. State/role tests assert list/detail parity, inactive-service handling, pricing behavior and foreign mutation denial; included in the historical final 191-pass run.
 
 ## F-021
 
@@ -517,6 +554,36 @@ All verification plans and acceptance criteria are future work. Source paths bel
 15. **Acceptance:** Obsolete results discarded, timers/requests cleaned; no permission widening or noisy background polling.
 16. **Regression:** Recipient/tenant and queue provider changes, auth errors, mounted/unmounted ordering, count/date contract.
 17. **Status:** OPEN — source synchronization gap; overwrite U.
+
+## F-024
+
+1. **ID / priority:** F-024 — P1 / High; new post-M1 follow-up, not a baseline severity change.
+2. **Title:** Private Verification Document Serving and Production Storage Authorization.
+3. **Classification:** Mandatory Pre-Production Security Gate.
+4. **Components / source:** `backend/config/urls.py`; `config/settings/base.py`, `development.py`, `production.py`; `config/wsgi.py`, `asgi.py`; `backend/Procfile`; provider/organization document FileFields and serializers; `frontend/vite.config.js` media proxy.
+5. **Roles/tenants:** Provider/organization document owners, entitled reviewers and unauthorized known-URL requesters.
+6. **Intended behavior:** Verification documents are retrievable only by appropriately authenticated, authorized actors within the correct tenant/object scope.
+7. **Current behavior / evidence:** S — DEBUG `/media/` uses Django's static media helper without document API permissions. Files reside under `MEDIA_ROOT` in `provider_docs/%Y/%m/` and `organization_docs/%Y/%m/`; API FileFields can generate media URLs for entitled readers. No confirmed authenticated private-download mechanism, private storage implementation or signed URL handling was found. Public API redaction does not revoke previously known URLs.
+8. **Deployment qualification:** Production settings set DEBUG=False, which removes that Django helper but does not prove private reverse-proxy/storage ACLs. Those deployed controls are U. WSGI/ASGI default to development settings unless externally overridden; Procfile invokes WSGI. Actual deployment settings must be verified. No real private document was requested and no production exposure incident is claimed.
+9. **Impact:** Known valid URLs can bypass API authorization in DEBUG serving; private identity/licence material could be disclosed. Production exploitability depends on unverified hosting configuration.
+10. **BR / boundaries:** BR-004/BR-056 privacy context. F-001 API closure does not resolve this independent serving-layer root cause.
+11. **Owner decision:** Separately approve authenticated downloads/private storage or equivalent access controls; this record does not implement or choose a storage design.
+12. **Verification plan:** Use synthetic files and authorized isolated deployment checks for anonymous, owner, reviewer and foreign-tenant retrieval; inspect actual settings, proxy mappings and storage ACLs. Do not request real private documents merely to demonstrate exposure.
+13. **Acceptance:** Unauthorized direct retrieval is prevented across the actual deployment serving paths; permitted reads enforce ownership/tenant authority; any signed URLs have reviewed scope/expiry semantics; actual production settings are confirmed before real sensitive documents are hosted.
+14. **Regression:** Public logos/avatars and discovery remain functional; private access cannot be restored by knowing an old URL or substituting an object/tenant ID.
+15. **Status:** OPEN — mandatory pre-production gate; no storage correction or production authorization verification completed.
+
+## F-025
+
+1. **ID / priority:** F-025 — P3 / Low; new post-M1 documentation/client-contract follow-up.
+2. **Title:** Role-Dependent OpenAPI Response Schema Mismatch.
+3. **Components / source:** `backend/apps/organizations/views.py` and `backend/apps/providers/views.py` GET `extend_schema` annotations; actual public/operational serializers.
+4. **Current behavior / evidence:** S — organization list advertises `OrganizationSerializer` but returns `OrganizationPublicSerializer`. Organization detail and provider list/detail advertise privileged serializers while runtime selects public/operational variants. Schedule, break and leave GET advertise `WeeklyScheduleSerializer`, `ScheduleBreakSerializer`, `ProviderLeaveSerializer` despite safe/operational variants.
+5. **Affected routes:** `/api/v1/organizations/`; organization detail; nested providers list/detail; provider schedules, nested schedule breaks and provider leaves GET. Dedicated entitled document/review endpoints are not this mismatch.
+6. **Impact / limits:** Documentation may imply private fields are present or required in safe responses and mislead clients. An annotation does not bypass runtime authorization or prove private-data disclosure. No generated-client dependency was found in the inspected handwritten React API consumers; generated schema/client behavior is not runtime verified.
+7. **Recommended remediation:** Scoped annotation correction: public serializer for public-only responses; explicit role-dependent variants/descriptions for mixed responses, preserving list/pagination forms where supported. Do not broaden serializers or permissions to match inaccurate documentation.
+8. **Verification / acceptance:** Inspect generated schema under separately authorized checks; declared field sets and role variants match runtime projections, public schemas do not promise operational-only fields, and existing entitled responses/routes remain compatible.
+9. **Status:** OPEN — separately trackable post-M1 correction; no schema annotations or runtime permissions changed during closure.
 
 ## Historical findings crosswalk
 

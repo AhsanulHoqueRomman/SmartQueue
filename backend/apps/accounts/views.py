@@ -127,6 +127,16 @@ class RegisterProviderView(APIView):
         serializer = ProviderRegisterSerializer(data=request.data)
         if serializer.is_valid():
             data = serializer.validated_data
+            org_id = data.get('organization_id')
+            org = None
+            if org_id:
+                try:
+                    org = Organization.objects.get(id=org_id, is_active=True)
+                except Organization.DoesNotExist:
+                    return Response(
+                        {'organization_id': ['Selected organization does not exist or is inactive.']},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             with transaction.atomic():
                 user = User.objects.create_user(
                     email=data['email'],
@@ -136,18 +146,10 @@ class RegisterProviderView(APIView):
                     phone_number=data.get('phone_number', '')
                 )
 
-                org_id = data.get('organization_id')
                 is_pending_approval = False
+                profile = None
 
-                if org_id:
-                    try:
-                        org = Organization.objects.get(id=org_id, is_active=True)
-                    except Organization.DoesNotExist:
-                        return Response(
-                            {'organization_id': ['Selected organization does not exist or is inactive.']},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-
+                if org is not None:
                     org_membership = OrganizationMembership.objects.create(
                         user=user,
                         organization=org,
@@ -155,7 +157,7 @@ class RegisterProviderView(APIView):
                         is_active=False
                     )
                     
-                    ProviderProfile.objects.create(
+                    profile = ProviderProfile.objects.create(
                         membership=org_membership,
                         title=data.get('title', ''),
                         bio=data.get('bio', ''),
@@ -167,6 +169,7 @@ class RegisterProviderView(APIView):
                 return Response({
                     'user': UserSerializer(user).data,
                     'is_pending_approval': is_pending_approval,
+                    'provider_profile_id': str(profile.pk) if profile is not None else None,
                     'access': str(refresh.access_token),
                     'refresh': str(refresh),
                 }, status=status.HTTP_201_CREATED)

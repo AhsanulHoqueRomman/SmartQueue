@@ -13,6 +13,7 @@ from .services import OrganizationService
 from .operating_hours import update_organization_hours
 from .serializers import (
     OrganizationSerializer,
+    OrganizationPublicSerializer,
     OrganizationCreateSerializer,
     OrganizationMembershipSerializer,
     OrganizationDocumentSerializer,
@@ -90,7 +91,7 @@ class OrganizationListCreateView(APIView):
             ordering_fields=('name', 'created_at'),
             default_ordering=('name',),
         )
-        return list_response(orgs, OrganizationSerializer, request)
+        return list_response(orgs, OrganizationPublicSerializer, request)
 
     @extend_schema(
         request=OrganizationCreateSerializer,
@@ -148,7 +149,8 @@ class OrganizationDetailView(APIView):
             if not (org.is_active and org.verification_status == Organization.VerificationStatus.APPROVED):
                 return Response({'detail': 'Organization not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        data = OrganizationSerializer(org).data
+        serializer_class = OrganizationSerializer if is_manager_or_admin else OrganizationPublicSerializer
+        data = serializer_class(org).data
         
         # Optionally attach current user's membership info if they are a member
         if request.user.is_authenticated:

@@ -12,7 +12,14 @@ class ProviderDocumentSerializer(serializers.ModelSerializer):
             'id', 'provider_profile', 'document_type', 'file', 'original_filename',
             'uploaded_at', 'status', 'reviewed_by', 'reviewed_at', 'rejection_reason',
         ]
-        read_only_fields = ['id', 'uploaded_at', 'status', 'reviewed_by', 'reviewed_at']
+        read_only_fields = ['id', 'provider_profile', 'uploaded_at', 'status', 'reviewed_by', 'reviewed_at', 'rejection_reason']
+
+    def validate(self, attrs):
+        profile = self.context.get('provider_profile')
+        supplied_owner = self.initial_data.get('provider_profile')
+        if profile is not None and supplied_owner is not None and str(supplied_owner) != str(profile.pk):
+            raise serializers.ValidationError({'provider_profile': 'Document owner must match the URL provider.'})
+        return attrs
 
 
 class ProviderProfileSerializer(serializers.ModelSerializer):
@@ -50,6 +57,21 @@ class ProviderProfileSerializer(serializers.ModelSerializer):
             if ps.service.is_active and ps.service.organization_id == obj.membership.organization_id
         ]
         return ProviderServiceSerializer(assignments, many=True).data
+
+
+class ProviderDiscoverySerializer(ProviderProfileSerializer):
+    """Public discovery fields; verification material stays operational-only."""
+
+    class Meta(ProviderProfileSerializer.Meta):
+        fields = [
+            'id', 'user_id', 'user_first_name', 'user_last_name',
+            'organization_id', 'organization_name', 'membership_is_active',
+            'bio', 'title', 'profile_photo', 'experience_years',
+            'education', 'experience_history', 'certifications', 'specialties',
+            'is_active', 'application_status', 'is_operationally_active',
+            'service_charges', 'created_at', 'updated_at',
+        ]
+        read_only_fields = fields
 
 
 class ProviderApplicationReviewSerializer(serializers.Serializer):
@@ -194,8 +216,10 @@ class ProviderPublicProfileSerializer(serializers.ModelSerializer):
 
     def get_provider_name(self, obj):
         user = obj.membership.user
-        full_name = f"{user.first_name} {user.last_name}".strip()
-        return full_name if full_name else user.email
+        first_name = (user.first_name or '').strip()
+        last_name = (user.last_name or '').strip()
+        full_name = f"{first_name} {last_name}".strip()
+        return full_name or (obj.title or '').strip() or 'Service Provider'
 
     def get_categories(self, obj):
         categories_dict = {}
@@ -354,3 +378,19 @@ class ProviderLeaveSerializer(serializers.ModelSerializer):
         if start and end and end <= start:
             raise serializers.ValidationError("end_datetime must be after start_datetime.")
         return data
+
+
+class ScheduleBreakPublicSerializer(ScheduleBreakSerializer):
+    class Meta(ScheduleBreakSerializer.Meta):
+        fields = ['id', 'start_time', 'end_time']
+        read_only_fields = fields
+
+
+class WeeklySchedulePublicSerializer(WeeklyScheduleSerializer):
+    breaks = ScheduleBreakPublicSerializer(many=True, read_only=True)
+
+
+class ProviderLeavePublicSerializer(ProviderLeaveSerializer):
+    class Meta(ProviderLeaveSerializer.Meta):
+        fields = ['id', 'start_datetime', 'end_datetime']
+        read_only_fields = fields

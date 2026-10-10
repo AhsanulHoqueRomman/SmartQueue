@@ -5,6 +5,7 @@ import queueService from '../../services/queueService';
 import { StatusBadge } from '../../components/StatusBadge';
 import { LoadingState } from '../../components/LoadingState';
 import { EmptyState } from '../../components/EmptyState';
+import { deriveProfessionalDisplay } from '../../utils/providerDisplay';
 
 export function StaffQueuePage() {
   const { currentOrg } = useTenant();
@@ -178,11 +179,14 @@ export function StaffQueuePage() {
             {providers.length === 0 ? (
               <option value="">No active providers</option>
             ) : (
-              providers.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title ? `${p.title} - ` : ''}{p.user_email || `Provider #${p.id.slice(0, 8)}`}
-                </option>
-              ))
+              providers.map((p) => {
+                const { displayName, designation, showDesignation } = deriveProfessionalDisplay(p, `Provider #${p.id.slice(0, 8)}`);
+                return (
+                  <option key={p.id} value={p.id}>
+                    {showDesignation ? `${designation} - ` : ''}{displayName}
+                  </option>
+                );
+              })
             )}
           </select>
         </div>
@@ -221,7 +225,7 @@ export function StaffQueuePage() {
         <div className="flex flex-col gap-lg animate-section stagger-1">
           {/* Active Call Highlight */}
           <div className="card" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
-            <h3>Current Call Status for {selectedProvider.user_email || 'Provider'}</h3>
+            <h3>Current Call Status for {deriveProfessionalDisplay(selectedProvider, 'Provider').displayName}</h3>
             <div style={{ marginTop: '1rem' }}>
               {activeEntry ? (
                 <div className="flex justify-between items-center flex-wrap gap-md" style={{ backgroundColor: 'var(--color-primary-light)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-primary-border)' }}>

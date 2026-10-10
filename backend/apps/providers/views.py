@@ -9,9 +9,10 @@ from apps.organizations.models import Organization, OrganizationMembership
 from apps.organizations.permissions import IsOrganizationManager
 from .models import ProviderProfile, ProviderDocument, ProviderService, WeeklySchedule, ScheduleBreak, ProviderLeave
 from django.db.models import Prefetch
-from .permissions import IsOrganizationManagerOrOwnProvider
+from .permissions import IsOrganizationManagerOrOwnProvider, IsProviderOnboardingParticipant
 from .serializers import (
     ProviderProfileSerializer,
+    ProviderDiscoverySerializer,
     ProviderProfileCreateSerializer,
     ProviderProfileUpdateSerializer,
     ProviderPublicProfileSerializer,
@@ -25,6 +26,9 @@ from .serializers import (
     WeeklyScheduleCreateUpdateSerializer,
     ScheduleBreakSerializer,
     ProviderLeaveSerializer,
+    WeeklySchedulePublicSerializer,
+    ScheduleBreakPublicSerializer,
+    ProviderLeavePublicSerializer,
 )
 from .services import ProviderService_ as ProviderBizService
 from config.api import apply_list_query, list_response
@@ -62,6 +66,20 @@ def _is_org_manager_or_admin(user, organization_id):
         organization_id=organization_id,
         role=OrganizationMembership.Role.MANAGER,
         is_active=True,
+    ).exists()
+
+
+def _can_read_operational_schedule(user, profile):
+    """Operational annotations belong to this tenant's operators or the owner."""
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_staff or user.is_superuser:
+        return True
+    if profile.user.pk == user.pk and profile.membership.is_active:
+        return True
+    return OrganizationMembership.objects.filter(
+        user=user, organization_id=profile.organization.pk, is_active=True,
+        role__in=[OrganizationMembership.Role.MANAGER, OrganizationMembership.Role.STAFF],
     ).exists()
 
 
@@ -121,7 +139,12 @@ class ProviderProfileListCreateView(APIView):
             ordering_fields=('title', 'created_at', 'updated_at'),
             default_ordering=('title', 'created_at'),
         )
-        return list_response(profiles, ProviderProfileSerializer, request)
+        serializer_class = (
+            ProviderProfileSerializer
+            if _is_org_manager_or_admin(request.user, organization_id)
+            else ProviderDiscoverySerializer
+        )
+        return list_response(profiles, serializer_class, request)
 
     @extend_schema(
         request=ProviderProfileCreateSerializer,
@@ -159,7 +182,7 @@ class ProviderProfileDetailView(APIView):
         if self.request.method == 'GET':
             return [AllowAny()]
         if self.request.method == 'PATCH':
-            return [IsAuthenticated(), IsOrganizationManagerOrOwnProvider()]
+            return [IsAuthenticated(), IsProviderOnboardingParticipant()]
         return [IsAuthenticated(), IsOrganizationManager()]
 
     @extend_schema(
@@ -167,11 +190,12 @@ class ProviderProfileDetailView(APIView):
         summary="Retrieve a provider profile"
     )
     def get(self, request, organization_id, provider_id):
-        profile = _get_provider(organization_id, provider_id)
-        if not _is_org_manager_or_admin(request.user, organization_id):
-            if not profile.is_operationally_active:
-                return Response(status=status.HTTP_404_NOT_FOUND)
-        return Response(ProviderProfileSerializer(profile).data)
+        profile = _get_provider(organization_id, provider_id, require_active_membership=False)
+        can_read_private = IsProviderOnboardingParticipant().has_permission(request, self)
+        if not can_read_private and not profile.is_operationally_active:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer_class = ProviderProfileSerializer if can_read_private else ProviderDiscoverySerializer
+        return Response(serializer_class(profile).data)
 
 
     @extend_schema(
@@ -184,7 +208,7 @@ class ProviderProfileDetailView(APIView):
         summary="Update a provider profile (Manager or owning Provider)"
     )
     def patch(self, request, organization_id, provider_id):
-        profile = _get_provider(organization_id, provider_id)
+        profile = _get_provider(organization_id, provider_id, require_active_membership=False)
         serializer = ProviderProfileUpdateSerializer(data=request.data, partial=True)
         if serializer.is_valid():
             updated = ProviderBizService.update_provider_profile(
@@ -324,10 +348,12 @@ class WeeklyScheduleListCreateView(APIView):
     )
     def get(self, request, organization_id, provider_id):
         profile = _get_provider(organization_id, provider_id)
-        if not profile.is_active and not _is_org_manager_or_admin(request.user, organization_id):
-            return Response(status=status.HTTP_404_NOT_FOUND)
         schedules = profile.weekly_schedules.prefetch_related('breaks').all()
-        return Response(WeeklyScheduleSerializer(schedules, many=True).data)
+        operational = _can_read_operational_schedule(request.user, profile)
+        if not operational and not profile.is_operationally_active:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer_class = WeeklyScheduleSerializer if operational else WeeklySchedulePublicSerializer
+        return Response(serializer_class(schedules, many=True).data)
 
     @extend_schema(
         request=WeeklyScheduleCreateUpdateSerializer,
@@ -377,12 +403,11 @@ class ScheduleBreakListCreateView(APIView):
     )
     def get(self, request, organization_id, provider_id, schedule_id):
         schedule = self._get_schedule(organization_id, provider_id, schedule_id)
-        if (
-            not schedule.provider.is_active
-            and not _is_org_manager_or_admin(request.user, organization_id)
-        ):
+        operational = _can_read_operational_schedule(request.user, schedule.provider)
+        if not operational and not schedule.provider.is_operationally_active:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        return Response(ScheduleBreakSerializer(schedule.breaks.all(), many=True).data)
+        serializer_class = ScheduleBreakSerializer if operational else ScheduleBreakPublicSerializer
+        return Response(serializer_class(schedule.breaks.all(), many=True).data)
 
     @extend_schema(
         request=ScheduleBreakSerializer,
@@ -440,10 +465,12 @@ class ProviderLeaveListCreateView(APIView):
     )
     def get(self, request, organization_id, provider_id):
         profile = _get_provider(organization_id, provider_id)
-        if not profile.is_active and not _is_org_manager_or_admin(request.user, organization_id):
+        operational = _can_read_operational_schedule(request.user, profile)
+        if not operational and not profile.is_operationally_active:
             return Response(status=status.HTTP_404_NOT_FOUND)
         leaves = profile.leaves.all()
-        return Response(ProviderLeaveSerializer(leaves, many=True).data)
+        serializer_class = ProviderLeaveSerializer if operational else ProviderLeavePublicSerializer
+        return Response(serializer_class(leaves, many=True).data)
 
     @extend_schema(
         request=ProviderLeaveSerializer,
@@ -486,7 +513,7 @@ class ProviderApplicationSubmitView(APIView):
     """
     POST: Provider submits their application for Manager review.
     """
-    permission_classes = [IsAuthenticated, IsOrganizationManagerOrOwnProvider]
+    permission_classes = [IsAuthenticated, IsProviderOnboardingParticipant]
 
     @extend_schema(
         responses={200: ProviderProfileSerializer, 400: OpenApiResponse(description="Invalid transition")},
@@ -532,7 +559,7 @@ class ProviderDocumentUploadView(APIView):
     GET: List verification documents uploaded by provider.
     POST: Upload a verification document (Provider or Manager).
     """
-    permission_classes = [IsAuthenticated, IsOrganizationManagerOrOwnProvider]
+    permission_classes = [IsAuthenticated, IsProviderOnboardingParticipant]
 
     @extend_schema(
         responses={200: ProviderDocumentSerializer(many=True)},
@@ -540,7 +567,7 @@ class ProviderDocumentUploadView(APIView):
     )
     def get(self, request, organization_id, provider_id):
         profile = _get_provider(organization_id, provider_id, require_active_membership=False)
-        docs = ProviderDocument.objects.filter(provider=profile)
+        docs = ProviderDocument.objects.filter(provider_profile=profile)
         serializer = ProviderDocumentSerializer(docs, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -551,10 +578,10 @@ class ProviderDocumentUploadView(APIView):
     )
     def post(self, request, organization_id, provider_id):
         profile = _get_provider(organization_id, provider_id, require_active_membership=False)
-        serializer = ProviderDocumentSerializer(data=request.data)
+        serializer = ProviderDocumentSerializer(data=request.data, context={'provider_profile': profile})
         if serializer.is_valid():
             doc = ProviderDocument.objects.create(
-                provider=profile,
+                provider_profile=profile,
                 document_type=serializer.validated_data['document_type'],
                 file=serializer.validated_data['file'],
                 original_filename=serializer.validated_data.get('original_filename', ''),
@@ -577,7 +604,7 @@ class ManagerProviderDocumentReviewView(APIView):
     )
     def post(self, request, organization_id, provider_id, document_id):
         profile = _get_provider(organization_id, provider_id, require_active_membership=False)
-        doc = get_object_or_404(ProviderDocument, id=document_id, provider=profile)
+        doc = get_object_or_404(ProviderDocument, id=document_id, provider_profile=profile)
         serializer = ProviderDocumentReviewSerializer(data=request.data)
         if serializer.is_valid():
             reviewed = ProviderBizService.review_provider_document(

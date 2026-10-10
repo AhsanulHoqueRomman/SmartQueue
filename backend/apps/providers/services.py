@@ -218,7 +218,7 @@ class ProviderService_:
                 action='PROVIDER_DOCUMENT_REVIEWED',
                 entity_type='ProviderDocument',
                 entity_id=document.id,
-                organization_id=document.provider.organization.id,
+                organization_id=document.provider_profile.organization.id,
                 actor=reviewer_user,
                 metadata={'status': status, 'rejection_reason': document.rejection_reason}
             )

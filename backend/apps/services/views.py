@@ -106,8 +106,11 @@ class ServiceDetailView(APIView):
             return [AllowAny()]
         return [IsAuthenticated(), IsOrganizationManager()]
 
-    def _get_service(self, organization_id, service_id):
-        org = get_object_or_404(Organization, id=organization_id, is_active=True)
+    def _get_service(self, organization_id, service_id, require_active_org=True):
+        org_filters = {'id': organization_id}
+        if require_active_org:
+            org_filters['is_active'] = True
+        org = get_object_or_404(Organization, **org_filters)
         service = get_object_or_404(Service, id=service_id, organization=org)
         return service
 
@@ -116,9 +119,12 @@ class ServiceDetailView(APIView):
         summary="Retrieve a service"
     )
     def get(self, request, organization_id, service_id):
-        service = self._get_service(organization_id, service_id)
-        # Non-managers may only retrieve active services
-        if not service.is_active and not _is_org_manager_or_admin(request.user, organization_id):
+        operational = _is_org_manager_or_admin(request.user, organization_id)
+        service = self._get_service(organization_id, service_id, require_active_org=not operational)
+        if not operational and (
+            not service.is_active
+            or service.organization.verification_status != Organization.VerificationStatus.APPROVED
+        ):
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(ServiceSerializer(service).data, status=status.HTTP_200_OK)
 

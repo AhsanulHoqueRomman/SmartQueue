@@ -13,6 +13,8 @@
 
 ### Evidence and policy classifications
 
+**M1 closure update, owner approved 2026-10-10:** F-001/F-002/F-003/F-004/F-019/F-020 are CLOSED against the final uncommitted M1 source at `main` / `28b17dfd6c8e65e7854aa0359297acecb5b599e2`. [Canonical closure evidence](KNOWN_ISSUES.md#m1-closure-and-acceptance-evidence) records earlier authorized execution (191 backend passes, five frontend helper passes, frontend build), not new tests in this documentation phase. BR IDs, baseline severity and unrelated/pending business policies are unchanged. Private-document serving remains the separate OPEN [F-024](KNOWN_ISSUES.md#f-024) pre-production gate; role-dependent API schema documentation is OPEN [F-025](KNOWN_ISSUES.md#f-025).
+
 Evidence: **S — SOURCE VERIFIED**; **T — TEST ASSERTION INSPECTED, NOT EXECUTED**; **H — HISTORICAL PRODUCT INTENT**; **D — DOCUMENTED BUT NOT VERIFIED**; **I — INFERRED, REQUIRES VERIFICATION**; **U — UNKNOWN**. **R — RUNTIME VERIFIED** is reserved for recorded execution and is unused here. T entries include the Phase 1 inspected assertions in unchanged test sources; they are not passing results.
 
 Policy: **APPROVED / ESTABLISHED**, **CURRENT IMPLEMENTATION**, **KNOWN DEFECT**, **POLICY PENDING**, **DEPRECATED / LEGACY**, **NOT VERIFIED**. These are independent of evidence. Established entries below refer to explicit owner/handoff invariants, not implied approval of every implementation detail.
@@ -126,9 +128,9 @@ Each entry preserves its baseline title/ID and distinguishes business meaning fr
 ### BR-006 — Public operational organization listing requires approval
 
 - **Domain / business meaning:** Organization. Public operational organization listing requires approval.
-- **Current implementation:** Active and `APPROVED` filter. Public detail/related endpoints need consistent filtering.
+- **Current implementation:** Organization public discovery requires active and APPROVED state. M1 service list/detail consistently require active service plus active APPROVED organization for public readers; own active manager/platform operational reads remain separate.
 - **Evidence:** S; source qualification controls over an older report's wording.
-- **Policy status:** CURRENT IMPLEMENTATION; KNOWN DEFECT (qualified below).
+- **Policy status:** CURRENT IMPLEMENTATION; F-020 publication mismatch CLOSED under M1. This does not certify every other related endpoint.
 - **Source:** `backend/apps/organizations/views.py:73–77 — OrganizationListCreateView.get`.
 - **Related findings:** F-020.
 - **Pending decisions:** None directly mapped.
@@ -803,7 +805,7 @@ BR-062 protects `smartqueue_db`, `smartqueue_theme`, `SMARTQUEUE_SUPPORT_EMAIL`,
 | Serial-first booking; no promised fixed start | Legacy datetime/slots still exist; stored preliminary starts need not include cumulative reserved workload | BR-021,023; C-01,C-18 |
 | QueueEntry at booking | Stale model docstring says check-in | BR-032; C-02 |
 | Repeated presence must not duplicate queue/serial | Customer repeat can reject; inspected idempotency assertion omits actor | BR-036; C-03; PF-001 |
-| Tenant/object privacy | Public document projections, broad schedule reads, global cleanup exceptions | BR-004; F-001,F-007,F-019 |
+| Tenant/object privacy | M1 API projection/schedule redaction CLOSED; direct private-file serving remains pre-production gate; global cleanup exception remains open | BR-004; F-001/F-019 CLOSED, F-024/F-007 OPEN |
 | Usable availability and valid rescheduling | Partial leave/reschedule capacity gaps; same-day budget pending | F-005,F-008,F-018; D01,D02 |
 | Effective provider duration respected | ETA base duration/current historical workload; no dedicated duration snapshot | F-009; D04 |
 | Check-in-gated urgent/serial calling | Reservation ETA population differs; urgent coordination incomplete | F-010,F-011; D05,D10 |

@@ -12,13 +12,15 @@
 
 ### Canonical ownership
 
+**Owner-approved M1 update, 2026-10-10:** F-001/F-002/F-003/F-004/F-019/F-020 are CLOSED. Current source baseline is `main` / `28b17dfd6c8e65e7854aa0359297acecb5b599e2` plus uncommitted M1 implementation/test changes. [Closure evidence](KNOWN_ISSUES.md#m1-closure-and-acceptance-evidence) records historical 191 backend passes, five frontend helper passes and the frontend build; no tests/build/browser/database operations ran in this documentation phase. Original Phase 3 metadata is provenance, not a claim that the later corrections did not happen. No queue/booking/schema or pending-policy change accompanies this update.
+
 | Document | Owns |
 |---|---|
 | [BUSINESS_RULES](BUSINESS_RULES.md) | BR-001–BR-062, C-01–C-18 index, D01–D20 policy register and terminology |
 | [QUEUE_STATE_MACHINE](QUEUE_STATE_MACHINE.md) | Exact linked lifecycle, declarations versus workflows, ETA formulas and branch precedence |
 | [ROLE_PERMISSION_MATRIX](ROLE_PERMISSION_MATRIX.md) | Method/resource/actor authorization and tenant exceptions |
 | PRODUCT_ARCHITECTURE | Technical structure, relationships, data flows and implementation boundaries |
-| [KNOWN_ISSUES](KNOWN_ISSUES.md) | Canonical detailed F-001–F-023 records, historical crosswalk and unpromoted candidates |
+| [KNOWN_ISSUES](KNOWN_ISSUES.md) | Canonical detailed F-001–F-025 records, M1 closure evidence, historical crosswalk and unpromoted candidates |
 
 Architecture/issues documents were planned at Phase 2 creation and now exist. The post-Phase-5 cleanup clarified active navigation in the Phase 2 documents while preserving that creation-time provenance. Update this architecture after a separately authorized change by inspecting affected models, services, projections, clients and tests together. Record the new source baseline and verification evidence; do not turn proposed policy or an enum into an implemented workflow.
 
@@ -79,7 +81,7 @@ S: model declarations below; migration files declare historical changes. Neither
 | `notifications/models.py::Notification` | Recipient User and required Organization FKs; nullable Appointment/QueueEntry SET_NULL links | Recipient/read/created and org/created indexes; recipient ownership drives reads, not org-wide manager authority |
 | `feedback/models.py::Review` | Appointment one-to-one; organization/customer/provider FKs | Unique appointment and rating 1–5; org/provider created indexes. `clean()` and service require completed appointment, correct owner and matching tenant/provider |
 | `organizations/models.py::OrganizationDocument`, `OrganizationCredential` | Organization FKs; nullable reviewing/verifying User links | Document org/status and credential public/status indexes; administrative document metadata differs from approved public trust fields |
-| `providers/models.py::ProviderDocument` | FK named **provider_profile**, nullable reviewing User | Profile/status index; upload/review's `provider` references do not match this model (F-002) |
+| `providers/models.py::ProviderDocument` | FK named **provider_profile**, nullable reviewing User | M1 list/upload/review/audit consistently use provider_profile; owner comes from scoped URL (F-002 CLOSED); file-serving gate remains F-024 |
 | `contact/models.py::ContactMessage` | Global inquiry, optional replying User; no tenant FK | NEW/IN_REVIEW/REPLIED/CLOSED; status/created index; no durable reply body/send outcome fields. Not an appointment or notification |
 | `AppointmentIssueReport` | Appointment and customer FKs | PENDING/RESOLVED/DISMISSED; support workflow, not automatic lifecycle correction/refund |
 | `audit/models.py::AuditLog` | Operational audit resource | Records domain action/actor/metadata; audit does not itself enforce authorization or transition correctness |
@@ -97,7 +99,7 @@ S: `accounts/urls.py` maps register/customer, manager/provider registration, log
 
 Backend authority is a combination of method-specific permission, URL-scoped resource lookup, queryset filters, object ownership and safe projection. Organization STAFF is not Django `is_staff`. Custom platform admin helpers accept `is_staff` or `is_superuser`; do not generalize that to every Django feature. Frontend RoleRoute/role-aware nav provides UX, never security. See [authorization matrix](ROLE_PERMISSION_MATRIX.md#detailed-permission-matrix).
 
-Public discovery and operational projections currently overlap unsafely (F-001/F-019/F-020). Pending provider self-onboarding is blocked by the active-member gate (F-003); its relaxed resource loader runs too late. These are documented exceptions, not legitimate entitlement rules.
+M1 separates public organization/provider projections from private verification administration (F-001 CLOSED), and safe schedule/leave intervals from operational titles/reasons (F-019 CLOSED). Public provider_name uses trimmed names, public title, then Service Provider; no account-email fallback. Service public detail/list both require active service and active APPROVED org, with own-manager/platform operational exceptions (F-020 CLOSED). IsProviderOnboardingParticipant enables scoped incomplete/pending/rejected owner application access without granting operational membership (F-003 CLOSED). Provider registration validates prerequisites before atomic creation (F-004 CLOSED), retaining an additive provider_profile_id response. Original defects and resolution evidence are preserved in Known Issues.
 
 Source-name qualification (Phase 5 recheck, S): `backend/apps/providers/views.py` and `backend/apps/providers/urls.py` declare/map `ProviderProfileListCreateView`, `ProviderProfileDetailView` and `ProviderDocumentUploadView`. The role matrix correctly identifies the first two classes; its other related references are descriptive endpoint labels, not mismatched Python class names. The earlier naming-mismatch concern is not substantiated by the inspected source; permissions and projection findings remain unchanged.
 
@@ -235,11 +237,11 @@ ContactMessageCreateView validates/throttles, persists inquiry, then invokes adm
 | Django settings | base + development/production; dotenv; PostgreSQL env fields/default; SQLite when USE_SQLITE, pytest module or test argv detected | No `.env` secrets/live connection queried; actual engine/schema/applied migrations U |
 | Security | Development DEBUG/CORS-all; production secret/hosts validation, secure cookies/SSL/HSTS/CSRF origins | Not a deployed security certification; don't reuse development allowances as production policy |
 | Auth/API | DRF JWT/filter/schema/exception config; contact/reset throttle rates; FRONTEND_URL | No HTTP/refresh/throttle execution |
-| Static/media | STATIC_ROOT/MEDIA_ROOT; DEBUG media URL helper; local Vite /media and /api proxy | Production file hosting/access controls U; public document URL serialization not download proof |
+| Static/media | STATIC_ROOT/MEDIA_ROOT; DEBUG media URL helper; local Vite /media and /api proxy; provider_docs and organization_docs share media storage | Known DEBUG direct-URL path lacks document permissions; production file hosting/ACLs U. F-024 is an OPEN mandatory pre-production gate |
 | Frontend | Vite React config; Axios VITE_API_BASE_URL with local fallback; VITE_API_DOCS_URL or derived docs URL | Build not run; installed browser/dependency behavior U |
 | Dependencies | Root requirements includes Resend and pytest 8.4.2; backend requirements declares pytest 9.1.1 and omits Resend; package.json + lockfile define frontend | Declaration discrepancy is an unconfirmed environment lead, not an installed-version diagnosis or new F ID |
 | Email/logging | Resend SDK wrapper uses process env; module logger reports skipped/failed/sent context; configured from display name | No live send, private inbox, provider logs or production logging destination inspected |
-| Deployment | WSGI/ASGI entry points and gunicorn dependency; production settings exist | No verified production host, reverse proxy, container topology, worker fleet or scheduler inferred |
+| Deployment | WSGI/ASGI default to development settings unless externally overridden; Procfile invokes WSGI; explicit production settings exist | Verify actual production settings and private serving before sensitive uploads (F-024); no deployed host/proxy/storage certification |
 
 Sources: `backend/config/settings/base.py`, development.py/production.py, `requirements.txt`, `backend/requirements.txt`, `frontend/package.json`, `frontend/vite.config.js`, `frontend/src/api/client.js`, `backend/apps/contact/email_service.py`. Installed versions, secrets and live environment are intentionally outside this phase.
 
@@ -281,6 +283,6 @@ BR-062 owns the protection rule. QueueTurn branding does not authorize a DB, key
 
 ## Q. Risks and future verification
 
-See [KNOWN_ISSUES](KNOWN_ISSUES.md#findings-index) for all baseline findings and evidence-qualified acceptance plans. Highest baseline priorities remain F-001/F-005/F-006/F-007/F-012; no P0 established. Main boundaries are public projection privacy, onboarding contracts, reschedule/capacity parity, stale lifecycle writes, global overnight cleanup, frontend payload/count/date/polling and support outcome visibility.
+See [KNOWN_ISSUES](KNOWN_ISSUES.md#findings-index) for baseline history, six owner-closed M1 findings and remaining acceptance plans. Baseline priorities are unchanged; F-005/F-006/F-007/F-012 remain open P1 findings. [F-024](KNOWN_ISSUES.md#f-024) is a new High/P1 mandatory pre-production private-file gate; [F-025](KNOWN_ISSUES.md#f-025) is a new Low/P3 role-dependent OpenAPI schema follow-up. Staff provider-label helper/build evidence does not establish browser provider switching; SQLite/--nomigrations does not establish PostgreSQL concurrency or migration application. No P0 established.
 
 All D01–D20 remain [POLICY PENDING](BUSINESS_RULES.md#pending-business-policy-register); documentation does not choose remaining-day capacity, duration history, enforced arrival windows, skipped-return, provider-interruption or payment policy. PF-001/PF-002 remain candidates. Existing source gaps are not a claim of exploitation, actual stale UI overwrite, delivered email, applied migrations or universal race safety. UI Design Brain Phase 4 can document the approved visual baseline separately; it must not silently fix these issues or infer missing policy.

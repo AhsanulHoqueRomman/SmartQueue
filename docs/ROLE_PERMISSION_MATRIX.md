@@ -12,6 +12,8 @@
 
 ## Identity and role model
 
+**M1 update, owner approved 2026-10-10:** F-001/F-002/F-003/F-004/F-019/F-020 are CLOSED against the final source at `main` / `28b17dfd6c8e65e7854aa0359297acecb5b599e2` plus uncommitted M1 work. Their affected rows and qualifications below reflect the corrections. [M1 acceptance evidence](KNOWN_ISSUES.md#m1-closure-and-acceptance-evidence) records the historical 191-pass isolated SQLite selection and frontend verification; no tests or browser checks were newly run for documentation closure. Private downloads remain a separate [F-024](KNOWN_ISSUES.md#f-024) pre-production gate; schema variants remain [F-025](KNOWN_ISSUES.md#f-025). Unrelated permissions and policy decisions are unchanged.
+
 Source: `backend/apps/accounts/models.py::User`; `backend/apps/organizations/models.py::OrganizationMembership`; `backend/apps/providers/models.py::ProviderProfile` — S. BR-001–BR-003/BR-010.
 
 | Concept | Actual meaning |
@@ -77,18 +79,18 @@ No row's admin allowance waives the resource lookup, active organization filter 
 |---|---|---|---|---|
 | `/api/v1/auth/register/`, `register/customer/` — RegisterView | POST | AllowAny; no membership | Global user creation; serializer validation | `backend/apps/accounts/views.py:32–54`, `accounts/urls.py` |
 | `auth/register/manager/` — RegisterManagerView | POST | AllowAny | New user + new organization/manager bootstrap, not manager authority over an arbitrary existing tenant | `accounts/views.py:57–112` |
-| `auth/register/provider/` — RegisterProviderView | POST | AllowAny | Optional target active organization; creates inactive PROVIDER membership/profile; F-004 failure persistence | `accounts/views.py:115–172` |
+| `auth/register/provider/` — RegisterProviderView | POST | AllowAny | Validate optional active organization before writes; atomic User/inactive PROVIDER membership/profile creation; additive provider_profile_id; F-004 CLOSED | `accounts/views.py::RegisterProviderView` |
 | `auth/login/`, token refresh | POST | Login AllowAny; credentials/token validated, not organization membership | Global authentication; active membership considered by later operational gates | `accounts/views.py::LoginView`, `accounts/urls.py` |
 | `auth/me/` — CurrentUserView | GET / PATCH | Authenticated | Requester's own User; no arbitrary tenant-user update implied | `accounts/views.py:229–255` |
 | Password reset request/confirm | POST | Public token/email flow | Generic request result; reset proof validated separately; no recipient existence leakage | `accounts/views.py:277–328`, F-021 |
-| O collection — OrganizationListCreateView | GET | AllowAny | Active APPROVED public list; shared serializer exposure F-001 | OV:64–77 |
+| O collection — OrganizationListCreateView | GET | AllowAny | Active APPROVED public list; OrganizationPublicSerializer excludes verification administration | OV::OrganizationListCreateView; F-001 CLOSED |
 | O collection — OrganizationListCreateView | POST | Authenticated | New organization bootstrap for requester; not permission to manage foreign existing org | OV:64–112; OrganizationService.create_organization |
-| O detail — OrganizationDetailView | GET | AllowAny | Public only active APPROVED; own active manager/admin can inspect nonoperational tenant. F-001 projection | OV:123–172 |
+| O detail — OrganizationDetailView | GET | AllowAny | Public safe projection only for active APPROVED org; own active manager/admin retain private operational projection and nonoperational reads | OV::OrganizationDetailView; F-001 CLOSED |
 | O detail | PATCH / PUT | Active target MANAGER or admin | URL organization; not STAFF/provider privilege | OV:174–190; OPerm |
 | O services — ServiceListCreateView | GET | AllowAny | Public active services in active APPROVED organization; target manager/admin see management list. Starting price backend-derived | SV:44–81 |
-| O services/{service}/ — ServiceDetailView | GET | AllowAny | Scoped service/active org; active service for nonmanager. **Approval gate missing F-020** | SV:104–134 |
-| O providers collection/detail | GET | AllowAny | Nonmanager operational profiles only; manager/admin management visibility. Uses ProviderProfileSerializer: F-001 | PV:80–124,158–184 |
-| O providers/P/profile/ — ProviderPublicProfileView | GET | AllowAny | Separate public-profile projection; operational check for nonmanager. Do not assume it erases exposure in other routes | PV:207–228 |
+| O services/{service}/ — ServiceDetailView | GET | AllowAny | Public active service in active APPROVED org; own active manager/admin may read unpublished/inactive records; mutation gates unchanged | SV::ServiceDetailView; F-020 CLOSED |
+| O providers collection/detail | GET | AllowAny | Public discovery requires operational provider; manager/admin use privileged projection; detail also admits entitled owner/onboarding applicant, never another applicant | PV::ProviderProfileListCreateView, ProviderProfileDetailView; F-001/F-003 CLOSED |
+| O providers/P/profile/ — ProviderPublicProfileView | GET | AllowAny | Public profile projection; operational check for nonmanager; provider_name uses trimmed name, public title, then Service Provider, never account email | PV::ProviderPublicProfileView; ProviderPublicProfileSerializer |
 | O providers/P/availability/ — ProviderAvailabilityView | GET | CanQueryAvailability / public | Tenant/provider/service eligibility; customer-safe date capacity response; no guaranteed fixed slot | AV::ProviderAvailabilityView; appointments/services.py::get_available_slots |
 | O operating-hours/ | GET | AllowAny | Active URL organization; this endpoint does not independently check approval. Separate from provider capacity | OV:828–854 |
 | O operating-hours/ | POST / PUT | Active target MANAGER or admin | Active URL organization; validated weekly rows | OV::OrganizationOperatingHoursView |
@@ -121,15 +123,15 @@ No row's admin allowance waives the resource lookup, active organization filter 
 | O providers/P/services/ — ProviderServiceListCreateView | GET | Any authenticated user | Tenant/profile lookup; inactive profile hidden from nonmanager; not necessarily full operational approval projection | PV:237–262 |
 | Same assignment collection | POST | Active target MANAGER or admin | Provider/service same org validation; unique assignment | PV:264–275; providers/services.py::assign_service_to_provider |
 | O providers/P/services/{assignment}/ — ProviderServiceDetailView | PATCH / DELETE | Active target MANAGER or admin | URL profile then assignment ownership; provider→assignment lock; customer-facing override, not income | PV:278–305; providers/services.py:265–302 |
-| O providers/P/schedules/ | GET | Any authenticated user | Scoped provider lookup; no requester membership required; includes break titles. **F-019** | PV:316–340; providers/serializers.py::WeeklyScheduleSerializer |
+| O providers/P/schedules/ | GET | Authenticated safe discovery; entitled operational readers | Safe projection for operational providers omits break titles; active owner/target manager/staff/admin retain annotations | PV::WeeklyScheduleListCreateView; F-019 CLOSED |
 | Same schedules — WeeklyScheduleListCreateView | POST | Own active provider, active target manager, admin | Upsert own/target weekday; stored break validation gap F-018 | PV:342–354; PPerm |
-| O providers/P/schedules/{schedule}/breaks/ | GET | Any authenticated user | Nested provider/schedule ownership lookup; internal titles exposed F-019 | PV:365–394 |
+| O providers/P/schedules/{schedule}/breaks/ | GET | Authenticated safe discovery; entitled operational readers | Nested provider/schedule lookup; safe projection omits title, operational readers retain it | PV::ScheduleBreakListCreateView; _can_read_operational_schedule |
 | Break collection/detail | POST / DELETE | Own active provider, active target manager, admin | Nested schedule/break ownership; create overlap validation lacks writer coordination F-018 | PV:397–422; PPerm |
-| O providers/P/leaves/ | GET | Any authenticated user | URL provider scoped, but requester need not belong; leave reasons exposed F-019 | PV:432–455; providers/serializers.py::ProviderLeaveSerializer |
+| O providers/P/leaves/ | GET | Authenticated safe discovery; entitled operational readers | Safe projection for operational providers omits reason; active owner/target manager/staff/admin retain it | PV::ProviderLeaveListCreateView; _can_read_operational_schedule |
 | Leave collection/detail | POST / DELETE | Own active provider, active target manager, admin | URL provider/leave ownership; input validity | PV:457–481; PPerm |
-| O providers/P/documents/ | GET / POST | Nominal own active provider, active target manager, admin | View permits loading inactive membership but earlier permission still requires own active membership; incorrect `provider` field F-002, pending gate F-003 | PV:530–564; PPerm |
-| O providers/P/documents/{document}/review/ | POST | Active target MANAGER or admin | Nominal URL provider/document association; invalid FK/attribute F-002; not a working-flow guarantee | PV::ManagerProviderDocumentReviewView; providers/services.py::review_provider_document |
-| O providers/P/submit-application/ | POST | Nominal own active provider, target manager/admin | New inactive applicant blocked BEFORE later relaxed loader. **F-003** | PV:485–498; PPerm |
+| O providers/P/documents/ | GET / POST | Own active provider or own eligible onboarding applicant; active target manager/admin | Scoped provider_profile ownership; omitted owner accepted, conflicting owner rejected; review fields read-only; no operational membership grant | PV::ProviderDocumentUploadView; IsProviderOnboardingParticipant; F-002/F-003 CLOSED |
+| O providers/P/documents/{document}/review/ | POST | Active target MANAGER or admin | Document constrained to URL provider_profile/tenant; correct review audit relationship; applicant/staff cannot review | PV::ManagerProviderDocumentReviewView; providers/services.py::review_provider_document |
+| O providers/P/submit-application/ | POST | Own eligible onboarding applicant or existing authorized owner/manager/admin | Own INCOMPLETE/PENDING_REVIEW/REJECTED exception supports inactive membership; foreign applicants denied; submission does not activate membership | PV::ProviderApplicationSubmitView; IsProviderOnboardingParticipant |
 | O providers/P/review-application/ | POST | Active target MANAGER or admin | Loader allows pending membership; service application-state validation; approval activates membership | PV:501–527; providers/services.py::approve_application, reject_application |
 
 ### Memberships, verification, notifications, reviews and support
@@ -140,7 +142,7 @@ No row's admin allowance waives the resource lookup, active organization filter 
 | O invitations and staff invitations | GET / POST; cancel POST | Active target MANAGER or admin | Tenant invitation lookups and service checks | OV::OrganizationInvitationListCreateView, OrganizationInvitationCancelView, staff equivalents |
 | `/api/v1/invitations/provider/{token}/` and staff equivalent; accept | GET / POST | AllowAny token flow | Token-specific validation, not blanket guest access to membership management | config/urls.py; OV::PublicInvitationDetailsView, PublicAcceptInvitationView, staff equivalents |
 | O staff list/activate/deactivate | GET / POST | Active target MANAGER or admin | URL tenant and staff membership; not platform user-admin authority | OV::OrganizationStaffListView, OrganizationStaffActivateView, OrganizationStaffDeactivateView |
-| O documents/ — OrganizationDocumentListUploadView | GET | Any active target organization member or admin | Actual gate is IsOrganizationMember, despite manager-oriented comment; dedicated route excludes nonmembers; public serializer exposure remains F-001 | OV:299–319; OPerm |
+| O documents/ — OrganizationDocumentListUploadView | GET | Any active target organization member or admin | Existing IsOrganizationMember gate retained, despite manager-oriented comment; nonmembers excluded; public discovery no longer embeds documents | OV::OrganizationDocumentListUploadView; OPerm |
 | O documents/; document detail | POST / DELETE | Active target MANAGER or admin | POST adds explicit manager check; document lookup tenant-scoped; service verification-state restrictions apply | OV:321–362; organizations/services.py::upload_document, delete_document |
 | O verification/submit/ | POST | Active target MANAGER or admin | URL organization and submission-state requirements | OV::ManagerVerificationSubmitView; OPerm |
 | Organization admin verification queue/start/approve/reject/suspend/unsuspend | GET / POST as routed | Django is_staff or is_superuser | IsSystemAdmin; targeted org/state validation. Tenant MANAGER alone cannot approve platform verification | OV::AdminOrganizationVerificationQueueView and AdminOrganization* views |
@@ -170,11 +172,11 @@ Evidence: AnV:21–101; AnPerm; `backend/apps/analytics/urls.py:9–14`; `backen
 
 **Established privacy intent (H/S):** Public organization/profile/service names, professional titles, safe availability windows, backend effective/starting charges, approval-derived trust and public review metrics are discovery data. Booking contacts, other customers' records, verification files/original filenames, administrative reviewers/rejection details, leave reasons and internal break titles are not automatically public just because a shared serializer contains them.
 
-**CURRENT IMPLEMENTATION / KNOWN DEFECT exceptions:**
+**M1 resolutions and remaining exceptions:**
 
-- **F-001:** Public organization GET uses OrganizationSerializer whose document method serializes document file URL/original filename/status/reviewer/rejection data. Public provider list/detail use ProviderProfileSerializer including documents, user email and application-reviewer email. Sources: `organizations/serializers.py:124–125,253–258`; `providers/serializers.py:20–42`; OV/PV public GETs. This confirms projection exposure, not actual file-download access or exploitation. A separate provider public-profile route does not repair other public routes.
-- **F-019:** Any authenticated user can GET scoped schedules/breaks/leaves without membership; operational titles/reasons appear in projection. Tenant resource lookup prevents arbitrary FK mixing, but does not enforce requester entitlement. Sources PV:319–329,435–445 and provider serializers. Explicit safe fields require owner review; not already fixed.
-- **F-020:** Public service list requires approved active organization; detail only requires active org and active service for nonmanager. Publication mismatch remains. Source SV:55–58,109–123.
+- **F-001 CLOSED:** Explicit public organization/provider projections omit document/reviewer/rejection administration and provider account email. The separate public profile no longer falls back to email. Entitled private reads remain available. Original exposure/root cause is retained in [the finding](KNOWN_ISSUES.md#f-001); direct media authorization remains F-024.
+- **F-019 CLOSED:** Customers/foreign readers receive safe windows/intervals; only entitled operational readers receive break titles/leave reasons. GET remains authenticated and nested resources stay scoped. Original exposure is retained in [the finding](KNOWN_ISSUES.md#f-019).
+- **F-020 CLOSED:** Public service list/detail both enforce active service plus active APPROVED org; own active manager/platform unpublished reads remain separate. Original mismatch is retained in [the finding](KNOWN_ISSUES.md#f-020).
 - **F-007:** A tenant-authorized queue read/call invokes global historical mutation. A scoped URL does not make this side effect tenant-scoped. State-machine cleanup section owns detail.
 
 The operating-hours endpoint checks active org rather than the public list's full approval gate. This is additional source detail, not a silently accepted new finding or a reason to expand this phase into fixes.
@@ -182,12 +184,12 @@ The operating-hours endpoint checks active org rather than the public list's ful
 ## Provider onboarding qualifications
 
 1. `RegisterProviderView` creates a global user, then optionally an inactive PROVIDER membership and INCOMPLETE profile under an active organization. Without organization_id it creates a global account without tenant entitlement. Source `accounts/views.py:126–172` — S.
-2. **F-004:** Failed organization lookup returns 400 inside atomic after user creation. Returning a response is not transaction rollback; partial user persistence follows this control flow. No record was created/tested here.
-3. **F-003:** Application/doc views call a loader with `require_active_membership=False`, but IsOrganizationManagerOrOwnProvider requires active own membership first. The pending applicant can be denied before the loader. Do not document pending self-service as working merely from view intent.
-4. **F-002:** ProviderDocument model FK is `provider_profile`; list/upload/review query/create uses `provider`, and review service accesses document.provider. Upload serializer also requires model provider_profile input. Permission alone does not make these operations functional.
-5. Manager approval/rejection is scoped and state-validated; proposed pending-owner access must never grant queue/catalog/other-provider authority. Future tests must assert pending self access, foreign denial and operational denial separately.
+2. **F-004 CLOSED:** Active organization prerequisites are checked before persistent creation. Atomic writes roll back on profile-creation exceptions; invalid/bound/unbound outcomes have endpoint assertions. Server controls PROVIDER role; additive provider_profile_id preserves response compatibility.
+3. **F-003 CLOSED:** Onboarding-specific permission admits the scoped owner of INCOMPLETE/PENDING_REVIEW/REJECTED applications, including inactive membership. It does not weaken global active-provider operational gates or permit applicant approval/membership activation.
+4. **F-002 CLOSED:** Model/query/create/review/audit consistently use provider_profile. Owner is server-derived from the authorized URL; conflicting client owner is rejected. Endpoint tests cover omitted owner, stored relationship and foreign denial.
+5. Manager/platform approval/rejection authority is unchanged. Historical JWT HTTP tests cover own onboarding through authorized approval, with pending/rejected operational and foreign access denied. This is not browser onboarding certification.
 
-Sources: `providers/models.py:124`, `providers/serializers.py:12–15`, PV:489–580, `providers/services.py::review_provider_document`, PPerm. No fixes were implemented.
+Sources: `ProviderDocument`, `ProviderDocumentSerializer`, provider document/application views, `ProviderService_.review_provider_document`, `IsProviderOnboardingParticipant`. Original defects remain in Known Issues history; M1 execution/closure evidence is linked above.
 
 ## Frontend and backend authorization
 
@@ -204,13 +206,15 @@ API requests must independently satisfy method, target org/provider, ownership a
 
 | ID | Competing claims and evidence | Classification / related IDs | Required documentation/future action |
 |---|---|---|---|
-| C-11 | H §§4,26 privacy/tenant isolation vs public document projections and authenticated operational schedule reads | S/H confirmed exposure; BR-004,006,016,018,056; F-001,F-019 | Record actual projections and role exceptions; focused anonymous/customer/foreign-tenant assertions before fixes. No download/exploitation runtime claim. |
+| C-11 | Historical H §§4,26 privacy intent versus pre-M1 public document/schedule exposure | Baseline S/H exposure; F-001/F-019 CLOSED after M1; BR-004,006,016,018,056 | Projection contradiction corrected with focused endpoint evidence; private-file serving remains F-024. No production download/exploitation certification. |
 | C-12 | Frontend provider walk-in request lacks provider_id vs required serializer body field despite URL provider | S contract defect; BR-034; F-012 | Exact frontend-shaped future API test; no business redesign. |
 | C-16 | Successful inquiry/reply/reset language vs saved inquiry, discarded results and pre-send REPLIED | S/D outcome gap; BR-057–061; F-021/D13 | Keep saved/attempted/accepted/delivered separate; generic reset response preserved. |
 
 These do not block honest Phase 2 documentation; owner policy may block an approved guarantee/fix. Remaining C IDs are indexed in business rules and detailed in state machine. Historical finding namespaces/severities (C-17) remain separate.
 
-| Finding | Source-confirmed fact vs inferred/unverified impact | Future minimum verification |
+The following table preserves the original pre-M1 audit plan. For F-001/F-002/F-003/F-004/F-019/F-020 its defect statements are historical; current corrections and accepted execution evidence are linked above. Other entries remain unresolved.
+
+| Finding | Baseline source-confirmed fact vs inferred/unverified impact | Original minimum verification |
 |---|---|---|
 | F-001 P1 | Projection includes private metadata; file retrieval/exploitation untested | Anonymous/public serializer/API absence assertions |
 | F-002 P2 | Incorrect model field/attribute and input derivation | Actual document list/upload/review tests |
@@ -221,7 +225,7 @@ These do not block honest Phase 2 documentation; owner policy may block an appro
 | F-020 P2 | Service detail approval differs from list | Unapproved tenant detail/list tests; manager access preserved |
 | F-022 P2 | Mount/signature mismatch; unused bad helper | Resolve/dispatch each supported mount with own/foreign target permissions |
 
-F-007 side-effect scope belongs to state machine; F-021 email results remain documented, not fixed. No baseline severity is escalated. All minimum tests here are **future**, not executed.
+F-007 side-effect scope belongs to state machine; F-021 email results remain documented, not fixed. No baseline severity is escalated. These checks were not executed in original Phase 2; M1's separately executed subset is recorded in Known Issues, with remaining verification limits.
 
 ## Authorization acceptance checklist
 
