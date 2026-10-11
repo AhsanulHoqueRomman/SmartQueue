@@ -1,3 +1,5 @@
+from config.private_documents import validate_verification_file, safe_filename
+from apps.organizations.private_documents import VerificationDocumentFileField
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -32,6 +34,8 @@ class OrganizationCredentialManagerSerializer(serializers.ModelSerializer):
     """
     credential_type_label = serializers.CharField(source='get_credential_type_display', read_only=True)
     masked_number = serializers.CharField(source='masked_credential_number', read_only=True)
+
+    document = VerificationDocumentFileField(required=False, validators=[validate_verification_file])
 
     class Meta:
         model = OrganizationCredential
@@ -118,6 +122,15 @@ class OrganizationDocumentSerializer(serializers.ModelSerializer):
     """
     title = serializers.SerializerMethodField()
 
+    file = VerificationDocumentFileField(required=True, validators=[validate_verification_file])
+
+    def validate_original_filename(self, value):
+        return safe_filename(value) if value else ''
+
+    def validate_file(self, value):
+        value.name = safe_filename(value.name)
+        return value
+
     class Meta:
         model = OrganizationDocument
         fields = (
@@ -132,18 +145,6 @@ class OrganizationDocumentSerializer(serializers.ModelSerializer):
 
     def get_title(self, obj):
         return obj.original_filename or obj.get_document_type_display()
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if instance.file:
-            request = self.context.get('request') if isinstance(self.context, dict) else None
-            if request is not None:
-                data['file'] = request.build_absolute_uri(instance.file.url)
-            else:
-                url = instance.file.url
-                data['file'] = f"http://127.0.0.1:8000{url}" if url.startswith('/') else url
-        return data
-
 
 
 class OrganizationSerializer(serializers.ModelSerializer):

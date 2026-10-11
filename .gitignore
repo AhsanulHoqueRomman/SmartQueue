@@ -46,3 +46,6 @@ backend/.pytest_cache/
 
 # Generated submission archives
 *.zip
+
+# Private verification uploads (never commit sensitive files)
+private_documents/

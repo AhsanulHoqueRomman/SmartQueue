@@ -1,3 +1,4 @@
+import PrivateDocumentButton from '../../components/PrivateDocumentButton';
 import React, { useState, useEffect } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
 import organizationService from '../../services/organizationService';
@@ -169,6 +170,10 @@ export function ManagerSettingsPage() {
 
     try {
       const data = new FormData();
+      if (!selectedFile.size || selectedFile.size > 5 * 1024 * 1024 || !/\.(pdf|jpe?g|png)$/i.test(selectedFile.name)) {
+        setDocError('Select a nonempty PDF, JPG, JPEG or PNG file no larger than 5 MB.');
+        return;
+      }
       data.append('document_type', docType);
       if (docTitle.trim()) {
         data.append('title', docTitle.trim());
@@ -470,9 +475,10 @@ export function ManagerSettingsPage() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#211C19', marginBottom: '0.3rem' }}>
-                  Select File (PDF/Image/Doc) *
+                  Select File (PDF, JPG, JPEG or PNG; max 5 MB) *
                 </label>
                 <input
+                  accept=".pdf,.jpg,.jpeg,.png"
                   id="org_doc_file_input"
                   type="file"
                   required
@@ -537,14 +543,7 @@ export function ManagerSettingsPage() {
                     </td>
                     <td style={{ padding: '0.65rem 0.85rem' }}>
                       {doc.file ? (
-                        <a
-                          href={doc.file.startsWith('/') ? `http://127.0.0.1:8000${doc.file}` : doc.file}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: '#5F7A70', fontWeight: 600, textDecoration: 'underline' }}
-                        >
-                          View File ↗
-                        </a>
+                        <PrivateDocumentButton url={doc.file} filename={doc.original_filename} />
                       ) : (
                         <span style={{ color: '#A8A29E' }}>No file link</span>
                       )}

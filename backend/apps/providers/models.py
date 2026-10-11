@@ -4,7 +4,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
-from apps.organizations.validators import validate_document_file
+from config.private_documents import private_document_storage, verification_upload_path, validate_verification_file
 from django.conf import settings
 
 
@@ -131,8 +131,9 @@ class ProviderDocument(models.Model):
         choices=DocumentType.choices
     )
     file = models.FileField(
-        upload_to='provider_docs/%Y/%m/',
-        validators=[validate_document_file]
+        upload_to=verification_upload_path,
+        storage=private_document_storage,
+        validators=[validate_verification_file]
     )
     original_filename = models.CharField(max_length=255)
     uploaded_at = models.DateTimeField(auto_now_add=True)

@@ -1,3 +1,4 @@
+from apps.organizations.private_documents import VerificationDocumentDownloadView
 from django.urls import path
 from .views import (
     OrganizationCategoriesView,
@@ -28,6 +29,9 @@ from .views import (
 app_name = 'organizations'
 
 urlpatterns = [
+    path('<uuid:organization_id>/documents/<uuid:document_id>/download/', VerificationDocumentDownloadView.as_view(kind='organization'), name='document_download'),
+    path('<uuid:organization_id>/credentials/<uuid:credential_id>/download/', VerificationDocumentDownloadView.as_view(kind='credential'), name='credential_download'),
+
     path('', OrganizationListCreateView.as_view(), name='organization_list_create'),
     path('categories/', OrganizationCategoriesView.as_view(), name='organization_categories'),
     path('admin/verification/', AdminOrganizationVerificationQueueView.as_view(), name='admin_verification_queue'),

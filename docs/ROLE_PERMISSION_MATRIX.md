@@ -129,7 +129,7 @@ No row's admin allowance waives the resource lookup, active organization filter 
 | Break collection/detail | POST / DELETE | Own onboarding participant, target manager/admin | Initial schedules only; approved breaks require manager-approved change request; provider-first locking | ProviderService_.add_break; schedule request service |
 | O providers/P/leaves/ | GET | Authenticated safe discovery; entitled operational readers | Safe projection for operational providers omits reason; active owner/target manager/staff/admin retain it | PV::ProviderLeaveListCreateView; _can_read_operational_schedule |
 | Leave collection/detail | POST / DELETE | Own active provider, active target manager, admin | URL provider/leave ownership; input validity | PV:457–481; PPerm |
-| O providers/P/documents/ | GET / POST | Own active provider or own eligible onboarding applicant; active target manager/admin | Scoped provider_profile ownership; omitted owner accepted, conflicting owner rejected; review fields read-only; no operational membership grant | PV::ProviderDocumentUploadView; IsProviderOnboardingParticipant; F-002/F-003 CLOSED |
+| O providers/P/documents/ | GET / POST | Own provider history (GET), existing active/onboarding participant (POST); active target manager/admin | Scoped provider_profile ownership; omitted owner accepted, conflicting owner rejected; review fields read-only; no operational membership grant | PV::ProviderDocumentUploadView; IsProviderOnboardingParticipant; F-002/F-003 CLOSED |
 | O providers/P/documents/{document}/review/ | POST | Active target MANAGER or admin | Document constrained to URL provider_profile/tenant; correct review audit relationship; applicant/staff cannot review | PV::ManagerProviderDocumentReviewView; providers/services.py::review_provider_document |
 | O providers/P/submit-application/ | POST | Own eligible onboarding applicant or existing authorized owner/manager/admin | Own INCOMPLETE/PENDING_REVIEW/REJECTED exception supports inactive membership; foreign applicants denied; submission does not activate membership | PV::ProviderApplicationSubmitView; IsProviderOnboardingParticipant |
 | O providers/P/review-application/ | POST | Active target MANAGER or admin | Loader allows pending membership; service application-state validation; approval activates membership | PV:501–527; providers/services.py::approve_application, reject_application |
@@ -142,7 +142,7 @@ No row's admin allowance waives the resource lookup, active organization filter 
 | O invitations and staff invitations | GET / POST; cancel POST | Active target MANAGER or admin | Tenant invitation lookups and service checks | OV::OrganizationInvitationListCreateView, OrganizationInvitationCancelView, staff equivalents |
 | `/api/v1/invitations/provider/{token}/` and staff equivalent; accept | GET / POST | AllowAny token flow | Token-specific validation, not blanket guest access to membership management | config/urls.py; OV::PublicInvitationDetailsView, PublicAcceptInvitationView, staff equivalents |
 | O staff list/activate/deactivate | GET / POST | Active target MANAGER or admin | URL tenant and staff membership; not platform user-admin authority | OV::OrganizationStaffListView, OrganizationStaffActivateView, OrganizationStaffDeactivateView |
-| O documents/ — OrganizationDocumentListUploadView | GET | Any active target organization member or admin | Existing IsOrganizationMember gate retained, despite manager-oriented comment; nonmembers excluded; public discovery no longer embeds documents | OV::OrganizationDocumentListUploadView; OPerm |
+| O documents/ — OrganizationDocumentListUploadView | GET | Active target MANAGER or existing platform admin | F-024: service/query-level manager/admin scope; ordinary members excluded; public discovery omits documents | OV::OrganizationDocumentListUploadView; OPerm |
 | O documents/; document detail | POST / DELETE | Active target MANAGER or admin | POST adds explicit manager check; document lookup tenant-scoped; service verification-state restrictions apply | OV:321–362; organizations/services.py::upload_document, delete_document |
 | O verification/submit/ | POST | Active target MANAGER or admin | URL organization and submission-state requirements | OV::ManagerVerificationSubmitView; OPerm |
 | Organization admin verification queue/start/approve/reject/suspend/unsuspend | GET / POST as routed | Django is_staff or is_superuser | IsSystemAdmin; targeted org/state validation. Tenant MANAGER alone cannot approve platform verification | OV::AdminOrganizationVerificationQueueView and AdminOrganization* views |
@@ -234,7 +234,7 @@ F-007 side-effect scope belongs to state machine; F-021 email results remain doc
 - [x] Required identity/public/booking/queue/schedule/catalog/doc/member/notification/review/analytics/contact actions mapped to methods/views.
 - [x] URL scope, queryset scope, object ownership and serializer projection considered separately.
 - [x] Assigned-provider cancellation is not incorrectly generalized to rescheduling.
-- [x] Organization document GET actual member gate is not replaced by its manager-oriented comment.
+- [x] Original organization document member gate was documented accurately; Batch A now replaces it under explicit owner-approved F-024 policy.
 - [x] Recipient/owner endpoints do not grant org-wide data to managers/admins by implication.
 - [x] Public projection, schedule reasons, publication, global cleanup and route contract exceptions preserved.
 - [x] Frontend guards not treated as backend authority; F-015 not resolved through widened access.
@@ -252,4 +252,16 @@ Checkmarks mean documentation coverage only. Source-based matrices require focus
 | `schedule-requests/R/attachment/` GET | Owner or active same-organization MANAGER | Authenticated attachment bytes; no public media URL; attachment download, nosniff, no-store. |
 | Existing `queue/providers/P/walk-in/` POST | Existing scoped booking operators | PHONE / FRONT_DESK; same source-of-truth service, snapshots and serial ledger; body provider cannot disagree with URL. Existing customer requires explicit identity if phone collides. |
 
-F-024 existing verification-document storage authorization and F-025 role-dependent schema annotations remain OPEN. These additions do not widen public discovery projections or authorize emergency recovery.
+F-024 storage/access implementation now exists; production serving/cutover verification remains pending. F-025 schema annotations remain OPEN. Neither change grants emergency recovery or wider public projections.
+
+
+## Batch A verification-document access — 2026-10-12
+
+| Endpoint | Authorized actors | Object boundary |
+|---|---|---|
+| `O providers/P/documents/` GET | Own provider regardless of operational approval/activity; active target manager; existing IsSystemAdmin reviewer | URL provider must belong to organization and PROVIDER membership; foreign readers denied. POST retains IsProviderOnboardingParticipant. |
+| `O providers/P/documents/D/download/` GET | Same actors | Query combines document, provider, organization and ownership/membership; no implicit operational privilege. |
+| `O documents/` GET | Active target MANAGER or existing IsSystemAdmin | Ordinary STAFF/PROVIDER organization membership no longer grants organization-verification document access. |
+| `O documents/D/download/`, `O credentials/C/download/` GET | Active target MANAGER or existing IsSystemAdmin | Query-level organization authorization and document ownership; anonymous/customer/staff/foreign/inactive manager denied. |
+
+Every successful file download records actor/entity/tenant in AuditLog. Responses are attachments with no-store/nosniff; public discovery never exposes these routes/files. Private history access remains separate from operations and application approval. Production proxies/storage ACLs remain an explicit unverified release gate.

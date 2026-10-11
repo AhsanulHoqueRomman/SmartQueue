@@ -11,6 +11,7 @@ from .models import Organization, OrganizationMembership, OrganizationDocument, 
 from .permissions import IsOrganizationManager, IsOrganizationMember, IsSystemAdmin
 from .services import OrganizationService
 from .operating_hours import update_organization_hours
+from .private_documents import organization_document_queryset
 from .serializers import (
     OrganizationSerializer,
     OrganizationPublicSerializer,
@@ -304,7 +305,7 @@ class OrganizationDocumentListUploadView(APIView):
     GET: List verification documents for organization (Manager or System Admin).
     POST: Upload a verification document (Manager only, when SETUP_INCOMPLETE or REJECTED).
     """
-    permission_classes = [IsAuthenticated, IsOrganizationMember]
+    permission_classes = [IsAuthenticated, IsOrganizationManager]
 
     @extend_schema(
         responses={200: OrganizationDocumentSerializer(many=True)},
@@ -312,7 +313,7 @@ class OrganizationDocumentListUploadView(APIView):
     )
     def get(self, request, organization_id):
         org = get_object_or_404(Organization, id=organization_id)
-        docs = OrganizationDocument.objects.filter(organization=org)
+        docs = organization_document_queryset(OrganizationDocument, request.user, org.pk)
         serializer = OrganizationDocumentSerializer(docs, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

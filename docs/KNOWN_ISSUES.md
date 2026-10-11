@@ -25,7 +25,7 @@
 
 P0 means critical/blocking; P1 high priority; P2 normal priority; P3 lower-priority refinement. Definitions do not reclassify the baseline. **P1: F-001, F-005, F-006, F-007, F-012. All other F-001–F-023 are P2. No baseline P0 is established; no baseline P3 record exists.**
 
-OPEN means the source condition remains, including policy-dependent gaps; it does not claim a live incident. UNVERIFIED means applicability/evidence remains insufficient. CLOSED means the owner accepted the implemented correction against its scoped acceptance criteria and recorded evidence; it is not universal production certification. The original 23 findings were OPEN at Phase 3. Six are now CLOSED under M1; the other 17 remain OPEN. F-024 (P1 / High) and F-025 (P3 / Low) are new OPEN follow-ups, not reclassifications of baseline findings.
+OPEN means the source condition remains, including policy-dependent gaps; it does not claim a live incident. UNVERIFIED means applicability/evidence remains insufficient. CLOSED means the owner accepted the implemented correction against its scoped acceptance criteria and recorded evidence; it is not universal production certification. The original 23 findings were OPEN at Phase 3. Six are now CLOSED under M1; the other 17 remain OPEN. F-024 (P1 / High) is implemented pending production/cutover verification; F-025 (P3 / Low) remains OPEN. They are new follow-ups, not baseline reclassifications.
 
 ## Findings index
 
@@ -54,7 +54,7 @@ OPEN means the source condition remains, including policy-dependent gaps; it doe
 | [F-021](#f-021) | P2 | Send outcomes discarded | Support/reset | S/T | BR-057–061 | D13 | OPEN |
 | [F-022](#f-022) | P2 | Route/signature mismatch | Analytics | S | BR-004 | None | OPEN |
 | [F-023](#f-023) | P2 | Obsolete polling responses | Frontend state | S/I | BR-004,049,053,054 | None | OPEN |
-| [F-024](#f-024) | P1 / High | Private Verification Document Serving and Production Storage Authorization | Storage/deployment | S; production U | BR-004,056 context | Storage design approval | OPEN — Mandatory Pre-Production Security Gate |
+| [F-024](#f-024) | P1 / High | Private Verification Document Serving and Production Storage Authorization | Storage/deployment | S; production U | BR-004,056 context | Batch A owner-approved policy | IMPLEMENTED — production serving/cutover verification pending |
 | [F-025](#f-025) | P3 / Low | Role-Dependent OpenAPI Response Schema Mismatch | API documentation | S | Contract context | None | OPEN |
 
 ## M1 closure and acceptance evidence
@@ -557,21 +557,19 @@ Baseline defect descriptions and verification plans are retained as history. For
 
 ## F-024
 
-1. **ID / priority:** F-024 — P1 / High; new post-M1 follow-up, not a baseline severity change.
+1. **ID / priority:** F-024 — P1 / High; mandatory pre-production security gate.
 2. **Title:** Private Verification Document Serving and Production Storage Authorization.
-3. **Classification:** Mandatory Pre-Production Security Gate.
-4. **Components / source:** `backend/config/urls.py`; `config/settings/base.py`, `development.py`, `production.py`; `config/wsgi.py`, `asgi.py`; `backend/Procfile`; provider/organization document FileFields and serializers; `frontend/vite.config.js` media proxy.
-5. **Roles/tenants:** Provider/organization document owners, entitled reviewers and unauthorized known-URL requesters.
-6. **Intended behavior:** Verification documents are retrievable only by appropriately authenticated, authorized actors within the correct tenant/object scope.
-7. **Current behavior / evidence:** S — DEBUG `/media/` uses Django's static media helper without document API permissions. Files reside under `MEDIA_ROOT` in `provider_docs/%Y/%m/` and `organization_docs/%Y/%m/`; API FileFields can generate media URLs for entitled readers. No confirmed authenticated private-download mechanism, private storage implementation or signed URL handling was found. Public API redaction does not revoke previously known URLs.
-8. **Deployment qualification:** Production settings set DEBUG=False, which removes that Django helper but does not prove private reverse-proxy/storage ACLs. Those deployed controls are U. WSGI/ASGI default to development settings unless externally overridden; Procfile invokes WSGI. Actual deployment settings must be verified. No real private document was requested and no production exposure incident is claimed.
-9. **Impact:** Known valid URLs can bypass API authorization in DEBUG serving; private identity/licence material could be disclosed. Production exploitability depends on unverified hosting configuration.
-10. **BR / boundaries:** BR-004/BR-056 privacy context. F-001 API closure does not resolve this independent serving-layer root cause.
-11. **Owner decision:** Separately approve authenticated downloads/private storage or equivalent access controls; this record does not implement or choose a storage design.
-12. **Verification plan:** Use synthetic files and authorized isolated deployment checks for anonymous, owner, reviewer and foreign-tenant retrieval; inspect actual settings, proxy mappings and storage ACLs. Do not request real private documents merely to demonstrate exposure.
-13. **Acceptance:** Unauthorized direct retrieval is prevented across the actual deployment serving paths; permitted reads enforce ownership/tenant authority; any signed URLs have reviewed scope/expiry semantics; actual production settings are confirmed before real sensitive documents are hosted.
-14. **Regression:** Public logos/avatars and discovery remain functional; private access cannot be restored by knowing an old URL or substituting an object/tenant ID.
-15. **Status:** OPEN — mandatory pre-production gate; no storage correction or production authorization verification completed.
+3. **Owner approval:** Batch A, 2026-10-12: own provider documents; active same-organization managers; existing IsSystemAdmin platform reviewers. Organization STAFF/customer/anonymous access denied. Document reads do not grant provider operations.
+4. **Original exposure (S):** ProviderDocument.file, OrganizationDocument.file and OrganizationCredential.document used public MEDIA_ROOT; raw media URLs bypassed API authorization. Organization document GET also admitted ordinary active members.
+5. **Implementation (S):** Private storage alias and UUID upload names; authenticated nested attachment endpoints with object/tenant query scoping; existing platform-verification permission reused; successful downloads audited. API file/document fields now contain authorized API paths, never storage URLs. Public projections remain redacted. Development media blocks conventional sensitive prefixes, nonstandard referenced paths and escaping symlinks; production Django media serving denies requests.
+6. **Uploads:** PDF/JPG/JPEG/PNG, nonempty, at most 5 MiB; bounded PDF header/end-marker and image-content inspection, MIME/extension consistency. This validates format/signature, not malware safety or comprehensive PDF semantics. Existing M2 schedule attachments keep their separate unchanged database-byte/3 MiB contract.
+7. **Downloads:** Attachment disposition, bounded safe basename/format extension, no-store/nosniff on success and denial; unsupported legacy formats download as opaque .bin attachments. Missing files return a safe 404; metadata/status are not silently repaired.
+8. **Development inventory (R, read only):** No database verification file references in any of the three models. MEDIA_ROOT retains 106 provider PDFs and 792 organization PDF/JPG files (898 unreferenced files); no credential files. Files were not moved, overwritten or deleted. Guarded Django serving denies these legacy paths.
+9. **Cutover helper:** `copy_private_verification_documents` defaults to dry-run; `--apply` requires separate owner authorization with application writers stopped. Copies referenced files using the private storage interface, verifies SHA-256, preserves database references/ownership/status, is repeat-safe, reports missing/conflicting files and never deletes public originals. Synthetic tests exercise apply; no existing-data apply was executed.
+10. **Production prerequisites:** Explicit production settings, persistent private storage configuration, private filesystem/bucket access rules, no proxy/CDN/static mapping to private roots or legacy verification paths. Production startup rejects missing/nonpersistent configuration and public filesystem storage. An acknowledgement flag is not proof of hosting persistence or ACL correctness.
+11. **Migration:** organizations.0010 and providers.0008 alter FileField configuration only; no data migration. Generated and exercised in isolated migrated PostgreSQL tests; not applied to development by this task.
+12. **Evidence:** Focused tests cover ownership/roles/tenants, JWT, safe headers, uploads, direct-media denial/public-avatar compatibility, production startup and synthetic legacy-copy idempotency. Exact final counts appear in the Batch A execution report below. Browser and deployed proxy/storage verification remain unperformed.
+13. **Status:** IMPLEMENTED — pending owner-approved deployment/serving verification and legacy cutover wherever referenced public files exist. Not fully CLOSED or production-certified. This development database has no referenced-file cutover to execute; retained unreferenced copies still require deployment serving exclusion and owner-controlled cleanup decisions.
 
 ## F-025
 
@@ -732,3 +730,19 @@ Acceptance remains pending; the earlier focused readiness statements are not a f
 - Historical development duplicate group remains unchanged: two CONFIRMED / WAITING unchecked-in online appointments, serials 1/2, booked 2026-10-06 for 2026-11-06. Both have APPOINTMENT_BOOKED audit events. New provider-locked guards prevent recurrence through supported service writers; owner-approved audited cancellation/reconciliation is separate.
 - New schedule attachments are bounded BinaryField data, never public media files, with authenticated scoped attachment downloads (`nosniff`, `no-store`). F-024 remains OPEN for legacy verification FileField media and unverified production storage configuration.
 - Browser tooling failed to initialize; no browser acceptance is claimed. Development migrations, manual critical-role workflows, full regression reconciliation and owner closure review remain outstanding. No staged changes, commit or push.
+
+
+## Batch A / F-024 execution evidence — 2026-10-12
+
+Authorized isolated checks; no existing verification files or development records were moved/edited/deleted and no development migrations were applied.
+
+- `..\.venv\Scripts\python.exe -m pytest tests/test_f024_private_documents.py tests/test_m1_security_onboarding.py apps/organizations/tests/test_verification_workflow.py apps/providers/tests/test_phase_c_onboarding.py -q --tb=short --show-capture=no`: **204 passed** (SQLite; earlier focused implementation checkpoint). Only affected synthetic PDF fixtures and the superseded ordinary-member organization-document assertion were changed.
+- Final `..\.venv\Scripts\python.exe -m pytest tests/test_f024_private_documents.py tests/test_m2_lifecycle.py -k 'f024 or attachment' --ds=config.settings.test_postgresql --migrations -q --tb=short --show-capture=no`: **86 passed, 75 deselected, 0 failed** on isolated `test_queueturn_m2`. This includes 78 F-024 cases and 8 unchanged M2 private-attachment cases; the rest of M2 was intentionally not rerun.
+- `..\.venv\Scripts\python.exe -m pytest tests/test_m1_security_onboarding.py -k document -q --tb=short --show-capture=no`: **28 passed, 95 deselected**. The final PostgreSQL selection additionally covers the final private-file serializer/media guard changes.
+- Intermediate targeted final Windows-alias/media check: **6 passed, 72 deselected** PostgreSQL. Folded into the final 86-pass selection; not an additional independent-case count.
+- Frontend `node --test src/utils/privateDocuments.test.js`: **4 passed**. Focused oxlint: no errors; 16 unchanged warnings in existing page code. New helpers/component/tests lint clean after explicitly documenting intentional control-character stripping.
+- One `npm run build`: passed (existing large-chunk advisory). No browser acceptance or deployed file-serving verification claimed.
+- `makemigrations --check --dry-run`: no changes. `manage.py check`: no issues. `sqlmigrate organizations 0010` and `sqlmigrate providers 0008`: all operations SQL no-ops. Development showmigrations keeps both new migrations unapplied.
+- Development `copy_private_verification_documents` dry-run: `apply=False ready=0 pending=0 copied=0 missing=0 legacy_files_retained=898`. No apply/copy/removal performed.
+
+F-024 is **implemented pending secure production/cutover verification**, not owner-closed. Current development references need no copy. Retained unreferenced files are blocked by Django's media guard; actual external serving paths and persistent private storage remain deployment prerequisites. Existing M2 browser acceptance/live ETA recovery follow-ups remain untouched.

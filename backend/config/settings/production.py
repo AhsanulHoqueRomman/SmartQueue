@@ -26,3 +26,8 @@ csrf_origins = os.getenv('CSRF_TRUSTED_ORIGINS', '')
 if csrf_origins:
     CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins.split(',') if origin.strip()]
 
+
+# Fail at startup rather than storing sensitive uploads publicly or ephemerally.
+PRIVATE_DOCUMENT_PRODUCTION = True
+from config.private_documents import validate_private_storage_configuration
+validate_private_storage_configuration()

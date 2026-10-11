@@ -351,7 +351,7 @@ def test_registration_exception_rolls_back_user_and_membership(env, monkeypatch)
 
 def upload_payload(**extra):
     return dict(document_type='CERTIFICATE', original_filename='demo.pdf',
-                file=SimpleUploadedFile('demo.pdf', b'%PDF-1.4 demo', content_type='application/pdf'), **extra)
+                file=SimpleUploadedFile('demo.pdf', b'%PDF-1.4\n1 0 obj <<>> endobj\n%%EOF', content_type='application/pdf'), **extra)
 
 
 @pytest.mark.parametrize('role', ['provider', 'manager', 'admin', 'superuser'])
@@ -565,9 +565,9 @@ def test_inactive_membership_does_not_grant_private_schedule_annotations(schedul
 
 
 @pytest.mark.parametrize('role', ['provider', 'manager', 'staff', 'admin', 'superuser', 'customer', 'foreign', 'anonymous'])
-def test_dedicated_organization_document_authority_preserved(env, role):
+def test_dedicated_organization_document_authority_f024(env, role):
     response = client_for(env, role).get(f"/api/v1/organizations/{env['org'].pk}/documents/")
-    allowed = role in ['provider', 'manager', 'staff', 'admin', 'superuser']
+    allowed = role in ['manager', 'admin', 'superuser']
     assert response.status_code == (200 if allowed else 401 if role == 'anonymous' else 403)
     if allowed:
         assert response.data[0]['original_filename'] == 'private-org.pdf'

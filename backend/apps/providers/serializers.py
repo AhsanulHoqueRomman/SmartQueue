@@ -1,3 +1,5 @@
+from config.private_documents import validate_verification_file, safe_filename
+from apps.organizations.private_documents import VerificationDocumentFileField
 from rest_framework import serializers
 from apps.organizations.models import OrganizationMembership
 from .models import ProviderProfile, ProviderDocument, ProviderService, WeeklySchedule, ScheduleBreak, ProviderLeave
@@ -6,6 +8,15 @@ from .pricing import effective_customer_charge
 
 class ProviderDocumentSerializer(serializers.ModelSerializer):
     """Serializer for ProviderDocument verification documents."""
+    file = VerificationDocumentFileField(required=True, validators=[validate_verification_file])
+
+    def validate_original_filename(self, value):
+        return safe_filename(value) if value else ''
+
+    def validate_file(self, value):
+        value.name = safe_filename(value.name)
+        return value
+
     class Meta:
         model = ProviderDocument
         fields = [

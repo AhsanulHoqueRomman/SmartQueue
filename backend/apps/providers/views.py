@@ -32,6 +32,8 @@ from .serializers import (
 )
 from .services import ProviderService_ as ProviderBizService
 from config.api import apply_list_query, list_response
+from apps.organizations.private_documents import provider_document_queryset, manager_or_admin
+from config.private_documents import safe_filename
 
 
 # ---------------------------------------------------------------------------
@@ -585,13 +587,22 @@ class ProviderDocumentUploadView(APIView):
     """
     permission_classes = [IsAuthenticated, IsProviderOnboardingParticipant]
 
+    def get_permissions(self):
+        # Document ownership survives operational suspension/approval changes.
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        return super().get_permissions()
+
     @extend_schema(
         responses={200: ProviderDocumentSerializer(many=True)},
         summary="List provider verification documents"
     )
     def get(self, request, organization_id, provider_id):
         profile = _get_provider(organization_id, provider_id, require_active_membership=False)
-        docs = ProviderDocument.objects.filter(provider_profile=profile)
+        if profile.membership.user_id != request.user.pk and not manager_or_admin(request.user, organization_id):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied()
+        docs = provider_document_queryset(request.user, organization_id, profile.pk)
         serializer = ProviderDocumentSerializer(docs, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -608,7 +619,7 @@ class ProviderDocumentUploadView(APIView):
                 provider_profile=profile,
                 document_type=serializer.validated_data['document_type'],
                 file=serializer.validated_data['file'],
-                original_filename=serializer.validated_data.get('original_filename', ''),
+                original_filename=safe_filename(serializer.validated_data.get('original_filename') or serializer.validated_data['file'].name),
                 status=ProviderDocument.Status.PENDING
             )
             return Response(ProviderDocumentSerializer(doc).data, status=status.HTTP_201_CREATED)

@@ -132,6 +132,23 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Sensitive verification files never use the public default storage.
+import json
+PRIVATE_DOCUMENT_STORAGE_CONFIGURED = bool(os.getenv('PRIVATE_DOCUMENT_ROOT') or os.getenv('PRIVATE_DOCUMENT_STORAGE_BACKEND'))
+PRIVATE_DOCUMENT_STORAGE_PERSISTENT = os.getenv('PRIVATE_DOCUMENT_STORAGE_PERSISTENT', '').lower() == 'true'
+PRIVATE_DOCUMENT_PRODUCTION = False
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    'private_documents': {
+        'BACKEND': os.getenv('PRIVATE_DOCUMENT_STORAGE_BACKEND', 'config.private_documents.PrivateDocumentStorage'),
+        'OPTIONS': json.loads(os.getenv('PRIVATE_DOCUMENT_STORAGE_OPTIONS', '{}')) if os.getenv('PRIVATE_DOCUMENT_STORAGE_BACKEND') else {
+            'location': os.getenv('PRIVATE_DOCUMENT_ROOT', str(BASE_DIR.parent / 'private_documents')),
+            'file_permissions_mode': 0o600, 'directory_permissions_mode': 0o700,
+        },
+    },
+}
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Django REST Framework Configuration

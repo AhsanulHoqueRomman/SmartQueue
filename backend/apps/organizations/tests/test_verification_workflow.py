@@ -63,7 +63,7 @@ class OrganizationVerificationWorkflowTest(TestCase):
 
         self.sample_doc = SimpleUploadedFile(
             "license.pdf",
-            b"PDF content for trade license",
+            b"%PDF-1.4\n1 0 obj <<>> endobj\n%%EOF",
             content_type="application/pdf"
         )
 

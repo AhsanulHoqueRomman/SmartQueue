@@ -2,7 +2,7 @@ import uuid
 from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
-from .validators import validate_document_file
+from config.private_documents import private_document_storage, verification_upload_path, validate_verification_file
 
 
 class Organization(models.Model):
@@ -97,8 +97,9 @@ class OrganizationDocument(models.Model):
         choices=DocumentType.choices
     )
     file = models.FileField(
-        upload_to='organization_docs/%Y/%m/',
-        validators=[validate_document_file]
+        upload_to=verification_upload_path,
+        storage=private_document_storage,
+        validators=[validate_verification_file]
     )
     original_filename = models.CharField(max_length=255)
     uploaded_at = models.DateTimeField(auto_now_add=True)
@@ -283,10 +284,11 @@ class OrganizationCredential(models.Model):
         default=VerificationStatus.PENDING
     )
     document = models.FileField(
-        upload_to='org_credentials/%Y/%m/',
+        upload_to=verification_upload_path,
+        storage=private_document_storage,
         null=True,
         blank=True,
-        validators=[validate_document_file]
+        validators=[validate_verification_file]
     )
     is_public = models.BooleanField(_('display publicly'), default=True)
     verified_at = models.DateTimeField(null=True, blank=True)

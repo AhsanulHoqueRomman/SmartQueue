@@ -1,3 +1,4 @@
+from apps.organizations.private_documents import VerificationDocumentDownloadView
 from django.urls import path
 from apps.appointments.views import ProviderAvailabilityView
 from .views import (
@@ -22,6 +23,8 @@ app_name = 'providers'
 from .schedule_views import ScheduleRequestListCreateView, ScheduleRequestReviewView, ScheduleRequestAttachmentView
 
 urlpatterns = [
+    path('<uuid:provider_id>/documents/<uuid:document_id>/download/', VerificationDocumentDownloadView.as_view(kind='provider'), name='provider_document_download'),
+
     path('<uuid:provider_id>/schedule-requests/', ScheduleRequestListCreateView.as_view(), name='schedule_requests'),
     path('<uuid:provider_id>/schedule-requests/<uuid:request_id>/review/', ScheduleRequestReviewView.as_view(), name='schedule_request_review'),
     path('<uuid:provider_id>/schedule-requests/<uuid:request_id>/attachment/', ScheduleRequestAttachmentView.as_view(), name='schedule_request_attachment'),

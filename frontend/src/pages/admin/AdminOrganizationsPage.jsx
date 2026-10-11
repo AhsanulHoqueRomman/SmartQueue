@@ -1,3 +1,4 @@
+import PrivateDocumentButton from '../../components/PrivateDocumentButton';
 import React, { useState, useEffect } from 'react';
 import organizationService from '../../services/organizationService';
 import adminService from '../../services/adminService';
@@ -518,14 +519,7 @@ export function AdminOrganizationsPage() {
                           <td style={{ padding: '0.65rem 0.85rem', color: '#78716C' }}>{doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : '—'}</td>
                           <td style={{ padding: '0.65rem 0.85rem' }}>
                             {doc.file ? (
-                              <a
-                                href={doc.file.startsWith('/') ? `http://127.0.0.1:8000${doc.file}` : doc.file}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ color: '#5F7A70', fontWeight: 600, textDecoration: 'underline' }}
-                              >
-                                View Document ↗
-                              </a>
+                              <PrivateDocumentButton url={doc.file} filename={doc.original_filename} />
                             ) : (
                               'No File'
                             )}

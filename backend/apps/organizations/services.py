@@ -1,3 +1,4 @@
+from config.private_documents import validate_verification_file, safe_filename
 from django.db import transaction
 from django.utils import timezone
 from config.exceptions import (
@@ -323,11 +324,12 @@ class OrganizationService:
                 code='DOCUMENT_LOCKED'
             )
 
+        validate_verification_file(file)
         doc = OrganizationDocument.objects.create(
             organization=organization,
             document_type=document_type,
             file=file,
-            original_filename=original_filename or file.name,
+            original_filename=safe_filename(original_filename or file.name),
             status=OrganizationDocument.Status.PENDING
         )
 

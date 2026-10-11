@@ -907,3 +907,13 @@ No fallback forecast, stored ETA field, permanent disablement or automatic statu
 F-008/F-009 capacity/duration policy and unrelated D decisions remain open; this milestone reuses existing date-capacity calculations rather than inventing a new formula. Schedule approvals conservatively protect existing booked working windows and block adverse hour/break changes, rechecking under the same provider lock used by booking.
 
 Verification: `tests/test_m2_lifecycle.py` initially **48 passed** with PostgreSQL and migrations; six additional cases subsequently passed in focused runs; six directly changed existing serial/forecast tests **6 passed, 46 deselected**; focused frontend policy tests **5 passed**. Development data was not migrated/reseeded. See Known Issues for qualified readiness; manual UI acceptance remains owner work.
+
+
+## Batch A — approved private verification documents (F-024), 2026-10-12
+
+This owner-approved policy refines BR-004/BR-056 privacy without changing booking, queue, scheduling or operational approval gates.
+Providers can list/download their own document history even if their operational membership is inactive; uploads retain the existing onboarding-participant gate. Active target-organization MANAGERs can review provider/organization verification material, including credential attachments. Platform reviewers use existing IsSystemAdmin permissions and download audit records. STAFF, CUSTOMER, anonymous, inactive managers and foreign-organization managers cannot obtain the files. Organization ordinary-member document-list access is superseded by this approval.
+
+Verification uploads accept nonempty PDF/JPG/JPEG/PNG up to 5 MiB with signature/content validation and unpredictable server filenames. DOC/DOCX and the former 10 MiB verification limit are no longer accepted for new verification uploads. Existing records are preserved, including unsupported legacy formats served only as opaque attachments after private cutover. This is format validation, not a malware scanner. M2 schedule-change attachments retain their existing separate private-byte/3 MiB behavior.
+
+Only authenticated object-scoped endpoints expose files; no public media URL, no-store/nosniff, safe attachment names. Public credential/trust summaries remain separate from private supporting evidence. Legacy file copying/cleanup requires owner approval; production persistence and external serving controls remain F-024 release gates. See [the current finding](KNOWN_ISSUES.md#f-024).

@@ -1,3 +1,4 @@
+import PrivateDocumentButton from '../../components/PrivateDocumentButton';
 import { ScheduleRequestsPanel, SchedulePreview } from '../../components/ScheduleRequestsPanel';
 import React, { useState, useEffect } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
@@ -582,6 +583,13 @@ export function ManagerProvidersPage() {
                 <div style={{ marginTop: '0.35rem' }}><strong>Bio:</strong> {selectedProfile.bio || 'None provided'}</div>
               </div>
 
+              {selectedProfile.documents?.length > 0 && <div>
+                <strong>Verification Documents</strong>
+                {selectedProfile.documents.map((doc) => <div key={doc.id}>
+                  <span>{doc.original_filename || doc.document_type} · {doc.status} </span>
+                  {doc.file && <PrivateDocumentButton url={doc.file} filename={doc.original_filename} />}
+                </div>)}
+              </div>}
               <div className="form-group">
                 <label className="form-label">Rejection Reason (Mandatory if rejecting)</label>
                 <textarea
