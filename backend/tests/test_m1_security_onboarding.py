@@ -203,8 +203,10 @@ def test_customer_safe_schedule_annotations(schedule_env, role):
     breaks = client.get(provider_url(env, f"schedules/{env['schedule'].pk}/breaks/"))
     leaves = client.get(provider_url(env, 'leaves/'))
     assert schedule.status_code == breaks.status_code == leaves.status_code == 200
-    assert schedule.data[0]['start_time'] == '09:00:00'
-    assert 'title' not in schedule.data[0]['breaks'][0]
+    assert len(schedule.data) == 7
+    working_day = next(day for day in schedule.data if day['day_of_week'] == env['schedule'].day_of_week)
+    assert working_day['start_time'] == '09:00:00'
+    assert 'title' not in working_day['breaks'][0]
     assert 'title' not in breaks.data[0]
     assert 'reason' not in leaves.data[0]
     assert 'Private' not in str([schedule.data, breaks.data, leaves.data])
@@ -222,7 +224,9 @@ def test_operational_schedule_annotations_preserved(schedule_env, role):
     breaks = client.get(provider_url(env, f"schedules/{env['schedule'].pk}/breaks/"))
     leaves = client.get(provider_url(env, 'leaves/'))
     assert schedule.status_code == breaks.status_code == leaves.status_code == 200
-    assert schedule.data[0]['breaks'][0]['title'] == 'Private medical note'
+    assert len(schedule.data) == 7
+    working_day = next(day for day in schedule.data if day['day_of_week'] == env['schedule'].day_of_week)
+    assert working_day['breaks'][0]['title'] == 'Private medical note'
     assert breaks.data[0]['title'] == 'Private medical note'
     assert leaves.data[0]['reason'] == 'Private family note'
 
@@ -247,7 +251,7 @@ def test_schedule_scoping_and_unpublished_provider(schedule_env):
 def test_customer_availability_still_uses_schedule(schedule_env):
     env = schedule_env
     response = client_for(env, 'customer').get(provider_url(env, 'availability/'), {
-        'service_id': str(env['service'].pk), 'date': str(timezone.localdate() + timedelta(days=7)),
+        'service_id': str(env['service'].pk), 'date': str(timezone.localdate()),
     })
     assert response.status_code == 200, response.data
     assert 'Private' not in str(response.data)
@@ -426,8 +430,30 @@ def test_pending_owner_onboarding_without_operational_authority(env, application
     assert profile.application_status == application_state
     assert client.get(provider_url(env, 'documents/')).status_code == 200
     assert client.post(provider_url(env, 'documents/'), upload_payload(), format='multipart').status_code == 201
-    for suffix in ['schedules/', 'leaves/']:
-        assert client.post(provider_url(env, suffix), {}, format='json').status_code == 403
+    initial_hours = client.post(provider_url(env, 'schedules/'), {
+        'day_of_week': 0, 'start_time': '09:00', 'end_time': '17:00', 'is_working_day': True,
+    }, format='json')
+    assert initial_hours.status_code == 201, initial_hours.data
+    profile.refresh_from_db()
+    profile.membership.refresh_from_db()
+    assert profile.application_status == application_state
+    assert not profile.membership.is_active and not profile.is_operationally_active
+    # Valid operational payloads must be denied, not merely fail serializer validation.
+    leave_start = timezone.now() + timedelta(days=1)
+    before_leaves = profile.leaves.count()
+    assert client.post(provider_url(env, 'leaves/'), {
+        'start_datetime': leave_start.isoformat(),
+        'end_datetime': (leave_start + timedelta(hours=1)).isoformat(),
+        'reason': 'Pending applicant operational write',
+    }, format='json').status_code == 403
+    protected_leave = ProviderLeave.objects.create(
+        provider=profile, start_datetime=leave_start,
+        end_datetime=leave_start + timedelta(hours=1), reason='Existing authorized record',
+    )
+    assert client.delete(provider_url(env, f'leaves/{protected_leave.pk}/')).status_code == 403
+    protected_leave.refresh_from_db()
+    assert profile.leaves.count() == before_leaves + 1
+    assert protected_leave.reason == 'Existing authorized record'
     queue_url = f"/api/v1/organizations/{env['org'].pk}/queue/providers/{profile.pk}/"
     assert client.get(queue_url).status_code == 403
     assert client.post(provider_url(env, 'review-application/'), {'action': 'APPROVE'}).status_code == 403
@@ -460,7 +486,11 @@ def test_registration_upload_submit_review_http_flow(env, settings, tmp_path):
     assert documents.status_code == 200 and len(documents.data) == 1
     assert client.post(f'{url}submit-application/').status_code == 200
     assert client.get(provider_url(env, 'documents/')).status_code == 403
-    assert client.post(f'{url}schedules/', {}).status_code == 403
+    initial_hours = client.post(f'{url}schedules/', {
+        'day_of_week': 0, 'start_time': '09:00', 'end_time': '17:00', 'is_working_day': True,
+    }, format='json')
+    assert initial_hours.status_code == 201, initial_hours.data
+    assert not ProviderProfile.objects.get(pk=profile_id).is_operationally_active
     review_client = client_for(env, 'manager')
     document_id = documents.data[0]['id']
     assert review_client.post(f'{url}documents/{document_id}/review/', {'status': 'APPROVED'}).status_code == 200
@@ -470,9 +500,12 @@ def test_registration_upload_submit_review_http_flow(env, settings, tmp_path):
     profile.membership.refresh_from_db()
     assert profile.is_operationally_active
     assert profile.membership.is_active
-    assert client.post(f'{url}schedules/', {
-        'day_of_week': 0, 'start_time': '09:00', 'end_time': '17:00',
-    }).status_code == 201
+    approved_edit = client.post(f'{url}schedules/', {
+        'day_of_week': 0, 'start_time': '10:00', 'end_time': '17:00',
+    }, format='json')
+    assert approved_edit.status_code == 400
+    assert approved_edit.data['error']['code'] == 'SCHEDULE_APPROVAL_REQUIRED'
+    assert profile.weekly_schedules.get(day_of_week=0).start_time == time(9)
 
 
 def test_inactive_approved_owner_does_not_gain_onboarding_access(env):
@@ -487,7 +520,7 @@ def test_inactive_approved_owner_does_not_gain_onboarding_access(env):
 
 
 @pytest.mark.parametrize('role', ['manager', 'admin', 'superuser'])
-def test_manager_platform_can_review_pending_owner(env, role):
+def test_initial_hours_approval_requires_own_organization_manager(env, role):
     profile = env['profile']
     profile.application_status = 'PENDING_REVIEW'
     profile.save()
@@ -496,9 +529,15 @@ def test_manager_platform_can_review_pending_owner(env, role):
     client = client_for(env, role)
     assert client.get(provider_url(env)).status_code == 200
     assert client.get(provider_url(env, 'documents/')).status_code == 200
-    assert client.post(provider_url(env, 'review-application/'), {'action': 'APPROVE'}).status_code == 200
+    WeeklySchedule.objects.create(provider=profile, day_of_week=0, start_time=time(9), end_time=time(17))
+    response = client.post(provider_url(env, 'review-application/'), {'action': 'APPROVE'})
+    allowed = role == 'manager'
+    assert response.status_code == (200 if allowed else 403), response.data
     profile.refresh_from_db()
-    assert profile.is_operationally_active
+    profile.membership.refresh_from_db()
+    assert profile.is_operationally_active is allowed
+    assert profile.membership.is_active is allowed
+    assert profile.application_status == ('APPROVED' if allowed else 'PENDING_REVIEW')
 
 
 def test_public_paginated_projections_and_manager_provider_list(env):
@@ -520,7 +559,9 @@ def test_inactive_membership_does_not_grant_private_schedule_annotations(schedul
     membership.save()
     response = client_for(env, 'staff').get(provider_url(env, 'schedules/'))
     assert response.status_code == 200
-    assert 'title' not in response.data[0]['breaks'][0]
+    working_day = next(day for day in response.data if day['day_of_week'] == env['schedule'].day_of_week)
+    assert 'title' not in working_day['breaks'][0]
+    assert 'Private' not in str(response.data)
 
 
 @pytest.mark.parametrize('role', ['provider', 'manager', 'staff', 'admin', 'superuser', 'customer', 'foreign', 'anonymous'])

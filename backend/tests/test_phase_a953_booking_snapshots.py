@@ -40,7 +40,8 @@ def setup():
 def book(setup, **kwargs):
     org, provider, service, _, customer, on_date = setup
     return AppointmentService.book_appointment(organization_id=org.id, provider_id=provider.id,
-        service_id=service.id, customer=customer, appointment_date=on_date, **kwargs)
+        service_id=service.id, customer=kwargs.pop('customer', customer),
+        appointment_date=kwargs.pop('appointment_date', on_date), **kwargs)
 
 
 def post(setup, **kwargs):
@@ -67,7 +68,9 @@ def test_price_snapshot_and_queue(setup, override, expected):
 def test_historical_price_immutable_new_booking_uses_new_price(setup):
     old = book(setup)
     ProviderBusiness.update_service_charge(provider=setup[1], provider_service_id=setup[3].id, custom_price=Decimal('1700.00'))
-    new = book(setup)
+    # A second customer may book the same provider/date; duplicate active identity may not.
+    other_customer = User.objects.create_user(email='other-customer@snapshot.test')
+    new = book(setup, customer=other_customer)
     old.refresh_from_db()
     assert old.booked_service_charge == Decimal('1200.00')
     assert new.booked_service_charge == Decimal('1700.00')
@@ -107,7 +110,7 @@ def test_omitted_contact_fallback_and_missing_profile_data(setup):
     assert appt.contact_phone == '01712345678'
     User.objects.filter(pk=setup[4].pk).update(first_name='', last_name='', phone_number='')
     setup[4].refresh_from_db()
-    empty = book(setup)
+    empty = book(setup, appointment_date=setup[5] + timedelta(days=1))
     assert empty.contact_name == setup[4].email
     assert empty.contact_phone is None
 
@@ -154,7 +157,8 @@ def test_contact_read_authorization(setup, actor):
 @pytest.mark.parametrize('phone', ['01712345678', ''])
 def test_walk_in_preserves_entered_name_and_snapshots_charge(setup, phone):
     appt = QueueService.register_walk_in(organization_id=setup[0].id, provider_id=setup[1].id,
-        service_id=setup[2].id, first_name='Walk-in', last_name='Contact', phone_number=phone)
+        service_id=setup[2].id, first_name='Walk-in', last_name='Contact', phone_number=phone,
+        customer_id=setup[4].pk if phone else None)
     assert appt.contact_name == 'Walk-in Contact'
     assert appt.contact_phone == (phone or None)
     assert appt.booked_service_charge == Decimal('1200.00')

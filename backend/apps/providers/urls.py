@@ -19,7 +19,12 @@ from .views import (
 
 app_name = 'providers'
 
+from .schedule_views import ScheduleRequestListCreateView, ScheduleRequestReviewView, ScheduleRequestAttachmentView
+
 urlpatterns = [
+    path('<uuid:provider_id>/schedule-requests/', ScheduleRequestListCreateView.as_view(), name='schedule_requests'),
+    path('<uuid:provider_id>/schedule-requests/<uuid:request_id>/review/', ScheduleRequestReviewView.as_view(), name='schedule_request_review'),
+    path('<uuid:provider_id>/schedule-requests/<uuid:request_id>/attachment/', ScheduleRequestAttachmentView.as_view(), name='schedule_request_attachment'),
     # Provider Profiles
     path('', ProviderProfileListCreateView.as_view(), name='provider_list_create'),
     path('<uuid:provider_id>/', ProviderProfileDetailView.as_view(), name='provider_detail'),

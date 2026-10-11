@@ -1,3 +1,4 @@
+import { useBookingWindow } from '../../hooks/useBookingWindow';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -25,7 +26,7 @@ export function ProviderPublicProfilePage() {
 
   // Booking Flow State
   const [selectedServiceId, setSelectedServiceId] = useState('');
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const { first: todayStr, last: lastBookingDate } = useBookingWindow();
   const [selectedDate, setSelectedDate] = useState(todayStr);
 
   const [availability, setAvailability] = useState(null);
@@ -465,6 +466,7 @@ export function ProviderPublicProfilePage() {
                   type="date"
                   style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid var(--lp-border)', outline: 'none', background: 'var(--lp-surface)', color: 'var(--lp-text)', fontSize: '0.9rem', boxSizing: 'border-box' }}
                   min={todayStr}
+                  max={lastBookingDate}
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                 />

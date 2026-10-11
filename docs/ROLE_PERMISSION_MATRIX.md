@@ -104,16 +104,16 @@ No row's admin allowance waives the resource lookup, active organization filter 
 | O appointments/ — AppointmentListCreateView | POST | Any authenticated self; no customer membership needed | request.user is customer; provider/service constrained to org; ONLINE/SCHEDULED forced; authoritative price/serial | AV:97–175; APerm::CanCreateAppointment |
 | O appointments/ | GET | Authenticated | First tenant queryset; manager/staff/admin org-wide; active provider assigned OR own; others own | AV:108–143; APerm::filter_appointments_for_user |
 | O appointments/{appointment}/ | GET | Owner, assigned active provider, target active staff/manager, admin | `_get_appointment` scopes org; explicit object check | AV::AppointmentDetailView; APerm::CanAccessOrganizationAppointments |
-| O appointments/{appointment}/ | PATCH | Owner, target active staff/manager, admin | Assigned provider alone denied; approved operational authority not capacity correctness. F-005/F-006 | AV:224–258; APerm::CanCancelOrRescheduleAppointment |
-| O appointments/{appointment}/cancel/ | POST | Owner, assigned active provider, target active staff/manager, admin | Tenant/object + current cancellable status; stale checks F-006 | AV::AppointmentCancelView; APerm |
+| O appointments/{appointment}/ | PATCH | Booking owner only | WAITING state, current authoritative ETA ≥90 min, final recheck, destination horizon/eligibility/capacity; no unrestricted staff rescheduling | AppointmentService.reschedule_appointment |
+| O appointments/{appointment}/cancel/ | POST | Owner; existing scoped operational cancellation actors | Owner waiting-only with ≥2h to effective schedule start; fresh provider/entry/appointment locks; CALLED/IN_PROGRESS/terminal rejected | AppointmentService.cancel_appointment |
 | O appointments/{appointment}/check-in/ | POST | Owner, assigned active provider, target active staff/manager, admin | Object permission then QueueService date/provider/state checks. Owner-actor repeat qualification BR-036 applies even to dual-role owner | AV::AppointmentCheckInView; APerm::CanCheckInAppointment |
 | `/api/v1/customer/dashboard/` and customer appointment detail | GET | Authenticated | customer=request.user across organizations; operational role alone grants no other customer's records | AV::CustomerDashboardView, CustomerAppointmentItemDetailView |
 | O queue/my/ — MyQueueListView | GET | Authenticated; no active membership required | URL active org AND appointment customer=request.user; optional date filter | QV:56–78; QPerm::CanViewOwnQueue |
-| O queue/providers/P/ — ProviderQueueListView | GET | Own active provider, target active STAFF/MANAGER, admin | URL/provider permission then operational provider loader. Global cleanup exception F-007; customer call mismatch F-015 | QV:39–53; QPerm::CanManageProviderQueue |
-| O queue/providers/P/call-next/ | POST | Same provider-queue operators | Scoped provider; no active entry for requested date; checked-in eligibility. Global cleanup happens before selection | QV:81–92; QPerm; QS::call_next |
+| O queue/providers/P/ — ProviderQueueListView | GET | Own active provider, target STAFF/MANAGER, existing admin exception | Scoped read with available unfinished queue dates; no historical mutation | QueueService.list_provider_queue |
+| O queue/providers/P/call-next/ | POST | Existing scoped provider queue operators | Provider-wide CALLED/IN_PROGRESS exclusion; requested non-future date, checked-in WAITING ascending serial | QueueService.call_next |
 | O queue/E/start/ and complete/ | POST | Assigned active provider, target active STAFF/MANAGER, admin | `_entry_for_org` + explicit object check; fresh service status checks. Customer owner alone denied | QV:95–119; QPerm::CanActOnQueueEntry |
 | O queue/E/skip/ | POST | Same entry operators | CALLED entry and linked Appointment NO_SHOW transition; no assumed grace/return policy | QV::SkipQueueEntryView; QS::skip_queue_entry |
-| O queue/E/urgent/ | POST | Same entry operators | Scoped entry; customer owner denied; reason/state/lock limitations F-011 | QV:149–170; QPerm; QS::mark_urgent |
+| O queue/E/restore/ | POST | Target active STAFF/MANAGER; existing platform operational exception | Scoped provider/entry/appointment locks; SKIPPED/NO_SHOW → original WAITING/CHECKED_IN; no interruption | QueueService.restore_queue_entry |
 | O queue/providers/P/walk-in/ | POST | Own active provider, target active STAFF/MANAGER, admin | URL provider authoritative in view; serializer still requires body provider_id; shared identity risk F-013; price server-resolved | QV:125–147; queue/serializers.py::WalkInRegisterSerializer; F-012 |
 
 ### Provider availability, assignments and onboarding
@@ -124,9 +124,9 @@ No row's admin allowance waives the resource lookup, active organization filter 
 | Same assignment collection | POST | Active target MANAGER or admin | Provider/service same org validation; unique assignment | PV:264–275; providers/services.py::assign_service_to_provider |
 | O providers/P/services/{assignment}/ — ProviderServiceDetailView | PATCH / DELETE | Active target MANAGER or admin | URL profile then assignment ownership; provider→assignment lock; customer-facing override, not income | PV:278–305; providers/services.py:265–302 |
 | O providers/P/schedules/ | GET | Authenticated safe discovery; entitled operational readers | Safe projection for operational providers omits break titles; active owner/target manager/staff/admin retain annotations | PV::WeeklyScheduleListCreateView; F-019 CLOSED |
-| Same schedules — WeeklyScheduleListCreateView | POST | Own active provider, active target manager, admin | Upsert own/target weekday; stored break validation gap F-018 | PV:342–354; PPerm |
+| Same schedules — WeeklyScheduleListCreateView | POST | Own onboarding participant, target manager/admin | Initial schedule only; approved profiles must submit a schedule request; validate retained breaks and ≤22:00 | ProviderService_.create_or_update_schedule |
 | O providers/P/schedules/{schedule}/breaks/ | GET | Authenticated safe discovery; entitled operational readers | Nested provider/schedule lookup; safe projection omits title, operational readers retain it | PV::ScheduleBreakListCreateView; _can_read_operational_schedule |
-| Break collection/detail | POST / DELETE | Own active provider, active target manager, admin | Nested schedule/break ownership; create overlap validation lacks writer coordination F-018 | PV:397–422; PPerm |
+| Break collection/detail | POST / DELETE | Own onboarding participant, target manager/admin | Initial schedules only; approved breaks require manager-approved change request; provider-first locking | ProviderService_.add_break; schedule request service |
 | O providers/P/leaves/ | GET | Authenticated safe discovery; entitled operational readers | Safe projection for operational providers omits reason; active owner/target manager/staff/admin retain it | PV::ProviderLeaveListCreateView; _can_read_operational_schedule |
 | Leave collection/detail | POST / DELETE | Own active provider, active target manager, admin | URL provider/leave ownership; input validity | PV:457–481; PPerm |
 | O providers/P/documents/ | GET / POST | Own active provider or own eligible onboarding applicant; active target manager/admin | Scoped provider_profile ownership; omitted owner accepted, conflicting owner rejected; review fields read-only; no operational membership grant | PV::ProviderDocumentUploadView; IsProviderOnboardingParticipant; F-002/F-003 CLOSED |
@@ -177,7 +177,7 @@ Evidence: AnV:21–101; AnPerm; `backend/apps/analytics/urls.py:9–14`; `backen
 - **F-001 CLOSED:** Explicit public organization/provider projections omit document/reviewer/rejection administration and provider account email. The separate public profile no longer falls back to email. Entitled private reads remain available. Original exposure/root cause is retained in [the finding](KNOWN_ISSUES.md#f-001); direct media authorization remains F-024.
 - **F-019 CLOSED:** Customers/foreign readers receive safe windows/intervals; only entitled operational readers receive break titles/leave reasons. GET remains authenticated and nested resources stay scoped. Original exposure is retained in [the finding](KNOWN_ISSUES.md#f-019).
 - **F-020 CLOSED:** Public service list/detail both enforce active service plus active APPROVED org; own active manager/platform unpublished reads remain separate. Original mismatch is retained in [the finding](KNOWN_ISSUES.md#f-020).
-- **F-007:** A tenant-authorized queue read/call invokes global historical mutation. A scoped URL does not make this side effect tenant-scoped. State-machine cleanup section owns detail.
+- **F-007 M2:** Queue reads/calls no longer invoke historical cleanup; explicit cross-tenant regression preserves original state/date/serial.
 
 The operating-hours endpoint checks active org rather than the public list's full approval gate. This is additional source detail, not a silently accepted new finding or a reason to expand this phase into fixes.
 
@@ -241,3 +241,15 @@ F-007 side-effect scope belongs to state machine; F-021 email results remain doc
 - [x] No runtime, exploitation, email-delivery or universal tenant-safety certification.
 
 Checkmarks mean documentation coverage only. Source-based matrices require focused verification before application changes; Phase 3 does not begin automatically.
+
+## M2 schedule and staff workflows — 2026-10-11
+
+| Endpoint | Authorized actors | Boundary |
+|---|---|---|
+| `O providers/P/schedule-requests/` GET | Own provider or active same-organization MANAGER | No customer/foreign tenant access; request-only onboarding/history read does not grant queue operations. |
+| Same endpoint POST | Own operationally active provider | 4-day specific / 10-day permanent notice, mandatory reason, validated proposed hours/breaks; no direct live mutation. |
+| `schedule-requests/R/review/` POST | Active MANAGER of provider's organization | Provider → request locks; fresh effective baseline/confirmed-booking checks; approval or explained rejection. Platform-only/staff status does not substitute for manager membership. |
+| `schedule-requests/R/attachment/` GET | Owner or active same-organization MANAGER | Authenticated attachment bytes; no public media URL; attachment download, nosniff, no-store. |
+| Existing `queue/providers/P/walk-in/` POST | Existing scoped booking operators | PHONE / FRONT_DESK; same source-of-truth service, snapshots and serial ledger; body provider cannot disagree with URL. Existing customer requires explicit identity if phone collides. |
+
+F-024 existing verification-document storage authorization and F-025 role-dependent schema annotations remain OPEN. These additions do not widen public discovery projections or authorize emergency recovery.

@@ -330,3 +330,35 @@ class ProviderLeave(models.Model):
 
     def __str__(self):
         return f"{self.provider} — Leave {self.start_datetime.date()} to {self.end_datetime.date()}"
+
+
+class ScheduleChangeRequest(models.Model):
+    class Kind(models.TextChoices):
+        SPECIFIC_DATE = 'SPECIFIC_DATE', _('Specific date')
+        PERMANENT = 'PERMANENT', _('Permanent')
+
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', _('Pending')
+        APPROVED = 'APPROVED', _('Approved')
+        REJECTED = 'REJECTED', _('Rejected')
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    provider = models.ForeignKey(ProviderProfile, on_delete=models.CASCADE, related_name='schedule_change_requests')
+    kind = models.CharField(max_length=20, choices=Kind.choices)
+    effective_date = models.DateField()
+    proposed_schedule = models.JSONField()
+    current_schedule = models.JSONField()
+    reason = models.TextField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    decision_reason = models.TextField(blank=True)
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='+')
+    reviewed_at = models.DateTimeField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    # Private, bounded attachment bytes: never written to public MEDIA_ROOT.
+    attachment = models.BinaryField(null=True, editable=False)
+    attachment_name = models.CharField(max_length=255, blank=True)
+    attachment_type = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['provider', 'status', 'effective_date'], name='schedule_request_effective_idx')]

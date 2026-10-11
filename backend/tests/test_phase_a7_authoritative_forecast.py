@@ -1,5 +1,5 @@
 import pytest
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from django.utils import timezone
 from apps.accounts.models import User
 from apps.organizations.models import Organization, OrganizationMembership
@@ -184,7 +184,7 @@ def test_scenario_f_call_next_presence(org_and_provider):
 
 
 @pytest.mark.django_db
-def test_scenario_g_h_i_j_forecast_updates(org_and_provider):
+def test_scenario_g_h_i_j_forecast_updates(org_and_provider, monkeypatch):
     """
     Scenario G, H, I, J:
     - Forecast for target serial #5 includes unarrived earlier serials.
@@ -198,6 +198,9 @@ def test_scenario_g_h_i_j_forecast_updates(org_and_provider):
     custs = org_and_provider['customers']
 
     today = current_business_date()
+    # Freeze before the provider's 08:00 start minus two hours for customer cancellation.
+    monkeypatch.setattr(timezone, 'now', lambda: timezone.make_aware(datetime.combine(today, time(6))))
+
     appt1 = AppointmentService.book_appointment(organization_id=org.id, customer=custs[0], provider_id=provider.id, service_id=service.id, appointment_date=today)
     appt2 = AppointmentService.book_appointment(organization_id=org.id, customer=custs[1], provider_id=provider.id, service_id=service.id, appointment_date=today)
     appt3 = AppointmentService.book_appointment(organization_id=org.id, customer=custs[2], provider_id=provider.id, service_id=service.id, appointment_date=today)
@@ -236,8 +239,8 @@ def test_scenario_g_h_i_j_forecast_updates(org_and_provider):
 
 
 @pytest.mark.django_db
-def test_scenario_k_urgent_override(org_and_provider):
-    """Scenario K: Urgent checked-in customer affects operational order and forecast correctly."""
+def test_scenario_k_serial_order(org_and_provider):
+    """Scenario K: Checked-in customers preserve serial order."""
     org = org_and_provider['org']
     provider = org_and_provider['provider']
     service = org_and_provider['service']
@@ -250,12 +253,11 @@ def test_scenario_k_urgent_override(org_and_provider):
     q1 = QueueService.check_in_appointment(appointment=appt1, bypass_window=True)
     q2 = QueueService.check_in_appointment(appointment=appt2, bypass_window=True)
 
-    # Mark #2 urgent
-    QueueService.mark_urgent(organization_id=org.id, queue_entry_id=q2.id, reason="Emergency case")
+    # M2: no priority override.
 
-    # Call Next should select #2 first because of urgent flag
+    # Call Next selects the lower serial.
     called = QueueService.call_next(organization_id=org.id, provider_id=provider.id)
-    assert called.id == q2.id
+    assert called.id == q1.id
 
 
 @pytest.mark.django_db

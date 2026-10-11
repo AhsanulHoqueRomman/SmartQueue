@@ -8,7 +8,7 @@ from apps.organizations.models import Organization, OrganizationMembership
 from apps.providers.models import ProviderProfile, ProviderService, WeeklySchedule, ScheduleBreak
 from apps.services.models import Service
 from apps.appointments.models import Appointment
-from apps.appointments.services import AppointmentService, AppointmentAvailabilityService, get_project_tz
+from apps.appointments.services import AppointmentService, AppointmentAvailabilityService, AppointmentValidationException, get_project_tz
 from apps.queue.models import QueueEntry
 from apps.queue.services import QueueService, current_business_date
 
@@ -205,7 +205,7 @@ def test_serial_queue_booking_flow_a9(a9_setup):
 
 @pytest.mark.django_db
 def test_past_date_availability_and_booking_rejection(a9_setup):
-    """Part 12 & 13: Past date availability MUST return is_available=False and booking POST MUST reject past dates."""
+    """Availability and booking both reject dates outside the approved Dhaka window."""
     org_health = a9_setup['org_health']
     provider1 = a9_setup['provider1']
     service_derm = a9_setup['service_derm']
@@ -214,25 +214,25 @@ def test_past_date_availability_and_booking_rejection(a9_setup):
     today = current_business_date()
     yesterday = today - timedelta(days=1)
 
-    # 1. Query Availability for Yesterday -> returns is_available: False, reason: 'PAST_DATE'
+    # 1. Query availability for yesterday -> authoritative window validation.
     client = APIClient()
     res_avail = client.get(
         f"/api/v1/organizations/{org_health.id}/providers/{provider1.id}/availability/"
         f"?service_id={service_derm.id}&date={yesterday.isoformat()}"
     )
-    assert res_avail.status_code == 200
-    assert res_avail.data['is_available'] is False
-    assert res_avail.data['reason'] == 'PAST_DATE'
+    assert res_avail.status_code == 400
+    assert res_avail.data['error']['code'] == 'OUTSIDE_BOOKING_WINDOW'
 
-    # 2. Direct Service Call for Yesterday -> is_available: False
-    avail_data = AppointmentAvailabilityService.get_available_slots(
-        organization_id=org_health.id,
-        provider_id=provider1.id,
-        service_id=service_derm.id,
-        on_date=yesterday,
-    )
-    assert avail_data['is_available'] is False
-    assert avail_data['reason'] == 'PAST_DATE'
+    # 2. The direct service path enforces the same policy.
+    with pytest.raises(AppointmentValidationException) as rejected:
+        AppointmentAvailabilityService.get_available_slots(
+            organization_id=org_health.id,
+            provider_id=provider1.id,
+            service_id=service_derm.id,
+            on_date=yesterday,
+        )
+    assert rejected.value.default_code == 'OUTSIDE_BOOKING_WINDOW'
+    assert not Appointment.objects.exists()
 
     # 3. Post Booking for Yesterday -> Rejected 400 Bad Request
     client.force_authenticate(user=cust)

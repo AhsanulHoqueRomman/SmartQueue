@@ -232,6 +232,12 @@ class TestProviderServiceAssignment:
 
 @pytest.mark.django_db
 class TestWeeklySchedule:
+    @pytest.fixture(autouse=True)
+    def initial_schedule_application(self, provider_profile):
+        # Initial hours are editable; approved live hours require manager review.
+        provider_profile.application_status = 'INCOMPLETE'
+        provider_profile.save(update_fields=['application_status'])
+
     def test_manager_can_set_schedule(self, manager_client, setup_org, provider_profile):
         org = manager_client.org
         url = _schedule_list_url(org.id, provider_profile.id)
@@ -276,7 +282,11 @@ class TestWeeklySchedule:
         url = _schedule_list_url(org.id, provider_profile.id)
         res = manager_client.get(url)
         assert res.status_code == status.HTTP_200_OK
-        assert len(res.data) == 1
+        assert len(res.data) == 7
+        assert [day['day_of_week'] for day in res.data] == list(range(7))
+        monday = next(day for day in res.data if day['day_of_week'] == 0)
+        assert monday['is_working_day'] and monday['start_time'] == '09:00:00'
+        assert all(not day['is_working_day'] and day['id'] is None for day in res.data if day['day_of_week'] != 0)
 
 
 # ---------------------------------------------------------------------------
@@ -285,6 +295,11 @@ class TestWeeklySchedule:
 
 @pytest.mark.django_db
 class TestScheduleBreak:
+    @pytest.fixture(autouse=True)
+    def initial_schedule_application(self, provider_profile):
+        provider_profile.application_status = 'INCOMPLETE'
+        provider_profile.save(update_fields=['application_status'])
+
     def test_manager_can_add_break(self, manager_client, setup_org, provider_profile):
         org = manager_client.org
         schedule = WeeklySchedule.objects.create(
@@ -417,6 +432,11 @@ class TestProviderWritePermissions:
 
 @pytest.mark.django_db
 class TestScheduleBreakRules:
+    @pytest.fixture(autouse=True)
+    def initial_schedule_application(self, provider_profile):
+        provider_profile.application_status = 'INCOMPLETE'
+        provider_profile.save(update_fields=['application_status'])
+
     def test_break_outside_working_hours_rejected(self, manager_client, setup_org, provider_profile):
         org = manager_client.org
         schedule = WeeklySchedule.objects.create(
@@ -482,7 +502,7 @@ class TestProviderSelfManagementAndDiscovery:
         provider_profile.refresh_from_db()
         assert provider_profile.bio == 'Updated by provider'
 
-    def test_provider_can_set_own_schedule(self, api_client, setup_org, provider_profile):
+    def test_provider_can_prepare_initial_hours_but_cannot_edit_approved_hours(self, api_client, setup_org, provider_profile):
         org, *_ = setup_org
         _login(api_client, 'provider@example.com')
         url = _schedule_list_url(org.id, provider_profile.id)
@@ -491,7 +511,22 @@ class TestProviderSelfManagementAndDiscovery:
             {'day_of_week': 3, 'start_time': '10:00:00', 'end_time': '16:00:00', 'is_working_day': True},
             format='json',
         )
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+        assert res.data['error']['code'] == 'SCHEDULE_APPROVAL_REQUIRED'
+        assert not WeeklySchedule.objects.filter(provider=provider_profile).exists()
+        provider_profile.application_status = 'INCOMPLETE'
+        provider_profile.save(update_fields=['application_status'])
+        provider_profile.membership.is_active = False
+        provider_profile.membership.save(update_fields=['is_active'])
+        res = api_client.post(url, {
+            'day_of_week': 3, 'start_time': '10:00:00', 'end_time': '16:00:00', 'is_working_day': True,
+        }, format='json')
         assert res.status_code == status.HTTP_201_CREATED
+        provider_profile.refresh_from_db()
+        provider_profile.membership.refresh_from_db()
+        assert provider_profile.weekly_schedules.get(day_of_week=3).start_time.isoformat() == '10:00:00'
+        assert not provider_profile.is_operationally_active
+        assert not provider_profile.membership.is_active
 
     def test_demoted_provider_cannot_manage_own_schedule(self, api_client, setup_org, provider_profile):
         org, manager, provider_user, staff_user, prov_mem = setup_org

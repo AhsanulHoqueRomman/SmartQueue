@@ -20,7 +20,7 @@ def _get_is_live_queue(obj) -> bool:
         q = QueueEntry.objects.filter(appointment=obj).first()
 
     # Legitimate in-progress consultation remains active even across midnight
-    if obj.status == Appointment.Status.IN_PROGRESS or (q and q.status == 'IN_PROGRESS'):
+    if obj.status == Appointment.Status.IN_PROGRESS or (q and q.status in ('CALLED', 'IN_PROGRESS')):
         return True
 
     classification = _get_temporal_classification(obj)
@@ -56,7 +56,18 @@ def _get_can_check_in(obj) -> bool:
 
 
 def _get_can_cancel(obj) -> bool:
-    return obj.status in (Appointment.Status.PENDING, Appointment.Status.CONFIRMED)
+    from datetime import timedelta
+    from django.utils import timezone
+    from .services import _get_working_schedule, _combine_date_time
+    from apps.queue.services import business_date_for_appointment
+    if obj.status not in (Appointment.Status.PENDING, Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN):
+        return False
+    q = getattr(obj, 'queue_entry', None)
+    if q and q.status != 'WAITING':
+        return False
+    on_date = business_date_for_appointment(obj)
+    schedule = _get_working_schedule(obj.provider, on_date)
+    return bool(schedule and schedule.is_working_day and timezone.now() <= _combine_date_time(on_date, schedule.start_time) - timedelta(hours=2))
 
 
 def _get_can_review(obj) -> bool:
@@ -78,6 +89,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
     is_live_queue = serializers.SerializerMethodField()
     can_check_in = serializers.SerializerMethodField()
     can_cancel = serializers.SerializerMethodField()
+    self_reschedule = serializers.SerializerMethodField()
     can_review = serializers.SerializerMethodField()
 
     class Meta:
@@ -105,6 +117,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'is_live_queue',
             'can_check_in',
             'can_cancel',
+            'self_reschedule',
             'can_review',
             'created_at',
             'updated_at',
@@ -119,6 +132,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
     def get_can_check_in(self, obj):
         return _get_can_check_in(obj)
+
+    def get_self_reschedule(self, obj):
+        from .services import AppointmentService
+        return AppointmentService.self_reschedule_eligibility(obj)
 
     def get_can_cancel(self, obj):
         return _get_can_cancel(obj)
@@ -138,6 +155,7 @@ class AppointmentListSerializer(serializers.ModelSerializer):
     is_live_queue = serializers.SerializerMethodField()
     can_check_in = serializers.SerializerMethodField()
     can_cancel = serializers.SerializerMethodField()
+    self_reschedule = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
@@ -162,6 +180,7 @@ class AppointmentListSerializer(serializers.ModelSerializer):
             'is_live_queue',
             'can_check_in',
             'can_cancel',
+            'self_reschedule',
         ]
         read_only_fields = fields
 
@@ -173,6 +192,10 @@ class AppointmentListSerializer(serializers.ModelSerializer):
 
     def get_can_check_in(self, obj):
         return _get_can_check_in(obj)
+
+    def get_self_reschedule(self, obj):
+        from .services import AppointmentService
+        return AppointmentService.self_reschedule_eligibility(obj)
 
     def get_can_cancel(self, obj):
         return _get_can_cancel(obj)
@@ -294,6 +317,7 @@ class CustomerDashboardItemSerializer(serializers.ModelSerializer):
     is_live_queue = serializers.SerializerMethodField()
     can_check_in = serializers.SerializerMethodField()
     can_cancel = serializers.SerializerMethodField()
+    self_reschedule = serializers.SerializerMethodField()
     can_review = serializers.SerializerMethodField()
     has_issue_report = serializers.SerializerMethodField()
 
@@ -326,6 +350,7 @@ class CustomerDashboardItemSerializer(serializers.ModelSerializer):
             'is_live_queue',
             'can_check_in',
             'can_cancel',
+            'self_reschedule',
             'can_review',
             'has_issue_report',
             'created_at',
@@ -363,6 +388,10 @@ class CustomerDashboardItemSerializer(serializers.ModelSerializer):
 
     def get_can_check_in(self, obj):
         return _get_can_check_in(obj)
+
+    def get_self_reschedule(self, obj):
+        from .services import AppointmentService
+        return AppointmentService.self_reschedule_eligibility(obj)
 
     def get_can_cancel(self, obj):
         return _get_can_cancel(obj)

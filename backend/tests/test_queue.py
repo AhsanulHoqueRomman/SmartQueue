@@ -193,7 +193,7 @@ class TestQueueAPI:
     def test_phase5_serial_allocation_and_auto_queue_creation(self, queue_setup):
         s = queue_setup
         from apps.appointments.services import AppointmentService
-        start_time = timezone.make_aware(datetime(2030, 2, 1, 10, 0), timezone=TZ)
+        start_time = timezone.make_aware(datetime.combine(current_business_date() + timedelta(days=1), time(10)), timezone=TZ)
         
         appt1 = AppointmentService.book_appointment(
             organization_id=s['org'].id, customer=s['customer'],
@@ -245,7 +245,7 @@ class TestQueueAPI:
         called = QueueService.call_next(organization_id=s['org'].id, provider_id=s['provider'].id, on_date=appt2.appointment_date)
         assert called.serial_number == 2
 
-    def test_phase5_urgent_bump_prioritizes_queue(self, queue_setup):
+    def test_serial_order_selects_first_checked_in(self, queue_setup):
         s = queue_setup
         from apps.appointments.services import AppointmentService
         start_time = timezone.make_aware(datetime(2030, 2, 3, 10, 0), timezone=TZ)
@@ -269,13 +269,11 @@ class TestQueueAPI:
         QueueService.check_in_appointment(appointment=appt1)
         q2 = QueueService.check_in_appointment(appointment=appt2)
 
-        # Mark Appt 2 as urgent
-        QueueService.mark_urgent(organization_id=s['org'].id, queue_entry_id=q2.id, reason='Emergency Triage')
+        # M2: no priority mutation is supported.
 
-        # call_next should pick Serial #2 due to urgent flag!
+        # Call Next selects serial #1.
         called = QueueService.call_next(organization_id=s['org'].id, provider_id=s['provider'].id, on_date=appt1.appointment_date)
-        assert called.serial_number == 2
-        assert called.is_urgent is True
+        assert called.serial_number == 1
 
     def test_phase5_front_desk_walk_in_registration(self, queue_setup):
         s = queue_setup
@@ -324,7 +322,7 @@ class TestQueueAPI:
         entry = QueueService.check_in_appointment(appointment=appt)
         assert entry.status == QueueEntry.Status.WAITING
 
-        AppointmentService.cancel_appointment(appointment=appt, reason='Customer changed mind')
+        AppointmentService.cancel_appointment(appointment=appt, reason='Customer changed mind', actor=s['manager'])
         appt.refresh_from_db()
         entry.refresh_from_db()
         assert appt.status == Appointment.Status.CANCELLED
@@ -334,7 +332,7 @@ class TestQueueAPI:
         with pytest.raises(NoWaitingCustomerException):
             QueueService.call_next(organization_id=s['org'].id, provider_id=s['provider'].id, on_date=appt.appointment_date)
 
-    def test_phase5_urgent_eta_calculation(self, queue_setup):
+    def test_serial_order_forecast_has_no_higher_serial_ahead(self, queue_setup):
         s = queue_setup
         from apps.appointments.services import AppointmentService
         today = current_business_date()
@@ -357,13 +355,12 @@ class TestQueueAPI:
         q1 = QueueService.check_in_appointment(appointment=appt1)
         q2 = QueueService.check_in_appointment(appointment=appt2)
 
-        # Mark appt2 (Serial #2) urgent
-        QueueService.mark_urgent(organization_id=s['org'].id, queue_entry_id=q2.id, reason='Urgent case')
+        # M2: higher serials do not move ahead.
 
-        # ETA for q1 (Serial #1, normal) must include q2 (urgent) ahead of it
+        # Higher serial q2 is not ahead of q1.
         eta_q1 = QueueService.calculate_readiness_and_eta(q1)
-        assert eta_q1['people_ahead'] == 1
-        assert eta_q1['estimated_wait_minutes'] == 30
+        assert eta_q1['people_ahead'] == 0
+        assert eta_q1['estimated_wait_minutes'] == 0
 
     def test_phase5_active_consultation_elapsed_time_deduction(self, queue_setup):
         s = queue_setup

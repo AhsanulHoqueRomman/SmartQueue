@@ -49,6 +49,7 @@ class ProviderQueueListView(APIView):
         )
         return Response({
             'queue_date': queue_date,
+            'available_queue_dates': sorted(set([queue_date] + list(QueueEntry.objects.filter(organization_id=organization_id, provider_id=provider_id, status__in=['WAITING', 'CALLED', 'IN_PROGRESS']).values_list('queue_date', flat=True)))),
             'entries': QueueEntrySerializer(entries, many=True).data,
         })
 
@@ -132,6 +133,8 @@ class WalkInRegisterView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        if serializer.validated_data.get('provider_id') and str(serializer.validated_data['provider_id']) != str(provider_id):
+            return Response({'detail': 'The body provider must match the authorized URL provider.'}, status=400)
         appt = QueueService.register_walk_in(
             organization_id=organization_id,
             provider_id=provider_id,
@@ -141,30 +144,13 @@ class WalkInRegisterView(APIView):
             phone_number=serializer.validated_data.get('phone_number', ''),
             notes=serializer.validated_data.get('notes', ''),
             actor=request.user,
+            customer_id=serializer.validated_data.get('customer_id'),
+            appointment_date=serializer.validated_data.get('appointment_date'),
+            booking_channel=serializer.validated_data['booking_channel'],
         )
         queue_entry = getattr(appt, 'queue_entry', None) or QueueEntry.objects.filter(appointment=appt).first()
         return Response(QueueEntrySerializer(queue_entry).data, status=status.HTTP_201_CREATED)
 
 
-class MarkUrgentQueueView(APIView):
-    permission_classes = [IsAuthenticated, CanActOnQueueEntry]
-    serializer_class = QueueEntrySerializer
-
-    def post(self, request, organization_id, queue_entry_id):
-        from .serializers import MarkUrgentSerializer
-        entry = _entry_for_org(organization_id, queue_entry_id)
-        permission = CanActOnQueueEntry()
-        if not permission.has_object_permission(request, self, entry):
-            return Response(status=status.HTTP_403_FORBIDDEN)
-        
-        serializer = MarkUrgentSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        updated = QueueService.mark_urgent(
-            organization_id=organization_id,
-            queue_entry_id=queue_entry_id,
-            reason=serializer.validated_data.get('reason', ''),
-            actor=request.user,
-        )
-        return Response(QueueEntrySerializer(updated).data)
+class RestoreQueueEntryView(_QueueEntryActionView):
+    handler = QueueService.restore_queue_entry

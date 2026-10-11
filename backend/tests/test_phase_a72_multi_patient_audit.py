@@ -267,10 +267,9 @@ def test_elapsed_time_deduction_for_downstream_eta(a72_setup):
 
 
 @pytest.mark.django_db
-def test_urgent_priority_ordering_consistency(a72_setup):
+def test_serial_ordering_consistency(a72_setup):
     """
-    PART 14: Test that marked urgent patient is selected first by call_next
-    AND correctly affects ETA of non-urgent patients ahead in serial number.
+    PART 14: Checked-in customers are called in ascending serial order.
     """
     s = a72_setup
     today = current_business_date()
@@ -288,12 +287,11 @@ def test_urgent_priority_ordering_consistency(a72_setup):
     q1 = QueueService.check_in_appointment(appointment=a1, actor=s['cust1'], bypass_window=True)
     q2 = QueueService.check_in_appointment(appointment=a2, actor=s['cust2'], bypass_window=True)
 
-    # Mark Serial #2 as urgent
-    QueueService.mark_urgent(organization_id=s['org'].id, queue_entry_id=q2.id, reason="Emergency")
+    # M2: no priority override.
 
-    # call_next MUST select urgent #2 first despite higher serial
+    # Call Next selects q1, independently of channel.
     q_called = QueueService.call_next(organization_id=s['org'].id, provider_id=s['provider'].id)
-    assert q_called.id == q2.id
+    assert q_called.id == q1.id
 
 
 @pytest.mark.django_db

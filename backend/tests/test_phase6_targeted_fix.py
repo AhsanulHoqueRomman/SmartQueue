@@ -60,7 +60,7 @@ def _login(client, user):
 class TestPhase6MultiOrgCustomerData:
     def test_customer_receives_bookings_from_multiple_organizations(self, multi_org_setup):
         s = multi_org_setup
-        start_time = timezone.make_aware(datetime(2030, 3, 1, 10, 0), timezone=TZ)
+        start_time = timezone.make_aware(datetime.combine(current_business_date() + timedelta(days=1), time(10)), timezone=TZ)
 
         # Customer A books in Org 1 and Org 2
         appt_1 = AppointmentService.book_appointment(
@@ -89,7 +89,7 @@ class TestPhase6MultiOrgCustomerData:
 
     def test_customer_receives_only_own_bookings_cross_customer_isolation(self, multi_org_setup):
         s = multi_org_setup
-        start_time = timezone.make_aware(datetime(2030, 3, 1, 10, 0), timezone=TZ)
+        start_time = timezone.make_aware(datetime.combine(current_business_date() + timedelta(days=1), time(10)), timezone=TZ)
 
         # Customer A books Org 1
         appt_a = AppointmentService.book_appointment(
@@ -119,7 +119,7 @@ class TestPhase6MultiOrgCustomerData:
 
     def test_correct_organization_provider_service_category_attached(self, multi_org_setup):
         s = multi_org_setup
-        start_time = timezone.make_aware(datetime(2030, 3, 2, 10, 0), timezone=TZ)
+        start_time = timezone.make_aware(datetime.combine(current_business_date() + timedelta(days=1), time(10)), timezone=TZ)
         appt = AppointmentService.book_appointment(
             organization_id=s['org_1'].id, customer=s['customer_a'],
             provider_id=s['provider_1'].id, service_id=s['svc_1'].id,
@@ -188,7 +188,6 @@ class TestPhase6ETARangeAndOrdering:
         assert eta_info_2['people_ahead'] == 1
         assert eta_info_2['estimated_wait_minutes'] == 20
 
-        # 5. Mark q2 urgent -> call_next picks q2 first!
-        QueueService.mark_urgent(organization_id=s['org_1'].id, queue_entry_id=q2.id, reason='Urgent triage')
+        # 5. Call Next chooses the lowest checked-in serial.
         called = QueueService.call_next(organization_id=s['org_1'].id, provider_id=s['provider_1'].id, on_date=appt_1.appointment_date)
-        assert called.id == q2.id
+        assert called.id == q1.id

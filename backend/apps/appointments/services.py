@@ -19,6 +19,8 @@ from apps.services.models import Service
 from config.exceptions import ApplicationError
 
 from .models import Appointment
+from .booking_policy import validate_booking_date, ETA_UNAVAILABLE_MESSAGE
+from .serials import allocate_serial
 from .contacts import resolve_booking_contact
 from apps.providers.pricing import effective_customer_charge
 from django.core.exceptions import ValidationError
@@ -64,7 +66,7 @@ class AppointmentNotCancellableException(ApplicationError):
 # ---------------------------------------------------------------------------
 
 def get_project_tz():
-    return ZoneInfo(settings.TIME_ZONE)
+    return ZoneInfo('Asia/Dhaka')
 
 
 def intervals_overlap(start_a, end_a, start_b, end_b) -> bool:
@@ -161,10 +163,8 @@ def _ensure_provider_offers_service(*, provider: ProviderProfile, service: Servi
 
 def _get_working_schedule(provider: ProviderProfile, on_date: date):
     """Return WeeklySchedule for date.weekday() or None."""
-    return WeeklySchedule.objects.filter(
-        provider=provider,
-        day_of_week=on_date.weekday(),
-    ).first()
+    from apps.providers.schedule_changes import effective_schedule
+    return effective_schedule(provider, on_date)
 
 
 def _blocking_appointment_qs(provider: ProviderProfile, *, exclude_appointment_id=None):
@@ -249,7 +249,7 @@ def validate_slot_against_schedule_and_blocks(
             code='OUTSIDE_WORKING_HOURS',
         )
 
-    breaks = list(ScheduleBreak.objects.filter(weekly_schedule=schedule))
+    breaks = list(schedule.breaks.all())
     if _slot_overlaps_breaks(start_datetime, end_datetime, breaks, on_date):
         raise AppointmentValidationException(
             message='Appointment overlaps a schedule break.',
@@ -293,7 +293,7 @@ def check_provider_date_capacity(
     sched_end = _combine_date_time(on_date, schedule.end_time)
     working_minutes = int((sched_end - sched_start).total_seconds() // 60)
 
-    breaks = ScheduleBreak.objects.filter(weekly_schedule=schedule)
+    breaks = schedule.breaks.all()
     break_minutes = 0
     for brk in breaks:
         b_start = _combine_date_time(on_date, brk.start_time)
@@ -337,6 +337,7 @@ class AppointmentAvailabilityService:
 
     @classmethod
     def get_available_slots(cls, *, organization_id, provider_id, service_id, on_date: date) -> dict:
+        validate_booking_date(on_date)
         organization = _load_active_organization(organization_id)
         provider = _load_active_provider(organization=organization, provider_id=provider_id)
         service = _load_active_service(organization=organization, service_id=service_id)
@@ -418,7 +419,7 @@ class AppointmentAvailabilityService:
         end_str = schedule.end_time.strftime('%I:%M %p').lstrip('0')
         working_hours_display = f"{start_str} – {end_str}"
 
-        breaks = list(ScheduleBreak.objects.filter(weekly_schedule=schedule))
+        breaks = list(schedule.breaks.all())
         blocking_appts = list(_blocking_appointment_qs(provider).filter(appointment_date=on_date))
 
         slots = []
@@ -543,6 +544,9 @@ class AppointmentService:
                     code='PAST_APPOINTMENT',
                 )
 
+            validate_booking_date(on_date)
+            if Appointment.objects.filter(provider=provider, customer=customer, appointment_date=on_date, status__in=Appointment.BLOCKING_STATUSES).exists():
+                raise DoubleBookingConflictException(message='You already have an active booking with this professional on this date.')
             schedule = _get_working_schedule(provider, on_date)
             if schedule is None or not schedule.is_working_day:
                 raise AppointmentValidationException(
@@ -570,7 +574,7 @@ class AppointmentService:
                             message='Appointment does not fall within provider working hours.',
                             code='OUTSIDE_WORKING_HOURS',
                         )
-                breaks = list(ScheduleBreak.objects.filter(weekly_schedule=schedule))
+                breaks = list(schedule.breaks.all())
                 if _slot_overlaps_breaks(op_start, op_end, breaks, on_date):
                     raise AppointmentValidationException(
                         message='Appointment overlaps a schedule break.',
@@ -628,24 +632,12 @@ class AppointmentService:
             from apps.queue.models import QueueEntry
 
 
-            max_appt_serial = (
-                Appointment.objects.filter(
-                    provider=provider,
-                    appointment_date=on_date,
-                ).aggregate(m=Max('serial_number'))['m'] or 0
-            )
-            max_queue_serial = (
-                QueueEntry.objects.filter(
-                    provider=provider,
-                    queue_date=on_date,
-                ).aggregate(m=Max('serial_number'))['m'] or 0
-            )
-            serial_number = max(max_appt_serial, max_queue_serial) + 1
+            serial_number = allocate_serial(provider, on_date)
 
             is_auto_checked_in = (
                 arrival_type == Appointment.ArrivalType.WALK_IN
                 or booking_channel == Appointment.BookingChannel.FRONT_DESK
-            )
+            ) and on_date == today
             initial_status = Appointment.Status.CHECKED_IN if is_auto_checked_in else Appointment.Status.CONFIRMED
 
             appointment = Appointment.objects.create(
@@ -704,121 +696,82 @@ class AppointmentService:
             return appointment
 
     @classmethod
-    def reschedule_appointment(
-        cls,
-        *,
-        appointment: Appointment,
-        appointment_date: date | None = None,
-        start_datetime: datetime | None = None,
-    ) -> Appointment:
+    def _locked_booking(cls, appointment):
+        from apps.queue.models import QueueEntry
+        provider = ProviderProfile.objects.select_for_update(of=('self',)).get(pk=appointment.provider_id)
+        entry = QueueEntry.objects.select_for_update(of=('self',)).filter(appointment_id=appointment.pk).first()
+        fresh = Appointment.objects.select_for_update(of=('self',)).select_related('service', 'customer', 'organization', 'provider__membership__organization').get(pk=appointment.pk)
+        return provider, entry, fresh
+
+    @classmethod
+    def self_reschedule_eligibility(cls, appointment, entry=None):
+        from apps.queue.models import QueueEntry
+        from apps.queue.services import QueueService
+        from django.utils.dateparse import parse_datetime
+        entry = entry or QueueEntry.objects.filter(appointment=appointment).first()
+        if appointment.status not in (Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN) or not entry or entry.status != QueueEntry.Status.WAITING:
+            return {'allowed': False, 'code': 'APPOINTMENT_NOT_RESCHEDULABLE', 'message': 'Only a waiting appointment can be self-rescheduled.'}
+        value = QueueService.calculate_readiness_and_eta(entry).get('estimated_start_time')
+        eta = parse_datetime(value) if isinstance(value, str) else value
+        if eta is None or timezone.is_naive(eta):
+            return {'allowed': False, 'code': 'RESCHEDULE_ETA_UNAVAILABLE', 'message': ETA_UNAVAILABLE_MESSAGE}
+        deadline = eta - timedelta(minutes=90)
+        return {'allowed': timezone.now() <= deadline, 'code': 'RESCHEDULE_CUTOFF',
+                'message': 'Self-rescheduling is available until 90 minutes before the latest estimated service start.',
+                'deadline': deadline.isoformat()}
+
+    @classmethod
+    def reschedule_appointment(cls, *, appointment, appointment_date=None, start_datetime=None, actor=None):
+        from apps.queue.models import QueueEntry
         with transaction.atomic():
-            provider = (
-                ProviderProfile.objects.select_for_update()
-                .select_related('membership__organization')
-                .get(pk=appointment.provider_id)
-            )
-
-            if appointment.status in (
-                Appointment.Status.COMPLETED,
-                Appointment.Status.CANCELLED,
-                Appointment.Status.NO_SHOW,
-                Appointment.Status.IN_PROGRESS,
-                Appointment.Status.CHECKED_IN,
-            ):
-                raise AppointmentValidationException(
-                    message='This appointment cannot be rescheduled in its current status.',
-                    code='APPOINTMENT_NOT_RESCHEDULABLE',
-                )
-
-            tz = get_project_tz()
-            today = timezone.localtime(timezone.now(), tz).date()
-
-            if appointment_date is not None:
-                target_date = appointment_date
-            elif start_datetime is not None:
-                target_date = timezone.localtime(start_datetime, tz).date()
-            else:
-                raise AppointmentValidationException(
-                    message='Reschedule requires appointment_date or start_datetime.',
-                )
-
-            if target_date < today:
-                raise AppointmentValidationException(
-                    message='Cannot reschedule an appointment to a past date.',
-                    code='PAST_APPOINTMENT',
-                )
-
+            provider, entry, appointment = cls._locked_booking(appointment)
+            if actor is not None and actor.pk != appointment.customer_id:
+                raise ApplicationError(message='Only the customer can self-reschedule. Emergency recovery is a separate workflow.', code='RESCHEDULE_FORBIDDEN', status_code=403)
+            eligibility = cls.self_reschedule_eligibility(appointment, entry)
+            if not eligibility['allowed']:
+                raise AppointmentValidationException(message=eligibility['message'], code=eligibility['code'])
+            organization = _load_active_organization(appointment.organization_id)
+            provider = _load_active_provider(organization=organization, provider_id=provider.pk)
+            service = _load_active_service(organization=organization, service_id=appointment.service_id)
+            _ensure_provider_offers_service(provider=provider, service=service)
+            target_date = appointment_date or (timezone.localtime(start_datetime, get_project_tz()).date() if start_datetime else None)
+            if target_date is None:
+                raise AppointmentValidationException(message='Choose a destination date.')
+            validate_booking_date(target_date)
+            if target_date == appointment.appointment_date and start_datetime is None:
+                # A date-only no-op must not remove an existing physical check-in.
+                appointment.queue_entry = entry
+                return appointment
+            if Appointment.objects.filter(provider=provider, customer_id=appointment.customer_id, appointment_date=target_date, status__in=Appointment.BLOCKING_STATUSES).exclude(pk=appointment.pk).exists():
+                raise DoubleBookingConflictException(message='You already have an active booking on that date.')
             schedule = _get_working_schedule(provider, target_date)
-            if schedule is None or not schedule.is_working_day:
-                raise AppointmentValidationException(
-                    message='Provider is not working on the requested date.',
-                    code='PROVIDER_NOT_WORKING',
-                )
-
+            if not schedule or not schedule.is_working_day:
+                raise AppointmentValidationException(message='Provider is not working on the requested date.')
+            duration = get_effective_duration_minutes(provider=provider, service=service)
             sched_start = _combine_date_time(target_date, schedule.start_time)
             sched_end = _combine_date_time(target_date, schedule.end_time)
-
-            leaves = list(
-                ProviderLeave.objects.filter(
-                    provider=provider,
-                    start_datetime__lt=sched_end,
-                    end_datetime__gt=sched_start,
-                )
-            )
-            if _slot_overlaps_leaves(sched_start, sched_end, leaves):
-                raise AppointmentValidationException(
-                    message='Provider is on leave on the requested date.',
-                    code='LEAVE_CONFLICT',
-                )
-
-            if start_datetime is not None:
-                op_start = start_datetime
-            else:
-                now = timezone.now()
-                if target_date == today:
-                    op_start = max(now, sched_start)
-                else:
-                    op_start = sched_start
-
-            duration = get_effective_duration_minutes(
-                provider=provider, service=appointment.service
-            )
-            op_end = op_start + timedelta(minutes=duration)
-
-            from django.db.models import Max
-            from apps.queue.models import QueueEntry
-
-            if appointment.appointment_date != target_date:
-                max_appt_serial = (
-                    Appointment.objects.filter(
-                        provider=provider,
-                        appointment_date=target_date,
-                    ).aggregate(m=Max('serial_number'))['m'] or 0
-                )
-                max_queue_serial = (
-                    QueueEntry.objects.filter(
-                        provider=provider,
-                        queue_date=target_date,
-                    ).aggregate(m=Max('serial_number'))['m'] or 0
-                )
-                new_serial = max(max_appt_serial, max_queue_serial) + 1
-            else:
-                new_serial = appointment.serial_number or 1
-
+            if ProviderLeave.objects.filter(provider=provider, start_datetime__lt=sched_end, end_datetime__gt=sched_start).exists():
+                raise AppointmentValidationException(message='Provider is unavailable on that date.', code='LEAVE_CONFLICT')
+            if not check_provider_date_capacity(provider=provider, on_date=target_date, new_service_duration=duration, exclude_appointment_id=appointment.pk)[0]:
+                raise AppointmentValidationException(message='Provider capacity for this date has been reached.', code='CAPACITY_EXCEEDED')
+            op_start = start_datetime or max(timezone.now(), sched_start)
+            if start_datetime:
+                validate_slot_against_schedule_and_blocks(provider=provider, start_datetime=op_start, end_datetime=op_start + timedelta(minutes=duration), exclude_appointment_id=appointment.pk)
+            old = {'date': str(appointment.appointment_date), 'serial': appointment.serial_number}
+            serial = appointment.serial_number if appointment.appointment_date == target_date else allocate_serial(provider, target_date)
             appointment.appointment_date = target_date
-            appointment.serial_number = new_serial
+            appointment.serial_number = serial
             appointment.start_datetime = op_start
-            appointment.end_datetime = op_end
-            appointment.save(update_fields=['appointment_date', 'serial_number', 'start_datetime', 'end_datetime', 'updated_at'])
-
-            queue_entry = QueueEntry.objects.filter(appointment=appointment).first()
-            if queue_entry:
-                queue_entry.queue_date = target_date
-                queue_entry.serial_number = new_serial
-                queue_entry.token_number = new_serial
-                queue_entry.save(update_fields=['queue_date', 'serial_number', 'token_number', 'updated_at'])
-                appointment.queue_entry = queue_entry
-
+            appointment.end_datetime = op_start + timedelta(minutes=duration)
+            appointment.status = Appointment.Status.CONFIRMED
+            appointment.save(update_fields=['appointment_date', 'serial_number', 'start_datetime', 'end_datetime', 'status', 'updated_at'])
+            entry.queue_date = target_date
+            entry.serial_number = entry.token_number = serial
+            entry.is_checked_in = False
+            entry.checked_in_at = None
+            entry.save(update_fields=['queue_date', 'serial_number', 'token_number', 'is_checked_in', 'checked_in_at', 'updated_at'])
+            appointment.queue_entry = entry
+            AuditService.record(action='APPOINTMENT_RESCHEDULED', entity_type='Appointment', entity_id=appointment.pk, organization_id=organization.pk, actor=actor or appointment.customer, metadata={'previous': old, 'current': {'date': str(target_date), 'serial': serial}})
             return appointment
 
     @classmethod
@@ -829,25 +782,23 @@ class AppointmentService:
         reason: str = '',
         actor=None,
     ) -> Appointment:
-        if appointment.status in (
-            Appointment.Status.COMPLETED,
-            Appointment.Status.CANCELLED,
-            Appointment.Status.NO_SHOW,
-        ):
-            raise AppointmentNotCancellableException()
-
-        if not appointment.can_transition_to(Appointment.Status.CANCELLED):
-            raise InvalidAppointmentTransitionException(
-                message=f'Cannot cancel appointment in status {appointment.status}.',
-            )
-
         with transaction.atomic():
+            provider, entry, appointment = cls._locked_booking(appointment)
+            if appointment.status not in (Appointment.Status.PENDING, Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN) or (entry and entry.status != 'WAITING'):
+                raise AppointmentNotCancellableException()
+            if actor is None or actor.pk == appointment.customer_id:
+                schedule = _get_working_schedule(provider, appointment.appointment_date or timezone.localtime(appointment.start_datetime, get_project_tz()).date())
+                if schedule is None or not schedule.is_working_day:
+                    raise AppointmentNotCancellableException(message='Approved scheduled start is unavailable. Please contact your organization.')
+                cutoff = _combine_date_time(appointment.appointment_date or appointment.start_datetime.date(), schedule.start_time) - timedelta(hours=2)
+                if timezone.now() > cutoff:
+                    raise AppointmentNotCancellableException(message='Self-cancellation closes two hours before the provider scheduled start.')
+
             appointment.status = Appointment.Status.CANCELLED
             appointment.cancellation_reason = reason or ''
             appointment.save(update_fields=['status', 'cancellation_reason', 'updated_at'])
 
             from apps.queue.models import QueueEntry
-            entry = QueueEntry.objects.filter(appointment=appointment).first()
             if entry:
                 entry.status = QueueEntry.Status.CANCELLED
                 entry.save(update_fields=['status', 'updated_at'])
@@ -902,7 +853,5 @@ class AppointmentService:
     @classmethod
     def check_in(cls, *, appointment: Appointment) -> Appointment:
         """Legacy status-only helper; API check-in uses QueueService to create QueueEntry."""
-        return cls.transition_status(
-            appointment=appointment,
-            new_status=Appointment.Status.CHECKED_IN,
-        )
+        from apps.queue.services import QueueService
+        return QueueService.check_in_appointment(appointment=appointment).appointment

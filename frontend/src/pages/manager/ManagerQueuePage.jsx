@@ -1,3 +1,4 @@
+import { currentBusinessDate } from '../../utils/bookingDisplay';
 import React, { useState, useEffect } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
 import organizationService from '../../services/organizationService';
@@ -10,6 +11,7 @@ export function ManagerQueuePage() {
   const { currentOrg } = useTenant();
 
   const [providers, setProviders] = useState([]);
+  const [queueDate, setQueueDate] = useState(currentBusinessDate);
   const [selectedProviderId, setSelectedProviderId] = useState('ALL');
   const [providerQueues, setProviderQueues] = useState({}); // { providerId: [entries] }
   const [loading, setLoading] = useState(true);
@@ -29,8 +31,8 @@ export function ManagerQueuePage() {
       await Promise.all(
         provList.map(async (p) => {
           try {
-            const qData = await queueService.getProviderQueue(currentOrg.id, p.id);
-            const qList = Array.isArray(qData) ? qData : qData.results || [];
+            const qData = await queueService.getProviderQueue(currentOrg.id, p.id, queueDate);
+            const qList = Array.isArray(qData) ? qData : qData.entries || qData.results || [];
             queueMap[p.id] = qList;
           } catch (err) {
             queueMap[p.id] = [];
@@ -47,7 +49,7 @@ export function ManagerQueuePage() {
 
   useEffect(() => {
     loadAllQueues();
-  }, [currentOrg?.id]);
+  }, [currentOrg?.id, queueDate]);
 
   const handleCallNext = async (providerId) => {
     if (!currentOrg?.id) return;
@@ -55,7 +57,7 @@ export function ManagerQueuePage() {
     setMessage({ text: '', type: '' });
 
     try {
-      const res = await queueService.callNext(currentOrg.id, providerId);
+      const res = await queueService.callNext(currentOrg.id, providerId, queueDate);
       setMessage({ text: `Success: Called Token #${res.token_number}!`, type: 'success' });
       await loadAllQueues();
     } catch (err) {
@@ -123,6 +125,7 @@ export function ManagerQueuePage() {
 
   return (
     <div className="animate-page-entrance" style={{ maxWidth: '1150px', margin: '0 auto' }}>
+      <label>Booking-date queue<input className="form-control" type="date" value={queueDate} onChange={e => setQueueDate(e.target.value)} /></label>
       <div style={{ marginBottom: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#5F7A70', textTransform: 'uppercase', marginBottom: '0.25rem' }}>

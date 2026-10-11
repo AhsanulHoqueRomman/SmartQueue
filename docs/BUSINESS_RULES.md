@@ -29,7 +29,7 @@ QueueTurn serves multiple industries whose professionals deliver services throug
 
 An organization owns services and operational resources. A ProviderProfile belongs to a membership; ProviderService connects a professional to a service and can carry customer-facing price and duration overrides. Organization STAFF differs from Django `is_staff`.
 
-The customer reserves a **provider/business-date serial**, not a guaranteed consultation start. Normal booking creates Appointment and QueueEntry transactionally. Booking presence and physical presence are separate: ordinary online booking is not check-in. Call Next selects eligible checked-in WAITING entries, urgent first and then serial, regardless of channel. CALLED differs from IN_PROGRESS; authorized operational start and completion are explicit actions.
+The customer reserves a **provider/business-date serial**, not a guaranteed consultation start. Normal booking creates Appointment and QueueEntry transactionally. Booking presence and physical presence are separate: ordinary online booking is not check-in. Call Next selects eligible checked-in WAITING entries, in ascending serial order, regardless of channel. CALLED differs from IN_PROGRESS; authorized operational start and completion are explicit actions.
 
 The server resolves customer service charge and stores price/contact snapshots. They are not provider income, commission, payment status or amount paid. ETA and recommended arrival are advisory forecasts; duration expiry is not a service-completion event. Public business hours are evaluated separately from provider schedules/capacity. Authorization includes current exceptions documented in the role matrix; no blanket tenant-safety claim is made.
 
@@ -57,8 +57,8 @@ Online and front-desk paths use the shared queue. PHONE exists as a channel and 
 | Arrival type | SCHEDULED or WALK_IN; independent of source channel. |
 | Check-in | Presence flag/timestamp and supported appointment state update; not consultation start. |
 | Call Next | Authorized selection and transition of eligible WAITING entry to CALLED. |
-| Active consultation | Operational IN_PROGRESS service; CALLED also blocks another call for the date. |
-| Urgent priority | Authorized priority flag ordered before normal serials, without active-service interruption. |
+| Active consultation | Operational IN_PROGRESS service; CALLED also blocks another call across all dates for that provider. |
+| Urgent priority | Removed by approved M2 policy; historical metadata is archived, never used for selection. |
 | Estimated start | Computed forecast or stored preliminary window; neither is a fixed-time promise. |
 | People ahead | Backend physical count of checked-in predecessors plus another active entry; distinct from scheduled reservations ahead. |
 | Recommended arrival | Advisory lead time before estimated service; not itself a check-in cutoff. |
@@ -238,10 +238,10 @@ Each entry preserves its baseline title/ID and distinguishes business meaning fr
 ### BR-016 — Weekly provider schedules determine working days
 
 - **Domain / business meaning:** Availability. Weekly provider schedules determine working days.
-- **Current implementation:** Missing/non-working schedule rejects availability. Individual schedule differs from organization hours.
-- **Evidence:** S; source qualification controls over an older report's wording.
-- **Policy status:** CURRENT IMPLEMENTATION.
-- **Source:** `backend/apps/appointments/services.py:349–452,605–614 — AppointmentAvailabilityService.get_available_slots, book_appointment`.
+- **Current implementation:** Initial schedule is part of manager onboarding approval. Approved schedules use date-effective ScheduleChangeRequest versions; direct edits are rejected. Specific-date requests need 4 calendar days notice; permanent requests need 10. Reason required, document optional and private; manager approval rechecks confirmed commitments.
+- **Evidence:** S/R — focused M2 PostgreSQL tests; see M2 approval below. Not production certification.
+- **Policy status:** APPROVED M2 / CURRENT IMPLEMENTATION; unrelated policy gaps remain pending.
+- **Source:** `backend/apps/appointments/services.py`, `booking_policy.py`, `serials.py`; `backend/apps/queue/services.py`; `backend/apps/providers/schedule_changes.py`, `services.py` (symbol-based references).
 - **Related findings:** F-005, F-018.
 - **Pending decisions:** D01, D02, D03.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
@@ -249,10 +249,10 @@ Each entry preserves its baseline title/ID and distinguishes business meaning fr
 ### BR-017 — Breaks reduce daily capacity
 
 - **Domain / business meaning:** Availability. Breaks reduce daily capacity.
-- **Current implementation:** Scheduled minutes minus sum of break minutes. Assumes valid, non-overlapping breaks.
-- **Evidence:** S / T / H; source qualification controls over an older report's wording.
-- **Policy status:** APPROVED / ESTABLISHED (invariant); CURRENT IMPLEMENTATION; KNOWN DEFECT (qualified below).
-- **Source:** `backend/apps/appointments/services.py:278–325 — check_provider_date_capacity; backend/apps/appointments/models.py — BLOCKING_STATUSES`.
+- **Current implementation:** Existing capacity arithmetic remains unchanged. Initial and requested schedules validate retained/new breaks for containment and overlap under a provider lock. New configured working windows end no later than 22:00 Dhaka; historical schedules are not rewritten.
+- **Evidence:** S/R — focused M2 PostgreSQL tests; see M2 approval below. Not production certification.
+- **Policy status:** APPROVED M2 / CURRENT IMPLEMENTATION; unrelated policy gaps remain pending.
+- **Source:** `backend/apps/appointments/services.py`, `booking_policy.py`, `serials.py`; `backend/apps/queue/services.py`; `backend/apps/providers/schedule_changes.py`, `services.py` (symbol-based references).
 - **Related findings:** F-018.
 - **Pending decisions:** D01, D02.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
@@ -301,13 +301,13 @@ Each entry preserves its baseline title/ID and distinguishes business meaning fr
 - **Pending decisions:** D01, D02.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
 
-### BR-022 — Backend uses project timezone
+### BR-022 — Backend uses Dhaka business dates
 
 - **Domain / business meaning:** Time. Backend uses project timezone.
-- **Current implementation:** Project timezone date and aware schedule boundaries. Default setting is Asia/Dhaka.
-- **Evidence:** S; source qualification controls over an older report's wording.
-- **Policy status:** CURRENT IMPLEMENTATION.
-- **Source:** `backend/apps/appointments/services.py:66 — get_project_tz; backend/apps/queue/services.py:68–73 — current_business_date`.
+- **Current implementation:** Booking and rescheduling accept Dhaka today through today + 3 calendar dates, inclusive. All booking channels share this rolling window. Midnight does not cancel, skip, expire or move unfinished bookings.
+- **Evidence:** S/R — focused M2 PostgreSQL tests; see M2 approval below. Not production certification.
+- **Policy status:** APPROVED M2 / CURRENT IMPLEMENTATION; unrelated policy gaps remain pending.
+- **Source:** `backend/apps/appointments/services.py`, `booking_policy.py`, `serials.py`; `backend/apps/queue/services.py`; `backend/apps/providers/schedule_changes.py`, `services.py` (symbol-based references).
 - **Related findings:** F-017.
 - **Pending decisions:** None directly mapped.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
@@ -323,13 +323,13 @@ Each entry preserves its baseline title/ID and distinguishes business meaning fr
 - **Pending decisions:** D12.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
 
-### BR-024 — Creation is atomic
+### BR-024 — Creation and lifecycle mutations coordinate atomically
 
 - **Domain / business meaning:** Booking. Creation is atomic.
-- **Current implementation:** Provider and assignment locks precede creation. All competing writers must honor compatible locks.
-- **Evidence:** S / H; source qualification controls over an older report's wording.
-- **Policy status:** APPROVED / ESTABLISHED (invariant); CURRENT IMPLEMENTATION.
-- **Source:** `backend/apps/appointments/services.py:488–704 — AppointmentService.book_appointment`.
+- **Current implementation:** Provider first, then assignment/counter for booking; provider, existing queue entry, fresh appointment for lifecycle operations. Active customer/provider/date duplicates are rejected under the provider lock. Existing historical duplicates are preserved.
+- **Evidence:** S/R — focused M2 PostgreSQL tests; see M2 approval below. Not production certification.
+- **Policy status:** APPROVED M2 / CURRENT IMPLEMENTATION; unrelated policy gaps remain pending.
+- **Source:** `backend/apps/appointments/services.py`, `booking_policy.py`, `serials.py`; `backend/apps/queue/services.py`; `backend/apps/providers/schedule_changes.py`, `services.py` (symbol-based references).
 - **Related findings:** F-006, F-007 (other writers).
 - **Pending decisions:** D14.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
@@ -389,13 +389,13 @@ Each entry preserves its baseline title/ID and distinguishes business meaning fr
 - **Pending decisions:** D04.
 - **Lifecycle / authority:** [ETA and readiness](QUEUE_STATE_MACHINE.md#eta-and-readiness).
 
-### BR-030 — Sequence belongs to provider/date
+### BR-030 — Sequence belongs to provider/date and is never reused
 
 - **Domain / business meaning:** Serial. Sequence belongs to provider/date.
-- **Current implementation:** Maximum across appointments and queue entries plus one. Starts at 1; canceled serials remain consumed. Maximum includes canceled records. Rescheduling to another date allocates a destination serial; same-date behavior preserves serial or uses its fallback.
-- **Evidence:** S / T / H; source qualification controls over an older report's wording.
-- **Policy status:** APPROVED / ESTABLISHED (invariant); CURRENT IMPLEMENTATION; KNOWN DEFECT (qualified below).
-- **Source:** `backend/apps/appointments/services.py:488–704 — AppointmentService.book_appointment`.
+- **Current implementation:** ProviderDateSerial retains a permanent high-water mark alongside existing appointment/queue maxima. Canceled, deleted or rescheduled-away serials remain consumed. A new destination date allocates a new serial; snapshots remain unchanged.
+- **Evidence:** S/R — focused M2 PostgreSQL tests; see M2 approval below. Not production certification.
+- **Policy status:** APPROVED M2 / CURRENT IMPLEMENTATION; unrelated policy gaps remain pending.
+- **Source:** `backend/apps/appointments/services.py`, `booking_policy.py`, `serials.py`; `backend/apps/queue/services.py`; `backend/apps/providers/schedule_changes.py`, `services.py` (symbol-based references).
 - **Related findings:** F-014.
 - **Pending decisions:** None directly mapped.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
@@ -433,13 +433,13 @@ Each entry preserves its baseline title/ID and distinguishes business meaning fr
 - **Pending decisions:** None directly mapped.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
 
-### BR-034 — Shared booking service handles front desk
+### BR-034 — Shared booking service handles phone and front desk
 
 - **Domain / business meaning:** Walk-in. Shared booking service handles front desk.
-- **Current implementation:** FRONT_DESK/WALK_IN and automatic check-in. Direct-service tests do not prove UI endpoint contract. Shared service forwards entered contact snapshots; phone identity can be ambiguous. Source auto-checks when WALK_IN or FRONT_DESK, not only when both are set.
-- **Evidence:** S / T / H; source qualification controls over an older report's wording.
-- **Policy status:** APPROVED / ESTABLISHED (invariant); CURRENT IMPLEMENTATION; KNOWN DEFECT (qualified below).
-- **Source:** `backend/apps/queue/services.py:352–393 — register_walk_in; backend/apps/appointments/services.py:645–680`.
+- **Current implementation:** Staff PHONE and FRONT_DESK use the existing scoped registration endpoint and shared booking service. Existing customer identity is explicit, never inferred silently from a phone collision. Front-desk today records presence; future bookings and PHONE are not checked in.
+- **Evidence:** S/R — focused M2 PostgreSQL tests; see M2 approval below. Not production certification.
+- **Policy status:** APPROVED M2 / CURRENT IMPLEMENTATION; unrelated policy gaps remain pending.
+- **Source:** `backend/apps/appointments/services.py`, `booking_policy.py`, `serials.py`; `backend/apps/queue/services.py`; `backend/apps/providers/schedule_changes.py`, `services.py` (symbol-based references).
 - **Related findings:** F-012, F-013.
 - **Pending decisions:** D09.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
@@ -477,35 +477,35 @@ Each entry preserves its baseline title/ID and distinguishes business meaning fr
 - **Pending decisions:** D05.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
 
-### BR-038 — Urgent precedes serial order
+### BR-038 — Checked-in waiting customers use ascending serial order
 
 - **Domain / business meaning:** Order. Urgent precedes serial order.
-- **Current implementation:** `-is_urgent`, `serial_number`. Booking channel is absent from comparator.
-- **Evidence:** S / T / H; source qualification controls over an older report's wording.
-- **Policy status:** APPROVED / ESTABLISHED (invariant); CURRENT IMPLEMENTATION.
-- **Source:** `backend/apps/queue/services.py:287–310 — call_next`.
+- **Current implementation:** Call Next selects the lowest serial among eligible checked-in WAITING records, regardless of booking channel. All urgent/priority mutation, response fields and UI controls are removed.
+- **Evidence:** S/R — focused M2 PostgreSQL tests; see M2 approval below. Not production certification.
+- **Policy status:** APPROVED M2 / CURRENT IMPLEMENTATION; unrelated policy gaps remain pending.
+- **Source:** `backend/apps/appointments/services.py`, `booking_policy.py`, `serials.py`; `backend/apps/queue/services.py`; `backend/apps/providers/schedule_changes.py`, `services.py` (symbol-based references).
 - **Related findings:** F-011.
 - **Pending decisions:** D10.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
 
-### BR-039 — One active entry blocks call-next for that date
+### BR-039 — One active entry blocks another call across provider dates
 
 - **Domain / business meaning:** Active service. One active entry blocks call-next for that date.
-- **Current implementation:** CALLED/IN_PROGRESS existence check under provider lock. Date-specific; true concurrency not tested. Active guard is provider/date-specific, not a proven cross-date one-active invariant. Global cleanup conflicts with overnight activity.
-- **Evidence:** S / T; source qualification controls over an older report's wording.
-- **Policy status:** CURRENT IMPLEMENTATION; POLICY PENDING (see decisions).
-- **Source:** `backend/apps/queue/services.py:287–310 — call_next`.
+- **Current implementation:** Provider-wide CALLED/IN_PROGRESS guard and compatible locks prevent competing active consultations across midnight. Historical WAITING records do not automatically block another date. Future-date calls are rejected.
+- **Evidence:** S/R — focused M2 PostgreSQL tests; see M2 approval below. Not production certification.
+- **Policy status:** APPROVED M2 / CURRENT IMPLEMENTATION; unrelated policy gaps remain pending.
+- **Source:** `backend/apps/appointments/services.py`, `booking_policy.py`, `serials.py`; `backend/apps/queue/services.py`; `backend/apps/providers/schedule_changes.py`, `services.py` (symbol-based references).
 - **Related findings:** F-007.
 - **Pending decisions:** D08, D18.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
 
-### BR-040 — Urgent changes priority, not serial
+### BR-040 — Priority overrides are removed
 
 - **Domain / business meaning:** Urgent. Urgent changes priority, not serial.
-- **Current implementation:** Boolean/reason mutation and audit. Reason optional; no provider lock. Default reason is substituted when omitted. _lock_entry is an ordinary query here, not select_for_update.
-- **Evidence:** S / H; source qualification controls over an older report's wording.
-- **Policy status:** APPROVED / ESTABLISHED (invariant); CURRENT IMPLEMENTATION; POLICY PENDING (see decisions).
-- **Source:** `backend/apps/queue/services.py:337–349,839 — mark_urgent, _lock_entry`.
+- **Current implementation:** No urgent/VIP/customer-priority operation is supported. Migration archives former flags/reasons in tenant-associated AuditLog records before dropping obsolete fields; historical migrations remain intact.
+- **Evidence:** S/R — focused M2 PostgreSQL tests; see M2 approval below. Not production certification.
+- **Policy status:** APPROVED M2 / CURRENT IMPLEMENTATION; unrelated policy gaps remain pending.
+- **Source:** `backend/apps/appointments/services.py`, `booking_policy.py`, `serials.py`; `backend/apps/queue/services.py`; `backend/apps/providers/schedule_changes.py`, `services.py` (symbol-based references).
 - **Related findings:** F-011.
 - **Pending decisions:** D10.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
@@ -532,35 +532,35 @@ Each entry preserves its baseline title/ID and distinguishes business meaning fr
 - **Pending decisions:** D19, D20.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
 
-### BR-043 — Skipping a called customer records no-show
+### BR-043 — Skip is explicit; staff restoration retains original serial
 
 - **Domain / business meaning:** Skip. Skipping a called customer records no-show.
-- **Current implementation:** Queue SKIPPED; appointment NO_SHOW. Does not automatically call next. NO_SHOW is terminal in Appointment declarations. A SKIPPED→WAITING QueueEntry declaration does not establish a complete restoration workflow.
-- **Evidence:** S; source qualification controls over an older report's wording.
-- **Policy status:** CURRENT IMPLEMENTATION; POLICY PENDING (see decisions).
-- **Source:** `backend/apps/queue/services.py:699–835 — start_queue_entry, complete_queue_entry, skip_queue_entry`.
+- **Current implementation:** Skip marks the existing entry SKIPPED and appointment NO_SHOW without calling another person. Authorized staff/manager can restore that pair to WAITING/CHECKED_IN with original date/serial; no active consultation is interrupted.
+- **Evidence:** S/R — focused M2 PostgreSQL tests; see M2 approval below. Not production certification.
+- **Policy status:** APPROVED M2 / CURRENT IMPLEMENTATION; unrelated policy gaps remain pending.
+- **Source:** `backend/apps/appointments/services.py`, `booking_policy.py`, `serials.py`; `backend/apps/queue/services.py`; `backend/apps/providers/schedule_changes.py`, `services.py` (symbol-based references).
 - **Related findings:** None directly mapped.
 - **Pending decisions:** D15, D16, D17.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
 
-### BR-044 — Normal cancellation is pre-check-in only
+### BR-044 — Customer cancellation has an approved deadline
 
 - **Domain / business meaning:** Cancel. Normal cancellation is pre-check-in only.
-- **Current implementation:** PENDING/CONFIRMED→CANCELLED and linked queue cancellation. Checks occur before transaction; race risk.
-- **Evidence:** S; source qualification controls over an older report's wording.
-- **Policy status:** CURRENT IMPLEMENTATION; KNOWN DEFECT (qualified below); POLICY PENDING (see decisions).
-- **Source:** `backend/apps/appointments/services.py:825–883 — cancel_appointment`.
+- **Current implementation:** Eligible waiting PENDING/CONFIRMED/CHECKED_IN appointment self-cancellation is allowed until two hours before the effective approved schedule start, inclusive. CALLED, IN_PROGRESS and terminal states cannot be self-canceled. Operational cancellation permissions remain scoped.
+- **Evidence:** S/R — focused M2 PostgreSQL tests; see M2 approval below. Not production certification.
+- **Policy status:** APPROVED M2 / CURRENT IMPLEMENTATION; unrelated policy gaps remain pending.
+- **Source:** `backend/apps/appointments/services.py`, `booking_policy.py`, `serials.py`; `backend/apps/queue/services.py`; `backend/apps/providers/schedule_changes.py`, `services.py` (symbol-based references).
 - **Related findings:** F-006.
 - **Pending decisions:** D20.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
 
-### BR-045 — Past queue dates are reconciled on operational requests
+### BR-045 — Midnight preserves unfinished appointments and queues
 
 - **Domain / business meaning:** Reconcile. Past queue dates are reconciled on operational requests.
-- **Current implementation:** Active old entries→SKIPPED, appointments→NO_SHOW. Global scope and overnight problem. This is CURRENT IMPLEMENTATION and KNOWN DEFECT, not approved cleanup policy: global mutation includes past IN_PROGRESS and lacks coordinating row locks.
-- **Evidence:** S; source qualification controls over an older report's wording.
-- **Policy status:** CURRENT IMPLEMENTATION; KNOWN DEFECT (qualified below).
-- **Source:** `backend/apps/queue/services.py:396–422 — reconcile_stale_historical_queue_entries`.
+- **Current implementation:** Queue reads and Call Next perform no past-date cleanup. Existing unfinished records retain date, serial and state; an active consultation may complete after midnight. No automatic no-show or hard shutdown occurs.
+- **Evidence:** S/R — focused M2 PostgreSQL tests; see M2 approval below. Not production certification.
+- **Policy status:** APPROVED M2 / CURRENT IMPLEMENTATION; unrelated policy gaps remain pending.
+- **Source:** `backend/apps/appointments/services.py`, `booking_policy.py`, `serials.py`; `backend/apps/queue/services.py`; `backend/apps/providers/schedule_changes.py`, `services.py` (symbol-based references).
 - **Related findings:** F-007.
 - **Pending decisions:** D08, D17, D19.
 - **Lifecycle / authority:** [Lifecycle workflows](QUEUE_STATE_MACHINE.md#lifecycle-workflows).
@@ -826,15 +826,15 @@ Every row has status **POLICY PENDING**. None blocks honest documentation; each 
 | D05 — Forecast population | Unchecked reservations affect ETA; only checked entries called | H forecast/order compatibility, not exact population | Reservation forecast, physical queue, or labelled dual metrics | Misleading arrival/counts | Before ETA contract change |
 | D06 — Check-in timing | Same-day enforced; returned opening time advisory | H §9 warns against assumed six-hour restriction | Date-only, configured window, explicit exceptions | Rejecting valid arrivals | Before enforcement change |
 | D07 — Readiness precedence | Count/time branches can prioritize low count over time | H §21 threshold examples differ | Time-first, count-first, combined policy | Premature/contradictory guidance | Before readiness fix |
-| D08 — Overnight activity | Date guard; global cleanup includes past IN_PROGRESS | H §§13,26 protect legitimate ongoing service | Session-date ownership and deliberate cross-date guard/correction | False no-show or competing active service | Before cleanup fix/production |
+| D08 — M2 decision | APPROVED M2: preserve date/state across midnight; provider-wide active guard; no automatic cleanup. | Explicit owner authorization 2026-10-11 | Implemented; focused PostgreSQL evidence | No new automatic recovery | Owner acceptance pending |
 | D09 — Walk-in identity | Nonunique phone get-or-create; entered contacts forwarded | H global identity; no approved matching policy | Explicit customer selection, contact-only identity, careful matching | Shared-phone account conflation | Before identity fix |
-| D10 — Urgent reason/states | Optional reason; broad mutation; no provider lock | H authorized/auditable priority, no interruption | Required reason, permitted states, explicit overrides | Unaccountable priority/races | Before urgent safeguards |
+| D10 — M2 decision | SUPERSEDED M2: urgent/customer priority removed; historical metadata archived. | Explicit owner authorization 2026-10-11 | Implemented; focused PostgreSQL evidence | No new automatic recovery | Owner acceptance pending |
 | D11 — Reschedule price | Existing snapshots preserved | H preserve historical information | Preserve booked price or explicitly accepted repricing | Silent charge/history changes | Before repricing |
 | D12 — Operator booking as customer | Backend allows authenticated self; frontend role routes differ | H global users may also hold membership | Support dual-purpose accounts or explicit restriction | Role/identity confusion | Before routing/access change |
 | D13 — REPLIED semantics | Saved before send; no reply body/outcome persistence | H email context; no approved delivery equivalence | Attempted, accepted, delivered, separate states | False success/operator blind spot | Before email-state fix |
 | D14 — Booking retry idempotency | UI guard only; no server key found | H uniqueness does not specify retry identity | Distinct requests or scoped idempotency | Duplicate bookings or false deduplication | Before retry protection |
 | D15 — Missed-call grace | Manual skip; no verified timer | H §12 explicitly pending | Operator discretion or configured grace | Unsupported automatic no-show | Before missed-call automation |
-| D16 — Return after skip | No linked restore; Appointment terminal | H §15 multiple options pending | Retain serial, later queue, new booking, manager restoration | Fairness/duplicate identity | Before re-entry feature |
+| D16 — M2 decision | APPROVED M2: staff restores SKIPPED/NO_SHOW to original WAITING/CHECKED_IN serial/date; no interruption or new booking. | Explicit owner authorization 2026-10-11 | Implemented; focused PostgreSQL evidence | No new automatic recovery | Owner acceptance pending |
 | D17 — Late no-show cutoff | Same-date check-in; past cleanup | H §§14,28 explicit unresolved absence policy | Manual action or defined cutoff/closing reconciliation | Customer blamed for provider delay | Before no-show policy |
 | D18 — CALLED timeout/recall | CALLED blocks another call; start/skip only | H §12 no established timeout | Manual resolution, recall or authorized release | Multiple active claims/false completion | Before timeout/recall |
 | D19 — Abandoned IN_PROGRESS | Explicit completion; zero estimate does not complete | H §13 protects ongoing service; correction unresolved | Audited authorized correction/interruption/escalation | Fabricated completion or no-show | Before correction workflow |
@@ -894,3 +894,16 @@ Source evidence does not certify endpoint execution, current database contents, 
 Relevant unexecuted assertion sources: `backend/tests/test_phase5_hardening.py` (sequential serials, active guard, actorless repeat check-in); `backend/tests/test_phase_a8_organization_booking.py` (break capacity); `backend/tests/test_phase_a952_provider_pricing.py` (charge/minimum, wrapped lock helpers); `backend/tests/test_phase_a953_booking_snapshots.py` (price/contact history); `backend/tests/test_phase_a954_organization_hours.py` (hours boundaries); `backend/tests/test_m11_security.py` (private tenant denial); `backend/tests/test_m6.py` (reviews/notifications); contact and account-reset app tests (mock outcomes).
 
 Before changing any rule: inspect its current source, identify its owner decision and impacted states/roles/history, update these three documents consistently, and authorize implementation separately. Phase 2 originally deferred architecture/issues documentation to Phase 3; [Product Architecture](PRODUCT_ARCHITECTURE.md) and [Known Issues](KNOWN_ISSUES.md) now exist. This documentation does not fix findings.
+
+## M2 approved policy and implementation — 2026-10-11
+
+The consolidated M2 specification and explicit ETA clarification supersede the affected baseline descriptions above.
+Customer **self-rescheduling** is restricted to WAITING, CONFIRMED/CHECKED_IN bookings and requires the latest authoritative service-start ETA at least 90 minutes away (inclusive), rechecked inside final confirmation under provider/entry/appointment locks. If missing (including provider >20 minutes late without starting or previous-day unfinished waiting), return:
+
+> Estimated service time is currently unavailable. Self-rescheduling is temporarily unavailable. Please contact your organization for assistance.
+
+No fallback forecast, stored ETA field, permanent disablement or automatic status/date/serial mutation is introduced. Eligibility recovers when the authoritative calculator supplies an ETA. Staff have no general rescheduling privilege; emergency recovery stays separate and unimplemented. No repricing occurs during rescheduling.
+
+F-008/F-009 capacity/duration policy and unrelated D decisions remain open; this milestone reuses existing date-capacity calculations rather than inventing a new formula. Schedule approvals conservatively protect existing booked working windows and block adverse hour/break changes, rechecking under the same provider lock used by booking.
+
+Verification: `tests/test_m2_lifecycle.py` initially **48 passed** with PostgreSQL and migrations; six additional cases subsequently passed in focused runs; six directly changed existing serial/forecast tests **6 passed, 46 deselected**; focused frontend policy tests **5 passed**. Development data was not migrated/reseeded. See Known Issues for qualified readiness; manual UI acceptance remains owner work.

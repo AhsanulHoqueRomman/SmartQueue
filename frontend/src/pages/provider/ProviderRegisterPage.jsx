@@ -1,3 +1,5 @@
+import { ScheduleEditor } from '../../components/ScheduleEditor';
+import { initialSchedule } from '../../utils/scheduleDraft';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -24,6 +26,7 @@ export const ProviderRegisterPage = () => {
 
     // Step 3: Org
     organization_id: '',
+    initial_schedule: initialSchedule(),
   });
 
   const [publicOrgs, setPublicOrgs] = useState([]);
@@ -90,7 +93,9 @@ export const ProviderRegisterPage = () => {
     setSubmitting(true);
 
     try {
-      const res = await registerProvider(formData);
+      const payload = { ...formData };
+      if (!payload.organization_id) delete payload.initial_schedule;
+      const res = await registerProvider(payload);
       if (res.is_pending_approval) {
         setSubmittedPending(true);
       } else {
@@ -501,6 +506,11 @@ export const ProviderRegisterPage = () => {
             </div>
           )}
 
+          {step === 4 && formData.organization_id && <section>
+            <h3>Initial working schedule</h3>
+            <p>Your organization manager reviews this schedule with your application before it becomes bookable. Working hours must end by 10 PM.</p>
+            <ScheduleEditor days={formData.initial_schedule} onChange={days => setFormData(previous => ({ ...previous, initial_schedule: days }))} />
+          </section>}
           {/* STEP 4 — Review */}
           {step === 4 && (
             <div>

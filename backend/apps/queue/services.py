@@ -67,7 +67,7 @@ class InvalidQueueDateException(ApplicationError):
 
 def business_date_for_appointment(appointment: Appointment) -> date:
     """Derive queue business date from appointment start using project TIME_ZONE."""
-    return timezone.localtime(appointment.start_datetime, get_project_tz()).date()
+    return appointment.appointment_date or timezone.localtime(appointment.start_datetime, get_project_tz()).date()
 
 
 def current_business_date() -> date:
@@ -134,7 +134,7 @@ class QueueService:
         with transaction.atomic():
             try:
                 provider = (
-                    ProviderProfile.objects.select_for_update()
+                    ProviderProfile.objects.select_for_update(of=('self',))
                     .select_related('membership__organization')
                     .get(
                         pk=appointment.provider_id,
@@ -155,7 +155,8 @@ class QueueService:
                     message='Appointment provider is not operationally active.'
                 )
 
-            # Re-fetch appointment under lock
+            # Shared lock order: provider, existing queue entry, appointment.
+            entry = QueueEntry.objects.select_for_update().filter(appointment_id=appointment.pk).first()
             appointment = Appointment.objects.select_for_update().get(pk=appointment.pk)
 
             if appointment.status in (
@@ -170,12 +171,16 @@ class QueueService:
             # Check-in business date validation
             appt_date = appointment.appointment_date or business_date_for_appointment(appointment)
             today_date = current_business_date()
-            if appt_date != today_date:
+            if appt_date > today_date:
                 raise InvalidCheckInException(
                     message=f'Cannot check in today ({today_date}). Appointment is scheduled for {appt_date}.'
                 )
 
-            entry = QueueEntry.objects.filter(appointment=appointment).first()
+            if entry and entry.status not in (QueueEntry.Status.WAITING, QueueEntry.Status.CALLED, QueueEntry.Status.IN_PROGRESS):
+                raise InvalidCheckInException(message='This queue entry is not eligible for check-in.')
+            if entry and entry.is_checked_in:
+                entry.appointment = appointment
+                return entry
             if not bypass_window and actor and hasattr(actor, 'id') and actor.id == appointment.customer_id:
                 if entry:
                     readiness = cls.calculate_readiness_and_eta(entry)
@@ -195,12 +200,11 @@ class QueueService:
                 queue_date = appt_date
                 serial_num = appointment.serial_number
                 if not serial_num:
-                    max_serial = (
-                        QueueEntry.objects.filter(provider=provider, queue_date=queue_date)
-                        .aggregate(m=Max('serial_number'))['m'] or 0
-                    )
-                    serial_num = max_serial + 1
-                    appointment.serial_number = serial_num
+                    from apps.appointments.serials import allocate_serial
+                    serial_num = allocate_serial(provider, queue_date)
+                appointment.serial_number = serial_num
+                appointment.appointment_date = queue_date
+                appointment.save(update_fields=['serial_number', 'appointment_date', 'updated_at'])
 
                 entry = QueueEntry.objects.create(
                     organization_id=appointment.organization_id,
@@ -253,7 +257,6 @@ class QueueService:
 
     @classmethod
     def list_provider_queue(cls, *, organization_id, provider_id, on_date: date | None = None):
-        cls.reconcile_stale_historical_queue_entries()
         organization = _load_org(organization_id)
         provider = _load_provider(organization=organization, provider_id=provider_id)
         queue_date = on_date or current_business_date()
@@ -270,7 +273,7 @@ class QueueService:
                 'provider',
                 'provider__membership__user',
             )
-            .order_by('-is_urgent', 'serial_number')
+            .order_by('serial_number')
         )
         return provider, queue_date, entries
 
@@ -280,25 +283,25 @@ class QueueService:
 
     @classmethod
     def call_next(cls, *, organization_id, provider_id, on_date: date | None = None, actor=None) -> QueueEntry:
-        cls.reconcile_stale_historical_queue_entries()
         organization = _load_org(organization_id)
         queue_date = on_date or current_business_date()
 
         with transaction.atomic():
+            if queue_date > current_business_date():
+                raise InvalidQueueDateException(message='A future booking-date queue cannot be called yet.')
             provider = _load_provider(organization=organization, provider_id=provider_id)
             ProviderProfile.objects.select_for_update().get(pk=provider.pk)
 
             active = QueueEntry.objects.filter(
                 provider=provider,
-                queue_date=queue_date,
                 status__in=QueueEntry.ACTIVE_STATUSES,
             ).exists()
             if active:
                 raise ActiveQueueCustomerException()
 
-            # Under Phase 5 serial model: call next checked-in waiting customer (urgent first)
+            # Presence-gated ascending serials; the active guard spans booking dates.
             next_waiting = (
-                QueueEntry.objects.select_for_update()
+                QueueEntry.objects.select_for_update(of=('self',))
                 .filter(
                     provider=provider,
                     queue_date=queue_date,
@@ -306,7 +309,7 @@ class QueueService:
                     is_checked_in=True,
                     appointment__status__in=[Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN],
                 )
-                .order_by('-is_urgent', 'serial_number')
+                .order_by('serial_number')
                 .first()
             )
             if next_waiting is None:
@@ -334,21 +337,6 @@ class QueueService:
             return next_waiting
 
     @classmethod
-    def mark_urgent(cls, *, organization_id, queue_entry_id, reason='', actor=None) -> QueueEntry:
-        organization = _load_org(organization_id)
-        with transaction.atomic():
-            entry = cls._lock_entry(organization=organization, queue_entry_id=queue_entry_id)
-            entry.is_urgent = True
-            entry.urgent_reason = reason or 'Marked urgent by staff/provider'
-            entry.save(update_fields=['is_urgent', 'urgent_reason', 'updated_at'])
-            AuditService.record(
-                action='QUEUE_MARKED_URGENT', entity_type='QueueEntry', entity_id=entry.id,
-                organization_id=organization.id, actor=actor,
-                metadata={'reason': entry.urgent_reason},
-            )
-            return entry
-
-    @classmethod
     def register_walk_in(
         cls,
         *,
@@ -360,32 +348,42 @@ class QueueService:
         phone_number: str = '',
         notes: str = '',
         actor=None,
+        customer_id=None,
+        appointment_date=None,
+        booking_channel=Appointment.BookingChannel.FRONT_DESK,
     ) -> Appointment:
         from apps.accounts.models import User
         from apps.appointments.services import AppointmentService
 
         with transaction.atomic():
-            # Create or fetch guest customer
-            email_fallback = f"walkin.{int(timezone.now().timestamp())}.{random.randint(100, 999)}@smartqueue.local"
-            user, _ = User.objects.get_or_create(
-                phone_number=phone_number if phone_number else email_fallback,
-                defaults={
-                    'email': email_fallback,
-                    'first_name': first_name,
-                    'last_name': last_name,
-                    'is_active': True,
-                }
-            )
-
-            today = current_business_date()
+            from apps.appointments.contacts import normalize_contact_phone
+            from django.core.exceptions import ValidationError
+            try:
+                phone_number = normalize_contact_phone(phone_number) if phone_number else ''
+            except ValidationError as exc:
+                raise ApplicationError(message=' '.join(exc.messages))
+            if customer_id:
+                try:
+                    user = User.objects.get(pk=customer_id, is_active=True)
+                except User.DoesNotExist:
+                    raise ApplicationError(message='Customer not found.', status_code=404)
+            else:
+                # A shared contact phone does not establish account ownership.
+                if phone_number and User.objects.filter(phone_number=phone_number).exists():
+                    raise ApplicationError(message='Confirm the existing customer ID for this phone before booking.', code='CUSTOMER_ID_REQUIRED')
+                import uuid
+                user = User.objects.create_user(email=f'walkin.{uuid.uuid4().hex}@smartqueue.local', first_name=first_name, last_name=last_name, phone_number=phone_number)
+                user.set_unusable_password()
+                user.save(update_fields=['password'])
+            today = appointment_date or current_business_date()
             appt = AppointmentService.book_appointment(
                 organization_id=organization_id,
                 customer=user,
                 provider_id=provider_id,
                 service_id=service_id,
                 appointment_date=today,
-                booking_channel=Appointment.BookingChannel.FRONT_DESK,
-                arrival_type=Appointment.ArrivalType.WALK_IN,
+                booking_channel=booking_channel,
+                arrival_type=Appointment.ArrivalType.WALK_IN if booking_channel == Appointment.BookingChannel.FRONT_DESK else Appointment.ArrivalType.SCHEDULED,
                 notes=notes,
                 contact_name=f'{first_name} {last_name}'.strip(),
                 contact_phone=phone_number if phone_number else None,
@@ -394,32 +392,8 @@ class QueueService:
 
     @classmethod
     def reconcile_stale_historical_queue_entries(cls) -> int:
-        """
-        Transition historical (queue_date < current_business_date()) entries that are still
-        in WAITING, CALLED, or IN_PROGRESS into terminal SKIPPED state.
-        Linked appointments in non-terminal states (CONFIRMED, CHECKED_IN, IN_PROGRESS)
-        are transitioned to NO_SHOW.
-        """
-        today = current_business_date()
-        stale_entries = QueueEntry.objects.filter(
-            queue_date__lt=today,
-            status__in=[QueueEntry.Status.WAITING, QueueEntry.Status.CALLED, QueueEntry.Status.IN_PROGRESS],
-        ).select_related('appointment')
-
-        reconciled_count = 0
-        now = timezone.now()
-        with transaction.atomic():
-            for entry in stale_entries:
-                entry.status = QueueEntry.Status.SKIPPED
-                entry.skipped_at = now
-                entry.save(update_fields=['status', 'skipped_at', 'updated_at'])
-
-                appt = entry.appointment
-                if appt and appt.status in [Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN, Appointment.Status.IN_PROGRESS]:
-                    appt.status = Appointment.Status.NO_SHOW
-                    appt.save(update_fields=['status', 'updated_at'])
-                reconciled_count += 1
-        return reconciled_count
+        """Compatibility no-op: midnight never authorizes lifecycle mutation."""
+        return 0
 
     @classmethod
     def calculate_readiness_and_eta(cls, queue_entry: QueueEntry) -> dict:
@@ -484,7 +458,7 @@ class QueueService:
                 'check_in_available_at': chk_avail.isoformat(),
             }
 
-        if queue_entry.queue_date < today:
+        if queue_entry.queue_date < today and queue_entry.status not in QueueEntry.ACTIVE_STATUSES:
             return {
                 'readiness_state': QueueEntry.ReadinessState.NOT_YET,
                 'scheduled_ahead': 0,
@@ -505,13 +479,11 @@ class QueueService:
         # Check provider active consultation or activity today
         in_prog_entry = QueueEntry.objects.filter(
             provider=queue_entry.provider,
-            queue_date=today,
             status=QueueEntry.Status.IN_PROGRESS,
         ).order_by('-started_at', '-updated_at').first()
 
         active_entry = in_prog_entry or QueueEntry.objects.filter(
             provider=queue_entry.provider,
-            queue_date=today,
             status=QueueEntry.Status.CALLED,
         ).order_by('-called_at', '-updated_at').first()
 
@@ -586,7 +558,7 @@ class QueueService:
         # Query preceding non-terminal entries for this provider/date
         base_preceding = QueueEntry.objects.filter(
             provider=queue_entry.provider,
-            queue_date=today,
+            queue_date=queue_entry.queue_date,
             status=QueueEntry.Status.WAITING,
         ).exclude(
             appointment__status__in=[
@@ -596,15 +568,7 @@ class QueueService:
             ]
         )
 
-        if queue_entry.is_urgent:
-            preceding_qs = base_preceding.filter(
-                is_urgent=True,
-                serial_number__lt=queue_entry.serial_number,
-            )
-        else:
-            preceding_qs = base_preceding.filter(
-                models.Q(is_urgent=True) | models.Q(is_urgent=False, serial_number__lt=queue_entry.serial_number)
-            )
+        preceding_qs = base_preceding.filter(serial_number__lt=queue_entry.serial_number)
 
         scheduled_ahead = preceding_qs.count()
         checked_in_ahead = preceding_qs.filter(is_checked_in=True).count()
@@ -703,10 +667,12 @@ class QueueService:
             entry = cls._lock_entry(organization=organization, queue_entry_id=queue_entry_id)
             provider = ProviderProfile.objects.select_for_update().get(pk=entry.provider_id)
             # Re-bind after provider lock for serialization with call_next/check-in.
-            entry = QueueEntry.objects.select_for_update().select_related('appointment').get(
+            entry = QueueEntry.objects.select_for_update(of=('self',)).select_related('appointment').get(
                 pk=entry.pk, organization=organization
             )
 
+            if QueueEntry.objects.filter(provider=provider, status__in=QueueEntry.ACTIVE_STATUSES).exclude(pk=entry.pk).exists():
+                raise ActiveQueueCustomerException()
             if not entry.can_transition_to(QueueEntry.Status.IN_PROGRESS):
                 raise InvalidQueueStateException(
                     message=f'Cannot start queue entry in status {entry.status}.',
@@ -743,7 +709,7 @@ class QueueService:
         with transaction.atomic():
             entry = cls._lock_entry(organization=organization, queue_entry_id=queue_entry_id)
             provider = ProviderProfile.objects.select_for_update().select_related('membership__user').get(pk=entry.provider_id)
-            entry = QueueEntry.objects.select_for_update().select_related('appointment').get(
+            entry = QueueEntry.objects.select_for_update(of=('self',)).select_related('appointment').get(
                 pk=entry.pk, organization=organization
             )
 
@@ -796,7 +762,7 @@ class QueueService:
         with transaction.atomic():
             entry = cls._lock_entry(organization=organization, queue_entry_id=queue_entry_id)
             provider = ProviderProfile.objects.select_for_update().select_related('membership__user').get(pk=entry.provider_id)
-            entry = QueueEntry.objects.select_for_update().select_related('appointment').get(
+            entry = QueueEntry.objects.select_for_update(of=('self',)).select_related('appointment').get(
                 pk=entry.pk, organization=organization
             )
 
@@ -847,3 +813,32 @@ class QueueService:
                 code='QUEUE_ENTRY_NOT_FOUND',
                 status_code=404,
             )
+
+    @classmethod
+    def restore_queue_entry(cls, *, organization_id, queue_entry_id, actor=None):
+        from .permissions import _is_org_staff, _is_org_manager
+        if not (_is_org_staff(actor, organization_id) or _is_org_manager(actor, organization_id)):
+            raise ApplicationError(message='Only authorized staff or managers may restore a skipped customer.', status_code=403)
+        organization = _load_org(organization_id)
+        with transaction.atomic():
+            entry = cls._lock_entry(organization=organization, queue_entry_id=queue_entry_id)
+            ProviderProfile.objects.select_for_update().get(pk=entry.provider_id)
+            entry = QueueEntry.objects.select_for_update().get(pk=entry.pk)
+            appointment = Appointment.objects.select_for_update().get(pk=entry.appointment_id)
+            if entry.status == 'WAITING' and appointment.status == 'CHECKED_IN' and entry.is_checked_in:
+                entry.appointment = appointment
+                return entry
+            if entry.status != 'SKIPPED' or appointment.status != 'NO_SHOW':
+                raise InvalidQueueStateException(message='Only a skipped appointment can be restored.')
+            if Appointment.objects.filter(provider_id=entry.provider_id, customer_id=appointment.customer_id, appointment_date=entry.queue_date, status__in=Appointment.BLOCKING_STATUSES).exclude(pk=appointment.pk).exists():
+                raise InvalidQueueStateException(message='This customer already has another active booking for this provider and date.')
+            entry.status = 'WAITING'
+            entry.is_checked_in = True
+            entry.checked_in_at = timezone.now()
+            entry.called_at = None
+            entry.save(update_fields=['status', 'is_checked_in', 'checked_in_at', 'called_at', 'updated_at'])
+            appointment.status = 'CHECKED_IN'
+            appointment.save(update_fields=['status', 'updated_at'])
+            entry.appointment = appointment
+            AuditService.record(action='QUEUE_RESTORED', entity_type='QueueEntry', entity_id=entry.pk, organization_id=organization.pk, actor=actor, metadata={'serial_number': entry.serial_number, 'booking_date': str(entry.queue_date), 'previous_skipped_at': str(entry.skipped_at)})
+            return entry

@@ -137,12 +137,25 @@ class ProviderService_:
             return provider_profile
 
     @staticmethod
+    def _require_initial_schedule_manager(provider, actor):
+        if not OrganizationMembership.objects.filter(organization=provider.organization, user=actor, role=OrganizationMembership.Role.MANAGER, is_active=True).exists():
+            raise ApplicationError(message='Only the organization manager may review the initial schedule.', status_code=403)
+
+    @staticmethod
     def approve_application(*, provider_profile, manager_user):
         """
         Manager approves a pending provider application.
         Sets profile application_status=APPROVED and membership is_active=True.
         """
         with transaction.atomic():
+            provider_profile = ProviderProfile.objects.select_for_update().get(pk=provider_profile.pk)
+            ProviderService_._require_initial_schedule_manager(provider_profile, manager_user)
+            from .schedule_changes import validate_schedule
+            schedules = list(provider_profile.weekly_schedules.prefetch_related('breaks'))
+            if not any(day.is_working_day for day in schedules):
+                raise ApplicationError(message='Configure the initial working schedule before approving this provider.', code='INITIAL_SCHEDULE_REQUIRED')
+            for day in schedules:
+                validate_schedule({'day_of_week': day.day_of_week, 'start_time': str(day.start_time), 'end_time': str(day.end_time), 'is_working_day': day.is_working_day, 'breaks': [{'title': b.title, 'start_time': str(b.start_time), 'end_time': str(b.end_time)} for b in day.breaks.all()]})
             provider_profile.application_status = ProviderProfile.ApplicationStatus.APPROVED
             provider_profile.application_reviewed_by = manager_user
             provider_profile.application_reviewed_at = timezone.now()
@@ -174,6 +187,8 @@ class ProviderService_:
             raise ApplicationError(message="Rejection reason is mandatory.", code="REASON_REQUIRED")
 
         with transaction.atomic():
+            provider_profile = ProviderProfile.objects.select_for_update().get(pk=provider_profile.pk)
+            ProviderService_._require_initial_schedule_manager(provider_profile, manager_user)
             provider_profile.application_status = ProviderProfile.ApplicationStatus.REJECTED
             provider_profile.application_rejection_reason = reason_clean
             provider_profile.application_reviewed_by = manager_user
@@ -307,22 +322,22 @@ class ProviderService_:
         """
         Upsert: create or fully update the schedule entry for a given day.
         """
-        schedule, created = WeeklySchedule.objects.update_or_create(
-            provider=provider,
-            day_of_week=day_of_week,
-            defaults={
-                'start_time': start_time,
-                'end_time': end_time,
-                'is_working_day': is_working_day,
-            }
-        )
-        return schedule, created
+        from .schedule_changes import validate_schedule
+        with transaction.atomic():
+            provider = ProviderProfile.objects.select_for_update().get(pk=provider.pk)
+            if provider.application_status == 'APPROVED':
+                raise ApplicationError(message='Approved schedules can only change through a manager-reviewed schedule request.', code='SCHEDULE_APPROVAL_REQUIRED')
+            old = WeeklySchedule.objects.filter(provider=provider, day_of_week=day_of_week).first()
+            breaks = [{'title': b.title, 'start_time': b.start_time.isoformat(), 'end_time': b.end_time.isoformat()} for b in old.breaks.all()] if old else []
+            validate_schedule({'day_of_week': day_of_week, 'start_time': str(start_time), 'end_time': str(end_time), 'is_working_day': is_working_day, 'breaks': breaks})
+            return WeeklySchedule.objects.update_or_create(provider=provider, day_of_week=day_of_week, defaults={'start_time': start_time, 'end_time': end_time, 'is_working_day': is_working_day})
 
     # ------------------------------------------------------------------
     # ScheduleBreak
     # ------------------------------------------------------------------
 
     @staticmethod
+    @transaction.atomic
     def add_break(*, weekly_schedule, title, start_time, end_time):
         """
         Create a break on a weekly schedule day.
@@ -331,6 +346,12 @@ class ProviderService_:
           - break lies entirely inside schedule working hours
           - break does not overlap another break on the same day
         """
+        provider = ProviderProfile.objects.select_for_update().get(pk=weekly_schedule.provider_id)
+        if provider.application_status == 'APPROVED':
+            raise ApplicationError(message='Approved breaks require a schedule change request.', code='SCHEDULE_APPROVAL_REQUIRED')
+        weekly_schedule = WeeklySchedule.objects.select_for_update().get(pk=weekly_schedule.pk)
+        if end_time <= start_time:
+            raise ApplicationError(message='Break end must be after its start.')
         if not weekly_schedule.is_working_day:
             raise BreakOnNonWorkingDayException()
 
@@ -357,7 +378,12 @@ class ProviderService_:
     # ------------------------------------------------------------------
 
     @staticmethod
+    @transaction.atomic
     def create_leave(*, provider, start_datetime, end_datetime, reason=''):
+        provider = ProviderProfile.objects.select_for_update().get(pk=provider.pk)
+        from apps.appointments.models import Appointment
+        if Appointment.objects.filter(provider=provider, status__in=Appointment.BLOCKING_STATUSES, start_datetime__lt=end_datetime, end_datetime__gt=start_datetime).exists():
+            raise ApplicationError(message='Leave would affect an existing confirmed booking.', code='SCHEDULE_BOOKING_CONFLICT', status_code=409)
         return ProviderLeave.objects.create(
             provider=provider,
             start_datetime=start_datetime,

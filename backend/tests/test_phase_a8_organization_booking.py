@@ -1,5 +1,5 @@
 import pytest
-from datetime import date, timedelta, time
+from datetime import date, datetime, timedelta, time
 from django.utils import timezone
 from apps.accounts.models import User
 from apps.organizations.models import Organization, OrganizationMembership
@@ -273,13 +273,15 @@ def test_no_fixed_patient_slot_required_and_serial_allocated(a8_setup):
 
 
 @pytest.mark.django_db
-def test_terminal_cancelled_booking_frees_capacity(a8_setup):
+def test_terminal_cancelled_booking_frees_capacity(a8_setup, monkeypatch):
     """Part 9: Cancelled appointments free capacity."""
     org = a8_setup['org']
     provider1 = a8_setup['provider1']
     service_derm = a8_setup['service_derm']
     cust1 = a8_setup['customers'][0]
     today = current_business_date()
+    # Exercise capacity release through an eligible customer cancellation (11:00 start).
+    monkeypatch.setattr(timezone, "now", lambda: timezone.make_aware(datetime.combine(today, time(9))))
 
     appt1 = AppointmentService.book_appointment(
         organization_id=org.id,
@@ -288,7 +290,7 @@ def test_terminal_cancelled_booking_frees_capacity(a8_setup):
         service_id=service_derm.id,
         appointment_date=today,
     )
-    AppointmentService.cancel_appointment(appointment=appt1, reason="Customer cancelled")
+    AppointmentService.cancel_appointment(appointment=appt1, reason="Customer cancelled", actor=cust1)
 
     avail = AppointmentAvailabilityService.get_available_slots(
         organization_id=org.id, provider_id=provider1.id, service_id=service_derm.id, on_date=today

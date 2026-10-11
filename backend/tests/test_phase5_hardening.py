@@ -168,7 +168,7 @@ class TestPhase5BusinessModelHardening:
             provider_id=s['provider'].id, service_id=s['service'].id,
             appointment_date=today,
         )
-        AppointmentService.cancel_appointment(appointment=appt, reason='User cancelled')
+        AppointmentService.cancel_appointment(appointment=appt, reason='User cancelled', actor=s['manager'])
         with pytest.raises(InvalidCheckInException):
             QueueService.check_in_appointment(appointment=appt)
 
@@ -192,10 +192,10 @@ class TestPhase5BusinessModelHardening:
             QueueService.call_next(organization_id=s['org'].id, provider_id=s['provider'].id, on_date=today)
 
     # ------------------------------------------------------------------
-    # 14 - 17: Call Next & Urgent Concurrency
+    # 14 - 17: Call Next & Serial Ordering
     # ------------------------------------------------------------------
 
-    def test_urgent_ordering_overrides_serial_order(self, p5_setup):
+    def test_ascending_serial_order(self, p5_setup):
         s = p5_setup
         today = current_business_date()
         appt1 = AppointmentService.book_appointment(organization_id=s['org'].id, customer=s['customer'], provider_id=s['provider'].id, service_id=s['service'].id, appointment_date=today)
@@ -204,12 +204,11 @@ class TestPhase5BusinessModelHardening:
         q1 = QueueService.check_in_appointment(appointment=appt1)
         q2 = QueueService.check_in_appointment(appointment=appt2)
 
-        # Mark second patient urgent
-        QueueService.mark_urgent(organization_id=s['org'].id, queue_entry_id=q2.id, reason='Emergency chest pain')
+        # M2: checked-in customers retain ascending serial order.
 
-        # call_next picks q2 first!
+        # Call Next selects q1.
         called = QueueService.call_next(organization_id=s['org'].id, provider_id=s['provider'].id, on_date=today)
-        assert called.id == q2.id
+        assert called.id == q1.id
 
     def test_only_one_active_consultation_per_provider(self, p5_setup):
         s = p5_setup
@@ -255,9 +254,11 @@ class TestPhase5BusinessModelHardening:
     # 21 - 26: Reschedule Safety & Serial Reallocation
     # ------------------------------------------------------------------
 
-    def test_reschedule_allocates_new_serial_on_new_date(self, p5_setup):
+    def test_reschedule_allocates_new_serial_on_new_date(self, p5_setup, monkeypatch):
         s = p5_setup
         today = current_business_date()
+        # Real authoritative ETA is 08:00; exercise rescheduling before its 90-minute cutoff.
+        monkeypatch.setattr(timezone, 'now', lambda: timezone.make_aware(datetime.combine(today, time(6)), timezone=TZ))
         target_date = today + timedelta(days=3)
 
         # Existing booking on target date

@@ -34,8 +34,6 @@ class QueueEntrySerializer(serializers.ModelSerializer):
             'status',
             'is_checked_in',
             'checked_in_at',
-            'is_urgent',
-            'urgent_reason',
             'booking_channel',
             'arrival_type',
             'customer_id',
@@ -61,16 +59,15 @@ class QueueEntrySerializer(serializers.ModelSerializer):
 
 
 class WalkInRegisterSerializer(serializers.Serializer):
-    provider_id = serializers.UUIDField()
+    provider_id = serializers.UUIDField(required=False)
+    customer_id = serializers.IntegerField(required=False)
+    appointment_date = serializers.DateField(required=False)
+    booking_channel = serializers.ChoiceField(choices=['PHONE', 'FRONT_DESK'], default='FRONT_DESK')
     service_id = serializers.UUIDField()
     first_name = serializers.CharField()
     last_name = serializers.CharField()
     phone_number = serializers.CharField(required=False, allow_blank=True, default='')
     notes = serializers.CharField(required=False, allow_blank=True, default='')
-
-
-class MarkUrgentSerializer(serializers.Serializer):
-    reason = serializers.CharField(required=False, allow_blank=True, default='')
 
 
 class QueueDateQuerySerializer(serializers.Serializer):

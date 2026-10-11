@@ -1,3 +1,4 @@
+import { bookingWindow } from './bookingWindow.js';
 /**
  * Unified Customer Queue Presentation Model
  * Ensures Dashboard, Homepage Live Queue Preview, My Appointments,
@@ -7,18 +8,11 @@
 export function getNormalizedCustomerQueueState(appointment, queueEntry = null) {
   const qEntry = queueEntry || appointment?.queue_entry;
   const isFuture = appointment?.temporal_classification === 'future';
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const localTodayStr = `${year}-${month}-${day}`;
-
+  const localTodayStr = bookingWindow().first;
   const isLegitInProgress = (appointment?.status === 'IN_PROGRESS' || qEntry?.status === 'IN_PROGRESS');
-
-  const isPast = (
-    appointment?.temporal_classification === 'past' ||
-    (appointment?.appointment_date && appointment.appointment_date < localTodayStr)
-  ) && !isLegitInProgress;
+  const isUnfinished = ['WAITING', 'CALLED', 'IN_PROGRESS'].includes(qEntry?.status) || ['CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS'].includes(appointment?.status);
+  const historicalDate = appointment?.temporal_classification === 'past' || (appointment?.appointment_date && appointment.appointment_date < localTodayStr);
+  const isPast = historicalDate && !isUnfinished;
 
   const rawStatus = isFuture
     ? (appointment?.status || 'CONFIRMED')
@@ -71,6 +65,11 @@ export function getNormalizedCustomerQueueState(appointment, queueEntry = null) 
     statusTone = 'info';
     headline = 'Scheduled Future Date';
     guidance = `Your serial #${serialNum} is secured for ${appointment?.appointment_date || 'your appointment date'}.`;
+  } else if (historicalDate && isUnfinished && !['CALLED', 'IN_PROGRESS'].includes(rawStatus)) {
+    displayStatus = 'Waiting';
+    statusTone = 'info';
+    headline = 'Unfinished Earlier Queue';
+    guidance = 'Your original booking and serial remain valid. Please contact your organization for assistance; the calendar change does not mark you absent.';
   } else if (isPast) {
     if (rawStatus === 'COMPLETED') {
       displayStatus = 'Completed';

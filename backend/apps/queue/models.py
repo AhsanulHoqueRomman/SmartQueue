@@ -71,8 +71,6 @@ class QueueEntry(models.Model):
     )
     is_checked_in = models.BooleanField(_('is checked in'), default=False, db_index=True)
     checked_in_at = models.DateTimeField(_('checked in at'), null=True, blank=True)
-    is_urgent = models.BooleanField(_('is urgent'), default=False)
-    urgent_reason = models.TextField(_('urgent reason'), blank=True)
 
     created_at = models.DateTimeField(_('created at'), auto_now_add=True)
     updated_at = models.DateTimeField(_('updated at'), auto_now=True)

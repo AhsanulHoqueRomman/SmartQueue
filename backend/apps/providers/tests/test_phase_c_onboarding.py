@@ -6,7 +6,8 @@ from django.utils import timezone
 
 from apps.organizations.models import Organization, OrganizationMembership, OrganizationInvitation
 from apps.organizations.services import OrganizationService
-from apps.providers.models import ProviderProfile, ProviderDocument
+from apps.providers.models import ProviderProfile, ProviderDocument, WeeklySchedule
+from datetime import time
 from apps.providers.services import ProviderService_ as ProviderBizService
 
 User = get_user_model()
@@ -37,7 +38,7 @@ class ProviderPhaseCOnboardingTestCase(TestCase):
         self.org.save()
 
     def test_manager_provider_invitation_lifecycle(self):
-        """Test Flow A: Manager invites provider via email, token acceptance creates active user & approved provider profile."""
+        """Test Flow A: Manager invites provider via email, token acceptance submits initial hours for manager approval."""
         # 1. Manager creates provider invitation
         invitation = OrganizationService.create_provider_invitation(
             organization=self.org,
@@ -60,18 +61,23 @@ class ProviderPhaseCOnboardingTestCase(TestCase):
           'first_name': 'Invited',
           'last_name': 'Doctor',
           'password': 'StrongPassword123!',
+          'initial_schedule': [dict(day_of_week=d, start_time='09:00:00', end_time='17:00:00', is_working_day=True, breaks=[]) for d in range(7)],
         }
-        resp_accept = self.client.post(url_accept, payload)
+        resp_accept = self.client.post(url_accept, payload, format="json")
         self.assertEqual(resp_accept.status_code, status.HTTP_200_OK)
 
         # 4. Verify DB state
         invited_user = User.objects.get(email='invited.provider@clinic.com')
         membership = OrganizationMembership.objects.get(user=invited_user, organization=self.org)
         self.assertEqual(membership.role, OrganizationMembership.Role.PROVIDER)
-        self.assertTrue(membership.is_active)
+        self.assertFalse(membership.is_active)
 
         profile = ProviderProfile.objects.get(membership=membership)
-        self.assertEqual(profile.application_status, ProviderProfile.ApplicationStatus.APPROVED)
+        self.assertEqual(profile.application_status, ProviderProfile.ApplicationStatus.PENDING_REVIEW)
+        self.assertFalse(profile.is_operationally_active)
+        self.assertEqual(profile.weekly_schedules.count(), 7)
+        ProviderBizService.approve_application(provider_profile=profile, manager_user=self.manager_user)
+        profile.refresh_from_db()
         self.assertTrue(profile.is_operationally_active)
 
     def test_self_registered_provider_approval_and_rejection_flow(self):
@@ -127,6 +133,8 @@ class ProviderPhaseCOnboardingTestCase(TestCase):
         self.assertEqual(profile.application_status, ProviderProfile.ApplicationStatus.PENDING_REVIEW)
         self.assertEqual(profile.application_rejection_reason, '')
 
+        # Initial working hours must be reviewed with the application.
+        WeeklySchedule.objects.create(provider=profile, day_of_week=0, start_time=time(9), end_time=time(17))
         # Manager approves application
         resp_approve = self.client.post(review_url, {'action': 'APPROVE'})
         self.assertEqual(resp_approve.status_code, status.HTTP_200_OK)

@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import organizationService from '../services/organizationService';
+import { ScheduleEditor } from '../components/ScheduleEditor';
+import { initialSchedule } from '../utils/scheduleDraft';
 import { PublicNavbar } from '../components/PublicNavbar';
 
 export const AcceptInvitationPage = () => {
   const { token } = useParams();
-  const navigate = useNavigate();
+  const [schedule, setSchedule] = useState(initialSchedule);
+  const [applicationStatus, setApplicationStatus] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [invitation, setInvitation] = useState(null);
@@ -61,11 +64,13 @@ export const AcceptInvitationPage = () => {
 
     setSubmitting(true);
     try {
-      await organizationService.acceptInvitation(token, {
+      const result = await organizationService.acceptInvitation(token, {
         first_name: formData.first_name,
         last_name: formData.last_name,
         password: formData.password,
+        initial_schedule: schedule,
       });
+      setApplicationStatus(result.application_status);
       setSuccess(true);
     } catch (err) {
       const data = err.response?.data;
@@ -170,8 +175,7 @@ export const AcceptInvitationPage = () => {
               Welcome to {invitation?.organization_name}!
             </h2>
             <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '1.75rem' }}>
-              Your provider account has been successfully created and approved.<br />
-              You are now an active provider member of <strong>{invitation?.organization_name}</strong>.
+              {applicationStatus === 'APPROVED' ? 'Your provider account is approved.' : 'Your account and initial schedule have been submitted for organization manager approval. Operational access begins after approval.'}
             </p>
             <Link
               to="/login"
@@ -332,6 +336,10 @@ export const AcceptInvitationPage = () => {
               )}
             </div>
 
+            <h3>Initial weekly schedule</h3>
+            <p>These hours require organization manager approval.</p>
+            <ScheduleEditor days={schedule} onChange={setSchedule} />
+            {fieldErrors.initial_schedule && <p role="alert" className="text-danger">{JSON.stringify(fieldErrors.initial_schedule)}</p>}
             <button
               type="submit"
               disabled={submitting}

@@ -155,3 +155,13 @@ class Appointment(models.Model):
 
     def can_transition_to(self, new_status: str) -> bool:
         return new_status in self.ALLOWED_TRANSITIONS.get(self.status, set())
+
+
+class ProviderDateSerial(models.Model):
+    """Allocation history survives appointment deletion and date changes."""
+    provider = models.ForeignKey('providers.ProviderProfile', on_delete=models.CASCADE, related_name='serial_counters')
+    booking_date = models.DateField()
+    last_serial = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['provider', 'booking_date'], name='unique_provider_serial_counter')]

@@ -1,3 +1,4 @@
+import { useBookingWindow } from '../../hooks/useBookingWindow';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,6 +16,7 @@ import { BookingSummary } from '../../components/BookingContact';
 
 export function CustomerAppointmentDetailPage() {
   const { id } = useParams();
+  const { first, last } = useBookingWindow();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { showSuccess, showError } = useToast();
@@ -60,7 +62,7 @@ export function CustomerAppointmentDetailPage() {
         setError('Appointment record not found in your customer schedule.');
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to load appointment details.');
+      setError(err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to load appointment details.');
     } finally {
       setLoading(false);
     }
@@ -81,7 +83,7 @@ export function CustomerAppointmentDetailPage() {
       showSuccess('Checked in successfully! You are now in the live queue.');
       await fetchDetail();
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Check-in failed. Please verify your appointment status.';
+      const msg = err.response?.data?.error?.message || err.response?.data?.detail || 'Check-in failed. Please verify your appointment status.';
       showError(msg);
     } finally {
       setCheckingIn(false);
@@ -97,7 +99,7 @@ export function CustomerAppointmentDetailPage() {
       setCancelModalOpen(false);
       await fetchDetail();
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Failed to cancel appointment.';
+      const msg = err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to cancel appointment.';
       showError(msg);
       setCancelModalOpen(false);
     }
@@ -133,6 +135,8 @@ export function CustomerAppointmentDetailPage() {
   const canCancel = appointment.can_cancel !== undefined
     ? appointment.can_cancel
     : (['CONFIRMED', 'PENDING'].includes(appointment.status) && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED', 'IN_PROGRESS'].includes(qStatus));
+  const selfReschedule = appointment.self_reschedule;
+  const canReschedule = selfReschedule?.allowed === true;
   const isLive = normState.can_open_telemetry;
   const isTerminal = ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(qStatus);
 
@@ -174,7 +178,7 @@ export function CustomerAppointmentDetailPage() {
       setRescheduleModalOpen(false);
       await fetchDetail();
     } catch (err) {
-      const msg = err.response?.data?.detail || err.response?.data?.appointment_date?.[0] || 'Reschedule failed. Please select an operational date for this provider.';
+      const msg = err.response?.data?.error?.message || err.response?.data?.detail || err.response?.data?.appointment_date?.[0] || 'Reschedule failed. Please select an operational date for this provider.';
       showError(msg);
     } finally {
       setRescheduling(false);
@@ -462,10 +466,10 @@ export function CustomerAppointmentDetailPage() {
             </button>
           )}
 
-          {canCancel && (
+          {canReschedule && (
             <button
               onClick={() => {
-                setNewDate(appointment.appointment_date || new Date().toISOString().slice(0, 10));
+                setNewDate(appointment.appointment_date || first);
                 setRescheduleModalOpen(true);
               }}
               style={{
@@ -521,6 +525,7 @@ export function CustomerAppointmentDetailPage() {
         </div>
       </div>
 
+      {!isTerminal && selfReschedule && !selfReschedule.allowed && <p className="banner banner-info" role="status">{selfReschedule.message} <button className="btn btn-sm btn-outline" onClick={fetchDetail}>Refresh eligibility</button></p>}
       {/* Reschedule Modal */}
       {rescheduleModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
@@ -536,7 +541,8 @@ export function CustomerAppointmentDetailPage() {
                   type="date"
                   id="reschedule-date"
                   className="form-control"
-                  min={new Date().toISOString().slice(0, 10)}
+                  min={first}
+                  max={last}
                   value={newDate}
                   onChange={(e) => setNewDate(e.target.value)}
                   required

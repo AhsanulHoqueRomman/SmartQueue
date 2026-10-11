@@ -1,3 +1,4 @@
+import { ScheduleRequestsPanel } from '../../components/ScheduleRequestsPanel';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTenant } from '../../contexts/TenantContext';
@@ -75,7 +76,7 @@ export function ProviderSchedulePage() {
       setSchedules(Array.isArray(schedData) ? schedData : schedData.results || []);
       setLeaves(Array.isArray(leaveData) ? leaveData : leaveData.results || []);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to load schedule data.');
+      setError(err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to load schedule data.');
     }
   };
 
@@ -98,7 +99,7 @@ export function ProviderSchedulePage() {
       fetchSchedulesAndLeaves();
     } catch (err) {
       const msg =
-        err.response?.data?.detail ||
+        err.response?.data?.error?.message || err.response?.data?.detail ||
         err.response?.data?.non_field_errors?.[0] ||
         'Failed to update schedule.';
       setFeedback({ type: 'error', message: msg });
@@ -123,7 +124,7 @@ export function ProviderSchedulePage() {
       fetchSchedulesAndLeaves();
     } catch (err) {
       const msg =
-        err.response?.data?.detail ||
+        err.response?.data?.error?.message || err.response?.data?.detail ||
         err.response?.data?.non_field_errors?.[0] ||
         'Failed to add break.';
       setFeedback({ type: 'error', message: msg });
@@ -161,7 +162,7 @@ export function ProviderSchedulePage() {
       fetchSchedulesAndLeaves();
     } catch (err) {
       const msg =
-        err.response?.data?.detail ||
+        err.response?.data?.error?.message || err.response?.data?.detail ||
         err.response?.data?.non_field_errors?.[0] ||
         'Failed to create leave.';
       setFeedback({ type: 'error', message: msg });
@@ -195,6 +196,7 @@ export function ProviderSchedulePage() {
     );
   }
 
+  const canEditInitial = providerProfile?.application_status !== 'APPROVED';
   return (
     <div className="app-container animate-page-entrance">
       <div className="flex justify-between items-center flex-wrap gap-md" style={{ marginBottom: '1.75rem' }}>
@@ -241,6 +243,7 @@ export function ProviderSchedulePage() {
       )}
 
       {/* Schedules Tab */}
+      {providerProfile?.application_status === 'APPROVED' && <ScheduleRequestsPanel key={`${currentOrg.id}:${providerProfile.id}`} orgId={currentOrg.id} providerId={providerProfile.id} />}
       {activeTab === 'schedules' && (
         <div className="grid-responsive grid-cols-3 animate-section stagger-1">
           {DAYS.map((dayMeta) => {
@@ -272,6 +275,7 @@ export function ProviderSchedulePage() {
                                 <span className="font-medium">{b.title} ({b.start_time} - {b.end_time})</span>
                                 <button
                                   style={{ background: 'none', border: 'none', color: 'var(--color-error)', cursor: 'pointer', fontWeight: 'bold' }}
+                                  disabled={!canEditInitial}
                                   onClick={() => handleDeleteBreak(sched.id, b.id)}
                                 >
                                   ×
@@ -289,7 +293,7 @@ export function ProviderSchedulePage() {
                   )}
                 </div>
 
-                <div className="flex gap-xs" style={{ marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
+                {canEditInitial && <div className="flex gap-xs" style={{ marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
                   <button
                     className="btn btn-sm btn-outline"
                     onClick={() => {
@@ -312,7 +316,7 @@ export function ProviderSchedulePage() {
                       + Break
                     </button>
                   )}
-                </div>
+                </div>}
               </div>
             );
           })}
@@ -320,7 +324,7 @@ export function ProviderSchedulePage() {
       )}
 
       {/* Edit Shift Modal */}
-      {editingDay !== null && (
+      {canEditInitial && editingDay !== null && (
         <div className="modal-backdrop" onClick={() => setEditingDay(null)}>
           <div className="modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -391,7 +395,7 @@ export function ProviderSchedulePage() {
       )}
 
       {/* Add Break Modal */}
-      {breakScheduleId !== null && (
+      {canEditInitial && breakScheduleId !== null && (
         <div className="modal-backdrop" onClick={() => setBreakScheduleId(null)}>
           <div className="modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -463,7 +467,7 @@ export function ProviderSchedulePage() {
       )}
 
       {/* Leaves Tab */}
-      {activeTab === 'leaves' && (
+      {activeTab === 'leaves' && canEditInitial && (
         <div className="flex flex-col gap-lg animate-section stagger-1">
           <div className="card">
             <h3>Record New Leave Period</h3>

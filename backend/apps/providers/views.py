@@ -339,7 +339,7 @@ class WeeklyScheduleListCreateView(APIView):
 
     def get_permissions(self):
         if self.request.method == 'POST':
-            return [IsAuthenticated(), IsOrganizationManagerOrOwnProvider()]
+            return [IsAuthenticated(), IsProviderOnboardingParticipant()]
         return [IsAuthenticated()]
 
     @extend_schema(
@@ -347,13 +347,27 @@ class WeeklyScheduleListCreateView(APIView):
         summary="List weekly schedules for a provider"
     )
     def get(self, request, organization_id, provider_id):
-        profile = _get_provider(organization_id, provider_id)
-        schedules = profile.weekly_schedules.prefetch_related('breaks').all()
-        operational = _can_read_operational_schedule(request.user, profile)
+        profile = _get_provider(organization_id, provider_id, require_active_membership=False)
+        from .schedule_changes import weekly_snapshot
+        from apps.appointments.booking_policy import booking_window
+        from datetime import date
+        try:
+            on_date = date.fromisoformat(request.query_params.get('date', str(booking_window()[0])))
+        except ValueError:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({'date': 'Enter a valid date.'})
+        operational = _can_read_operational_schedule(request.user, profile) or request.user.pk == profile.membership.user_id
         if not operational and not profile.is_operationally_active:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer_class = WeeklyScheduleSerializer if operational else WeeklySchedulePublicSerializer
-        return Response(serializer_class(schedules, many=True).data)
+            return Response(status=404)
+        days = weekly_snapshot(profile, on_date)
+        base = {d.day_of_week: d for d in profile.weekly_schedules.all()}
+        for day in days:
+            day['id'] = base[day['day_of_week']].pk if day['day_of_week'] in base else None
+            day['day_of_week_display'] = dict(WeeklySchedule.DayOfWeek.choices)[day['day_of_week']]
+            if not operational:
+                for brk in day['breaks']:
+                    brk.pop('title', None)
+        return Response(days)
 
     @extend_schema(
         request=WeeklyScheduleCreateUpdateSerializer,
@@ -366,7 +380,7 @@ class WeeklyScheduleListCreateView(APIView):
         summary="Set (upsert) a weekly schedule day (Manager or owning Provider)"
     )
     def post(self, request, organization_id, provider_id):
-        profile = _get_provider(organization_id, provider_id)
+        profile = _get_provider(organization_id, provider_id, require_active_membership=False)
         serializer = WeeklyScheduleCreateUpdateSerializer(data=request.data)
         if serializer.is_valid():
             schedule, created = ProviderBizService.create_or_update_schedule(
@@ -390,11 +404,11 @@ class ScheduleBreakListCreateView(APIView):
 
     def get_permissions(self):
         if self.request.method == 'POST':
-            return [IsAuthenticated(), IsOrganizationManagerOrOwnProvider()]
+            return [IsAuthenticated(), IsProviderOnboardingParticipant()]
         return [IsAuthenticated()]
 
     def _get_schedule(self, organization_id, provider_id, schedule_id):
-        profile = _get_provider(organization_id, provider_id)
+        profile = _get_provider(organization_id, provider_id, require_active_membership=False)
         return get_object_or_404(WeeklySchedule, id=schedule_id, provider=profile)
 
     @extend_schema(
@@ -430,17 +444,23 @@ class ScheduleBreakListCreateView(APIView):
 
 class ScheduleBreakDetailView(APIView):
     """DELETE — Remove a break (Manager or owning Provider)."""
-    permission_classes = [IsAuthenticated, IsOrganizationManagerOrOwnProvider]
+    permission_classes = [IsAuthenticated, IsProviderOnboardingParticipant]
 
     @extend_schema(
         responses={204: OpenApiResponse(description="Deleted")},
         summary="Delete a schedule break (Manager or owning Provider)"
     )
     def delete(self, request, organization_id, provider_id, schedule_id, break_id):
-        profile = _get_provider(organization_id, provider_id)
+        profile = _get_provider(organization_id, provider_id, require_active_membership=False)
         schedule = get_object_or_404(WeeklySchedule, id=schedule_id, provider=profile)
         brk = get_object_or_404(ScheduleBreak, id=break_id, weekly_schedule=schedule)
-        brk.delete()
+        from django.db import transaction
+        from config.exceptions import ApplicationError
+        with transaction.atomic():
+            fresh = ProviderProfile.objects.select_for_update().get(pk=profile.pk)
+            if fresh.application_status == 'APPROVED':
+                raise ApplicationError(message='Approved breaks require a schedule change request.', code='SCHEDULE_APPROVAL_REQUIRED')
+            brk.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -464,9 +484,9 @@ class ProviderLeaveListCreateView(APIView):
         summary="List leave periods for a provider"
     )
     def get(self, request, organization_id, provider_id):
-        profile = _get_provider(organization_id, provider_id)
+        profile = _get_provider(organization_id, provider_id, require_active_membership=False)
         operational = _can_read_operational_schedule(request.user, profile)
-        if not operational and not profile.is_operationally_active:
+        if not operational and request.user.pk != profile.membership.user_id and not profile.is_operationally_active:
             return Response(status=status.HTTP_404_NOT_FOUND)
         leaves = profile.leaves.all()
         serializer_class = ProviderLeaveSerializer if operational else ProviderLeavePublicSerializer
@@ -482,7 +502,9 @@ class ProviderLeaveListCreateView(APIView):
         summary="Record a leave period for a provider (Manager or owning Provider)"
     )
     def post(self, request, organization_id, provider_id):
-        profile = _get_provider(organization_id, provider_id)
+        profile = _get_provider(organization_id, provider_id, require_active_membership=False)
+        if profile.application_status == 'APPROVED' and not _is_org_manager_or_admin(request.user, organization_id):
+            return Response({'detail': 'Request a manager-approved schedule change instead.'}, status=403)
         serializer = ProviderLeaveSerializer(data=request.data)
         if serializer.is_valid():
             leave = ProviderBizService.create_leave(provider=profile, **serializer.validated_data)
@@ -499,8 +521,10 @@ class ProviderLeaveDetailView(APIView):
         summary="Delete a provider leave record (Manager or owning Provider)"
     )
     def delete(self, request, organization_id, provider_id, leave_id):
-        profile = _get_provider(organization_id, provider_id)
+        profile = _get_provider(organization_id, provider_id, require_active_membership=False)
         leave = get_object_or_404(ProviderLeave, id=leave_id, provider=profile)
+        if profile.application_status == 'APPROVED' and not _is_org_manager_or_admin(request.user, organization_id):
+            return Response(status=403)
         leave.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 

@@ -1,3 +1,4 @@
+import { useBookingWindow } from '../../hooks/useBookingWindow';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import organizationService from '../../services/organizationService';
@@ -8,7 +9,7 @@ import PublicNavbar from '../../components/PublicNavbar';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import { deriveProfessionalDisplay } from '../../utils/providerDisplay';
-import { startingPrice, providerCharge, bookingError as getBookingError, currentBusinessDate } from '../../utils/bookingDisplay';
+import { startingPrice, providerCharge, bookingError as getBookingError } from '../../utils/bookingDisplay';
 import BookingReviewModal from '../../components/BookingReviewModal';
 import { BookingContactFields, BookingSummary } from '../../components/BookingContact';
 import { useBookingContact } from '../../hooks/useBookingContact';
@@ -128,7 +129,7 @@ export function OrganizationProfilePage() {
   const [selectedProviderId, setSelectedProviderId] = useState('');
 
   // Date & Availability States
-  const todayStr = currentBusinessDate();
+  const { first: todayStr, last: lastBookingDate } = useBookingWindow();
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [availability, setAvailability] = useState(null);
   const [loadingAvailability, setLoadingAvailability] = useState(false);
@@ -276,8 +277,8 @@ export function OrganizationProfilePage() {
   // Check if date is in the past
   const isPastDate = useMemo(() => {
     if (!selectedDate) return false;
-    return selectedDate < todayStr;
-  }, [selectedDate, todayStr]);
+    return selectedDate < todayStr || selectedDate > lastBookingDate;
+  }, [selectedDate, todayStr, lastBookingDate]);
 
   // Booking handlers
   const handleBookingServiceChange = (e) => {
@@ -333,7 +334,7 @@ export function OrganizationProfilePage() {
     }
 
     if (isPastDate) {
-      setBookingError('Appointments cannot be booked for a past date.');
+      setBookingError('Choose a date from today through the next three days.');
       return false;
     }
     if (!hasCharge) { setBookingError('Service charge is unavailable. Please select another professional or try again.'); return false; }
@@ -808,6 +809,7 @@ export function OrganizationProfilePage() {
                     <input
                       type="date"
                       min={todayStr}
+                      max={lastBookingDate}
                       value={selectedDate}
                       onChange={handleBookingDateChange}
                       className="org-form-input"
@@ -815,7 +817,7 @@ export function OrganizationProfilePage() {
                     />
                     {isPastDate && (
                       <p className="org-form-hint-error">
-                        Cannot select a past date.
+                        Choose a date from today through the next three days.
                       </p>
                     )}
                   </div>

@@ -23,9 +23,9 @@ Source: `backend/apps/appointments/models.py::Appointment` and `backend/apps/que
 | Appointment.booking_channel | ONLINE, PHONE, FRONT_DESK | Source metadata, not selection priority |
 | Appointment.arrival_type | SCHEDULED, WALK_IN | Arrival dimension independent of source |
 
-Presence uses persisted `is_checked_in` and `checked_in_at`. Operational timestamps include `called_at`, `started_at`, `completed_at`, `skipped_at`. Priority uses `is_urgent`/`urgent_reason`; serial/token remain ordering identity. QueueEntry has an Appointment one-to-one relationship and provider/date serial constraints; Appointment has provider/date/serial uniqueness.
+Presence uses persisted `is_checked_in` and `checked_in_at`. Operational timestamps include `called_at`, `started_at`, `completed_at`, `skipped_at`. M2 removes priority fields after archiving their historical values; serial/token remain ordering identity. QueueEntry has an Appointment one-to-one relationship and provider/date serial constraints; Appointment has provider/date/serial uniqueness.
 
-`QueueEntry.ACTIVE_STATUSES` is CALLED and IN_PROGRESS. Appointment workload-blocking statuses are PENDING, CONFIRMED, CHECKED_IN, IN_PROGRESS. Appointment COMPLETED/CANCELLED/NO_SHOW are terminal in declarations. QueueEntry COMPLETED/CANCELLED/NO_SHOW have no declared outgoing edges; SKIPPED has outgoing declarations but no verified complete restoration workflow.
+`QueueEntry.ACTIVE_STATUSES` is CALLED and IN_PROGRESS. Appointment workload-blocking statuses are PENDING, CONFIRMED, CHECKED_IN, IN_PROGRESS. Appointment COMPLETED/CANCELLED/NO_SHOW are terminal in declarations. QueueEntry COMPLETED/CANCELLED/NO_SHOW have no declared outgoing edges; SKIPPED has a staff-authorized linked restoration workflow retaining the original serial/date.
 
 `calculate_readiness_and_eta` returns computed readiness, counts, estimates and check-in flags. Terminal response labels COMPLETED/SKIPPED/CANCELLED/NO_SHOW are not members of the readiness enum. The calculation does not save `readiness_state`, change lifecycle status or create readiness notifications. Frontend INACTIVE is presentation, not a model enum. BR-049; C-08/C-09.
 
@@ -50,9 +50,9 @@ These tables transcribe `ALLOWED_TRANSITIONS`, not an endpoint guarantee.
 | SKIPPED | WAITING, CANCELLED, NO_SHOW |
 | CANCELLED / NO_SHOW | None |
 
-**C-14:** SKIPPED→WAITING exists only as a queue declaration. `skip_queue_entry` also sets Appointment NO_SHOW, whose declaration is terminal. No complete linked restore/requeue/recall endpoint was established. Queue IN_PROGRESS→CANCELLED also lacks an equivalent ordinary appointment cancellation workflow. Neither edge authorizes a new product policy. D16/D20.
+**C-14 (baseline, superseded by M2):** SKIPPED→WAITING previously existed only as a queue declaration. `skip_queue_entry` also sets Appointment NO_SHOW, whose declaration is terminal. No complete linked restore/requeue/recall endpoint was established. Queue IN_PROGRESS→CANCELLED also lacks an equivalent ordinary appointment cancellation workflow. Neither edge authorizes a new product policy. D16/D20.
 
-`AppointmentService.transition_status` and legacy `check_in` can save appointment status alone. They are not proof of linked synchronization; current API check-in uses QueueService. Historical reconciliation assigns states directly, outside normal transition checks. Queue NO_SHOW is declared, while the inspected skip/cleanup workflows write SKIPPED. See legacy/cleanup qualifications below.
+Legacy `check_in` now delegates to QueueService and persists the repaired linked serial. The generic `transition_status` helper has no inspected runtime callers; operational endpoints use coordinated domain transitions. They are not proof of linked synchronization; current API check-in uses QueueService. Historical reconciliation is now a compatibility no-op; operational reads do not mutate past records. Queue NO_SHOW is declared, while the inspected skip/cleanup workflows write SKIPPED. See legacy/cleanup qualifications below.
 
 ## Lifecycle workflows
 
@@ -67,16 +67,14 @@ Source abbreviations in this table: **AP** = `backend/apps/appointments/services
 | Online POST; authenticated self | Approved active organization, operational provider in tenant, active service/assignment, valid contacts/date/schedule/leave/capacity; invalid combination/date/capacity rejects | New → CONFIRMED | New → WAITING, unchecked | AP `book_appointment`:488–704; atomic; provider→assignment | Price/contact snapshots, shared serial, matching token, booking notifications/audit. No fixed start promise. |
 | Walk-in POST; own provider, tenant staff/manager or admin | Authorized URL provider and valid input; shared booking checks; phone lookup can fail on ambiguous identity | New → CHECKED_IN | New → WAITING, checked | QS `register_walk_in`:352–393 outer atomic; nested booking provider→assignment | Entered name/phone forwarded as snapshots; same queue/next serial. F-012/F-013. |
 | Check-in POST; owner/assigned provider/tenant staff/manager/admin | Provider and org operational; nonterminal appointment; current business date; customer actor additionally checks computed eligibility | CONFIRMED → CHECKED_IN; other permitted input status not blindly advanced | Existing entry retains status; flag/time updated; legacy absent entry created WAITING | QS `check_in_appointment`:128–249; atomic; provider→appointment; existing queue query not separately row-locked | Customer/provider notifications and audit on successful first check-in; repeated return occurs before these. F-014/PF-001. |
-| Call Next POST; queue operator | Reconciliation first; no CALLED/IN_PROGRESS for provider/date; checked WAITING with Appointment CONFIRMED/CHECKED_IN; no active/no eligible returns conflict | Unchanged | WAITING → CALLED | QS `call_next`:281–334; atomic; provider→selected entry | Urgent then serial; called timestamp, notification/audit. No consultation start. Global cleanup exception F-007. |
 | Start POST; entry operator | Entry permits IN_PROGRESS (normal CALLED); linked appointment can become IN_PROGRESS (normal CHECKED_IN); invalid state rejects | CHECKED_IN → IN_PROGRESS | CALLED → IN_PROGRESS | QS `start_queue_entry`:699–737; atomic; ordinary discovery then provider→fresh entry→appointment locks | started_at and audit; no fabricated start from CALLED timestamp. |
 | Complete POST; entry operator | Entry permits COMPLETED; linked appointment must be IN_PROGRESS | IN_PROGRESS → COMPLETED | IN_PROGRESS → COMPLETED | QS `complete_queue_entry`:740–785; atomic; provider→fresh entry→appointment | completed_at, customer notification/audit. No automatic Call Next. |
 | Skip POST; entry operator | Entry permits SKIPPED (CALLED); linked appointment must permit NO_SHOW, normally CHECKED_IN; otherwise atomic rollback | CHECKED_IN → NO_SHOW | CALLED → SKIPPED | QS `skip_queue_entry`:788–835; atomic; provider→fresh entry→appointment | skipped_at, notification/audit. No next call/temporary-return guarantee. D15–D17. |
-| Cancel POST; owner/assigned provider/tenant staff/manager/admin | Passed appointment must be nonterminal and permit CANCELLED (PENDING/CONFIRMED); checks before atomic block | PENDING/CONFIRMED → CANCELLED | Linked entry → CANCELLED by assignment if present | AP `cancel_appointment`:825–883; atomic writes, no coordinating provider/fresh appointment locks | Reason, notifications/audit; F-006 stale-state race risk. No cancellation after check-in or refund guarantee. |
-| Reschedule PATCH; owner/tenant staff/manager/admin | Passed status excludes checked/in-progress/terminal; destination not past, working schedule, no overlapping leave; capacity/eligibility parity absent | Status unchanged; date/window/serial updated | If present, date/serial/token updated; status unchanged | AP `reschedule_appointment`:707–822; atomic; provider lock only; passed appointment not refreshed/locked | New-date max from both models; same-date serial retained or fallback 1. Snapshots unchanged. No linked entry creation if legacy missing. F-005/F-006. |
-| Urgent POST; entry operator | Approved org and scoped entry lookup; no terminal-state prohibition in this method; optional reason | Unchanged | Unchanged status; urgent flag/reason updated | QS `mark_urgent`:337–349; atomic; no effective provider/entry row lock | Default reason if omitted, audit. Serial unchanged. F-011; D10. |
-| Past cleanup invoked by provider list/Call Next | queue_date < today and WAITING/CALLED/IN_PROGRESS; global scope | CONFIRMED/CHECKED_IN/IN_PROGRESS → NO_SHOW where matched | Selected active old entry → SKIPPED | QS `reconcile_stale_historical_queue_entries`:396–422; atomic writes without row locks | skipped_at; no notification/audit call in helper; can affect other tenants and overnight service. F-007. |
+| Cancel POST; owner / existing scoped operational actors | Waiting eligible state; owner ≥2h before effective schedule start inclusive; CALLED/IN_PROGRESS/terminal reject | PENDING/CONFIRMED/CHECKED_IN → CANCELLED | Existing WAITING → CANCELLED | Provider → QueueEntry → fresh Appointment, atomic linked writes | Original date/serial retained; notification/audit. |
+| Reschedule PATCH; owner only | WAITING; latest authoritative ETA ≥90min; destination today +3, active relationships, schedule/leave/capacity/duplicate checks | CONFIRMED; same identity/snapshots, new date allocates destination serial | Same entry, matching date/serial; new-date presence reset | Provider → QueueEntry → fresh Appointment; authoritative ETA rechecked | Missing ETA temporarily disables self-rescheduling without mutating the booking. |
+| Past-date read / Call Next | Scoped tenant/provider permissions | Unchanged | Unchanged | No cleanup mutation; compatibility helper returns zero | Original booking date/serial/state retained. |
 
-Booking resolves organization/contact before entering atomic creation. Within it provider lock precedes the assignment lock/refetch and centralized price resolution. `serial = max(max Appointment serial, max QueueEntry serial) + 1`; canceled serials remain consumed. The same serial/date/provider are copied to both records. Database uniqueness supports normal allocation but all competing writers must coordinate; no concurrent PostgreSQL verification occurred.
+Booking resolves organization/contact before entering atomic creation. Within it provider lock precedes the assignment lock/refetch and centralized price resolution. `serial = max(ProviderDateSerial.last_serial, max Appointment serial, max QueueEntry serial) + 1`; canceled serials remain consumed. The same serial/date/provider are copied to both records. Database uniqueness supports normal allocation but all competing writers must coordinate; M2 includes isolated PostgreSQL concurrent allocation and duplicate tests; not universal concurrency certification.
 
 Date-only initial booking stores schedule start for a future day, or `max(now, schedule_start)` today, plus effective duration. It does not advance each stored start by cumulative serial workload. **C-18:** historical scheduled-target descriptions are conceptual, not a guarantee of those stored timestamps. Legacy explicit datetime booking has additional schedule/break/leave checks. D01/D02 govern usable-day differences.
 
@@ -98,10 +96,9 @@ The inspected T assertion in `backend/tests/test_phase5_hardening.py:335–352` 
 |---|---|
 | Late arrival | Same-day nonterminal check-in can make a lower serial eligible next; active service is not interrupted by Call Next. If already NO_SHOW/SKIPPED, no complete restore exists. H §§8,15; D16/D17. |
 | Absent customer | Unchecked WAITING is excluded from calling, but included in reservation forecast. No verified grace/recall timer. D05/D15/D17. |
-| Urgent customer | Flag changes waiting priority, not serial or presence; active guard prevents normal next call while service active. No emergency interruption policy. D10/D20. |
 | Provider delay | Current forecast branches below can label/suppress estimates. No general queue pause/reassignment/interruption workflow established. D20. |
-| Overlong consultation | Remaining estimate floors at zero; status remains IN_PROGRESS until valid explicit completion, subject to the defective past cleanup. No maximum duration or auto-complete rule. D19. |
-| Overnight consultation | Active guard scopes to requested date; ETA past branch precedes active IN_PROGRESS branch; global cleanup can force NO_SHOW. Appointment live helper preserves IN_PROGRESS across midnight, so implementation conflicts. F-007/D08; no correction policy invented. |
+| Overlong consultation | Estimate expiry does not complete service; explicit completion remains mandatory, including across midnight. |
+| Overnight consultation | CALLED/IN_PROGRESS block another active entry across all provider dates; explicit completion retains original booking date and real completion timestamp. WAITING from older dates does not automatically block today. |
 | Skipped return | SKIPPED→WAITING enum does not restore linked terminal appointment. D16 options remain neutral. |
 | Provider unavailable / interrupted | No complete reassignment, pause or partial-service lifecycle verified; pre-check-in cancellation/reschedule do not cover all cases. Provider failure is not automatically customer NO_SHOW. D20. |
 | Historical reconciliation | Current implementation is a defect, not intended automatic customer-fault policy. It ignores tenant/session distinctions and bypasses normal transition declarations. |
@@ -117,11 +114,10 @@ Source-level lock order is distinct from proven concurrent outcomes. `_lock_entr
 | Booking | Provider `select_for_update`, then ProviderService `select_for_update(of=('self',))`; serial maxima and linked creation inside atomic | Normal allocation source established. Simultaneous successful/distinct serial behavior not executed here. |
 | Manager charge update/delete | Provider then assignment within atomic; `providers/services.py:265–302` | Compatible with booking price snapshot order. Wrapped-helper T evidence is not a race test. |
 | Check-in | Provider then fresh Appointment row; existing QueueEntry fetched ordinarily | Customer repeat and legacy persistence qualifications above; compatible writers are required. |
-| Call Next | Cleanup before call transaction; provider then selected WAITING entry | Date-specific active check; cleanup uncoordinated/global. |
+| Call Next | Provider → selected WAITING entry → linked appointment | Provider-wide active check; ascending serial among checked-in eligible entries; no historical cleanup. |
 | Start/complete/skip | Ordinary discovery, then provider, refetched QueueEntry, Appointment locks | Do not misdescribe discovery as an entry lock before provider. Linked state validation occurs inside transaction. |
-| Reschedule | Provider lock; passed appointment checks/writes; existing QueueEntry ordinary query | Fresh appointment/queue validation missing; race effect inferred F-006. Capacity omitted F-005. |
-| Cancel | Passed appointment checks before atomic; ordinary linked query/writes | No coordinating lock/refetch; possible overwrite requires PostgreSQL reproduction F-006. |
-| Urgent | Atomic writes after ordinary scoped lookup | No provider/entry lock; selection can observe old priority, inferred F-011. |
+| Reschedule | Provider → existing QueueEntry → fresh Appointment; assignment under provider lock | Latest ETA/cutoff, destination window/eligibility/capacity and duplicate check before moving the same records. |
+| Cancel | Provider → existing QueueEntry → fresh Appointment | Current state and inclusive two-hour schedule cutoff rechecked; linked writes and audit in same transaction. |
 | Reconciliation | Global queryset, atomic direct status writes, no row locks | Cross-tenant/overnight source behavior confirmed; competing mutation outcomes unexecuted F-007. |
 
 No statement here certifies deadlock freedom, universal atomic lifecycle safety or serial correctness for legacy writers. Inspected sequential tests and SQL lock assertions (some skipped on unsupported databases) cannot substitute for real concurrent PostgreSQL transactions. Standard pytest configuration uses SQLite/`--nomigrations`; do not infer migration or production lock verification.
@@ -132,9 +128,9 @@ Authoritative current implementation: `backend/apps/queue/services.py::QueueServ
 
 ### Inputs and branch order
 
-Inputs: queue provider/date/status/urgency/serial/check-in/timestamps, linked appointment status/start/service, current aware time, project-local current business date, current related queue entries and mutable base durations.
+Inputs: queue provider/date/status/serial/check-in/timestamps, linked appointment status/start/service, current aware time, project-local current business date, current related queue entries and mutable base durations.
 
-Order: terminal status → future date → past date → current-date active lookup → own IN_PROGRESS → own CALLED → waiting forecast. This ordering matters: a past-date ongoing consultation returns the past branch before own IN_PROGRESS handling. Org operating hours and provider capacity are not added to this function's formulas; schedules influenced the stored booking window upstream.
+Order: terminal status → future date → unfinished past WAITING (no authoritative ETA) → provider-wide active lookup → own IN_PROGRESS → own CALLED → waiting forecast. CALLED/IN_PROGRESS survive midnight; previous-day WAITING retains its state and original date without an invented ETA. Org operating hours and provider capacity are not added to this function's formulas; schedules influenced the stored booking window upstream.
 
 ### Terminal, future and past responses
 
@@ -162,8 +158,7 @@ F-009: provider-specific booking duration is ignored here. D04 distinguishes fix
 
 Base predecessors: today's same-provider WAITING entries, excluding linked Appointment COMPLETED/CANCELLED/NO_SHOW. The query does not apply Call Next's identical appointment-status or check-in filters.
 
-- For urgent subject: earlier serials that are urgent.
-- For normal subject: urgent WAITING entries plus normal entries with earlier serial.
+- All subjects: same-date WAITING entries with lower serials. Booking source and former priority do not change the comparator.
 - `scheduled_ahead = count(preceding)` includes unchecked reservations.
 - `checked_in_ahead = count(preceding where is_checked_in)`.
 - `people_ahead = checked_in_ahead + 1` if another active entry exists, otherwise `checked_in_ahead`.
@@ -238,3 +233,11 @@ See [D01–D20](BUSINESS_RULES.md#pending-business-policy-register), especially 
 - [x] No runtime/test/concurrency/browser/email verification claimed.
 
 These checkmarks indicate documentation coverage, not passing application tests. Future fix verification must target affected paths, with real PostgreSQL concurrency where required.
+
+## M2 repeatable lifecycle policies — 2026-10-11
+
+- Online, phone and front desk allocate through the same provider-locked permanent serial ledger. Cancellation/deletion/moving away cannot free serials. Legacy missing-entry/null-serial check-in repairs and persists the same identity. Repeat check-in returns the existing entry.
+- Explicit Skip does not auto-call. Scoped staff restoration accepts only SKIPPED + NO_SHOW, preserves date/serial and skipped history, restores WAITING + CHECKED_IN, and never interrupts a CALLED/IN_PROGRESS customer. Duplicate active bookings are rejected.
+- Self-rescheduling is owner-only and WAITING-only, requiring the latest authoritative ETA at least 90 minutes away. Missing ETA is temporarily unavailable with the exact message in [Business Rules](BUSINESS_RULES.md); no preliminary stored appointment start is substituted. Re-evaluate dynamically and at final confirmation.
+- Service windows end by 22:00 for newly configured/approved schedules. Midnight is not a lifecycle transition. No provider emergency recovery, automatic expiry, recall timer or new capacity formula is implemented.
+- PostgreSQL evidence: 54 distinct M2 tests verified across targeted runs, including competing calls, allocation, cancel/check-in/start, concurrent rescheduling, restore/call-next, schedule approval/booking, initial break/hour writers and data-preserving migrations. Production scheduling and manual UI acceptance remain unverified. Older contradiction/forecast records below describe baseline issues unless superseded here; unrelated F-008/F-009/F-010 remain open.

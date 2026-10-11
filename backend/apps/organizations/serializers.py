@@ -379,6 +379,14 @@ class AcceptInvitationSerializer(serializers.Serializer):
     password = serializers.CharField(required=True, min_length=6, write_only=True)
 
 
+class AcceptProviderInvitationSerializer(AcceptInvitationSerializer):
+    initial_schedule = serializers.JSONField(required=False, write_only=True)
+
+    def validate_initial_schedule(self, value):
+        from apps.accounts.serializers import ProviderRegisterSerializer
+        return ProviderRegisterSerializer().validate_initial_schedule(value)
+
+
 class StaffMemberSerializer(serializers.ModelSerializer):
     """
     Serializer for displaying Staff members in an organization.

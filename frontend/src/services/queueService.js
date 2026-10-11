@@ -4,9 +4,9 @@ export const queueService = {
   /**
    * Fetch active queue for a specific provider in an organization.
    */
-  async getProviderQueue(orgId, providerId) {
+  async getProviderQueue(orgId, providerId, date) {
     const response = await apiClient.get(
-      `/organizations/${orgId}/queue/providers/${providerId}/`
+      `/organizations/${orgId}/queue/providers/${providerId}/`, { params: date ? { date } : {} }
     );
     return response.data;
   },
@@ -22,9 +22,9 @@ export const queueService = {
   /**
    * Provider calls next waiting patient from their queue.
    */
-  async callNext(orgId, providerId) {
+  async callNext(orgId, providerId, date) {
     const response = await apiClient.post(
-      `/organizations/${orgId}/queue/providers/${providerId}/call-next/`
+      `/organizations/${orgId}/queue/providers/${providerId}/call-next/`, null, { params: date ? { date } : {} }
     );
     return response.data;
   },
@@ -60,12 +60,11 @@ export const queueService = {
   },
 
   /**
-   * Mark a queue entry as urgent.
+   * Restore the existing skipped entry without allocating a new serial.
    */
-  async markUrgent(orgId, queueEntryId, reason = '') {
+  async restoreEntry(orgId, queueEntryId) {
     const response = await apiClient.post(
-      `/organizations/${orgId}/queue/${queueEntryId}/urgent/`,
-      { reason }
+      `/organizations/${orgId}/queue/${queueEntryId}/restore/`
     );
     return response.data;
   },

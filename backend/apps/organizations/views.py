@@ -27,6 +27,7 @@ from .serializers import (
     OrganizationInvitationSerializer,
     OrganizationInvitationCreateSerializer,
     AcceptInvitationSerializer,
+    AcceptProviderInvitationSerializer,
     StaffMemberSerializer,
 )
 
@@ -563,23 +564,24 @@ class PublicInvitationDetailsView(APIView):
 class PublicAcceptInvitationView(APIView):
     """
     POST: Accept a provider invitation by token.
-    Creates user account (if new), sets membership and provider profile as APPROVED.
+    Creates user account (if new), submits the initial schedule for manager approval.
     """
     permission_classes = [AllowAny]
 
     @extend_schema(
-        request=AcceptInvitationSerializer,
+        request=AcceptProviderInvitationSerializer,
         responses={200: OpenApiResponse(description="Invitation accepted successfully"), 400: OpenApiResponse(description="Validation error")},
         summary="Accept provider invitation (Public)"
     )
     def post(self, request, token):
-        serializer = AcceptInvitationSerializer(data=request.data)
+        serializer = AcceptProviderInvitationSerializer(data=request.data)
         if serializer.is_valid():
             user, membership, profile = OrganizationService.accept_provider_invitation(
                 token=token,
                 first_name=serializer.validated_data['first_name'],
                 last_name=serializer.validated_data['last_name'],
-                password=serializer.validated_data['password']
+                password=serializer.validated_data['password'],
+                initial_schedule=serializer.validated_data.get('initial_schedule')
             )
             return Response({
                 'message': 'Invitation accepted successfully.',

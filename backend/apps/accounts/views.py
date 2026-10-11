@@ -165,6 +165,13 @@ class RegisterProviderView(APIView):
                     )
                     is_pending_approval = True
 
+                    from apps.providers.models import WeeklySchedule, ScheduleBreak
+                    from datetime import time
+                    for day in data.get('initial_schedule', []):
+                        schedule = WeeklySchedule.objects.create(provider=profile, day_of_week=day['day_of_week'], start_time=time.fromisoformat(day['start_time']), end_time=time.fromisoformat(day['end_time']), is_working_day=day['is_working_day'])
+                        for brk in day.get('breaks', []):
+                            ScheduleBreak.objects.create(weekly_schedule=schedule, title=brk.get('title', ''), start_time=time.fromisoformat(brk['start_time']), end_time=time.fromisoformat(brk['end_time']))
+
                 refresh = RefreshToken.for_user(user)
                 return Response({
                     'user': UserSerializer(user).data,
@@ -340,4 +347,3 @@ class PasswordResetConfirmView(APIView):
                 status=status.HTTP_200_OK
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-

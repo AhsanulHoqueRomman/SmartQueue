@@ -1,3 +1,4 @@
+import { ScheduleRequestsPanel, SchedulePreview } from '../../components/ScheduleRequestsPanel';
 import React, { useState, useEffect } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
 import managerService from '../../services/managerService';
@@ -29,6 +30,7 @@ export function ManagerProvidersPage() {
   const { currentOrg } = useTenant();
   const { showSuccess, showError } = useToast();
 
+  const [scheduleProviderId, setScheduleProviderId] = useState('');
   const [activeTab, setActiveTab] = useState('active'); // 'active' | 'pending' | 'rejected' | 'invitations'
   const [providers, setProviders] = useState([]);
   const [invitations, setInvitations] = useState([]);
@@ -46,8 +48,19 @@ export function ManagerProvidersPage() {
   // Review Application Modal State
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
+  const [initialReviewSchedule, setInitialReviewSchedule] = useState(null);
   const [reviewReason, setReviewReason] = useState('');
   const [reviewing, setReviewing] = useState(false);
+
+  useEffect(() => {
+    if (!reviewModalOpen || !selectedProfile || !currentOrg?.id) return;
+    let active = true;
+    setInitialReviewSchedule(null);
+    providerManagementService.getSchedules(currentOrg.id, selectedProfile.id)
+      .then(days => { if (active) setInitialReviewSchedule(days); })
+      .catch(() => { if (active) setInitialReviewSchedule([]); });
+    return () => { active = false; };
+  }, [reviewModalOpen, selectedProfile, currentOrg?.id]);
 
   // Assign Service Modal State
   const [assignModalOpen, setAssignModalOpen] = useState(false);
@@ -225,6 +238,7 @@ export function ManagerProvidersPage() {
       <div className="flex justify-between items-center flex-wrap gap-md" style={{ marginBottom: '1.75rem' }}>
         <div>
           <h1>Provider Management & Roster</h1>
+          <label>Review provider schedules<select className="form-control" value={scheduleProviderId} onChange={e => setScheduleProviderId(e.target.value)}><option value="">Choose provider</option>{providers.map(provider => <option key={provider.id} value={provider.id}>{`${provider.user_first_name || ''} ${provider.user_last_name || ''}`.trim() || provider.title || 'Service Provider'}</option>)}</select></label>
           <p className="subtitle" style={{ marginTop: '0.25rem' }}>
             Manage approved providers, review pending self-registrations, and invite new providers to {currentOrg.name}.
           </p>
@@ -242,6 +256,7 @@ export function ManagerProvidersPage() {
         </div>
       )}
 
+      {scheduleProviderId && <ScheduleRequestsPanel key={`${currentOrg.id}:${scheduleProviderId}`} orgId={currentOrg.id} providerId={scheduleProviderId} manager />}
       {/* Tabs */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid #E6E1D9', paddingBottom: '0.5rem' }}>
         <button
@@ -562,6 +577,7 @@ export function ManagerProvidersPage() {
             <div className="modal-body flex flex-col gap-md">
               <div style={{ backgroundColor: '#FAF8F3', padding: '1rem', borderRadius: '12px', border: '1px solid #E6E1D9' }}>
                 <div><strong>Applicant Email:</strong> {selectedProfile.user_email}</div>
+                <div><strong>Initial schedule included in approval</strong>{initialReviewSchedule === null ? <p>Loading schedule…</p> : <SchedulePreview days={initialReviewSchedule} />}</div>
                 <div style={{ marginTop: '0.35rem' }}><strong>Title:</strong> {selectedProfile.title || 'N/A'}</div>
                 <div style={{ marginTop: '0.35rem' }}><strong>Bio:</strong> {selectedProfile.bio || 'None provided'}</div>
               </div>

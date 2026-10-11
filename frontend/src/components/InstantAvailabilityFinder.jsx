@@ -1,3 +1,4 @@
+import { useBookingWindow } from '../hooks/useBookingWindow';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import organizationService from '../services/organizationService';
@@ -18,6 +19,7 @@ function inCategory(org, category) {
 }
 
 export default function InstantAvailabilityFinder({ organizations }) {
+  const { first, last } = useBookingWindow();
   const [ref, entered, , observed] = useScrollPresence(.1);
   const [selection, setSelection] = useState(() => ({ category: 'ALL', organization: '', service: '', provider: 'ANY', window: 'ANY', date: currentBusinessDate() }));
   const [serviceData, setServiceData] = useState({ key: '', rows: [], error: false });
@@ -87,7 +89,7 @@ export default function InstantAvailabilityFinder({ organizations }) {
       <div><label htmlFor="finder-service">Service</label><select id="finder-service" value={serviceId} disabled={!services.length} onChange={event => change('service', event.target.value)}>{!services.length && <option value="">{serviceData.key === orgId ? 'No services available' : 'Loading services…'}</option>}{services.map(service => <option key={service.id} value={service.id}>{service.name} · {service.duration_minutes} min</option>)}</select></div>
       <div><label htmlFor="finder-professional">Professional</label><select id="finder-professional" value={providerId} disabled={!providers.length} onChange={event => change('provider', event.target.value)}><option value="ANY">Any eligible professional</option>{providers.map(provider => <option key={provider.id} value={provider.id}>{deriveProfessionalDisplay(provider).displayName}</option>)}</select></div>
       <div><label htmlFor="finder-window">Preferred working window</label><select id="finder-window" value={selection.window} onChange={event => change('window', event.target.value)}><option value="ANY">Any working window</option><option value="MORNING">Morning · 8 AM–12 PM</option><option value="AFTERNOON">Afternoon · 12 PM–5 PM</option><option value="EVENING">Evening · 5 PM–9 PM</option></select></div>
-      <div><label htmlFor="finder-date">Appointment date</label><input id="finder-date" type="date" value={selection.date} min={currentBusinessDate()} required onChange={event => change('date', event.target.value)} /></div>
+      <div><label htmlFor="finder-date">Appointment date</label><input id="finder-date" type="date" value={selection.date} min={first} max={last} required onChange={event => change('date', event.target.value)} /></div>
       <div className="availability-actions"><p>Organization → Service → Professional.<br />Reserve a queue serial, not a fixed consultation time.</p><button type="submit" className="lp-btn-primary" disabled={loading || !orgId || !serviceId || !providers.length}>{loading ? 'Checking availability…' : 'Check Availability'}</button></div>
     </form>
     {(serviceData.key === orgId && serviceData.error || providerData.key === providerKey && providerData.error) && <p role="alert">Unable to load services or professionals. Please try again later.</p>}

@@ -3,7 +3,7 @@ from django.urls import path
 from .views import (
     CallNextQueueView,
     CompleteQueueEntryView,
-    MarkUrgentQueueView,
+    RestoreQueueEntryView,
     MyQueueListView,
     ProviderQueueListView,
     SkipQueueEntryView,
@@ -21,5 +21,5 @@ urlpatterns = [
     path('<uuid:queue_entry_id>/start/', StartQueueEntryView.as_view(), name='queue_start'),
     path('<uuid:queue_entry_id>/complete/', CompleteQueueEntryView.as_view(), name='queue_complete'),
     path('<uuid:queue_entry_id>/skip/', SkipQueueEntryView.as_view(), name='queue_skip'),
-    path('<uuid:queue_entry_id>/urgent/', MarkUrgentQueueView.as_view(), name='queue_urgent'),
+    path('<uuid:queue_entry_id>/restore/', RestoreQueueEntryView.as_view(), name='queue_restore'),
 ]

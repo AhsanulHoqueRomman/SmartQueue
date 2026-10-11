@@ -440,15 +440,21 @@ class OrganizationService:
         return invitation
 
     @staticmethod
-    def accept_provider_invitation(*, token, first_name, last_name, password):
+    def accept_provider_invitation(*, token, first_name, last_name, password, initial_schedule=None):
         """
-        Accepts a provider invitation. Creates user (if new), creates active membership (is_active=True),
-        creates APPROVED provider profile, and marks invitation as used.
+        Accept a provider invitation without bypassing initial schedule review.
         """
-        from apps.providers.models import ProviderProfile
+        from apps.providers.models import ProviderProfile, WeeklySchedule, ScheduleBreak
+        from apps.accounts.serializers import ProviderRegisterSerializer
+        from datetime import time
+
+        if initial_schedule is not None:
+            initial_schedule = ProviderRegisterSerializer().validate_initial_schedule(initial_schedule)
 
         with transaction.atomic():
-            invitation = OrganizationService.get_invitation_details(token=token)
+            invitation = OrganizationInvitation.objects.select_for_update().filter(token=token).first()
+            if invitation is None or not invitation.is_valid or invitation.role != OrganizationMembership.Role.PROVIDER:
+                raise ApplicationError(message='Invitation token is invalid or expired.', code='INVALID_INVITATION')
             organization = invitation.organization
             email_clean = invitation.email.strip().lower()
 
@@ -471,32 +477,28 @@ class OrganizationService:
                 user.save()
 
             membership, _ = OrganizationMembership.objects.get_or_create(
-                user=user,
-                organization=organization,
-                defaults={
-                    'role': OrganizationMembership.Role.PROVIDER,
-                    'is_active': True
-                }
+                user=user, organization=organization,
+                defaults={'role': OrganizationMembership.Role.PROVIDER, 'is_active': False}
             )
-            if not membership.is_active or membership.role != OrganizationMembership.Role.PROVIDER:
-                membership.role = OrganizationMembership.Role.PROVIDER
-                membership.is_active = True
-                membership.save()
-
-            profile, _ = ProviderProfile.objects.get_or_create(
-                membership=membership,
-                defaults={
-                    'application_status': ProviderProfile.ApplicationStatus.APPROVED,
-                    'application_reviewed_at': timezone.now(),
-                    'application_reviewed_by': invitation.created_by,
-                    'is_active': True
-                }
-            )
-
-            if profile.application_status != ProviderProfile.ApplicationStatus.APPROVED:
-                profile.application_status = ProviderProfile.ApplicationStatus.APPROVED
-                profile.application_reviewed_at = timezone.now()
-                profile.application_reviewed_by = invitation.created_by
+            if membership.role != OrganizationMembership.Role.PROVIDER:
+                raise ApplicationError(message='An existing organization role cannot be replaced by this invitation.', status_code=409)
+            profile, _ = ProviderProfile.objects.get_or_create(membership=membership)
+            profile = ProviderProfile.objects.select_for_update().get(pk=profile.pk)
+            if profile.application_status == ProviderProfile.ApplicationStatus.APPROVED:
+                if initial_schedule is not None:
+                    raise ApplicationError(message='An approved schedule must use the schedule-change request process.', status_code=409)
+            else:
+                membership.is_active = False
+                membership.save(update_fields=['is_active'])
+                if initial_schedule is not None:
+                    profile.weekly_schedules.all().delete()
+                    for day in initial_schedule:
+                        schedule = WeeklySchedule.objects.create(provider=profile, day_of_week=day['day_of_week'], start_time=time.fromisoformat(day['start_time']), end_time=time.fromisoformat(day['end_time']), is_working_day=day['is_working_day'])
+                        for brk in day.get('breaks', []):
+                            ScheduleBreak.objects.create(weekly_schedule=schedule, title=brk.get('title', ''), start_time=time.fromisoformat(brk['start_time']), end_time=time.fromisoformat(brk['end_time']))
+                profile.application_status = ProviderProfile.ApplicationStatus.PENDING_REVIEW if initial_schedule is not None else ProviderProfile.ApplicationStatus.INCOMPLETE
+                profile.application_reviewed_by = None
+                profile.application_reviewed_at = None
                 profile.application_rejection_reason = ''
                 profile.save()
 

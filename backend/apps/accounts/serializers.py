@@ -116,6 +116,7 @@ class ManagerRegisterSerializer(serializers.ModelSerializer):
 
 
 class ProviderRegisterSerializer(serializers.ModelSerializer):
+    initial_schedule = serializers.JSONField(required=False, write_only=True)
     """
     Serializer for Provider registration + ProviderProfile creation + optional Org selection.
     """
@@ -138,8 +139,21 @@ class ProviderRegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'email', 'first_name', 'last_name', 'phone_number', 'password', 'password_confirm',
-            'title', 'bio', 'organization_id'
+            'title', 'bio', 'organization_id', 'initial_schedule'
         )
+
+    def validate_initial_schedule(self, value):
+        from apps.providers.schedule_changes import validate_schedule
+        from config.exceptions import ApplicationError
+        if not isinstance(value, list) or len(value) != 7 or {day.get('day_of_week') for day in value if isinstance(day, dict)} != set(range(7)):
+            raise serializers.ValidationError('Supply all seven initial weekdays.')
+        try:
+            days = [validate_schedule(day) for day in value]
+        except ApplicationError as exc:
+            raise serializers.ValidationError(str(exc.detail))
+        if not any(day['is_working_day'] for day in days):
+            raise serializers.ValidationError('Configure at least one working day.')
+        return days
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
@@ -265,4 +279,3 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
         attrs['user'] = user
         return attrs
-

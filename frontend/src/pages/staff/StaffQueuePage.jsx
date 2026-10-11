@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { currentBusinessDate } from '../../utils/bookingDisplay';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
 import organizationService from '../../services/organizationService';
 import queueService from '../../services/queueService';
 import { StatusBadge } from '../../components/StatusBadge';
 import { LoadingState } from '../../components/LoadingState';
 import { EmptyState } from '../../components/EmptyState';
+import { StaffBookingForm } from '../../components/StaffBookingForm';
 import { deriveProfessionalDisplay } from '../../utils/providerDisplay';
 
 export function StaffQueuePage() {
@@ -13,6 +15,8 @@ export function StaffQueuePage() {
   const [providers, setProviders] = useState([]);
   const [selectedProviderId, setSelectedProviderId] = useState('');
   const [queueEntries, setQueueEntries] = useState([]);
+  const [queueDate, setQueueDate] = useState(currentBusinessDate);
+  const [queueDates, setQueueDates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionFeedback, setActionFeedback] = useState(null);
@@ -26,6 +30,7 @@ export function StaffQueuePage() {
     }
 
     let isMounted = true;
+    setProviders([]); setSelectedProviderId(''); setQueueEntries([]); setQueueDates([]);
     setLoading(true);
 
     organizationService
@@ -38,7 +43,7 @@ export function StaffQueuePage() {
           setSelectedProviderId(list[0].id);
         }
       })
-      .catch(() => setError('Failed to load organization providers.'))
+      .catch(() => { if (isMounted) setError('Failed to load organization providers.'); })
       .finally(() => {
         if (isMounted) setLoading(false);
       });
@@ -48,7 +53,12 @@ export function StaffQueuePage() {
     };
   }, [currentOrg?.id]);
 
+  const queueContext = `${currentOrg?.id}:${selectedProviderId}:${queueDate}`;
+  const latestQueueContext = useRef(queueContext);
+  useLayoutEffect(() => { latestQueueContext.current = queueContext; }, [queueContext]);
+
   const fetchQueue = async () => {
+    const context = queueContext;
     if (!currentOrg?.id || !selectedProviderId) {
       setQueueEntries([]);
       return;
@@ -56,18 +66,21 @@ export function StaffQueuePage() {
     try {
       const data = await queueService.getProviderQueue(
         currentOrg.id,
-        selectedProviderId
+        selectedProviderId, queueDate
       );
+      if (context !== latestQueueContext.current) return;
       const list = Array.isArray(data) ? data : data.entries || data.results || [];
       setQueueEntries(list);
+      setQueueDates(data.available_queue_dates || []);
     } catch (err) {
+      if (context !== latestQueueContext.current) return;
       setError('Failed to fetch provider queue.');
     }
   };
 
   useEffect(() => {
     fetchQueue();
-  }, [currentOrg?.id, selectedProviderId]);
+  }, [currentOrg?.id, selectedProviderId, queueDate]);
 
   useEffect(() => {
     if (!currentOrg?.id || !selectedProviderId) return;
@@ -75,7 +88,7 @@ export function StaffQueuePage() {
       fetchQueue();
     }, 10000);
     return () => clearInterval(interval);
-  }, [currentOrg?.id, selectedProviderId]);
+  }, [currentOrg?.id, selectedProviderId, queueDate]);
 
   const handleCallNext = async () => {
     if (!currentOrg?.id || !selectedProviderId) return;
@@ -84,14 +97,14 @@ export function StaffQueuePage() {
     setError(null);
 
     try {
-      const entry = await queueService.callNext(currentOrg.id, selectedProviderId);
+      const entry = await queueService.callNext(currentOrg.id, selectedProviderId, queueDate);
       setActionFeedback({
         type: 'success',
         message: `Called Serial #${entry.serial_number || entry.token_number} (${entry.customer_name || entry.customer_email}).`,
       });
       fetchQueue();
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Failed to call next patient. Ensure next patient is checked in.';
+      const msg = err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to call next patient. Ensure next patient is checked in.';
       setActionFeedback({ type: 'error', message: msg });
     } finally {
       setProcessingId(null);
@@ -108,7 +121,7 @@ export function StaffQueuePage() {
       setActionFeedback({ type: 'success', message: 'Started service for patient.' });
       fetchQueue();
     } catch (err) {
-      setActionFeedback({ type: 'error', message: err.response?.data?.detail || 'Failed to start service.' });
+      setActionFeedback({ type: 'error', message: err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to start service.' });
     } finally {
       setProcessingId(null);
     }
@@ -124,7 +137,7 @@ export function StaffQueuePage() {
       setActionFeedback({ type: 'success', message: 'Completed appointment service.' });
       fetchQueue();
     } catch (err) {
-      setActionFeedback({ type: 'error', message: err.response?.data?.detail || 'Failed to complete service.' });
+      setActionFeedback({ type: 'error', message: err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to complete service.' });
     } finally {
       setProcessingId(null);
     }
@@ -140,7 +153,7 @@ export function StaffQueuePage() {
       setActionFeedback({ type: 'success', message: 'Skipped entry and marked appointment NO_SHOW.' });
       fetchQueue();
     } catch (err) {
-      setActionFeedback({ type: 'error', message: err.response?.data?.detail || 'Failed to skip entry.' });
+      setActionFeedback({ type: 'error', message: err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to skip entry.' });
     } finally {
       setProcessingId(null);
     }
@@ -192,6 +205,10 @@ export function StaffQueuePage() {
         </div>
       </div>
 
+      <div className="card">
+        <label>Booking-date queue<input className="form-control" type="date" value={queueDate} onChange={e => setQueueDate(e.target.value)} /></label>
+        {queueDates.filter(date => date !== queueDate).map(date => <button key={date} className="btn btn-sm btn-outline" onClick={() => setQueueDate(date)}>Unfinished queue: {date}</button>)}
+      </div>
       {actionFeedback && (
         <div
           className="banner"
@@ -298,6 +315,20 @@ export function StaffQueuePage() {
             </div>
           </div>
 
+          <StaffBookingForm key={`${currentOrg.id}:${selectedProviderId}`} orgId={currentOrg.id} providerId={selectedProviderId} onBooked={fetchQueue} />
+          {queueEntries.some(entry => entry.status === 'SKIPPED') && <div className="card">
+            <h3>Skipped customers</h3>
+            <p className="text-sm text-muted">Restore only when the customer returns. Their original serial is retained; an active consultation continues uninterrupted.</p>
+            {queueEntries.filter(entry => entry.status === 'SKIPPED').map(entry => <div key={entry.id} className="flex justify-between items-center gap-md">
+              <span>#{entry.serial_number} · {entry.customer_name}</span>
+              <button className="btn btn-secondary" disabled={processingId !== null} onClick={async () => {
+                setProcessingId(entry.id);
+                try { await queueService.restoreEntry(currentOrg.id, entry.id); setActionFeedback({ type: 'success', message: 'Customer restored with their original serial.' }); await fetchQueue(); }
+                catch (error) { setActionFeedback({ type: 'error', message: error.response?.data?.error?.message || 'Could not restore customer.' }); }
+                finally { setProcessingId(null); }
+              }}>Restore to Queue</button>
+            </div>)}
+          </div>}
           {/* Queue List Table */}
           <div className="card animate-section stagger-2">
             <h3>Waiting Patients ({waitingEntries.length})</h3>
@@ -315,12 +346,12 @@ export function StaffQueuePage() {
                       <th>Patient Name</th>
                       <th>Arrival Type</th>
                       <th>Check-In Status</th>
-                      <th>Priority</th>
+
                     </tr>
                   </thead>
                   <tbody>
                     {waitingEntries.map((entry) => (
-                      <tr key={entry.id} style={{ background: entry.is_urgent ? 'var(--color-danger-bg, rgba(239, 68, 68, 0.12))' : 'transparent' }}>
+                      <tr key={entry.id}>
                         <td>
                           <span className="badge badge-info" style={{ fontSize: '0.85rem', fontWeight: 700 }}>
                             #{entry.serial_number || entry.token_number}
@@ -337,13 +368,6 @@ export function StaffQueuePage() {
                             <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>✓ Checked In</span>
                           ) : (
                             <span className="badge badge-warning" style={{ fontSize: '0.75rem' }}>⏳ Waiting Arrival</span>
-                          )}
-                        </td>
-                        <td>
-                          {entry.is_urgent ? (
-                            <span className="badge badge-danger" style={{ fontSize: '0.75rem', fontWeight: 700 }}>🚨 URGENT</span>
-                          ) : (
-                            <span className="text-xs text-muted">Normal</span>
                           )}
                         </td>
                       </tr>

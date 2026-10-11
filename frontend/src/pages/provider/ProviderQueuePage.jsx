@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { currentBusinessDate } from '../../utils/bookingDisplay';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTenant } from '../../contexts/TenantContext';
 import organizationService from '../../services/organizationService';
@@ -13,6 +14,8 @@ export function ProviderQueuePage() {
 
   const [providerProfile, setProviderProfile] = useState(null);
   const [queueEntries, setQueueEntries] = useState([]);
+  const [queueDate, setQueueDate] = useState(currentBusinessDate);
+  const [queueDates, setQueueDates] = useState([]);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,11 +33,6 @@ export function ProviderQueuePage() {
     notes: '',
   });
 
-  // Urgent modal state
-  const [showUrgentModal, setShowUrgentModal] = useState(false);
-  const [urgentEntryId, setUrgentEntryId] = useState(null);
-  const [urgentReason, setUrgentReason] = useState('');
-
   useEffect(() => {
     if (!currentOrg?.id || !user?.id) {
       setProviderProfile(null);
@@ -43,6 +41,7 @@ export function ProviderQueuePage() {
     }
 
     let isMounted = true;
+    setProviderProfile(null); setQueueEntries([]); setQueueDates([]);
     setLoading(true);
 
     Promise.all([
@@ -73,14 +72,22 @@ export function ProviderQueuePage() {
     };
   }, [currentOrg?.id, user?.id]);
 
+  const queueContext = `${currentOrg?.id}:${providerProfile?.id}:${queueDate}`;
+  const latestQueueContext = useRef(queueContext);
+  useLayoutEffect(() => { latestQueueContext.current = queueContext; }, [queueContext]);
+
   const fetchQueue = async () => {
+    const context = queueContext;
     if (!currentOrg?.id || !providerProfile?.id) return;
     try {
-      const data = await queueService.getProviderQueue(currentOrg.id, providerProfile.id);
+      const data = await queueService.getProviderQueue(currentOrg.id, providerProfile.id, queueDate);
+      if (context !== latestQueueContext.current) return;
       const list = Array.isArray(data) ? data : data.entries || data.results || [];
       setQueueEntries(list);
+      setQueueDates(data.available_queue_dates || []);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to update queue data.');
+      if (context !== latestQueueContext.current) return;
+      setError(err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to update queue data.');
     }
   };
 
@@ -88,7 +95,7 @@ export function ProviderQueuePage() {
     if (providerProfile?.id) {
       fetchQueue();
     }
-  }, [currentOrg?.id, providerProfile?.id]);
+  }, [currentOrg?.id, providerProfile?.id, queueDate]);
 
   useEffect(() => {
     if (!autoRefresh || !providerProfile?.id) return;
@@ -107,14 +114,14 @@ export function ProviderQueuePage() {
     setError(null);
 
     try {
-      const entry = await queueService.callNext(currentOrg.id, providerProfile.id);
+      const entry = await queueService.callNext(currentOrg.id, providerProfile.id, queueDate);
       setActionFeedback({
         type: 'success',
         message: `Called Serial #${entry.serial_number || entry.token_number} (${entry.customer_name || entry.customer_email}).`,
       });
       fetchQueue();
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Failed to call next patient. Ensure next patient is checked in.';
+      const msg = err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to call next patient. Ensure next patient is checked in.';
       setActionFeedback({ type: 'error', message: msg });
     } finally {
       setProcessingId(null);
@@ -130,7 +137,7 @@ export function ProviderQueuePage() {
       setActionFeedback({ type: 'success', message: 'Started service for patient.' });
       fetchQueue();
     } catch (err) {
-      setActionFeedback({ type: 'error', message: err.response?.data?.detail || 'Failed to start service.' });
+      setActionFeedback({ type: 'error', message: err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to start service.' });
     } finally {
       setProcessingId(null);
     }
@@ -145,7 +152,7 @@ export function ProviderQueuePage() {
       setActionFeedback({ type: 'success', message: 'Completed appointment service.' });
       fetchQueue();
     } catch (err) {
-      setActionFeedback({ type: 'error', message: err.response?.data?.detail || 'Failed to complete service.' });
+      setActionFeedback({ type: 'error', message: err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to complete service.' });
     } finally {
       setProcessingId(null);
     }
@@ -160,7 +167,7 @@ export function ProviderQueuePage() {
       setActionFeedback({ type: 'success', message: 'Skipped entry and marked appointment NO_SHOW.' });
       fetchQueue();
     } catch (err) {
-      setActionFeedback({ type: 'error', message: err.response?.data?.detail || 'Failed to skip entry.' });
+      setActionFeedback({ type: 'error', message: err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to skip entry.' });
     } finally {
       setProcessingId(null);
     }
@@ -181,25 +188,7 @@ export function ProviderQueuePage() {
       setWalkInForm({ first_name: '', last_name: '', phone_number: '', service_id: services[0]?.id || '', notes: '' });
       fetchQueue();
     } catch (err) {
-      setActionFeedback({ type: 'error', message: err.response?.data?.detail || 'Failed to register walk-in patient.' });
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleMarkUrgentSubmit = async (e) => {
-    e.preventDefault();
-    if (!currentOrg?.id || !urgentEntryId) return;
-    setProcessingId(urgentEntryId);
-
-    try {
-      await queueService.markUrgent(currentOrg.id, urgentEntryId, urgentReason);
-      setActionFeedback({ type: 'success', message: 'Queue entry bumped as URGENT.' });
-      setShowUrgentModal(false);
-      setUrgentReason('');
-      fetchQueue();
-    } catch (err) {
-      setActionFeedback({ type: 'error', message: err.response?.data?.detail || 'Failed to mark urgent.' });
+      setActionFeedback({ type: 'error', message: err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to register walk-in patient.' });
     } finally {
       setProcessingId(null);
     }
@@ -249,6 +238,10 @@ export function ProviderQueuePage() {
         </div>
       </div>
 
+      <div className="card">
+        <label>Booking-date queue<input className="form-control" type="date" value={queueDate} onChange={e => setQueueDate(e.target.value)} /></label>
+        {queueDates.filter(date => date !== queueDate).map(date => <button key={date} className="btn btn-sm btn-outline" onClick={() => setQueueDate(date)}>Unfinished queue: {date}</button>)}
+      </div>
       {actionFeedback && (
         <div
           className="banner"
@@ -365,13 +358,11 @@ export function ProviderQueuePage() {
                   <th>Patient Name & Contact</th>
                   <th>Arrival Type</th>
                   <th>Presence / Check-In</th>
-                  <th>Priority</th>
-                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {waitingEntries.map((entry) => (
-                  <tr key={entry.id} style={{ background: entry.is_urgent ? 'var(--color-danger-light)' : 'transparent' }}>
+                  <tr key={entry.id}>
                     <td>
                       <span className="badge badge-info" style={{ fontSize: '0.9rem', fontWeight: 800 }}>
                         #{entry.serial_number || entry.token_number}
@@ -391,27 +382,6 @@ export function ProviderQueuePage() {
                         <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>✓ Checked In</span>
                       ) : (
                         <span className="badge badge-warning" style={{ fontSize: '0.75rem' }}>⏳ Not Checked In</span>
-                      )}
-                    </td>
-                    <td>
-                      {entry.is_urgent ? (
-                        <span className="badge badge-danger" style={{ fontSize: '0.75rem', fontWeight: 700 }}>🚨 URGENT</span>
-                      ) : (
-                        <span className="text-xs text-muted">Normal</span>
-                      )}
-                    </td>
-                    <td>
-                      {!entry.is_urgent && (
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => {
-                            setUrgentEntryId(entry.id);
-                            setShowUrgentModal(true);
-                          }}
-                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
-                        >
-                          ⚡ Mark Urgent
-                        </button>
                       )}
                     </td>
                   </tr>
@@ -486,37 +456,7 @@ export function ProviderQueuePage() {
         </div>
       )}
 
-      {/* Mark Urgent Modal */}
-      {showUrgentModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div className="card animate-zoom-in" style={{ width: '90%', maxWidth: '450px', background: 'var(--lp-surface)', color: 'var(--lp-text)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--lp-border)' }}>
-            <h3 style={{ marginBottom: '1rem', color: 'var(--color-danger)' }}>Bump Patient as Urgent</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginBottom: '1rem' }}>
-              Urgent entries are prioritized to the top of the waiting queue and will be called next.
-            </p>
-            <form onSubmit={handleMarkUrgentSubmit}>
-              <div className="form-group">
-                <label className="form-label">Reason for Emergency/Urgent Bump</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. Acute pain / High priority triage"
-                  value={urgentReason}
-                  onChange={(e) => setUrgentReason(e.target.value)}
-                />
-              </div>
-              <div className="flex justify-end gap-sm" style={{ marginTop: '1.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowUrgentModal(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-danger">
-                  Confirm Urgent Bump
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }

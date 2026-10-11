@@ -1,3 +1,4 @@
+import { useBookingWindow } from '../../hooks/useBookingWindow';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTenant } from '../../contexts/TenantContext';
@@ -9,7 +10,7 @@ import BookingReviewModal from '../../components/BookingReviewModal';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import { deriveProfessionalDisplay } from '../../utils/providerDisplay';
-import { formatCurrency, providerCharge, bookingError, currentBusinessDate } from '../../utils/bookingDisplay';
+import { formatCurrency, providerCharge, bookingError } from '../../utils/bookingDisplay';
 import { weeklyWindows } from '../../utils/scheduleDisplay';
 import { BookingContactFields, BookingSummary } from '../../components/BookingContact';
 import { useBookingContact } from '../../hooks/useBookingContact';
@@ -53,10 +54,10 @@ export function BookAppointmentPage() {
   const contact = useBookingContact();
   const [searchParams] = useSearchParams();
   const { selectOrg } = useTenant();
-  const today = currentBusinessDate();
+  const { first: today, last: lastBookingDate } = useBookingWindow();
   const [selection, setSelection] = useState(() => {
     const requestedDate = searchParams.get('date');
-    const date = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate || '') && requestedDate >= today ? requestedDate : today;
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate || '') && requestedDate >= today && requestedDate <= lastBookingDate ? requestedDate : today;
     return { category: '', organization: '', service: '', provider: '', date };
   });
   const selectionRef = useRef(selection);
@@ -192,7 +193,7 @@ export function BookAppointmentPage() {
   const charge = providerCharge(selectedProvider, selection.service);
   const isPastDate = selection.date < today;
   const availability = availabilityResult?.key === availabilityKey ? availabilityResult.data : null;
-  const validDate = Boolean(selection.date && !isPastDate && availability?.is_available === true && !loadingAvailability);
+  const validDate = Boolean(selection.date && !isPastDate && selection.date <= lastBookingDate && availability?.is_available === true && !loadingAvailability);
   const ready = Boolean(selectedCategory && selectedOrg && selectedService && selectedProvider && validDate && charge != null && Number.isFinite(Number(charge)) && contact.valid);
   const currentStep = !selectedCategory ? 1 : !selectedOrg ? 2 : !selectedService ? 3 : !selectedProvider ? 4 : !validDate ? 5 : 6;
 
@@ -309,7 +310,7 @@ export function BookAppointmentPage() {
         </SelectionSection>}
         {selectedProvider && <SelectionSection number={5} title="Appointment Date">
           <label className="form-label" htmlFor="appointment_date_input">Appointment Date</label>
-          <input id="appointment_date_input" className="form-control direct-date-input" type="date" min={today} value={selection.date} onChange={e => choose('date', e.target.value)} />
+          <input id="appointment_date_input" className="form-control direct-date-input" type="date" min={today} max={lastBookingDate} value={selection.date} onChange={e => choose('date', e.target.value)} />
           <div className="direct-availability" aria-live="polite">
             {isPastDate && <p className="banner banner-danger">Appointments cannot be booked for a past date.</p>}
             {loadingAvailability && <p>Checking provider availability…</p>}

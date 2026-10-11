@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, time, timedelta
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -119,7 +120,12 @@ class AppointmentListCreateView(APIView):
         if date_param:
             try:
                 on_date = datetime.strptime(date_param, '%Y-%m-%d').date()
-                qs = qs.filter(start_datetime__date=on_date)
+                # Use the immutable booking date; pre-date-field records retain
+                # a Dhaka calendar-date fallback without modifying legacy rows.
+                from .services import get_project_tz
+                day_start = datetime.combine(on_date, time.min, tzinfo=get_project_tz())
+                day_end = datetime.combine(on_date + timedelta(days=1), time.min, tzinfo=get_project_tz())
+                qs = qs.filter(Q(appointment_date=on_date) | Q(appointment_date__isnull=True, start_datetime__gte=day_start, start_datetime__lt=day_end))
             except ValueError:
                 pass
 
@@ -225,15 +231,7 @@ class AppointmentDetailView(APIView):
         if not self._check_object(request, appointment):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        # Only the customer (owner), manager, staff, or admin may reschedule.
-        # Providers who are not the customer cannot reschedule someone else's booking.
-        org_id = organization_id
-        if not (
-            _is_admin(request.user)
-            or _is_org_manager(request.user, org_id)
-            or _is_org_staff(request.user, org_id)
-            or appointment.customer_id == request.user.id
-        ):
+        if appointment.customer_id != request.user.id:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         serializer = AppointmentRescheduleSerializer(data=request.data)
@@ -242,6 +240,7 @@ class AppointmentDetailView(APIView):
 
         updated = AppointmentService.reschedule_appointment(
             appointment=appointment,
+            actor=request.user,
             appointment_date=serializer.validated_data.get('appointment_date'),
             start_datetime=serializer.validated_data.get('start_datetime'),
         )
@@ -484,9 +483,9 @@ class OrganizationAppointmentIssueResolveView(APIView):
         notes = request.data.get('notes', '')
 
         with transaction.atomic():
+            _, entry, appointment = AppointmentService._locked_booking(appointment)
             now = timezone.now()
             from apps.queue.models import QueueEntry
-            entry = QueueEntry.objects.filter(appointment=appointment).first()
 
             if resolution_outcome == 'COMPLETED':
                 report.status = AppointmentIssueReport.Status.RESOLVED

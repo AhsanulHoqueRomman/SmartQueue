@@ -110,7 +110,7 @@ Business Rules and Queue State Machine own the detailed rules; preserve these bo
 5. Preserve booking price/contact snapshots where implemented; never silently update the customer profile.
 6. Never fabricate historical charge or duration facts; nullable legacy snapshots remain unknown.
 7. Call Next is presence-gated among eligible checked-in waiting entries.
-8. Preserve urgent-first, then serial ordering; booking channel does not set priority.
+8. Preserve ascending serial ordering among checked-in waiting customers; no urgent/customer priority. Booking channel does not set priority.
 9. Preserve explicit call/start/complete/skip transitions and Appointment versus QueueEntry status distinctions.
 10. Do not auto-complete or auto-call based on ETA or elapsed duration.
 11. Forecast reservations and physically callable customers are different populations.
@@ -123,7 +123,7 @@ Business Rules and Queue State Machine own the detailed rules; preserve these bo
 18. Known defects stay open until evidence supports a separately authorized resolution.
 
 Do not turn advisory check-in windows into enforced policy or invent recall, overnight, repricing or payment behavior.
-The active-service guard is provider/date-specific; do not claim universal concurrency safety.
+M2 active-service coordination is provider-wide across dates. Focused PostgreSQL races do not establish universal deadlock freedom or production certification.
 
 ## G. Registers, findings and pending decisions
 

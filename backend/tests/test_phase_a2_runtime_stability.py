@@ -120,7 +120,8 @@ class TestPhaseA2RuntimeStability:
         assert str(res.data['id']) == str(appt.id)
         assert res.data['serial_number'] == 1
         assert res.data['can_check_in'] is True
-        assert res.data['can_cancel'] is True
+        # This legacy fixture has no approved provider hours; a deadline cannot be established.
+        assert res.data['can_cancel'] is False
 
         # Other customer login -> 403
         other_customer = User.objects.create_user(email='other_a2@example.com', password='Password123!')

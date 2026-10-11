@@ -29,6 +29,7 @@ from apps.providers.models import (
     WeeklySchedule,
 )
 from apps.services.models import Service
+from apps.queue.models import QueueEntry
 
 TZ = ZoneInfo(settings.TIME_ZONE)
 
@@ -74,11 +75,14 @@ def _next_weekday(weekday: int, weeks_ahead: int = 1) -> date:
 
 
 @pytest.fixture
-def booking_setup(create_user):
+def booking_setup(create_user, monkeypatch):
     """
     Full org setup ready for availability/booking tests.
     Returns a namespace-like dict.
     """
+    # Keep success cases inside M2's four-date window and before both deadlines.
+    today = timezone.localtime(timezone.now(), TZ).date()
+    monkeypatch.setattr(timezone, 'now', lambda: _aware(today, time(7)))
     manager = create_user(email='manager@example.com')
     provider_user = create_user(email='provider@example.com')
     staff_user = create_user(email='staff@example.com')
@@ -113,11 +117,10 @@ def booking_setup(create_user):
     )
     ProviderService.objects.create(provider=provider, service=service)
 
-    # Use a future Monday (weekday=0)
-    work_date = _next_weekday(0, weeks_ahead=2)
+    work_date = today
     schedule = WeeklySchedule.objects.create(
         provider=provider,
-        day_of_week=0,
+        day_of_week=work_date.weekday(),
         start_time=time(9, 0),
         end_time=time(12, 0),
         is_working_day=True,
@@ -262,12 +265,12 @@ class TestAvailability:
 
     def test_no_schedule_empty(self, api_client, booking_setup):
         s = booking_setup
-        # Tuesday has no schedule
-        tuesday = _next_weekday(1, weeks_ahead=2)
+        # Tomorrow is inside the booking window but has no schedule.
+        unscheduled_date = s['work_date'] + timedelta(days=1)
         _login(api_client, 'customer@example.com')
         res = api_client.get(
             _availability_url(s['org'].id, s['provider'].id),
-            {'service_id': str(s['service'].id), 'date': tuesday.isoformat()},
+            {'service_id': str(s['service'].id), 'date': unscheduled_date.isoformat()},
         )
         assert res.data['slots'] == []
 
@@ -782,7 +785,7 @@ class TestCancelRescheduleCheckIn:
     def _make_appt(self, s, status=Appointment.Status.CONFIRMED, hour=10):
         today = timezone.localdate()
         start = _aware(today, time(hour, 0))
-        return Appointment.objects.create(
+        appt = Appointment.objects.create(
             organization=s['org'],
             customer=s['customer'],
             provider=s['provider'],
@@ -793,6 +796,13 @@ class TestCancelRescheduleCheckIn:
             serial_number=1,
             status=status,
         )
+        # Self-rescheduling requires the linked waiting entry created by booking.
+        QueueEntry.objects.create(
+            organization=s['org'], provider=s['provider'], appointment=appt,
+            queue_date=today, serial_number=1, token_number=1,
+            status=status if status in ('CANCELLED', 'COMPLETED') else 'WAITING',
+        )
+        return appt
 
     def test_valid_cancellation(self, api_client, booking_setup):
         s = booking_setup
@@ -846,6 +856,9 @@ class TestCancelRescheduleCheckIn:
         assert res.status_code == status.HTTP_200_OK
         assert 'T11:00' in res.data['start_datetime']
         assert 'T11:30' in res.data['end_datetime']
+        appt.refresh_from_db()
+        assert appt.serial_number == appt.queue_entry.serial_number == 1
+        assert appt.queue_entry.queue_date == s['work_date']
 
     def test_reschedule_updates_appointment(self, api_client, booking_setup):
         s = booking_setup
