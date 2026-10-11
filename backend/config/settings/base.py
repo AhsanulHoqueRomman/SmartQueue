@@ -7,8 +7,11 @@ from dotenv import load_dotenv
 # BASE_DIR is backend/
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-# Load environment variables from .env
-load_dotenv(os.path.join(BASE_DIR, '.env'))
+# Production receives configuration from the process environment, never a
+# developer's local .env. Local management commands/tests retain .env support.
+_production = os.getenv('DJANGO_SETTINGS_MODULE') == 'config.settings.production'
+if not _production:
+    load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'default-unsecure-secret-key-change-in-env')
 
@@ -83,7 +86,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
-if os.getenv('USE_SQLITE', 'false').lower() in ('true', '1') or 'pytest' in sys.modules or 'test' in sys.argv:
+if not _production and (os.getenv('USE_SQLITE', 'false').lower() in ('true', '1') or 'pytest' in sys.modules or 'test' in sys.argv):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

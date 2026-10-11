@@ -234,16 +234,16 @@ ContactMessageCreateView validates/throttles, persists inquiry, then invokes adm
 
 | Area | Source-configured / documented | Verification limit |
 |---|---|---|
-| Django settings | base + development/production; dotenv; PostgreSQL env fields/default; SQLite when USE_SQLITE, pytest module or test argv detected | No `.env` secrets/live connection queried; actual engine/schema/applied migrations U |
-| Security | Development DEBUG/CORS-all; production secret/hosts validation, secure cookies/SSL/HSTS/CSRF origins | Not a deployed security certification; don't reuse development allowances as production policy |
+| Django settings | Development loads local dotenv and retains PostgreSQL defaults/test SQLite detection; production reads explicit process configuration and rejects SQLite | Batch A Part 2 synthetic startup verified; this does not certify production connectivity/schema |
+| Security | Development DEBUG/CORS-all; production validates explicit secret/hosts/PostgreSQL, secure cookies and HTTPS origins; forwarded-scheme trust and HSTS require deliberate configuration | Hosting-independent startup checks, not deployed TLS/proxy/storage certification; see DEPLOYMENT.md |
 | Auth/API | DRF JWT/filter/schema/exception config; contact/reset throttle rates; FRONTEND_URL | No HTTP/refresh/throttle execution |
 | Static/media | Public default storage remains for avatars; guarded DEBUG media excludes verification files. Separate private_documents storage alias covers provider/organization/credential attachments. | F-024 implemented with scoped attachment APIs; external production persistence/serving controls remain unverified. |
 | Frontend | Vite React config; Axios VITE_API_BASE_URL with local fallback; VITE_API_DOCS_URL or derived docs URL | Build not run; installed browser/dependency behavior U |
-| Dependencies | Root requirements includes Resend and pytest 8.4.2; backend requirements declares pytest 9.1.1 and omits Resend; package.json + lockfile define frontend | Declaration discrepancy is an unconfirmed environment lead, not an installed-version diagnosis or new F ID |
+| Dependencies | Root requirements is the authoritative UTF-8 pinned backend source; backend requirements includes it; Resend 2.47.0 and required Pillow 12.3.0 declared; existing pytest 8.4.2 retained | Batch A Part 2 resolves declaration drift without upgrading unrelated pins; package.json/lockfile unchanged |
 | Email/logging | Resend SDK wrapper uses process env; module logger reports skipped/failed/sent context; configured from display name | No live send, private inbox, provider logs or production logging destination inspected |
-| Deployment | WSGI/ASGI default to development settings unless externally overridden; Procfile invokes WSGI; explicit production settings exist | Verify actual production settings and private serving before sensitive uploads (F-024); no deployed host/proxy/storage certification |
+| Deployment | WSGI/ASGI default to production; Procfile explicitly selects production; manage.py/pytest retain intentional development selection; production does not automatically load local .env | See DEPLOYMENT.md for explicit variables and startup; F-024 external serving/persistence remains a release gate |
 
-Sources: `backend/config/settings/base.py`, development.py/production.py, `requirements.txt`, `backend/requirements.txt`, `frontend/package.json`, `frontend/vite.config.js`, `frontend/src/api/client.js`, `backend/apps/contact/email_service.py`. Installed versions, secrets and live environment are intentionally outside this phase.
+Sources: `backend/config/settings/base.py`, development.py/production.py, `requirements.txt`, `backend/requirements.txt`, `frontend/package.json`, `frontend/vite.config.js`, `frontend/src/api/client.js`, `backend/apps/contact/email_service.py`. Batch A Part 2 checks installed dependency imports and synthetic production startup; real secrets, delivery and deployed infrastructure are not certified. [Deployment contract](DEPLOYMENT.md).
 
 ## O. Test and verification architecture
 

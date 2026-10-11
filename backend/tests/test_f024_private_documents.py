@@ -303,11 +303,11 @@ def test_own_document_history_access_does_not_grant_revoked_provider_operations(
     assert response.status_code == 403 and provider.documents.count() == 1
 
 
-def test_production_module_refuses_missing_storage_configuration():
+def test_production_module_refuses_missing_storage_configuration(production_environment):
     import os
     import subprocess
     import sys
-    variables = {**os.environ, 'SECRET_KEY': 'f024-configuration-test-only-9374' * 3,
+    variables = {**production_environment, 'SECRET_KEY': 'f024-configuration-test-only-9374' * 3,
                  'ALLOWED_HOSTS': 'localhost', 'PRIVATE_DOCUMENT_ROOT': '',
                  'PRIVATE_DOCUMENT_STORAGE_BACKEND': '', 'PRIVATE_DOCUMENT_STORAGE_PERSISTENT': ''}
     result = subprocess.run([sys.executable, '-c',
@@ -316,12 +316,12 @@ def test_production_module_refuses_missing_storage_configuration():
     assert result.returncode != 0 and 'private_documents storage alias' in result.stderr
 
 
-def test_production_module_accepts_explicit_private_persistent_configuration(tmp_path):
+def test_production_module_accepts_explicit_private_persistent_configuration(tmp_path, production_environment):
     import json
     import os
     import subprocess
     import sys
-    variables = {**os.environ, 'SECRET_KEY': 'f024-configuration-test-only-9374' * 3,
+    variables = {**production_environment, 'SECRET_KEY': 'f024-configuration-test-only-9374' * 3,
                  'ALLOWED_HOSTS': 'localhost', 'PRIVATE_DOCUMENT_STORAGE_BACKEND': 'config.private_documents.PrivateDocumentStorage',
                  'PRIVATE_DOCUMENT_STORAGE_OPTIONS': json.dumps({'location': str(tmp_path / 'persistent')}),
                  'PRIVATE_DOCUMENT_STORAGE_PERSISTENT': 'true'}

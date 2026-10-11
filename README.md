@@ -90,8 +90,11 @@ python -m venv .venv
 # On macOS/Linux:
 source .venv/bin/activate
 
-# Install dependencies
-pip install django djangorestframework djangorestframework-simplejwt django-cors-headers drf-spectacular pytest pytest-django
+# Install the pinned backend dependencies (includes the repository-root file)
+python -m pip install -r requirements.txt
+
+# Copy .env.example to .env and configure local values; never use this file
+# as production configuration. See docs/DEPLOYMENT.md from the repository root.
 
 # Run migrations
 python manage.py migrate
@@ -102,6 +105,12 @@ python manage.py seed_demo_data
 # Start Django development server (runs on http://127.0.0.1:8000)
 python manage.py runserver
 ```
+
+The root `requirements.txt` is the authoritative backend dependency source;
+`backend/requirements.txt` includes it. WSGI/ASGI default to production and fail
+if required configuration is missing. `manage.py` intentionally defaults to
+development; use explicit production settings for deployment administration.
+See [deployment configuration](docs/DEPLOYMENT.md) before any release.
 
 ### 2. Frontend Setup
 ```bash
@@ -149,4 +158,3 @@ npm run build
 - **Cross-Customer Security**: Customers cannot view or mutate another customer's appointments, queue tokens, notifications, or reviews (`403 Forbidden` / `404 Not Found`).
 - **Audit Logging**: Sensitive operations (`APPOINTMENT_BOOKED`, `QUEUE_CALLED`, `QUEUE_SKIPPED`, `REVIEW_CREATED`) emit immutable audit logs.
 - **Password Reset Security**: End-to-end password reset flow powered by Django `default_token_generator`, URL-safe base64 UID encoding, Resend transactional email, rate-limiting (`5/hour`), single-use token invalidation, and generic non-enumerating responses to prevent account enumeration. Development uses `onboarding@resend.dev` (custom verified domain required for production email delivery).
-

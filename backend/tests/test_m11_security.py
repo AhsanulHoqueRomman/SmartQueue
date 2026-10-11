@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-import importlib
 import pytest
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -209,20 +208,26 @@ class TestRoleAuthorizationBoundaries:
 
 
 class TestProductionSettingsSecurity:
-    def test_production_settings_validation_and_defaults(self, monkeypatch):
-        valid_secret = 'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+' * 2
-        monkeypatch.setenv('SECRET_KEY', valid_secret)
-        monkeypatch.setenv('ALLOWED_HOSTS', 'example.com')
-
-        import config.settings.base as base
-        importlib.reload(base)
-
-        import config.settings.production as prod
-        importlib.reload(prod)
-
-        assert prod.DEBUG is False
-        assert prod.SESSION_COOKIE_SECURE is True
-        assert prod.CSRF_COOKIE_SECURE is True
-        assert prod.SECURE_HSTS_SECONDS == 31536000
-        assert prod.SECURE_HSTS_INCLUDE_SUBDOMAINS is True
-        assert prod.SECURE_HSTS_PRELOAD is True
+    def test_production_settings_validation_and_defaults(self, production_environment):
+        # Separate startup avoids mutating shared development settings or loading
+        # local credentials. HSTS is enabled only after HTTPS topology review.
+        import subprocess
+        import sys
+        from pathlib import Path
+        script = """
+import os
+os.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings.production'
+import django
+django.setup()
+from django.conf import settings
+assert settings.DEBUG is False
+assert settings.SESSION_COOKIE_SECURE is True
+assert settings.CSRF_COOKIE_SECURE is True
+assert settings.SECURE_HSTS_SECONDS == 0
+assert settings.SECURE_HSTS_INCLUDE_SUBDOMAINS is False
+assert settings.SECURE_HSTS_PRELOAD is False
+assert settings.SECURE_PROXY_SSL_HEADER is None
+"""
+        result = subprocess.run([sys.executable, '-c', script], env=production_environment,
+            cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, timeout=20)
+        assert result.returncode == 0, result.stderr
