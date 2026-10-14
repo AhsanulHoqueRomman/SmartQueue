@@ -69,13 +69,20 @@ def validate_schedule(data):
 def booking_conflicts(request):
     from apps.appointments.models import Appointment
     # Protect all existing active commitments, including previously approved long-horizon bookings.
-    appointments = Appointment.objects.filter(provider=request.provider, appointment_date__gte=request.effective_date, status__in=Appointment.BLOCKING_STATUSES)
+    from django.db.models import Q
+    from apps.appointments.capacity import at_date
+    from apps.queue.services import business_date_for_appointment
+    start = at_date(request.effective_date, time.min)
+    dates = Q(appointment_date__gte=request.effective_date) | Q(appointment_date__isnull=True, start_datetime__gte=start)
     if request.kind == 'SPECIFIC_DATE':
-        appointments = appointments.filter(appointment_date=request.effective_date)
+        dates = Q(appointment_date=request.effective_date) | Q(appointment_date__isnull=True, start_datetime__gte=start, start_datetime__lt=start+timedelta(days=1))
+    from .emergency_read import operational_appointments
+    appointments = operational_appointments(Appointment.objects).filter(dates, provider=request.provider, status__in=Appointment.BLOCKING_STATUSES)
     conflicts = []
     for appt in appointments:
-        proposed = next((d for d in request.proposed_schedule if d['day_of_week'] == appt.appointment_date.weekday()), None)
-        old = effective_schedule(request.provider, appt.appointment_date)
+        on_date = business_date_for_appointment(appt)
+        proposed = next((d for d in request.proposed_schedule if d['day_of_week'] == on_date.weekday()), None)
+        old = effective_schedule(request.provider, on_date)
         if not proposed or not proposed['is_working_day'] or not old:
             conflict = True
         else:
@@ -85,7 +92,20 @@ def booking_conflicts(request):
             old_breaks = {(b.start_time, b.end_time) for b in old.breaks.all()}
             conflict = conflict or any((b.start_time, b.end_time) not in old_breaks for b in new.breaks.all())
         if conflict:
-            conflicts.append({'appointment_id': str(appt.pk), 'date': str(appt.appointment_date), 'serial_number': appt.serial_number})
+            conflicts.append({'appointment_id': str(appt.pk), 'date': str(on_date), 'serial_number': appt.serial_number})
+    from apps.appointments.capacity import allocations, date_capacity
+    from apps.queue.services import business_date_for_appointment, current_business_date
+    dates = {business_date_for_appointment(a) for a in request.provider.appointments.exclude(status='CANCELLED')
+             if business_date_for_appointment(a) >= max(request.effective_date, current_business_date())}
+    if request.kind == 'SPECIFIC_DATE':
+        dates &= {request.effective_date}
+    for on_date in dates:
+        proposed = next((d for d in request.proposed_schedule if d['day_of_week'] == on_date.weekday()), None)
+        if proposed:
+            result = date_capacity(request.provider, on_date, schedule=schedule_from_data(proposed))
+            if result['daily_capacity'] < allocations(request.provider, on_date).count():
+                conflicts.append({'date': str(on_date), 'daily_capacity': result['daily_capacity'],
+                                  'protected_allocations': result['allocated_count']})
     return conflicts
 
 

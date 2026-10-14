@@ -148,6 +148,7 @@ class OrganizationDocumentSerializer(serializers.ModelSerializer):
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
+    arrival_buffer_minutes = serializers.ChoiceField(choices=[15, 20, 25, 30], required=False)
     """
     Serializer for public & management Organization information.
     Exposes read-only verification status, credentials, and operating hours.
@@ -170,7 +171,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'name', 'slug', 'industry_type', 'industry_label',
             'address', 'phone_number', 'email', 'logo', 'cover_image', 'tagline', 'description',
-            'is_active', 'verification_status', 'smartqueue_verified',
+            'is_active', 'verification_status', 'smartqueue_verified', 'arrival_buffer_minutes',
             'verification_submitted_at', 'verification_reviewed_at',
             'verification_rejection_reason', 'verification_suspension_reason',
             'created_at', 'updated_at',

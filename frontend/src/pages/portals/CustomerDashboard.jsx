@@ -1,3 +1,6 @@
+import { EmergencyNotice } from '../../components/EmergencyNotice';
+import { useRequestScope } from '../../hooks/useRequestScope';
+import { confirmCustomerArrival } from '../../utils/customerArrival.js';
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,50 +16,66 @@ import { getNormalizedCustomerQueueState } from '../../utils/queueDisplay';
 
 export const CustomerDashboard = () => {
   const { user } = useAuth();
+  const requestScope = useRequestScope(String(user?.id));
   const { currentOrg } = useTenant();
   const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
 
-  const [dashboardItems, setDashboardItems] = useState([]);
+  const [dashboardRows, setDashboardItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [checkingInId, setCheckingInId] = useState(null);
   const [error, setError] = useState(null);
 
   const timerRef = useRef(null);
+  const mutationBusy = useRef(false);
+  const [loadedUser, setLoadedUser] = useState(null);
+  const dashboardItems = loadedUser === user?.id ? dashboardRows : [];
 
-  const fetchDashboardData = async (isManual = false) => {
+  const fetchDashboardData = async (isManual = false, force = false) => {
+    if (!user?.id || (mutationBusy.current && !force)) return;
+    const ticket = requestScope.begin(String(user?.id), { background: !isManual && !force });
+    if (!ticket) return;
     if (isManual) setRefreshing(true);
     setError(null);
 
     try {
       const data = await appointmentService.getCustomerDashboard();
+      if (!requestScope.isCurrent(ticket)) return;
       const list = Array.isArray(data) ? data : data.results || [];
-      setDashboardItems(list);
+      setDashboardItems(list); setLoadedUser(user.id);
     } catch (err) {
+      if (!requestScope.isCurrent(ticket)) return;
       setError(err.response?.data?.detail || 'Failed to update customer dashboard data.');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestScope.isCurrent(ticket)) { setLoading(false); setRefreshing(false); }
+      requestScope.finish(ticket);
     }
   };
 
   const handleCheckIn = async (orgId, appointmentId) => {
-    if (!orgId || !appointmentId) return;
+    if (!confirmCustomerArrival()) return;
+    if (!orgId || !appointmentId || mutationBusy.current) return;
+    const ticket = requestScope.begin(String(user?.id));
+    if (!ticket) return;
+    mutationBusy.current = true;
     setCheckingInId(appointmentId);
 
     try {
       await appointmentService.checkInAppointment(orgId, appointmentId);
+      if (!requestScope.isCurrentScope(ticket)) return;
       showSuccess('Checked in successfully! You are now in the live queue.');
-      await fetchDashboardData(true);
+      await fetchDashboardData(true, true);
     } catch (err) {
+      if (!requestScope.isCurrentScope(ticket)) return;
       showError(err.response?.data?.detail || 'Check-in failed. Please try again.');
     } finally {
-      setCheckingInId(null);
+      if (requestScope.isCurrentScope(ticket)) { mutationBusy.current = false; setCheckingInId(null); }
     }
   };
 
   useEffect(() => {
+    mutationBusy.current = false; setCheckingInId(null); setLoading(true);
     fetchDashboardData();
 
     // 10-second single polling loop for customer multi-booking dashboard
@@ -71,7 +90,7 @@ export const CustomerDashboard = () => {
         clearInterval(timerRef.current);
       }
     };
-  }, [currentOrg?.id]);
+  }, [currentOrg?.id, user?.id]);
 
   const todayStr = new Date().toDateString();
 
@@ -181,6 +200,7 @@ export const CustomerDashboard = () => {
 
       {error && <div className="banner banner-danger" style={{ marginBottom: '1.5rem' }}>{error}</div>}
 
+      {dashboardItems.filter(item => item.emergency && !item.is_live_queue && item.temporal_classification !== 'future').map(item => <EmergencyNotice key={item.id} appointment={item} />)}
       {/* Summary Metrics Bar - Single Compact Typography-Led Strip */}
       <div
         style={{

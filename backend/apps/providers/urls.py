@@ -1,3 +1,4 @@
+from .emergency_views import EmergencyListView, EmergencyActionView, EmergencyRecoveryView
 from apps.organizations.private_documents import VerificationDocumentDownloadView
 from django.urls import path
 from apps.appointments.views import ProviderAvailabilityView
@@ -12,6 +13,7 @@ from .views import (
     ScheduleBreakDetailView,
     ProviderLeaveListCreateView,
     ProviderLeaveDetailView,
+    ProviderLeaveReviewView,
     ProviderApplicationSubmitView,
     ManagerProviderApplicationReviewView,
     ProviderDocumentUploadView,
@@ -23,6 +25,10 @@ app_name = 'providers'
 from .schedule_views import ScheduleRequestListCreateView, ScheduleRequestReviewView, ScheduleRequestAttachmentView
 
 urlpatterns = [
+    path('<uuid:provider_id>/emergencies/', EmergencyListView.as_view(), name='emergency_list'),
+    path('<uuid:provider_id>/emergencies/<uuid:incident_id>/action/', EmergencyActionView.as_view(), name='emergency_action'),
+    path('<uuid:provider_id>/emergencies/<uuid:incident_id>/recoveries/<uuid:recovery_id>/', EmergencyRecoveryView.as_view(), name='emergency_recovery'),
+    path('<uuid:provider_id>/leaves/<int:leave_id>/review/', ProviderLeaveReviewView.as_view(), name='provider_leave_review'),
     path('<uuid:provider_id>/documents/<uuid:document_id>/download/', VerificationDocumentDownloadView.as_view(kind='provider'), name='provider_document_download'),
 
     path('<uuid:provider_id>/schedule-requests/', ScheduleRequestListCreateView.as_view(), name='schedule_requests'),

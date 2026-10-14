@@ -1,3 +1,4 @@
+from apps.providers.emergency_read import operational_entries
 from datetime import date
 
 from django.shortcuts import get_object_or_404
@@ -49,7 +50,7 @@ class ProviderQueueListView(APIView):
         )
         return Response({
             'queue_date': queue_date,
-            'available_queue_dates': sorted(set([queue_date] + list(QueueEntry.objects.filter(organization_id=organization_id, provider_id=provider_id, status__in=['WAITING', 'CALLED', 'IN_PROGRESS']).values_list('queue_date', flat=True)))),
+            'available_queue_dates': sorted(set([queue_date] + list(operational_entries(QueueEntry.objects).filter(organization_id=organization_id, provider_id=provider_id, status__in=['WAITING', 'CALLED', 'IN_PROGRESS']).values_list('queue_date', flat=True)))),
             'entries': QueueEntrySerializer(entries, many=True).data,
         })
 
@@ -134,7 +135,7 @@ class WalkInRegisterView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         if serializer.validated_data.get('provider_id') and str(serializer.validated_data['provider_id']) != str(provider_id):
-            return Response({'detail': 'The body provider must match the authorized URL provider.'}, status=400)
+            return Response({'detail': 'The body provider must match the authorized URL provider.'}, status=status.HTTP_400_BAD_REQUEST)
         appt = QueueService.register_walk_in(
             organization_id=organization_id,
             provider_id=provider_id,

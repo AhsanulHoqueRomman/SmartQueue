@@ -1,5 +1,7 @@
 # QueueTurn Role, Authorization and Tenant Matrix
 
+> Current Batch B and emergency amendments appear at the end of this document and supersede affected baseline behavior; historical audit statements retain their original evidence scope.
+
 ## Metadata and authority
 
 - **Phase/date:** Project Brain Phase 2, 2026-10-09; inspected `main` / `4a9920c` source.
@@ -265,3 +267,34 @@ F-024 storage/access implementation now exists; production serving/cutover verif
 | `O documents/D/download/`, `O credentials/C/download/` GET | Active target MANAGER or existing IsSystemAdmin | Query-level organization authorization and document ownership; anonymous/customer/staff/foreign/inactive manager denied. |
 
 Every successful file download records actor/entity/tenant in AuditLog. Responses are attachments with no-store/nosniff; public discovery never exposes these routes/files. Private history access remains separate from operations and application approval. Production proxies/storage ACLs remain an explicit unverified release gate.
+
+## Batch B planned leave, planning average and arrival guidance — 2026-10-12
+
+| Action / endpoint | Authorized actor | Enforced boundary |
+|---|---|---|
+| Existing provider profile creation and unrelated profile updates | Existing scoped profile owner/manager permissions | Onboarding projection/access never grants operations; new-profile duration initialization remains unchanged. |
+| Existing profile PATCH average_service_minutes | Active MANAGER membership in the provider's own organization | No owning-provider or platform-flags exemption. A platform administrator needs an independent active own-org MANAGER membership. Check before validation and again in the provider-locked update service; reject mixed-field requests without partial writes. Positive whole minutes and DURATION_BOOKING_CONFLICT protection remain. |
+| Organization PATCH arrival_buffer_minutes | Active MANAGER membership in the target organization | Exactly 15/20/25/30; provider/staff/customer/inactive/foreign/platform-flags-alone denied. Other organization update permissions unchanged. |
+| `O providers/P/leaves/` POST | Own operationally active provider or active target manager | Four Dhaka calendar days notice; interval validation; PENDING only, even when conflicts exist. |
+| `O providers/P/leaves/L/review/` POST | Active MANAGER in provider's organization | Provider→request locks; guessed foreign provider/leave denied; fresh capacity/commitment protection; explained rejection and audited approval. No platform-role bypass. |
+| Existing leave GET | Existing owner/operational projection or customer-safe public projection | Pending/rejected review metadata not public discovery; public effective intervals contain no internal leave reasons. |
+| Existing leave DELETE | Active target manager; own operational provider only for PENDING withdrawal | Provider→leave locks; provider cannot remove effective/decided leave. |
+| Customer queue telemetry/check-in | Authenticated appointment owner through existing customer endpoints | No private operator queue access, no cross-customer leakage; same-day eligible idempotent check-in with UI acknowledgement. A declaration is not location verification. |
+
+M2 staff check-in/restoration, provider presence-gated lifecycle and tenant isolation remain unchanged. No emergency staff privilege, manager bypass or public sensitive-file projection is introduced. Emergency recovery authority is still an owner-policy follow-up.
+
+## Emergency document-independent operational authority — 2026-10-13
+
+Supersedes only the earlier emergency-policy follow-up. Existing onboarding, F-024 private storage, planned leave and normal self-service permissions are unchanged.
+
+| Actor | Emergency authority |
+|---|---|
+| Own operational provider | Declare own incident immediately, request resumption, personally confirm unavailable, record own affected actual interruption/completion. Cannot approve resumption or perform staff recovery. |
+| Active own-org MANAGER | Declare; approve requested temporary resumption; explicitly finalize after effective scheduled end; review contact/recovery; record actual outcome; retry only pending/failed email dispatches. |
+| Active own-org STAFF | View scoped affected customers, record actual contact direction/outcomes, record unfinished outcome; with explicit consent perform emergency-only replacement/cancellation. Cannot declare, approve or finalize incidents. |
+| Customer | Owned appointment/dashboard/queue safe details and notifications; ordinary cutoff-protected self-service remains. No incident administration or other customer details. |
+| Inactive/foreign membership, anonymous or platform flags alone | No emergency operator access. No new platform bypass. |
+
+Nested organization/provider/incident/recovery IDs are checked server-side. Service mutations recheck active membership and acquire provider locks. Customer projections omit private reasons, contact-attempt notes, consent and dispatch identifiers; staff incident responses omit provider personal reasons. Providers receive only their safe active-outcome projection from interruption actions. Private reasons are restricted to own provider/manager. Recovery customer contact data is tenant-scoped to staff/manager operational access.
+
+Recording INBOUND versus OUTBOUND requires an operator attestation; the application does not claim to prove that a telephone call occurred. Consent must be explicitly recorded rather than inferred from a contact outcome. Temporary emergency rejects outbound recovery; confirmed closure or approved resumption permits it.

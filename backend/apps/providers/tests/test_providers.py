@@ -352,17 +352,16 @@ class TestScheduleBreak:
 @pytest.mark.django_db
 class TestProviderLeave:
     def test_manager_can_create_leave(self, manager_client, setup_org, provider_profile):
-        org = manager_client.org
-        url = _leave_list_url(org.id, provider_profile.id)
-        payload = {
-            'start_datetime': '2025-01-10T00:00:00Z',
-            'end_datetime': '2025-01-15T23:59:00Z',
-            'reason': 'Vacation',
-        }
+        from django.utils import timezone
+        from datetime import timedelta
+        start = timezone.now() + timedelta(days=4)
+        url = _leave_list_url(manager_client.org.id, provider_profile.id)
+        payload = {'start_datetime': start.isoformat(),
+                   'end_datetime': (start + timedelta(days=2)).isoformat(), 'reason': 'Vacation'}
         res = manager_client.post(url, payload, format='json')
         assert res.status_code == status.HTTP_201_CREATED
-        assert res.data['reason'] == 'Vacation'
-        assert ProviderLeave.objects.filter(provider=provider_profile).count() == 1
+        assert res.data['reason'] == 'Vacation' and res.data['status'] == 'PENDING'
+        assert ProviderLeave.objects.filter(provider=provider_profile, status='PENDING').count() == 1
 
     def test_leave_end_before_start_rejected(self, manager_client, setup_org, provider_profile):
         org = manager_client.org
@@ -377,7 +376,7 @@ class TestProviderLeave:
     def test_manager_can_delete_leave(self, manager_client, setup_org, provider_profile):
         org = manager_client.org
         from datetime import datetime, timezone
-        leave = ProviderLeave.objects.create(
+        leave = ProviderLeave.objects.create(status='APPROVED',
             provider=provider_profile,
             start_datetime=datetime(2025, 1, 10, tzinfo=timezone.utc),
             end_datetime=datetime(2025, 1, 15, tzinfo=timezone.utc),
@@ -394,7 +393,7 @@ class TestProviderLeave:
     def test_list_leaves(self, manager_client, setup_org, provider_profile):
         org = manager_client.org
         from datetime import datetime, timezone
-        ProviderLeave.objects.create(
+        ProviderLeave.objects.create(status='APPROVED',
             provider=provider_profile,
             start_datetime=datetime(2025, 2, 1, tzinfo=timezone.utc),
             end_datetime=datetime(2025, 2, 5, tzinfo=timezone.utc),

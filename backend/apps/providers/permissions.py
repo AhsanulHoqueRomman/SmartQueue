@@ -1,6 +1,23 @@
 from rest_framework.permissions import BasePermission
+from rest_framework.exceptions import PermissionDenied
 from apps.organizations.models import OrganizationMembership
 from .models import ProviderProfile
+
+
+def require_provider_average_manager(*, profile, actor):
+    """Planning-duration edits require an active manager in this exact tenant."""
+    if not (
+        actor and actor.is_authenticated and actor.is_active
+        and OrganizationMembership.objects.filter(
+            user=actor,
+            organization_id=profile.membership.organization_id,
+            role=OrganizationMembership.Role.MANAGER,
+            is_active=True,
+        ).exists()
+    ):
+        raise PermissionDenied(
+            "Only an active manager of this provider's organization may change the average service time."
+        )
 
 
 class IsOrganizationManagerOrOwnProvider(BasePermission):

@@ -1,4 +1,4 @@
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from config.exceptions import ApplicationError
 from .models import Service
 
@@ -37,11 +37,24 @@ class ServiceService:
             raise DuplicateServiceNameException() from exc
 
     @staticmethod
+    @transaction.atomic
     def update_service(*, service, **kwargs):
         """
         Update an existing Service's fields.
         Only whitelisted fields accepted (enforced by caller serializer).
         """
+        if 'duration_minutes' in kwargs and kwargs['duration_minutes'] != service.duration_minutes:
+            from apps.providers.models import ProviderProfile
+            from django.db.models import Q
+            # Legacy uniform catalog settings are a read-only compatibility
+            # source, not permission to mutate live queue planning implicitly.
+            providers = list(ProviderProfile.objects.select_for_update(of=('self',)).filter(
+                membership__organization=service.organization).order_by('pk'))
+            legacy_ids = [p.pk for p in providers if p.average_service_minutes is None]
+            if ProviderProfile.objects.filter(pk__in=legacy_ids).filter(
+                    Q(provider_services__service=service) | Q(appointments__service=service)).exists():
+                raise ApplicationError(message='Configure provider-level average service times before changing legacy service duration.',
+                                       code='PROVIDER_AVERAGE_SERVICE_TIME_REQUIRED')
         allowed_fields = {'name', 'category', 'description', 'duration_minutes', 'price', 'is_active'}
         for field, value in kwargs.items():
             if field in allowed_fields:

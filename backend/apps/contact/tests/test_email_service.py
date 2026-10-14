@@ -284,3 +284,25 @@ class TestSecretSafety:
         assert caplog.records
         for record in caplog.records:
             assert secret not in record.getMessage()
+
+
+def test_emergency_notification_reuses_transport_and_stable_idempotency_key(email_env, send_mock):
+    from apps.contact.email_service import send_emergency_notification
+    result=send_emergency_notification(to='customer@example.com',subject='QueueTurn service interruption',text='Private <content> & guidance',idempotency_key='emergency-stable-key')
+    assert result.success and result.email_id=='email_123'
+    params=send_mock.call_args.args[0]
+    assert params['to']==['customer@example.com'] and params['text']=='Private <content> & guidance'
+    assert '&lt;content&gt;' in params['html']
+    assert send_mock.call_args.kwargs['options']=={'idempotency_key':'emergency-stable-key'}
+
+
+@pytest.mark.parametrize('caller',['contact','password_reset'])
+def test_uncertain_transport_preserves_contact_and_password_reset_failure_contract(email_env,send_mock,caller):
+    from types import SimpleNamespace
+    from apps.contact.email_service import send_password_reset_email
+    send_mock.side_effect=TimeoutError('Synthetic uncertain transport failure')
+    result=(send_contact_customer_confirmation(make_message()) if caller=='contact' else
+            send_password_reset_email(SimpleNamespace(email='customer@example.test'),'https://example.test/reset/synthetic'))
+    assert result.success is False and result.email_id is None
+    assert result.outcome_uncertain is True and 'Synthetic uncertain transport failure' in result.error
+    assert send_mock.call_count==1

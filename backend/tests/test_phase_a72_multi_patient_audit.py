@@ -1,5 +1,6 @@
 import pytest
-from datetime import timedelta
+from datetime import datetime, time, timedelta
+from zoneinfo import ZoneInfo
 from django.utils import timezone
 from apps.accounts.models import User
 from apps.organizations.models import Organization, OrganizationMembership
@@ -53,8 +54,8 @@ def a72_setup(db):
             provider=provider,
             day_of_week=day_idx,
             is_working_day=True,
-            start_time="00:00:00",
-            end_time="23:59:59",
+            start_time="10:00:00",
+            end_time="22:00:00",
         )
 
     cust1 = User.objects.create_user(email="p1@dhakacare.bd", password="password123", first_name="Patient", last_name="One")
@@ -74,12 +75,14 @@ def a72_setup(db):
 
 
 @pytest.mark.django_db
-def test_4_patient_multi_customer_lifecycle(a72_setup):
+def test_4_patient_multi_customer_lifecycle(a72_setup, monkeypatch):
     """
     PART 25: Deterministic 4-patient lifecycle test across Stages A to I.
     """
     s = a72_setup
     today = current_business_date()
+    clock = timezone.make_aware(datetime.combine(today, time(9)), timezone=ZoneInfo('Asia/Dhaka'))
+    monkeypatch.setattr(timezone, 'now', lambda: clock)
     now = timezone.now()
 
     # Create 4 appointments for today
@@ -117,7 +120,11 @@ def test_4_patient_multi_customer_lifecycle(a72_setup):
     q1 = QueueService.check_in_appointment(appointment=a1, actor=s['cust1'], bypass_window=True)
     r1 = QueueService.calculate_readiness_and_eta(q1)
     assert q1.is_checked_in is True
-    assert r1['readiness_state'] == QueueEntry.ReadinessState.BE_READY
+    # Early presence alone cannot override time-first readiness.
+    assert r1['readiness_state'] == QueueEntry.ReadinessState.NOT_YET
+    clock += timedelta(minutes=45)
+    assert QueueService.calculate_readiness_and_eta(q1)['readiness_state'] == QueueEntry.ReadinessState.BE_READY
+    clock += timedelta(minutes=15)
 
     # Stage C: #1 CALLED.
     q1 = QueueService.call_next(organization_id=s['org'].id, provider_id=s['provider'].id)

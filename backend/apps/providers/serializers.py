@@ -53,7 +53,7 @@ class ProviderProfileSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'membership_id', 'membership_is_active', 'user_id', 'user_email',
             'user_first_name', 'user_last_name', 'organization_id', 'organization_name',
-            'bio', 'title', 'profile_photo', 'experience_years',
+            'bio', 'title', 'profile_photo', 'experience_years', 'average_service_minutes',
             'education', 'experience_history', 'certifications', 'specialties',
             'is_active', 'application_status', 'application_rejection_reason',
             'application_reviewed_at', 'application_reviewed_by', 'application_reviewed_by_email',
@@ -77,7 +77,7 @@ class ProviderDiscoverySerializer(ProviderProfileSerializer):
         fields = [
             'id', 'user_id', 'user_first_name', 'user_last_name',
             'organization_id', 'organization_name', 'membership_is_active',
-            'bio', 'title', 'profile_photo', 'experience_years',
+            'bio', 'title', 'profile_photo', 'experience_years', 'average_service_minutes',
             'education', 'experience_history', 'certifications', 'specialties',
             'is_active', 'application_status', 'is_operationally_active',
             'service_charges', 'created_at', 'updated_at',
@@ -138,6 +138,7 @@ class ProviderProfileCreateSerializer(serializers.Serializer):
     Client supplies `membership_id`; service validates role and org scope.
     """
     membership_id = serializers.IntegerField()
+    average_service_minutes = serializers.IntegerField(min_value=1, required=False)
     bio = serializers.CharField(required=False, allow_blank=True, default='')
     title = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
 
@@ -149,13 +150,14 @@ class ProviderProfileUpdateSerializer(serializers.ModelSerializer):
     profile_photo = serializers.URLField(required=False, allow_blank=True)
     experience_years = serializers.IntegerField(min_value=0, required=False)
     is_active = serializers.BooleanField(required=False)
+    average_service_minutes = serializers.IntegerField(min_value=1, required=False)
 
     class Meta:
         model = ProviderProfile
         fields = [
             'bio', 'title', 'profile_photo', 'experience_years',
             'education', 'experience_history', 'certifications',
-            'specialties', 'is_active'
+            'specialties', 'is_active', 'average_service_minutes'
         ]
 
     def validate_education(self, value):
@@ -246,11 +248,16 @@ class ProviderPublicProfileSerializer(serializers.ModelSerializer):
         return list(categories_dict.values())
 
     def get_services(self, obj):
+        from .duration import average_service_minutes
+        from config.exceptions import ApplicationError
+        try:
+            duration = average_service_minutes(obj)
+        except ApplicationError:
+            duration = None
         services_list = []
         for ps in obj.provider_services.select_related('service__category').all():
             svc = ps.service
             if svc.is_active and svc.organization_id == obj.membership.organization_id:
-                duration = ps.custom_duration_minutes if ps.custom_duration_minutes is not None else svc.duration_minutes
                 price = effective_customer_charge(ps)
                 cat_data = None
                 if svc.category and svc.category.is_active:
@@ -380,8 +387,8 @@ class WeeklyScheduleCreateUpdateSerializer(serializers.ModelSerializer):
 class ProviderLeaveSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProviderLeave
-        fields = ['id', 'start_datetime', 'end_datetime', 'reason']
-        read_only_fields = ['id']
+        fields = ['id', 'start_datetime', 'end_datetime', 'reason', 'status', 'reviewed_at', 'decision_reason']
+        read_only_fields = ['id', 'status', 'reviewed_at', 'decision_reason']
 
     def validate(self, data):
         start = data.get('start_datetime')

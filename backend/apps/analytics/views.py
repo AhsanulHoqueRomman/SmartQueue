@@ -25,13 +25,24 @@ class ProviderMetricsView(APIView):
         responses={200: ProviderMetricsSerializer, 403: OpenApiResponse(description='Forbidden'), 404: OpenApiResponse(description='Not Found')},
         summary='Get provider queue metrics',
     )
-    def get(self, request, provider_id):
+    def get(self, request, provider_id=None, organization_id=None):
+        pid = provider_id or request.query_params.get('provider_id')
+        if not pid:
+            return Response({'detail': 'provider_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        org_id = organization_id or request.query_params.get('organization_id')
+        lookup_kwargs = {
+            'id': pid,
+            'is_active': True,
+            'membership__is_active': True,
+            'membership__role': 'PROVIDER',
+        }
+        if org_id:
+            lookup_kwargs['membership__organization_id'] = org_id
+
         provider = get_object_or_404(
-            ProviderProfile.objects.select_related('membership__user'),
-            id=provider_id,
-            is_active=True,
-            membership__is_active=True,
-            membership__role='PROVIDER',
+            ProviderProfile.objects.select_related('membership__user', 'membership__organization'),
+            **lookup_kwargs
         )
         return Response(ProviderMetricsSerializer(
             AnalyticsService.provider_metrics(provider=provider)
@@ -45,8 +56,11 @@ class OrganizationDashboardView(APIView):
         responses={200: DashboardMetricsSerializer, 403: OpenApiResponse(description='Forbidden'), 404: OpenApiResponse(description='Not Found')},
         summary='Get daily organization dashboard analytics',
     )
-    def get(self, request, organization_id):
-        organization = get_object_or_404(Organization, id=organization_id, is_active=True)
+    def get(self, request, organization_id=None):
+        org_id = organization_id or request.query_params.get('organization_id')
+        if not org_id:
+            return Response({'detail': 'organization_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        organization = get_object_or_404(Organization, id=org_id, is_active=True)
         return Response(DashboardMetricsSerializer(
             AnalyticsService.organization_dashboard(organization=organization)
         ).data)
@@ -56,15 +70,15 @@ class AnalyticsExportView(APIView):
     permission_classes = [IsAuthenticated, CanExportAnalytics]
 
     @extend_schema(
-        parameters=[OpenApiParameter(name='organization_id', type=str, required=True)],
+        parameters=[OpenApiParameter(name='organization_id', type=str, required=False)],
         responses={200: OpenApiResponse(description='CSV analytics export'), 400: OpenApiResponse(description='organization_id is required')},
         summary='Export organization queue analytics as CSV',
     )
-    def get(self, request):
-        organization_id = request.query_params.get('organization_id')
-        if not organization_id:
-            return Response({'detail': 'organization_id is required.'}, status=400)
-        organization = get_object_or_404(Organization, id=organization_id, is_active=True)
+    def get(self, request, organization_id=None):
+        org_id = organization_id or request.query_params.get('organization_id')
+        if not org_id:
+            return Response({'detail': 'organization_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        organization = get_object_or_404(Organization, id=org_id, is_active=True)
         entries = QueueEntry.objects.filter(organization=organization).select_related(
             'provider__membership__user', 'appointment__customer', 'appointment__service'
         ).order_by('queue_date', 'token_number')
@@ -98,8 +112,11 @@ class AnalyticsSummaryView(APIView):
         },
         summary='Get organization appointment and queue analytics',
     )
-    def get(self, request, organization_id):
-        organization = get_object_or_404(Organization, id=organization_id, is_active=True)
+    def get(self, request, organization_id=None):
+        org_id = organization_id or request.query_params.get('organization_id')
+        if not org_id:
+            return Response({'detail': 'organization_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        organization = get_object_or_404(Organization, id=org_id, is_active=True)
 
         start_date_str = request.query_params.get('start_date')
         end_date_str = request.query_params.get('end_date')

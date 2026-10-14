@@ -142,11 +142,10 @@ def test_provider_schedule_respected(a8_setup):
     service_derm = a8_setup['service_derm']
     cust = a8_setup['customers'][0]
 
-    # Set Sunday as non-working for Provider 1
-    WeeklySchedule.objects.filter(provider=provider1, day_of_week=6).update(is_working_day=False)
-
+    # Use an explicitly closed date inside the approved four-date horizon.
     today = current_business_date()
-    sunday = today + timedelta(days=(6 - today.weekday()) % 7)
+    sunday = today + timedelta(days=1)
+    WeeklySchedule.objects.filter(provider=provider1, day_of_week=sunday.weekday()).update(is_working_day=False)
 
     with pytest.raises(AppointmentValidationException) as exc_info:
         AppointmentService.book_appointment(
@@ -204,7 +203,7 @@ def test_leave_blocks_booking_appropriately(a8_setup):
     start_dt = timezone.make_aware(timezone.datetime.combine(target_date, time(0, 0)), tz)
     end_dt = timezone.make_aware(timezone.datetime.combine(target_date, time(23, 59)), tz)
 
-    ProviderLeave.objects.create(
+    ProviderLeave.objects.create(status='APPROVED',
         provider=provider1,
         start_datetime=start_dt,
         end_datetime=end_dt,

@@ -161,6 +161,7 @@ class RegisterProviderView(APIView):
                         membership=org_membership,
                         title=data.get('title', ''),
                         bio=data.get('bio', ''),
+                        average_service_minutes=data.get('average_service_minutes'),
                         is_active=True
                     )
                     is_pending_approval = True

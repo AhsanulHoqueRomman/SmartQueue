@@ -290,8 +290,12 @@ class TestQueueAPI:
         q_entry = QueueEntry.objects.get(appointment=walk_in_appt)
         assert q_entry.is_checked_in is True
 
-    def test_phase5_readiness_state_and_eta_calculation(self, queue_setup):
+    def test_phase5_readiness_state_and_eta_calculation(self, queue_setup, monkeypatch):
         s = queue_setup
+        from apps.providers.models import WeeklySchedule
+        now = timezone.localtime(timezone.now()).replace(hour=10, minute=0, second=0, microsecond=0)
+        monkeypatch.setattr(timezone, 'now', lambda: now)
+        WeeklySchedule.objects.filter(provider=s['provider']).update(start_time=time(10), end_time=time(22))
         from apps.appointments.services import AppointmentService
         today = current_business_date()
         start_time = timezone.now() + timedelta(minutes=5)
@@ -332,8 +336,12 @@ class TestQueueAPI:
         with pytest.raises(NoWaitingCustomerException):
             QueueService.call_next(organization_id=s['org'].id, provider_id=s['provider'].id, on_date=appt.appointment_date)
 
-    def test_serial_order_forecast_has_no_higher_serial_ahead(self, queue_setup):
+    def test_serial_order_forecast_has_no_higher_serial_ahead(self, queue_setup, monkeypatch):
         s = queue_setup
+        from apps.providers.models import WeeklySchedule
+        now = timezone.localtime(timezone.now()).replace(hour=10, minute=0, second=0, microsecond=0)
+        monkeypatch.setattr(timezone, 'now', lambda: now)
+        WeeklySchedule.objects.filter(provider=s['provider']).update(start_time=time(10), end_time=time(22))
         from apps.appointments.services import AppointmentService
         today = current_business_date()
         start_time = timezone.now() + timedelta(minutes=5)

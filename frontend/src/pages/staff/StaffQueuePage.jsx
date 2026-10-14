@@ -1,3 +1,6 @@
+import { EmergencyPanel } from '../../components/EmergencyPanel';
+import { useAuth } from '../../contexts/AuthContext';
+import { useRequestScope } from '../../hooks/useRequestScope';
 import { currentBusinessDate } from '../../utils/bookingDisplay';
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
@@ -11,10 +14,11 @@ import { deriveProfessionalDisplay } from '../../utils/providerDisplay';
 
 export function StaffQueuePage() {
   const { currentOrg } = useTenant();
+  const { user } = useAuth();
 
   const [providers, setProviders] = useState([]);
   const [selectedProviderId, setSelectedProviderId] = useState('');
-  const [queueEntries, setQueueEntries] = useState([]);
+  const [queueRows, setQueueEntries] = useState([]);
   const [queueDate, setQueueDate] = useState(currentBusinessDate);
   const [queueDates, setQueueDates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,34 +55,42 @@ export function StaffQueuePage() {
     return () => {
       isMounted = false;
     };
-  }, [currentOrg?.id]);
+  }, [currentOrg?.id, user?.id]);
 
-  const queueContext = `${currentOrg?.id}:${selectedProviderId}:${queueDate}`;
+  const queueContext = `${user?.id}:${currentOrg?.id}:${selectedProviderId}:${queueDate}`;
   const latestQueueContext = useRef(queueContext);
   useLayoutEffect(() => { latestQueueContext.current = queueContext; }, [queueContext]);
 
-  const fetchQueue = async () => {
+  const [loadedQueueContext, setLoadedQueueContext] = useState('');
+  const queueEntries = loadedQueueContext === queueContext ? queueRows : [];
+  const mutationBusy = useRef(false);
+  const requestScope = useRequestScope(queueContext);
+  const fetchQueue = async (force = false) => {
     const context = queueContext;
+    if (context !== latestQueueContext.current || (mutationBusy.current && !force)) return;
+    const ticket = requestScope.begin(queueContext, { background: !force });
     if (!currentOrg?.id || !selectedProviderId) {
       setQueueEntries([]);
       return;
     }
+    if (!ticket) return;
     try {
       const data = await queueService.getProviderQueue(
         currentOrg.id,
         selectedProviderId, queueDate
       );
-      if (context !== latestQueueContext.current) return;
+      if (context !== latestQueueContext.current || !requestScope.isCurrent(ticket)) return;
       const list = Array.isArray(data) ? data : data.entries || data.results || [];
-      setQueueEntries(list);
+      setError(null); setQueueEntries(list); setLoadedQueueContext(context);
       setQueueDates(data.available_queue_dates || []);
     } catch (err) {
-      if (context !== latestQueueContext.current) return;
+      if (context !== latestQueueContext.current || !requestScope.isCurrent(ticket)) return;
       setError('Failed to fetch provider queue.');
-    }
+    } finally { requestScope.finish(ticket); }
   };
 
   useEffect(() => {
+    mutationBusy.current = false; setProcessingId(null); setActionFeedback(null);
     fetchQueue();
   }, [currentOrg?.id, selectedProviderId, queueDate]);
 
@@ -90,72 +102,91 @@ export function StaffQueuePage() {
     return () => clearInterval(interval);
   }, [currentOrg?.id, selectedProviderId, queueDate]);
 
+  const setBusy = value => {
+    if (queueContext !== latestQueueContext.current) return;
+    mutationBusy.current = value !== null;
+    if (value !== null) requestScope.invalidate();
+    setProcessingId(value);
+  };
+
   const handleCallNext = async () => {
+    if (mutationBusy.current) return;
     if (!currentOrg?.id || !selectedProviderId) return;
-    setProcessingId('call-next');
+    setBusy('call-next');
     setActionFeedback(null);
     setError(null);
 
     try {
       const entry = await queueService.callNext(currentOrg.id, selectedProviderId, queueDate);
+      if (queueContext !== latestQueueContext.current) return;
       setActionFeedback({
         type: 'success',
         message: `Called Serial #${entry.serial_number || entry.token_number} (${entry.customer_name || entry.customer_email}).`,
       });
-      fetchQueue();
+      fetchQueue(true);
     } catch (err) {
+      if (queueContext !== latestQueueContext.current) return;
       const msg = err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to call next patient. Ensure next patient is checked in.';
       setActionFeedback({ type: 'error', message: msg });
     } finally {
-      setProcessingId(null);
+      setBusy(null);
     }
   };
 
   const handleStart = async (entryId) => {
+    if (mutationBusy.current) return;
     if (!currentOrg?.id || !entryId) return;
-    setProcessingId(entryId);
+    setBusy(entryId);
     setActionFeedback(null);
 
     try {
       await queueService.startEntry(currentOrg.id, entryId);
+      if (queueContext !== latestQueueContext.current) return;
       setActionFeedback({ type: 'success', message: 'Started service for patient.' });
-      fetchQueue();
+      fetchQueue(true);
     } catch (err) {
+      if (queueContext !== latestQueueContext.current) return;
       setActionFeedback({ type: 'error', message: err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to start service.' });
     } finally {
-      setProcessingId(null);
+      setBusy(null);
     }
   };
 
   const handleComplete = async (entryId) => {
+    if (mutationBusy.current) return;
     if (!currentOrg?.id || !entryId) return;
-    setProcessingId(entryId);
+    setBusy(entryId);
     setActionFeedback(null);
 
     try {
       await queueService.completeEntry(currentOrg.id, entryId);
+      if (queueContext !== latestQueueContext.current) return;
       setActionFeedback({ type: 'success', message: 'Completed appointment service.' });
-      fetchQueue();
+      fetchQueue(true);
     } catch (err) {
+      if (queueContext !== latestQueueContext.current) return;
       setActionFeedback({ type: 'error', message: err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to complete service.' });
     } finally {
-      setProcessingId(null);
+      setBusy(null);
     }
   };
 
   const handleSkip = async (entryId) => {
+    if (mutationBusy.current) return;
     if (!currentOrg?.id || !entryId) return;
-    setProcessingId(entryId);
+    setBusy(entryId);
     setActionFeedback(null);
 
     try {
       await queueService.skipEntry(currentOrg.id, entryId);
+      if (queueContext !== latestQueueContext.current) return;
       setActionFeedback({ type: 'success', message: 'Skipped entry and marked appointment NO_SHOW.' });
-      fetchQueue();
+      fetchQueue(true);
     } catch (err) {
+      if (queueContext !== latestQueueContext.current) return;
       setActionFeedback({ type: 'error', message: err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to skip entry.' });
     } finally {
-      setProcessingId(null);
+      setBusy(null);
     }
   };
 
@@ -176,6 +207,7 @@ export function StaffQueuePage() {
 
   return (
     <div className="app-container animate-page-entrance">
+      <EmergencyPanel orgId={currentOrg.id} providerId={selectedProviderId} serviceDate={queueDate} mode="staff" onChanged={() => fetchQueue(true)} />
       <div className="flex justify-between items-center flex-wrap gap-md" style={{ marginBottom: '1.75rem' }}>
         <div>
           <h1>Queue Monitor Board</h1>
@@ -322,10 +354,13 @@ export function StaffQueuePage() {
             {queueEntries.filter(entry => entry.status === 'SKIPPED').map(entry => <div key={entry.id} className="flex justify-between items-center gap-md">
               <span>#{entry.serial_number} · {entry.customer_name}</span>
               <button className="btn btn-secondary" disabled={processingId !== null} onClick={async () => {
-                setProcessingId(entry.id);
-                try { await queueService.restoreEntry(currentOrg.id, entry.id); setActionFeedback({ type: 'success', message: 'Customer restored with their original serial.' }); await fetchQueue(); }
-                catch (error) { setActionFeedback({ type: 'error', message: error.response?.data?.error?.message || 'Could not restore customer.' }); }
-                finally { setProcessingId(null); }
+                if (mutationBusy.current) return;
+                setBusy(entry.id);
+                try { await queueService.restoreEntry(currentOrg.id, entry.id);
+                  if (queueContext !== latestQueueContext.current) return;
+                  setActionFeedback({ type: 'success', message: 'Customer restored with their original serial.' }); await fetchQueue(true); }
+                catch (error) { if (queueContext !== latestQueueContext.current) return; setActionFeedback({ type: 'error', message: error.response?.data?.error?.message || 'Could not restore customer.' }); }
+                finally { setBusy(null); }
               }}>Restore to Queue</button>
             </div>)}
           </div>}

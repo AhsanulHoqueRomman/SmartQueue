@@ -1,10 +1,13 @@
+import { EmergencyNotice } from '../../components/EmergencyNotice';
+import { formatBookingDate } from '../../utils/homeBookingDisplay.js';
+import { useRequestScope } from '../../hooks/useRequestScope';
+import { confirmCustomerArrival } from '../../utils/customerArrival.js';
 import { useBookingWindow } from '../../hooks/useBookingWindow';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import appointmentService from '../../services/appointmentService';
-import queueService from '../../services/queueService';
 import CancelAppointmentModal from '../../components/CancelAppointmentModal';
 import LeaveReviewModal from '../../components/LeaveReviewModal';
 import StatusBadge from '../../components/StatusBadge';
@@ -19,6 +22,10 @@ export function CustomerAppointmentDetailPage() {
   const { first, last } = useBookingWindow();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const scopeKey = `${user?.id}:${id}`;
+  const scope = useRequestScope(scopeKey);
+  const [loadedScope, setLoadedScope] = useState('');
+  const mutationBusy = useRef(false);
   const { showSuccess, showError } = useToast();
 
   const [appointment, setAppointment] = useState(null);
@@ -34,82 +41,78 @@ export function CustomerAppointmentDetailPage() {
   const [newDate, setNewDate] = useState('');
   const [rescheduling, setRescheduling] = useState(false);
 
-  const fetchDetail = async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-
+  const fetchDetail = async (showLoader = true, force = false) => {
+    if (!id || !user?.id || (mutationBusy.current && !force)) return;
+    const ticket = scope.begin(scopeKey, { background: !showLoader && !force });
+    if (!ticket) return;
+    if (showLoader) setLoading(true);
     try {
-      // Direct customer detail endpoint
       const detail = await appointmentService.getCustomerAppointmentDetail(id);
-      if (detail && detail.id) {
-        setAppointment(detail);
-        setLoading(false);
-        return;
-      }
+      if (!scope.isCurrent(ticket)) return;
+      if (!detail?.id) throw new Error('Appointment details unavailable');
+      setAppointment(detail); setLoadedScope(scopeKey); setError(null);
     } catch (err) {
-      // If direct detail fails (e.g. legacy structure), fall back to customer dashboard
-    }
-
-    try {
-      const dashList = await appointmentService.getCustomerDashboard();
-      const list = Array.isArray(dashList) ? dashList : dashList.results || [];
-      const match = list.find((item) => String(item.id) === String(id));
-
-      if (match) {
-        setAppointment(match);
-      } else {
-        setError('Appointment record not found in your customer schedule.');
-      }
-    } catch (err) {
-      setError(err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to load appointment details.');
-    } finally {
-      setLoading(false);
-    }
+      if (scope.isCurrent(ticket)) setError(err.response?.data?.error?.message || err.response?.data?.detail || 'Unable to refresh appointment information.');
+    } finally { if (scope.isCurrent(ticket)) setLoading(false); scope.finish(ticket); }
   };
 
   useEffect(() => {
-    fetchDetail();
-  }, [id]);
+    mutationBusy.current = false; setCheckingIn(false); setRescheduling(false);
+    setCancelModalOpen(false); setReviewModalOpen(false); setReportModalOpen(false); setRescheduleModalOpen(false);
+    setAppointment(null); setError(null); fetchDetail();
+    const timer = setInterval(() => fetchDetail(false), 10000);
+    return () => clearInterval(timer);
+  }, [id, user?.id]);
 
   const handleCheckIn = async () => {
-    if (!appointment) return;
+    if (!confirmCustomerArrival()) return;
+    if (!appointment || mutationBusy.current) return;
+    const ticket = scope.begin(scopeKey);
+    if (!ticket) return;
+    mutationBusy.current = true;
     const orgId = appointment.organization_id || appointment.organization;
     setCheckingIn(true);
     setError(null);
 
     try {
       await appointmentService.checkInAppointment(orgId, appointment.id);
+      if (!scope.isCurrentScope(ticket)) return;
       showSuccess('Checked in successfully! You are now in the live queue.');
-      await fetchDetail();
+      await fetchDetail(false, true);
     } catch (err) {
+      if (!scope.isCurrentScope(ticket)) return;
       const msg = err.response?.data?.error?.message || err.response?.data?.detail || 'Check-in failed. Please verify your appointment status.';
       showError(msg);
     } finally {
-      setCheckingIn(false);
+      if (scope.isCurrentScope(ticket)) { mutationBusy.current = false; setCheckingIn(false); }
     }
   };
 
   const handleConfirmCancel = async (reason) => {
-    if (!appointment) return;
+    if (!appointment || mutationBusy.current) return;
+    const ticket = scope.begin(scopeKey);
+    if (!ticket) return;
+    mutationBusy.current = true;
     const orgId = appointment.organization_id || appointment.organization;
     try {
       await appointmentService.cancelAppointment(orgId, appointment.id, reason);
+      if (!scope.isCurrentScope(ticket)) return;
       showSuccess('Appointment was successfully cancelled.');
       setCancelModalOpen(false);
-      await fetchDetail();
+      await fetchDetail(false, true);
     } catch (err) {
+      if (!scope.isCurrentScope(ticket)) return;
       const msg = err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to cancel appointment.';
       showError(msg);
       setCancelModalOpen(false);
-    }
+    } finally { if (scope.isCurrentScope(ticket)) mutationBusy.current = false; }
   };
 
-  if (loading) {
+  if (loading || (loadedScope !== scopeKey && !error)) {
     return <LoadingState message="Loading appointment details..." />;
   }
 
-  if (error || !appointment) {
+  if (!appointment || loadedScope !== scopeKey) {
     return (
       <div className="animate-fade-in">
         <EmptyState
@@ -131,7 +134,7 @@ export function CustomerAppointmentDetailPage() {
 
   const canCheckIn = appointment.can_check_in !== undefined
     ? appointment.can_check_in
-    : (appointment.temporal_classification === 'today' && appointment.status === 'CONFIRMED');
+    : normState.canCheckIn;
   const canCancel = appointment.can_cancel !== undefined
     ? appointment.can_cancel
     : (['CONFIRMED', 'PENDING'].includes(appointment.status) && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED', 'IN_PROGRESS'].includes(qStatus));
@@ -140,53 +143,44 @@ export function CustomerAppointmentDetailPage() {
   const isLive = normState.can_open_telemetry;
   const isTerminal = ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED'].includes(qStatus);
 
-  const formatDateStr = (isoStr, fallbackDateStr) => {
-    if (isoStr) {
-      const d = new Date(isoStr);
-      if (!isNaN(d.getTime())) {
-        return d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
-      }
-    }
-    if (fallbackDateStr) {
-      const d = new Date(fallbackDateStr);
-      if (!isNaN(d.getTime())) {
-        return d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
-      }
-    }
-    return 'Scheduled Date';
-  };
-
   const formatTime = (isoStr) => {
     if (!isoStr) return null;
     const d = new Date(isoStr);
     return isNaN(d.getTime()) ? null : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const formattedScheduleDate = formatDateStr(appointment.start_datetime, appointment.appointment_date);
-  const startTimeStr = formatTime(appointment.start_datetime);
-  const endTimeStr = formatTime(appointment.end_datetime);
+  const formattedScheduleDate = formatBookingDate(appointment.appointment_date || (appointment.start_datetime ? new Date(appointment.start_datetime).toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' }) : null));
+  const startTimeStr = formatTime(normState.estimatedStartTime);
+  const endTimeStr = formatTime(normState.estimatedEndTime);
 
   const handleRescheduleSubmit = async (e) => {
     e.preventDefault();
-    if (!newDate) return;
+    if (!newDate || mutationBusy.current) return;
+    const ticket = scope.begin(scopeKey);
+    if (!ticket) return;
+    mutationBusy.current = true;
     setRescheduling(true);
     try {
       await appointmentService.rescheduleAppointment(orgId, appointment.id, {
         appointment_date: newDate,
       });
+      if (!scope.isCurrentScope(ticket)) return;
       showSuccess('Appointment rescheduled successfully! New queue serial allocated.');
       setRescheduleModalOpen(false);
-      await fetchDetail();
+      await fetchDetail(false, true);
     } catch (err) {
+      if (!scope.isCurrentScope(ticket)) return;
       const msg = err.response?.data?.error?.message || err.response?.data?.detail || err.response?.data?.appointment_date?.[0] || 'Reschedule failed. Please select an operational date for this provider.';
       showError(msg);
     } finally {
-      setRescheduling(false);
+      if (scope.isCurrentScope(ticket)) { mutationBusy.current = false; setRescheduling(false); }
     }
   };
 
   return (
     <div className="animate-page-entrance" style={{ maxWidth: '850px', margin: '0 auto', padding: '0 0.5rem 2rem 0.5rem' }}>
+      {error && <p className="banner banner-warning" role="alert">{error} Displaying the last successful update.</p>}
+      <EmergencyNotice appointment={appointment} />
       {/* Top back navigation */}
       <div style={{ marginBottom: '1.25rem' }}>
         <Link
@@ -385,12 +379,12 @@ export function CustomerAppointmentDetailPage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
             <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Date & Time</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Booking Date</div>
               <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--lp-text)', marginTop: '0.25rem' }}>
                 {formattedScheduleDate}
               </div>
               <div style={{ fontSize: '0.875rem', color: 'var(--lp-text-subtle)', marginTop: '0.15rem' }}>
-                {startTimeStr && endTimeStr ? `${startTimeStr} – ${endTimeStr}` : (startTimeStr || 'Scheduled Consultation')}
+                {startTimeStr && endTimeStr ? `${startTimeStr} – ${endTimeStr}` : (startTimeStr || normState.timingPlaceholder)}
               </div>
             </div>
 

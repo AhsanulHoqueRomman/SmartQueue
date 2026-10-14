@@ -620,6 +620,7 @@ def test_postgresql_migrations_archive_priority_and_initialize_serial_ledger(set
     appt = book(setup)
     entry_id = appt.queue_entry.pk
     final = [('appointments', '0005_providerdateserial'), ('queue', '0006_remove_queueentry_is_urgent_and_more')]
+    latest = MigrationExecutor(connection).loader.graph.leaf_nodes()
     old = [('appointments', '0004_booking_snapshots'), ('queue', '0005_alter_queueentry_readiness_state')]
     # Schema transitions are confined to the disposable test database.
     executor = MigrationExecutor(connection)
@@ -634,9 +635,11 @@ def test_postgresql_migrations_archive_priority_and_initialize_serial_ledger(set
         assert ProviderDateSerial.objects.get(provider=setup['provider'], booking_date=TODAY).last_serial == 1
         appt.refresh_from_db()
         assert appt.serial_number == appt.queue_entry.serial_number == 1
+        # Current booking guards need all current schema after historical assertions.
+        MigrationExecutor(connection).migrate(latest)
         assert book(setup, another(setup)).serial_number == 2
     finally:
-        MigrationExecutor(connection).migrate(final)
+        MigrationExecutor(connection).migrate(latest)
 
 
 @pytest.mark.parametrize('case', ['valid', 'omitted', 'invalid', 'write_failure'])
@@ -803,7 +806,7 @@ def test_pending_owner_can_prepare_initial_hours_without_operational_access(setu
     }, format='json')
     assert response.status_code == 403, response.data
     assert not ProviderLeave.objects.filter(provider=provider).exists()
-    protected = ProviderLeave.objects.create(
+    protected = ProviderLeave.objects.create(status='APPROVED',
         provider=provider, start_datetime=leave_start,
         end_datetime=leave_start + timedelta(hours=1), reason='Authorized existing leave',
     )

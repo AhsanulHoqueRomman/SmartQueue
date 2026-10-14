@@ -86,6 +86,7 @@ export function ManagerSettingsPage() {
     phone_number: '',
     address: '',
     is_active: true,
+    arrival_buffer_minutes: 15,
   });
   const [orgDetails, setOrgDetails] = useState(null);
   const [documents, setDocuments] = useState([]);
@@ -121,6 +122,7 @@ export function ManagerSettingsPage() {
         phone_number: data.phone_number || '',
         address: data.address || '',
         is_active: data.is_active ?? true,
+        arrival_buffer_minutes: data.arrival_buffer_minutes ?? 15,
       });
     } catch (err) {
       setError(formatApiError(err, 'Failed to load organization settings or verification documents.'));
@@ -149,6 +151,7 @@ export function ManagerSettingsPage() {
         phone_number: formData.phone_number,
         address: formData.address,
         is_active: formData.is_active,
+        arrival_buffer_minutes: Number(formData.arrival_buffer_minutes),
       };
       const updated = await organizationService.updateOrganization(currentOrg.id, payload);
       setOrgDetails(updated);
@@ -657,6 +660,13 @@ export function ManagerSettingsPage() {
             </div>
           </div>
 
+          <label className="form-label">Arrival buffer (minutes)
+            <select className="form-control" value={formData.arrival_buffer_minutes}
+              onChange={event => setFormData({ ...formData, arrival_buffer_minutes: Number(event.target.value) })}>
+              {[15, 20, 25, 30].map(value => <option key={value} value={value}>{value} minutes</option>)}
+            </select>
+          </label>
+          <p className="text-sm">Recommended arrival guidance. The first eligible serial uses five minutes before the provider's scheduled start.</p>
           <div style={{ marginBottom: '1.25rem' }}>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#211C19', marginBottom: '0.35rem' }}>
               Physical Address / Location *

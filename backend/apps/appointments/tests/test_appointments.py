@@ -311,7 +311,7 @@ class TestAvailability:
 
     def test_leave_exclusion(self, api_client, booking_setup):
         s = booking_setup
-        ProviderLeave.objects.create(
+        ProviderLeave.objects.create(status='APPROVED',
             provider=s['provider'],
             start_datetime=_aware(s['work_date'], time(11, 0)),
             end_datetime=_aware(s['work_date'], time(12, 0)),
@@ -608,7 +608,7 @@ class TestBooking:
 
     def test_leave_conflict_rejected(self, api_client, booking_setup):
         s = booking_setup
-        ProviderLeave.objects.create(
+        ProviderLeave.objects.create(status='APPROVED',
             provider=s['provider'],
             start_datetime=_aware(s['work_date'], time(10, 0)),
             end_datetime=_aware(s['work_date'], time(11, 0)),

@@ -1,5 +1,7 @@
 # QueueTurn UI Design System Reference
 
+> Current Batch B amendment appears at the end of this document and supersedes affected baseline behavior; historical audit statements retain their original evidence scope.
+
 ## A. Metadata and authority
 
 - **Identity:** QueueTurn — Multi-Tenant Appointment & Queue Management Platform. Book a serial. Arrive smarter. Wait less.
@@ -269,3 +271,17 @@ Prefer scoped public/app/component selectors; existing global native form and ty
 ## M2 operational UI contracts — 2026-10-11
 
 Preserve approved public layout/themes. Customer booking inputs share Dhaka today + three-date bounds. Appointment details use backend self-reschedule eligibility and the exact temporary unavailable-ETA explanation; refresh re-evaluates latest eligibility, and final confirmation remains backend-authoritative. Queue dates/past unfinished states must not imply a fabricated no-show. Staff booking and restoration, provider initial/request schedule editing and manager current/proposed reviews use existing forms/cards/buttons. No urgent/priority controls remain. Optional request documents use authenticated downloads. New workflow visual/accessibility acceptance remains owner manual QA, not claimed from build/static tests.
+
+## Batch B functional queue presentation — 2026-10-12
+
+No visual redesign or theme-token changes. Customer check-in uses an affirmative confirmation with exact copy: “I confirm that I have arrived at the organization.” Declining performs no request. Existing staff check-in is unchanged; no geolocation claim.
+
+Live/customer detail use authoritative owned telemetry and original booking dates. Unreliable ETA never uses stored appointment times as current forecasts/arrival advice. Running Behind Schedule explains unstarted provider activity while serial/presence/progress remain visible; neutral timing placeholders explain recovery. Actual CALLED/IN_PROGRESS/terminal presentation takes precedence. Physical count retains backend active-service contribution.
+
+Existing provider registration and manager assignment/settings/review surfaces expose Average service time (minutes), the four permitted arrival buffers and planned leave status/review. Existing tokens/layouts/components remain. Scoped polling guards are functional correctness, not a new animation or layout. Manual browser/accessibility acceptance after owner-approved migration remains pending.
+
+## Emergency operational UI contract — 2026-10-13
+
+This functional extension reuses existing card, form, button and warning-banner tokens. Landing layout, themes, animation, discovery and approved rails are unchanged. `EmergencyPanel` lives in existing provider/staff queues and manager provider review, with scope-keyed state and guarded mutations/polling. Provider declares/requests return; manager reviews/finalizes; staff records actual direction/outcomes and explicit agreement before recovery. Temporary incidents do not present outbound contact as allowed. Unknown email outcome is never labelled delivered.
+
+Owned customer dashboard, appointment list/detail and live queue show short `EmergencyNotice` plus expandable full status/original serial/date/contact details. Replaced originals have historical derived display and replacement navigation, not a forged persisted status. Held CALLED/IN_PROGRESS screens suppress proceed-now advice without pretending service completed. Editable recovery forms record actual consent; no guessed customer agreement is prefilled. Reusable semantic buttons/labels and safe fallback text are used; browser responsive/accessibility acceptance remains pending development migration.

@@ -1,3 +1,5 @@
+import { useRequestScope } from '../hooks/useRequestScope';
+import { useAuth } from '../contexts/AuthContext';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTenant } from '../contexts/TenantContext';
@@ -6,14 +8,23 @@ import notificationService from '../services/notificationService';
 export const NotificationBell = ({ onNewNotification }) => {
   const { currentOrg, effectiveRole } = useTenant();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const scopeKey = `${user?.id}:${currentOrg?.id}:${effectiveRole}`;
+  const scope = useRequestScope(scopeKey);
 
-  const [notifications, setNotifications] = useState([]);
+  const [notificationRows, setNotifications] = useState([]);
+  const [loadedScope, setLoadedScope] = useState('');
+  const notifications = loadedScope === scopeKey ? notificationRows : [];
+  const mutationBusy = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
   const prevIdsRef = useRef(new Set());
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (force = false) => {
+    if (!user?.id || (mutationBusy.current && !force)) return;
+    const ticket = scope.begin(scopeKey, { background: !force });
+    if (!ticket) return;
     try {
       let data;
       if (effectiveRole === 'CUSTOMER' || !currentOrg?.id) {
@@ -21,6 +32,7 @@ export const NotificationBell = ({ onNewNotification }) => {
       } else {
         data = await notificationService.getNotifications(currentOrg.id);
       }
+      if (!scope.isCurrent(ticket)) return;
       const list = Array.isArray(data) ? data : data.results || [];
       
       // Check for new unread notifications to trigger toast
@@ -32,13 +44,14 @@ export const NotificationBell = ({ onNewNotification }) => {
         });
       }
       prevIdsRef.current = new Set(list.map((n) => n.id));
-      setNotifications(list);
+      setNotifications(list); setLoadedScope(scopeKey);
     } catch (e) {
       // Background poll fail silence
-    }
+    } finally { scope.finish(ticket); }
   };
 
   useEffect(() => {
+    setNotifications([]); setIsOpen(false); mutationBusy.current = false; prevIdsRef.current = new Set();
     fetchNotifications();
 
     // 20-second HTTP polling loop
@@ -47,7 +60,7 @@ export const NotificationBell = ({ onNewNotification }) => {
     }, 20000);
 
     return () => clearInterval(timer);
-  }, [currentOrg?.id, effectiveRole]);
+  }, [currentOrg?.id, effectiveRole, user?.id]);
 
   // Handle outside click & Escape key
   useEffect(() => {
@@ -73,41 +86,53 @@ export const NotificationBell = ({ onNewNotification }) => {
 
   const handleMarkRead = async (e, n) => {
     e.stopPropagation();
-    if (n.read_at) return;
+    if (n.read_at || mutationBusy.current) return;
     const orgId = n.organization || currentOrg?.id;
     if (!orgId) return;
+    const ticket = scope.begin(scopeKey);
+    if (!ticket) return;
+    mutationBusy.current = true;
     try {
       await notificationService.markRead(orgId, n.id);
+      if (!scope.isCurrent(ticket)) return;
       setNotifications((prev) =>
         prev.map((item) => (item.id === n.id ? { ...item, read_at: new Date().toISOString() } : item))
       );
     } catch (err) {}
+    finally { if (scope.isCurrentScope(ticket)) { mutationBusy.current = false; fetchNotifications(); } }
   };
 
   const handleMarkAllRead = async () => {
-    if (unreadCount === 0) return;
+    if (unreadCount === 0 || mutationBusy.current) return;
+    const ticket = scope.begin(scopeKey);
+    if (!ticket) return;
+    mutationBusy.current = true;
     try {
       if (effectiveRole === 'CUSTOMER' || !currentOrg?.id) {
         await notificationService.markAllCustomerNotificationsRead();
       } else {
         await notificationService.markAllRead(currentOrg.id);
       }
+      if (!scope.isCurrent(ticket)) return;
       setNotifications((prev) =>
         prev.map((n) => ({ ...n, read_at: n.read_at || new Date().toISOString() }))
       );
     } catch (err) {}
+    finally { if (scope.isCurrentScope(ticket)) { mutationBusy.current = false; fetchNotifications(); } }
   };
 
   const handleItemClick = async (n) => {
     const orgId = n.organization || currentOrg?.id;
     if (!n.read_at && orgId) {
-      notificationService.markRead(orgId, n.id).catch(() => {});
-      setNotifications((prev) =>
-        prev.map((item) => (item.id === n.id ? { ...item, read_at: new Date().toISOString() } : item))
-      );
+      handleMarkRead({ stopPropagation() {} }, n);
     }
     setIsOpen(false);
 
+    // Emergency operator notices stay inside the actor's operational workspace.
+    if (n.kind?.startsWith('PROVIDER_EMERGENCY') && effectiveRole !== 'CUSTOMER') {
+      navigate(effectiveRole === 'MANAGER' ? '/manager/providers' : effectiveRole === 'STAFF' ? '/staff/queue' : '/provider/queue');
+      return;
+    }
     // Contextual routing
     if (n.queue_entry_id) {
       if (effectiveRole === 'PROVIDER') {

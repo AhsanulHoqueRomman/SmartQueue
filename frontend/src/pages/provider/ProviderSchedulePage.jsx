@@ -157,7 +157,7 @@ export function ProviderSchedulePage() {
         providerProfile.id,
         leaveForm
       );
-      setFeedback({ type: 'success', message: 'Leave recorded successfully!' });
+      setFeedback({ type: 'success', message: 'Planned leave submitted for manager review.' });
       setLeaveForm({ start_datetime: '', end_datetime: '', reason: '' });
       fetchSchedulesAndLeaves();
     } catch (err) {
@@ -467,10 +467,10 @@ export function ProviderSchedulePage() {
       )}
 
       {/* Leaves Tab */}
-      {activeTab === 'leaves' && canEditInitial && (
+      {activeTab === 'leaves' && providerProfile.is_operationally_active && (
         <div className="flex flex-col gap-lg animate-section stagger-1">
           <div className="card">
-            <h3>Record New Leave Period</h3>
+            <h3>Request Planned Leave</h3><p className="text-sm">Submit at least four calendar days ahead. Times use Asia/Dhaka. Manager approval is required; existing bookings must be coordinated first.</p>
             <form onSubmit={handleCreateLeave} className="grid-responsive grid-cols-3 items-center" style={{ marginTop: '1rem' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">Start Datetime</label>
@@ -509,7 +509,7 @@ export function ProviderSchedulePage() {
                 />
               </div>
               <button type="submit" className="btn btn-primary" style={{ gridColumn: 'span 1', marginTop: '1rem' }}>
-                + Record Leave
+                + Request Leave
               </button>
             </form>
           </div>
@@ -537,11 +537,11 @@ export function ProviderSchedulePage() {
                       <tr key={lv.id}>
                         <td>{new Date(lv.start_datetime).toLocaleString()}</td>
                         <td>{new Date(lv.end_datetime).toLocaleString()}</td>
-                        <td>{lv.reason || 'Unspecified'}</td>
+                        <td>{lv.reason || 'Unspecified'} · {lv.status || 'Legacy effective leave (approval history unknown)'}</td>
                         <td style={{ textAlign: 'right' }}>
                           <button
                             className="btn btn-sm btn-danger"
-                            onClick={() => handleDeleteLeave(lv.id)}
+                            onClick={() => handleDeleteLeave(lv.id)} disabled={lv.status !== 'PENDING'}
                           >
                             Delete
                           </button>

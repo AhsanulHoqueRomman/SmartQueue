@@ -116,6 +116,7 @@ class ManagerRegisterSerializer(serializers.ModelSerializer):
 
 
 class ProviderRegisterSerializer(serializers.ModelSerializer):
+    average_service_minutes = serializers.IntegerField(min_value=1, required=False, write_only=True)
     initial_schedule = serializers.JSONField(required=False, write_only=True)
     """
     Serializer for Provider registration + ProviderProfile creation + optional Org selection.
@@ -139,7 +140,7 @@ class ProviderRegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'email', 'first_name', 'last_name', 'phone_number', 'password', 'password_confirm',
-            'title', 'bio', 'organization_id', 'initial_schedule'
+            'title', 'bio', 'organization_id', 'initial_schedule', 'average_service_minutes'
         )
 
     def validate_initial_schedule(self, value):

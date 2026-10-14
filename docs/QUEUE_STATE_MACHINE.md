@@ -1,5 +1,7 @@
 # QueueTurn Appointment and Queue State Machine
 
+> Current Batch B and emergency amendments appear at the end of this document and supersede affected baseline behavior; historical audit statements retain their original evidence scope.
+
 ## Metadata and authority
 
 - **Phase/date:** Project Brain Phase 2, 2026-10-09; source baseline `main` / `4a9920c`.
@@ -241,3 +243,35 @@ These checkmarks indicate documentation coverage, not passing application tests.
 - Self-rescheduling is owner-only and WAITING-only, requiring the latest authoritative ETA at least 90 minutes away. Missing ETA is temporarily unavailable with the exact message in [Business Rules](BUSINESS_RULES.md); no preliminary stored appointment start is substituted. Re-evaluate dynamically and at final confirmation.
 - Service windows end by 22:00 for newly configured/approved schedules. Midnight is not a lifecycle transition. No provider emergency recovery, automatic expiry, recall timer or new capacity formula is implemented.
 - PostgreSQL evidence: 54 distinct M2 tests verified across targeted runs, including competing calls, allocation, cancel/check-in/start, concurrent rescheduling, restore/call-next, schedule approval/booking, initial break/hour writers and data-preserving migrations. Production scheduling and manual UI acceptance remain unverified. Older contradiction/forecast records below describe baseline issues unless superseded here; unrelated F-008/F-009/F-010 remain open.
+
+## Batch B forecast and repeatable presence contract — 2026-10-12
+
+This amendment supersedes the baseline ETA/readiness and repeat-check-in qualifications above, without replacing M2 transition/lock/date protections. `apps/queue/forecast.py::calculate` is the customer-safe read calculator; `QueueService.calculate_readiness_and_eta` delegates to it. Booking allocation capacity lives separately in `appointments/capacity.py`.
+
+- WAITING forecast population: earlier same-date confirmed/checked-in WAITING reservations, including absent customers. Callable population: existing checked-in WAITING selector in ascending original serial order. Physical count includes active service even when no earlier checked-in WAITING entry exists.
+- Provider average is shared with capacity. Anchor at effective scheduled start before activity, and latest actual provider activity/current time thereafter. Active elapsed minutes provide a bounded remaining-work estimate; an overlong consultation remains IN_PROGRESS and is explained as slow progress, never auto-completed. Current active service is excluded from a future-date planned workload.
+- First effective original allocation uses scheduled start−5 minutes; exclude cancelled/skipped/no-show guidance targets, retain the first completed allocation as the historical first. Subsequent arrivals use ETA−organization buffer (15/20/25/30). No renumbering.
+- Remaining ETA > buffer+10 → NOT_YET; <= buffer+10 and > buffer → GET_READY; <= buffer → BE_READY. Presence does not override these thresholds. Actual CALLED → TURN_NOW; actual IN_PROGRESS → IN_SERVICE; terminal states override advice. Readiness is not persisted and calculation does not itself send notifications.
+- More than 20 minutes late without activity → `eta_reliable=false`, null estimated start/end/wait/arrival, Running Behind Schedule message, serial/presence/physical counts still available. No stored-window substitution. Actual call/start/completion activity restores forecasting. M2 unavailable-ETA self-rescheduling and locked final cutoff remain authoritative.
+- Previous-day WAITING is retained without an invented ETA; unresolved earlier waiting work also blocks today's authoritative forecast. Calendar rollover does not cancel/skip/complete/move it. Provider-wide active-consultation exclusion and original booking date remain intact.
+- Customer same-day check-in may precede or follow advised arrival and remains idempotent. Frontend requires explicit arrival acknowledgement, with no GPS/QR claim. Existing operator notifications, skip/restore, Call Next/start/complete are preserved. No emergency workflow existed to reuse; its authority/notice exceptions remain a specific owner-policy follow-up.
+- Customer live telemetry reads only owned appointment/dashboard data, never the private operator queue. Refresh results are scoped to account/tenant/provider/date/record; latest-started response wins, and mutation/unmount invalidates obsolete requests. Missing timing remains unavailable in display. Unfinished past queues remain accessible.
+
+## Emergency hold and recovery overlay — 2026-10-13
+
+This approved extension replaces the earlier historical statement that emergency recovery was absent. It adds no Appointment/QueueEntry enum and leaves planned leave separate.
+
+| Incident transition | Authorized trigger | Operational effect |
+|---|---|---|
+| No incident / RESUMED → TEMPORARY | Own operational provider or active own-org manager | Provider/date booking and Call Next hold; capture unresolved unserved/active work, preserve raw states and original dates/serials. |
+| TEMPORARY → resume requested | Own provider | Hold remains; manager informed. |
+| TEMPORARY + request → RESUMED | Active own-org manager | Release date hold, re-evaluate live guidance; original checked-in WAITING serial ordering remains; personally contact customers. |
+| TEMPORARY → UNAVAILABLE | Own provider before end, or own manager explicitly after effective scheduled end | Final same-date hold; staff recovery calling permitted. No later same-date resumption. |
+
+Meaningful queue history lives in `EmergencyRecovery.original_snapshot`; unresolved recovery is an association, not an invented appointment status. Repeated declarations/reviews are idempotent; a genuine new temporary interruption after resumption creates a distinct incident and recovery associations, preserving the previous incident and its actions. Versions track communication transitions within each incident. One active/final hold per provider/date is enforced.
+
+A real CALLED/IN_PROGRESS entry still blocks provider-wide parallel work. Only an explicit authorized interrupted/unfinished outcome releases it from operational active queries. `interrupted_at` preserves original raw states, called/started timestamps and fixed allocation. It cannot be restarted or skipped through normal lifecycle actions. Genuine IN_PROGRESS completion resolves associations; emergency replacement/cancellation requires recorded consent and cannot be followed by contradictory original completion. Actual completion is never inferred from elapsed time.
+
+A staff replacement creates a fresh shared-service booking with the next target serial and current charge; the original remains linked historical data and is excluded from operational queue/capacity/duplicate queries. An unfinished interruption without replacement remains allocated. Consent-based cancellation stores its distinct emergency reason. Unreachable/undecided customers stay unresolved indefinitely until an explicit authorized outcome; no calendar/clock cleanup is added.
+
+Customer readiness overlays remove unreliable timing/proceed-now advice during a hold while preserving actual state and presence. Resolved originals have a derived historical replacement display, without rewriting raw status. No automatic Call Next, recall, no-show or restoration is added. Reduced authority is enforced in backend services, not UI buttons alone.

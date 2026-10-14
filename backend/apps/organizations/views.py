@@ -185,6 +185,10 @@ class OrganizationDetailView(APIView):
                     return Response({
                         'slug': ['An organization with this URL slug already exists.']
                     }, status=status.HTTP_400_BAD_REQUEST)
+            if 'arrival_buffer_minutes' in serializer.validated_data and not OrganizationMembership.objects.filter(
+                user=request.user, organization=org, role='MANAGER', is_active=True,
+            ).exists():
+                return Response({'detail': 'Only an active organization manager may configure the arrival buffer.'}, status=403)
             updated_org = serializer.save()
             return Response(OrganizationSerializer(updated_org).data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

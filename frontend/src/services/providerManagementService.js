@@ -1,6 +1,10 @@
 import apiClient from '../api/client';
 
 export const providerManagementService = {
+  async reviewLeave(orgId, providerId, leaveId, decision, reason = '') {
+    const response = await apiClient.post(`/organizations/${orgId}/providers/${providerId}/leaves/${leaveId}/review/`, { decision, reason });
+    return response.data;
+  },
   async updateServiceCharge(orgId, providerId, assignmentId, customPrice) {
     const response = await apiClient.patch(`/organizations/${orgId}/providers/${providerId}/services/${assignmentId}/`, { custom_price: customPrice });
     return response.data;

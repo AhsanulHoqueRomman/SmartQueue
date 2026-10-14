@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import resend
+from resend.exceptions import ResendError
 from django.utils.html import escape
 
 logger = logging.getLogger(__name__)
@@ -54,14 +55,28 @@ _CONFIG_ENV_VARS = {
 class EmailSendResult:
     """Outcome of an attempted email send.
 
-    ``success`` is ``True`` only when Resend accepted the message and returned a
-    message id. ``error`` carries a short, sanitised reason on failure and is
-    ``None`` on success.
+    ``success`` preserves the existing successful SDK-response contract; callers
+    need a message id to record acceptance. ``outcome_uncertain`` distinguishes
+    a transport/server ambiguity from a definitive rejection. Neither is proof
+    of delivery. Existing contact/reset callers still receive success=False on
+    every exception, and a sanitised error.
     """
 
     success: bool
     email_id: Optional[str] = None
     error: Optional[str] = None
+    outcome_uncertain: bool = False
+
+
+def _definitive_rejection(exc):
+    if not isinstance(exc, ResendError):
+        return False
+    try:
+        code = int(exc.code)
+    except (TypeError, ValueError):
+        return False
+    # Request timeouts and server/transport errors may occur after acceptance.
+    return 400 <= code < 500 and code != 408
 
 
 def _get_config():
@@ -96,7 +111,7 @@ def _sanitise(message, api_key):
     return text
 
 
-def _send(*, to, subject, text, html=None, reply_to=None, context=''):
+def _send(*, to, subject, text, html=None, reply_to=None, context='', idempotency_key=None):
     """Perform a single Resend send, swallowing every failure.
 
     Args:
@@ -139,11 +154,12 @@ def _send(*, to, subject, text, html=None, reply_to=None, context=''):
         # The SDK reads the module-level ``api_key`` when building request
         # headers, so set it explicitly rather than relying on import order.
         resend.api_key = config['api_key']
-        response = resend.Emails.send(params)
+        response = resend.Emails.send(params, options={'idempotency_key': idempotency_key}) if idempotency_key else resend.Emails.send(params)
     except Exception as exc:  # noqa: BLE001 - email must never break the caller
         safe_error = _sanitise(exc, config['api_key'])
         logger.error('Contact email failed (%s): %s', context or 'email', safe_error)
-        return EmailSendResult(success=False, error=safe_error)
+        return EmailSendResult(success=False, error=safe_error,
+                               outcome_uncertain=not _definitive_rejection(exc))
 
     email_id = None
     if isinstance(response, dict):
@@ -336,3 +352,9 @@ def send_password_reset_email(user, reset_url):
         reply_to=config['support_email'] or None,
         context='password reset',
     )
+
+
+def send_emergency_notification(*, to, subject, text, idempotency_key):
+    """Reuse the existing transport; acceptance is not confirmed delivery."""
+    return _send(to=to, subject=subject, text=text, html=_text_to_html(text),
+                 context='provider emergency', idempotency_key=idempotency_key)

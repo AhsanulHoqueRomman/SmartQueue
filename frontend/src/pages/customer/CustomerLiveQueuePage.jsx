@@ -1,6 +1,10 @@
+import { EmergencyNotice } from '../../components/EmergencyNotice';
+import { formatBookingDate } from '../../utils/homeBookingDisplay.js';
+import { useRequestScope } from '../../hooks/useRequestScope';
+import { useAuth } from '../../contexts/AuthContext';
+import { confirmCustomerArrival } from '../../utils/customerArrival.js';
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import queueService from '../../services/queueService';
 import appointmentService from '../../services/appointmentService';
 import { getNormalizedCustomerQueueState } from '../../utils/queueDisplay';
 import StatusBadge from '../../components/StatusBadge';
@@ -11,10 +15,14 @@ import ReportIssueModal from '../../components/ReportIssueModal';
 export function CustomerLiveQueuePage() {
   const { queueEntryId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const scopeKey = `${user?.id}:${queueEntryId}`;
+  const scope = useRequestScope(scopeKey);
+  const [loadedScope, setLoadedScope] = useState('');
+  const actionBusy = useRef(false);
 
   const [myQueueEntry, setMyQueueEntry] = useState(null);
   const [appointment, setAppointment] = useState(null);
-  const [providerQueueEntries, setProviderQueueEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
@@ -25,88 +33,55 @@ export function CustomerLiveQueuePage() {
   const timerRef = useRef(null);
 
   const fetchQueueStatus = async (isManual = false) => {
-    if (!queueEntryId) return;
-
+    if (!queueEntryId || !user?.id || actionBusy.current) return;
+    const ticket = scope.begin(scopeKey, { background: !isManual });
+    if (!ticket) return;
     if (isManual) setRefreshing(true);
-    setError(null);
-
     try {
-      const dashData = await appointmentService.getCustomerDashboard();
-      const apptList = Array.isArray(dashData) ? dashData : dashData.results || [];
-
-      const matchAppt = apptList.find(
-        (a) => String(a.queue_entry?.id) === String(queueEntryId) || (a.queue_entry == null && String(a.id) === String(queueEntryId))
-      );
-
-      if (!matchAppt) {
-        setError('Queue entry or appointment record not found in your schedule.');
-        setLoading(false);
+      const data = await appointmentService.getCustomerDashboard();
+      if (!scope.isCurrent(ticket)) return;
+      const list = Array.isArray(data) ? data : data.results || [];
+      const match = list.find(item => String(item.queue_entry?.id) === String(queueEntryId) || String(item.id) === String(queueEntryId));
+      if (!match?.queue_entry) {
+        setMyQueueEntry(null); setAppointment(match || null);
+        setError('Queue telemetry is unavailable for this appointment. Please open appointment details or contact the organization.');
         return;
       }
-
-      setAppointment(matchAppt);
-
-      const qEntry = matchAppt.queue_entry || {
-        id: matchAppt.id,
-        appointment_id: matchAppt.id,
-        serial_number: matchAppt.serial_number,
-        status: matchAppt.status,
-        provider_id: matchAppt.provider_id,
-        provider_name: matchAppt.provider_name,
-        service_name: matchAppt.service_name,
-        organization_id: matchAppt.organization_id,
-        organization_name: matchAppt.organization_name,
-        is_checked_in: Boolean(matchAppt.is_checked_in || matchAppt.status === 'CHECKED_IN'),
-        readiness_info: {
-          readiness_state: 'NOT_YET',
-          scheduled_ahead: 0,
-          checked_in_ahead: 0,
-          people_ahead: 0,
-        }
-      };
-
-      setMyQueueEntry(qEntry);
-      setLastUpdated(new Date());
-
-      const orgId = matchAppt.organization_id || matchAppt.organization;
-      const provId = matchAppt.provider_id || qEntry.provider_id;
-
-      if (orgId && provId) {
-        try {
-          const provData = await queueService.getProviderQueue(orgId, provId);
-          const provEntries = Array.isArray(provData)
-            ? provData
-            : provData.entries || provData.results || [];
-          setProviderQueueEntries(provEntries);
-        } catch (pErr) {
-          // Graceful fallback
-        }
-      }
+      setAppointment(match); setMyQueueEntry(match.queue_entry);
+      setLoadedScope(scopeKey); setLastUpdated(new Date()); setError(null);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to update live queue telemetry.');
+      if (scope.isCurrent(ticket)) setError(err.response?.data?.error?.message || err.response?.data?.detail || 'Last refresh failed. Displayed information is from the last successful update.');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (scope.isCurrent(ticket)) { setLoading(false); setRefreshing(false); }
+      scope.finish(ticket);
     }
   };
 
   const handleCheckInNow = async () => {
+    if (!confirmCustomerArrival()) return;
     const orgId = appointment?.organization_id || appointment?.organization || myQueueEntry?.organization_id;
     const apptId = appointment?.id || myQueueEntry?.appointment_id;
     if (!orgId || !apptId) return;
 
+    if (actionBusy.current) return;
+    const ticket = scope.begin(scopeKey);
+    if (!ticket) return;
+    actionBusy.current = true;
     setCheckingIn(true);
     try {
       await appointmentService.checkInAppointment(orgId, apptId);
+      if (!scope.isCurrent(ticket)) return;
+      actionBusy.current = false;
       await fetchQueueStatus(true);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Check-in failed. Please verify your appointment date.');
+      if (scope.isCurrent(ticket)) setError(err.response?.data?.error?.message || err.response?.data?.detail || 'Check-in failed. Please verify your appointment date.');
     } finally {
-      setCheckingIn(false);
+      if (scope.isCurrentScope(ticket)) { actionBusy.current = false; setCheckingIn(false); }
     }
   };
 
   useEffect(() => {
+    actionBusy.current = false; setMyQueueEntry(null); setAppointment(null); setError(null); setLoading(true);
     fetchQueueStatus();
 
     timerRef.current = setInterval(() => {
@@ -118,7 +93,7 @@ export function CustomerLiveQueuePage() {
         clearInterval(timerRef.current);
       }
     };
-  }, [queueEntryId]);
+  }, [queueEntryId, user?.id]);
 
   useEffect(() => {
     if (myQueueEntry && ['COMPLETED', 'SKIPPED', 'CANCELLED'].includes(myQueueEntry.status)) {
@@ -128,11 +103,11 @@ export function CustomerLiveQueuePage() {
     }
   }, [myQueueEntry?.status]);
 
-  if (loading) {
+  if (loading || (loadedScope !== scopeKey && !error)) {
     return <LoadingState message="Connecting to live queue telemetry..." />;
   }
 
-  if (error || !myQueueEntry) {
+  if (!myQueueEntry || loadedScope !== scopeKey) {
     return (
       <div className="animate-fade-in" style={{ maxWidth: '850px', margin: '0 auto' }}>
         <EmptyState
@@ -145,10 +120,6 @@ export function CustomerLiveQueuePage() {
     );
   }
 
-  const currentlyServing = providerQueueEntries.find(
-    (e) => e.status === 'IN_PROGRESS' || e.status === 'CALLED'
-  );
-
   const formatTime = (isoStr) => {
     if (!isoStr) return null;
     const d = new Date(isoStr);
@@ -157,18 +128,18 @@ export function CustomerLiveQueuePage() {
 
   // Derive normalized presentation model
   const qState = getNormalizedCustomerQueueState(appointment, myQueueEntry);
-  const nowServingSerial = qState.nowServing || currentlyServing?.serial_number;
+  const nowServingSerial = qState.nowServing;
   const canCheckIn = appointment?.can_check_in !== undefined
     ? appointment.can_check_in
-    : (appointment?.temporal_classification === 'today' && !qState.isCheckedIn && !qState.isTerminal);
+    : qState.canCheckIn;
 
-  if (qState.isPast || appointment?.temporal_classification === 'past' || !qState.can_open_telemetry) {
-    const formattedDate = appointment?.start_datetime
-      ? new Date(appointment.start_datetime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
-      : (appointment?.appointment_date || 'Past date');
+  if (qState.isPast || !qState.can_open_telemetry) {
+    const formattedDate = formatBookingDate(appointment?.appointment_date || (appointment?.start_datetime
+      ? new Date(appointment.start_datetime).toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' }) : null));
 
     return (
       <div className="animate-fade-in" style={{ maxWidth: '800px', margin: '2rem auto' }}>
+        <EmergencyNotice appointment={appointment} />
         <div style={{ marginBottom: '1.25rem' }}>
           <Link
             to="/customer/appointments"
@@ -276,6 +247,7 @@ export function CustomerLiveQueuePage() {
 
   return (
     <div className="animate-page-entrance" style={{ maxWidth: '820px', margin: '0 auto', padding: '0 0.5rem' }}>
+      {error && <p className="banner banner-warning" role="alert">{error}</p>}
       {/* Top Header Bar */}
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Link
@@ -313,6 +285,7 @@ export function CustomerLiveQueuePage() {
         </button>
       </div>
 
+      <EmergencyNotice appointment={appointment} />
       {/* Hero Queue Section (De-boxed open design) */}
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -469,8 +442,8 @@ export function CustomerLiveQueuePage() {
             {qState.rawStatus === 'IN_PROGRESS'
               ? (qState.remainingServiceMinutes != null ? `In Consultation (~${qState.remainingServiceMinutes}m rem.)` : 'In Consultation')
               : (!qState.providerHasStarted && qState.isDelayed
-                  ? 'Awaiting Provider Start'
-                  : (estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : (estStartStr || 'Around appointment time')))}
+                  ? qState.timingPlaceholder
+                  : (estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : (estStartStr || qState.timingPlaceholder)))}
           </div>
           <div style={{ fontSize: '0.78rem', color: (qState.rawStatus === 'IN_PROGRESS' || qState.isCheckedIn) ? 'var(--color-success)' : 'var(--lp-accent)' }}>
             {qState.rawStatus === 'IN_PROGRESS'

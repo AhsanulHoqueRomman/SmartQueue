@@ -1,5 +1,7 @@
+import { EmergencyPanel } from '../../components/EmergencyPanel';
 import PrivateDocumentButton from '../../components/PrivateDocumentButton';
 import { ScheduleRequestsPanel, SchedulePreview } from '../../components/ScheduleRequestsPanel';
+import { LeaveRequestsPanel } from '../../components/LeaveRequestsPanel';
 import React, { useState, useEffect } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
 import managerService from '../../services/managerService';
@@ -9,7 +11,7 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { LoadingState } from '../../components/LoadingState';
 import { EmptyState } from '../../components/EmptyState';
 import { useToast } from '../../contexts/ToastContext';
-import { formatCurrency, bookingError } from '../../utils/bookingDisplay';
+import { formatCurrency, bookingError, currentBusinessDate } from '../../utils/bookingDisplay';
 
 function AssignedChargeEditor({ assignment, basePrice, onSave }) {
   const [value, setValue] = useState(assignment.custom_price ?? '');
@@ -32,6 +34,7 @@ export function ManagerProvidersPage() {
   const { showSuccess, showError } = useToast();
 
   const [scheduleProviderId, setScheduleProviderId] = useState('');
+  const [emergencyDate, setEmergencyDate] = useState(currentBusinessDate);
   const [activeTab, setActiveTab] = useState('active'); // 'active' | 'pending' | 'rejected' | 'invitations'
   const [providers, setProviders] = useState([]);
   const [invitations, setInvitations] = useState([]);
@@ -66,11 +69,12 @@ export function ManagerProvidersPage() {
   // Assign Service Modal State
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState(null);
+  const [averageMinutes, setAverageMinutes] = useState('');
+  const [savingAverage, setSavingAverage] = useState(false);
   const [assignedCharges, setAssignedCharges] = useState([]);
   const [loadingCharges, setLoadingCharges] = useState(false);
   const [assignForm, setAssignForm] = useState({
     service_id: '',
-    custom_duration_minutes: '',
     custom_price: '',
   });
 
@@ -108,6 +112,17 @@ export function ManagerProvidersPage() {
       .finally(() => { if (active) setLoadingCharges(false); });
     return () => { active = false; };
   }, [assignModalOpen, selectedProvider, currentOrg?.id, showError]);
+
+  const saveAverage = async () => {
+    if (savingAverage || !selectedProvider) return;
+    setSavingAverage(true);
+    try {
+      const updated = await providerManagementService.updateProviderProfile(currentOrg.id, selectedProvider.id, { average_service_minutes: Number(averageMinutes) });
+      setSelectedProvider(updated); setAverageMinutes(updated.average_service_minutes);
+      showSuccess('Provider average service time saved.'); fetchData();
+    } catch (err) { showError(bookingError(err)); }
+    finally { setSavingAverage(false); }
+  };
 
   const saveCharge = async (assignment, price) => {
     try {
@@ -196,9 +211,6 @@ export function ManagerProvidersPage() {
     e.preventDefault();
     if (!selectedProvider) return;
     const payload = { service_id: assignForm.service_id };
-    if (assignForm.custom_duration_minutes) {
-      payload.custom_duration_minutes = parseInt(assignForm.custom_duration_minutes, 10);
-    }
     if (assignForm.custom_price) {
       payload.custom_price = assignForm.custom_price;
     }
@@ -258,6 +270,8 @@ export function ManagerProvidersPage() {
       )}
 
       {scheduleProviderId && <ScheduleRequestsPanel key={`${currentOrg.id}:${scheduleProviderId}`} orgId={currentOrg.id} providerId={scheduleProviderId} manager />}
+      {scheduleProviderId && <LeaveRequestsPanel key={`leave:${currentOrg.id}:${scheduleProviderId}`} orgId={currentOrg.id} providerId={scheduleProviderId} />}
+      {scheduleProviderId && <><label>Emergency service date<input className="form-control" type="date" max={currentBusinessDate()} value={emergencyDate} onChange={e => setEmergencyDate(e.target.value)} /></label><EmergencyPanel orgId={currentOrg.id} providerId={scheduleProviderId} serviceDate={emergencyDate} mode="manager" /></>}
       {/* Tabs */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid #E6E1D9', paddingBottom: '0.5rem' }}>
         <button
@@ -362,7 +376,8 @@ export function ManagerProvidersPage() {
                                 className="btn btn-sm btn-secondary"
                                 onClick={() => {
                                   setSelectedProvider(prov);
-                                  setAssignForm({ service_id: '', custom_duration_minutes: '', custom_price: '' });
+                                  setAverageMinutes(prov.average_service_minutes ?? '');
+                                  setAssignForm({ service_id: '', custom_price: '' });
                                   setAssignModalOpen(true);
                                 }}
                               >
@@ -632,6 +647,14 @@ export function ManagerProvidersPage() {
               <button className="modal-close-btn" onClick={() => setAssignModalOpen(false)}>&times;</button>
             </div>
             <div className="modal-body">
+                <label className="form-label">Average service time (minutes)
+                  <input className="form-control" type="number" min="1" step="1" value={averageMinutes}
+                    onChange={event => setAverageMinutes(event.target.value)} placeholder="Configure provider planning average" />
+                </label>
+                <p className="text-sm">One average controls this professional's capacity and queue estimates. Service duration is catalog information.</p>
+                <button type="button" className="btn btn-sm btn-secondary" disabled={savingAverage || !Number.isInteger(Number(averageMinutes)) || Number(averageMinutes) < 1}
+                  onClick={saveAverage}>{savingAverage ? 'Saving…' : 'Save Average Service Time'}</button>
+
               <p>Leaving or clearing an override uses the service's default charge. Save to apply changes.</p>
               {loadingCharges ? <LoadingState message="Loading assigned services..." /> : assignedCharges.map(assignment => <AssignedChargeEditor key={assignment.id} assignment={assignment} basePrice={services.find(s => s.id === assignment.service_id)?.price} onSave={price => saveCharge(assignment, price)} />)}
             </div>

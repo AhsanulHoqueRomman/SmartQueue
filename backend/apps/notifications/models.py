@@ -17,6 +17,11 @@ class Notification(models.Model):
         PROVIDER_APPOINTMENT_CANCELLED = 'PROVIDER_APPOINTMENT_CANCELLED', _('Appointment cancelled')
         PROVIDER_CHECKED_IN = 'PROVIDER_CHECKED_IN', _('Customer checked in')
 
+        PROVIDER_EMERGENCY_DECLARED = 'PROVIDER_EMERGENCY_DECLARED', _('Provider temporary emergency')
+        PROVIDER_EMERGENCY_UNAVAILABLE = 'PROVIDER_EMERGENCY_UNAVAILABLE', _('Provider unavailable for today')
+        PROVIDER_EMERGENCY_RESUMED = 'PROVIDER_EMERGENCY_RESUMED', _('Provider resumed service')
+        PROVIDER_EMERGENCY_OPERATOR = 'PROVIDER_EMERGENCY_OPERATOR', _('Provider emergency coordination')
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
     organization = models.ForeignKey('organizations.Organization', on_delete=models.CASCADE, related_name='notifications')

@@ -23,6 +23,7 @@ export const ProviderRegisterPage = () => {
     // Step 2: Profile
     title: '',
     bio: '',
+    average_service_minutes: '',
 
     // Step 3: Org
     organization_id: '',
@@ -78,7 +79,14 @@ export const ProviderRegisterPage = () => {
 
   const handleNext = () => {
     if (step === 1 && validateStep1()) setStep(2);
-    else if (step === 2) setStep(3);
+    else if (step === 2) {
+      const average = Number(formData.average_service_minutes);
+      if (formData.average_service_minutes !== '' && (!Number.isInteger(average) || average < 1)) {
+        setFieldErrors({ average_service_minutes: ['Enter a positive whole number of minutes.'] });
+        return;
+      }
+      setFieldErrors({}); setStep(3);
+    }
     else if (step === 3) setStep(4);
   };
 
@@ -90,11 +98,17 @@ export const ProviderRegisterPage = () => {
     e.preventDefault();
     setError(null);
     setFieldErrors({});
+    const average = Number(formData.average_service_minutes);
+    if (formData.organization_id && (!Number.isInteger(average) || average < 1)) {
+      setFieldErrors({ average_service_minutes: ['Enter a positive whole number of minutes for your organization provider profile.'] });
+      setStep(2); return;
+    }
     setSubmitting(true);
 
     try {
       const payload = { ...formData };
-      if (!payload.organization_id) delete payload.initial_schedule;
+      payload.average_service_minutes = Number(formData.average_service_minutes);
+      if (!payload.organization_id) { delete payload.initial_schedule; delete payload.average_service_minutes; }
       const res = await registerProvider(payload);
       if (res.is_pending_approval) {
         setSubmittedPending(true);
@@ -433,6 +447,12 @@ export const ProviderRegisterPage = () => {
                   onChange={handleChange}
                 />
               </div>
+              <label className="form-label">Average service time (minutes)
+                <input type="number" min="1" step="1" name="average_service_minutes" className="form-control"
+                  value={formData.average_service_minutes} onChange={handleChange} aria-invalid={Boolean(fieldErrors.average_service_minutes)} />
+              </label>
+              <p className="text-sm">Required when joining an organization. One planning average for that provider queue, not a fixed consultation timer. If you skip organization selection, configure the average when your provider profile is created.</p>
+              {fieldErrors.average_service_minutes && <p role="alert">{fieldErrors.average_service_minutes[0]}</p>}
             </div>
           )}
 

@@ -42,6 +42,10 @@ class Organization(models.Model):
     tagline = models.CharField(_('tagline / motto'), max_length=255, blank=True)
     description = models.TextField(_('description'), blank=True)
     is_active = models.BooleanField(_('active'), default=True)
+    arrival_buffer_minutes = models.PositiveSmallIntegerField(
+        _('arrival buffer (minutes)'), default=15,
+        choices=[(value, str(value)) for value in (15, 20, 25, 30)],
+    )
     verification_status = models.CharField(
         _('verification status'),
         max_length=20,
@@ -66,6 +70,10 @@ class Organization(models.Model):
         verbose_name = _('organization')
         verbose_name_plural = _('organizations')
         ordering = ['-created_at']
+        constraints = [models.CheckConstraint(
+            condition=models.Q(arrival_buffer_minutes__in=[15, 20, 25, 30]),
+            name='organization_arrival_buffer_allowed',
+        )]
 
     def __str__(self):
         return self.name

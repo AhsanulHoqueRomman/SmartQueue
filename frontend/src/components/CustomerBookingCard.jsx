@@ -1,3 +1,5 @@
+import { EmergencyNotice } from './EmergencyNotice';
+import { formatBookingDate } from '../utils/homeBookingDisplay.js';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
@@ -74,8 +76,9 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
           {item.category_name && <span> &bull; {item.category_name}</span>}
         </div>
 
+        <EmergencyNotice appointment={item} />
         {/* State-Specific Callout Banners for Live Queue */}
-        {qStatus === 'IN_PROGRESS' && (
+        {qStatus === 'IN_PROGRESS' && !qState.emergencyHold && (
           <div
             style={{
               background: 'var(--lp-btn-bg, #2F2520)',
@@ -93,7 +96,7 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
           </div>
         )}
 
-        {qStatus === 'CALLED' && (
+        {qStatus === 'CALLED' && !qState.emergencyHold && (
           <div
             style={{
               background: 'var(--color-success-bg, rgba(79, 122, 90, 0.12))',
@@ -162,8 +165,8 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
                   {qStatus === 'IN_PROGRESS'
                     ? (qState.remainingServiceMinutes != null ? `In Consultation (~${qState.remainingServiceMinutes}m rem.)` : 'In Consultation')
                     : (!qState.providerHasStarted && qState.isDelayed
-                        ? 'Awaiting Provider Start'
-                        : (estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : estStartStr || 'Scheduled'))}
+                        ? qState.timingPlaceholder
+                        : (estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : estStartStr || qState.timingPlaceholder))}
                 </div>
               </div>
 
@@ -194,7 +197,7 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
                 }}
               >
                 <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: readinessConfig.color }} />
-                {readinessConfig.label}
+                {qState.emergencyHold ? 'Service interrupted' : readinessConfig.label}
               </div>
 
               {!qState.isCheckedIn && !isTerminal && (
@@ -215,8 +218,8 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
         {!isLive && (
           <div style={{ background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '1.25rem', fontSize: '0.85rem', color: 'var(--lp-text)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>📅 Date: <strong>{new Date(item.start_datetime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</strong></span>
-              <span>⏰ <strong>{estStartStr || 'Scheduled'}</strong></span>
+              <span>📅 Date: <strong>{formatBookingDate(item.appointment_date || (item.start_datetime ? new Date(item.start_datetime).toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' }) : null))}</strong></span>
+              <span>⏰ <strong>{estStartStr || qState.timingPlaceholder}</strong></span>
             </div>
             {item.serial_number && (
               <div style={{ marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid var(--lp-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

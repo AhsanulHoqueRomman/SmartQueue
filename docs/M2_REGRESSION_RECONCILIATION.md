@@ -369,3 +369,152 @@ Final Git status:
 ?? frontend/src/utils/m2Policy.test.js
 ?? frontend/src/utils/scheduleDraft.js
 ```
+
+
+## Batch B regression amendment — 2026-10-12
+
+This records separately authorized Batch B work; it does not restart M2, overwrite its historical evidence or claim another full backend suite run. M2 horizon/cutoffs, provider-wide active exclusion, original dates/serial ledger, snapshots, schedule approval and private attachments remain protected.
+
+### Exact final isolated integration launcher
+
+From `D:\SmartQueue\backend` in PowerShell (temporary fast hashing applies only to synthetic test fixtures):
+
+```powershell
+@'
+import os, pytest
+os.environ['DJANGO_SETTINGS_MODULE']='config.settings.development'
+import django; django.setup()
+from django.conf import settings
+from django.test import override_settings
+assert settings.DATABASES['default']['ENGINE']=='django.db.backends.sqlite3'
+modules = [
+    'tests/test_batch_b.py', 'tests/test_m2_lifecycle.py',
+    'apps/appointments/tests/test_appointments.py', 'apps/providers/tests/test_providers.py',
+    'tests/test_phase_a7_authoritative_forecast.py', 'tests/test_phase_a8_organization_booking.py',
+    'tests/test_queue.py', 'apps/services/tests/test_services.py',
+    'tests/test_m1_security_onboarding.py', 'tests/test_phase5_hardening.py',
+]
+with override_settings(PASSWORD_HASHERS=['django.contrib.auth.hashers.MD5PasswordHasher']):
+    raise SystemExit(pytest.main(modules + ['-q','--tb=short','--show-capture=no']))
+'@ | & ..\.venv\Scripts\python.exe -
+```
+
+Result: **415 passed, 0 failed, 14 skipped**. Skips require PostgreSQL concurrency/migration behavior; SQLite is not lock/migration proof. The launcher initially failed before test startup because Django settings had not been initialized; corrected bootstrap produced the result above. No persistent settings were changed.
+
+The normal-hasher earlier expanded integration returned **405 passed, 4 failed, 14 skipped**. Those four failures were already-superseded F-024/M1 assertions: scoped foreign document route is 404, and own document reads remain allowed for an inactive provider while uploads/profile writes/operations remain denied. Corrections retained the security assertions and passed on PostgreSQL and final integration. An earlier smaller checkpoint returned seven obsolete fixture/clock/readiness failures; explicit approved synthetic leave fixtures, four-day planned notice and deterministic in-horizon dates/clock assertions corrected them. No production permission was relaxed.
+
+### PostgreSQL verification
+
+```powershell
+& ..\.venv\Scripts\python.exe -m pytest tests/test_batch_b.py tests/test_m2_lifecycle.py tests/test_m1_security_onboarding.py::test_pending_owner_onboarding_without_operational_authority tests/test_m1_security_onboarding.py::test_inactive_approved_owner_does_not_gain_onboarding_access --ds=config.settings.test_postgresql --migrations -q --tb=short --show-capture=no
+```
+
+**157 passed** at the final core checkpoint, including all 83 M2 cases. After the final schedule null-date protection and three additional cases:
+
+```powershell
+& ..\.venv\Scripts\python.exe -m pytest tests/test_batch_b.py tests/test_m2_lifecycle.py -k 'batch_b or schedule or approval or notice' --ds=config.settings.test_postgresql --migrations -q --tb=short --show-capture=no
+```
+
+**119 passed, 37 deselected, 0 failed**. Includes all 73 final Batch B cases and 46 affected M2 cases. Four Batch B cases specifically exercise three real row-lock races and a legacy-field migration; migration keeps existing effective leave NULL/unknown, provider averages NULL and organization buffer default 15 without rewriting original records. Private schedule attachments remain covered by M2. No emergency workflow exists to test; owner policy required.
+
+Using the same fast isolated launcher with modules `tests/test_phase_a72_multi_patient_audit.py` and `tests/test_phase_a2_runtime_stability.py`: initial **11 passed, 1 failed** (obsolete count-first BE_READY expectation); final **12 passed** after valid hours and a controlled NOT_YET→BE_READY→actual CALLED/IN_PROGRESS sequence. No production source changed for that assertion.
+
+### Frontend and migration verification
+
+- From frontend: `node --test --test-reporter=spec src/utils/*.test.js`: **42 passed**. Includes stale/slow polling, scope/unmount/mutation guards, explicit arrival acknowledgement, no stored live-timing fallback, physical active count and actual-state presentation; preserved M2/privacy/date/price helpers also pass.
+- Installed `node node_modules/oxlint/bin/oxlint <19 touched JS/JSX files>`: **0 errors, 48 warnings** (18 unused variables, 16 effect-state, 14 effect-dependency advisories). New helpers/component clean; no rule suppression. An initial relative-path invocation accidentally selected broader existing frontend warnings; the final result is the corrected touched-file selection.
+- Final `npm run build`: passed with existing large-chunk advisory. Earlier checkpoint build passed before subsequent genuine polling/display corrections. No redesign or dependency changes.
+- `manage.py makemigrations --check --dry-run --settings=config.settings.development`: no changes. `manage.py check --settings=config.settings.development`: no issues (0 silenced). `migrate --plan` and `sqlmigrate organizations 0011` / `sqlmigrate providers 0009`: only expected additive columns/constraints; no destructive data SQL. No development migration applied.
+
+Owner rollout must back up/stop writers, apply organizations 0011 then providers 0009, explicitly configure the 16 mixed/one missing legacy averages and perform browser/live-ETA acceptance. Existing 102 appointments/102 QueueEntries and one historical duplicate group remain unchanged. Emergency leave/recovery notice/approval/staff authority is an unresolved specific policy question; no fabricated workflow, automatic cancellation or unrestricted staff recovery was implemented. No staging, commit or push.
+
+Final `git diff --check` passed. Branch/HEAD remains `main` / `5f160e9`; no staged changes, commit or push.
+
+## Emergency interruption verification — 2026-10-13
+
+This is a separately authorized focused extension, not a restart of M2 or a new full-suite claim. Original M2/Batch B execution evidence above remains historical.
+
+### Backend integration
+
+From `backend`, the existing isolated fast-fixture launcher (`import pytest` before Django bootstrap, assert SQLite, temporary MD5 password hasher override inside test execution only) ran these modules:
+
+```python
+modules = [
+    'tests/test_provider_emergency.py', 'tests/test_batch_b.py', 'tests/test_m2_lifecycle.py',
+    'apps/appointments/tests/test_appointments.py', 'apps/providers/tests/test_providers.py',
+    'tests/test_phase_a7_authoritative_forecast.py', 'tests/test_phase_a8_organization_booking.py',
+    'tests/test_queue.py', 'apps/services/tests/test_services.py',
+    'tests/test_m1_security_onboarding.py', 'tests/test_phase5_hardening.py',
+    'tests/test_phase_a72_multi_patient_audit.py', 'tests/test_phase_a2_runtime_stability.py',
+    'apps/contact/tests/test_email_service.py',
+]
+pytest.main(modules + ['-q', '--tb=short', '--show-capture=no'])
+```
+
+Result: **485 passed, 0 failed, 18 skipped**. Skips require PostgreSQL locking/migration behavior. No persistent hasher or database setting was changed. An initial command used nonexistent app-local `tests.py` paths and collected no tests; corrected directory/module paths produced the result. The email transport unit assertion verifies escaped HTML and stable SDK idempotency options without network access.
+
+PostgreSQL, isolated `test_queueturn_m2` with real migrations:
+
+```powershell
+& ..\.venv\Scripts\python.exe -m pytest tests/test_provider_emergency.py tests/test_batch_b.py tests/test_m2_lifecycle.py --ds=config.settings.test_postgresql --migrations -q --tb=short --show-capture=no
+```
+
+Final integrated checkpoint: **200 passed, 0 failed, 0 skipped** (44 then-current emergency cases, all 73 Batch B and 83 M2 cases). Earlier run: **183 passed, 1 failed**; M2's historical migration test restored only the older M2 schema before invoking current booking code, leaving the new dependent emergency tables absent. The narrow fixture correction now restores the graph's current leaf migrations before current-service assertions and in cleanup; historical archive/serial assertions are retained. No production missing-table bypass was introduced.
+
+After additional meaningful race assertions and six new cases, only the changed emergency module was rerun:
+
+```powershell
+& ..\.venv\Scripts\python.exe -m pytest tests/test_provider_emergency.py --ds=config.settings.test_postgresql --migrations -q --tb=short --show-capture=no
+```
+
+**50 passed, 0 failed, 0 skipped**. Six real concurrency cases cover booking/declaration, Call Next/declaration, approval/final closure, reschedule/cancel, duplicate declarations and duplicate rescheduling. Assertions include hold coverage, original serial/status preservation, one replacement, idempotent events and no reconciliation of synthetic historical duplicate records. Other coverage includes roles/tenant nesting, consent/direction, target horizon/capacity/holds, cross-provider current charge/fair serial, actual interruption/completion, no restart/skip of interrupted work, manager-after-end closure, original ordering after approved resume and failed/uncertain/superseded email behavior. A final scope guard rejects an invented past-date incident when only current-date active work exists; managers cannot use backdating to bypass the scheduled-end finalization guard. That new test initially returned **49 passed, 1 failed** because it asserted a cached reverse queue relation; replacing the assertion with a fresh database read verified the persisted CALLED state without changing production behavior.
+
+### Frontend and configuration
+
+- `node --test --test-reporter=spec src/utils/*.test.js`: **47 passed, 0 failed** (five new emergency payload/presentation cases). No browser claim.
+- Focused installed Oxlint on 14 changed JS/JSX files: **0 errors, 39 warnings** (13 unused-variable, 14 effect-state and 12 dependency advisories). Includes one asynchronous-load effect advisory in the new panel; existing page advisories remain, no suppressions added. New panel's load callback dependencies are explicit.
+- `npm run build`: initial attempt failed on the new panel's wrong client import. Corrected to existing `../api/client`; final build passed, with the existing chunk-size advisory. No dependency installation or UI redesign.
+- `manage.py check --settings=config.settings.development`: no issues (0 silenced).
+- `manage.py makemigrations --check --dry-run --settings=config.settings.development`: no changes detected.
+- `migrate --plan` shows only existing Batch B organizations 0011/providers 0009 plus emergency notifications 0003/providers 0010/0011. Inspected emergency SQL creates new tables/constraints, adds nullable interruption metadata and no-ops notification choices; no destructive/data migration. No migration applied to development.
+
+Read-only development PostgreSQL count checks confirm **103 users, 9 organizations, 51 providers, 102 appointments, 102 QueueEntries and one historical active duplicate group**, unchanged from task entry. No development booking, file mutation, seed, reconciliation or live email occurred. Protected reference files are untouched. Browser emergency workflow, actual email delivery and M2 live ETA recovery remain explicit rollout acceptance tasks. No owner policy blocker remains in the implemented emergency scope; owner approval is still required to migrate development.
+
+## Targeted emergency corrections — 2026-10-13
+
+The inspection-only review found two paths not covered by the earlier green assertions: reusing a resolved recovery after ordinary same-Appointment rescheduling away/back, and SDK timeouts caught by the real adapter becoming retryable failures. Those defects and the legacy NULL-date duplicate predicate are now narrowly corrected; earlier results above remain historical evidence.
+
+Changed implementation files in this correction:
+
+- `backend/apps/providers/emergency_models.py`, `emergencies.py`, `emergency_views.py`.
+- `backend/apps/contact/email_service.py`, `backend/apps/contact/tests/test_email_service.py`.
+- `backend/apps/appointments/capacity.py`, `backend/apps/appointments/services.py`, `backend/apps/queue/services.py`.
+- `backend/tests/test_provider_emergency.py`.
+- New `backend/apps/providers/migrations/0012_remove_provideremergency_emergency_provider_date_unique_and_more.py`.
+- Directly relevant Business Rules, Queue State Machine, Product Architecture, Known Issues and this verification document. No frontend file changed.
+
+### Exact verification
+
+From backend:
+
+```powershell
+& ..\.venv\Scripts\python.exe -B -m pytest tests/test_provider_emergency.py apps/contact/tests/test_email_service.py -q --tb=short --show-capture=no
+```
+
+Initial focused SQLite checkpoint: **77 passed, 0 failed, 9 skipped**, before adding the final database-constraint assertion. PostgreSQL-only cases were skipped; SQLite is not concurrency/migration proof.
+
+```powershell
+& ..\.venv\Scripts\python.exe -B -m pytest tests/test_provider_emergency.py tests/test_m2_lifecycle.py tests/test_batch_b.py apps/contact/tests/test_email_service.py apps/contact/tests/test_contact_api.py apps/accounts/tests/test_password_reset.py --ds=config.settings.test_postgresql --migrations -q --tb=short --show-capture=no
+```
+
+Final integration: **279 passed, 0 failed, 0 skipped** in isolated `test_queueturn_m2`, with real migrations. Includes **67 emergency cases, 83 M2, 73 Batch B and 56 email/contact/password-reset cases**. Nine emergency concurrency cases now include duplicate new-incident declaration and genuine completion versus consent-based cancellation/replacement. All outbound email boundaries in tests are mocked; no live emails were sent. No broad backend suite was run and no ordinary policy was relaxed.
+
+```powershell
+& ..\.venv\Scripts\python.exe -B manage.py check --settings=config.settings.development
+& ..\.venv\Scripts\python.exe -B manage.py makemigrations --check --dry-run --settings=config.settings.development
+& ..\.venv\Scripts\python.exe -B manage.py sqlmigrate providers 0012 --settings=config.settings.development
+```
+
+Django: **no issues (0 silenced)**. Migration consistency: **no changes detected**. Inspected providers 0012 SQL drops only the old provider/date uniqueness constraint and creates a conditional unique index for TEMPORARY/UNAVAILABLE; no record deletion, data migration or existing-field rewrite. Existing migrations remain untouched. New application behavior requires all pending Batch B/emergency migrations before development/browser acceptance. No development migration was applied.
+
+Frontend source unchanged: tests/build not repeated. `git diff --check` passed. Development appointments, QueueEntries and the historical duplicate group remain untouched; no reset, seed, reconciliation, staging, commit, push or deployment. Actual browser acceptance and live email delivery remain pending. Email ACCEPTED is never presented as delivered; uncertainty and already in-flight ordering remain explicitly qualified.

@@ -9,7 +9,7 @@ from apps.organizations.models import Organization, OrganizationMembership
 from apps.organizations.permissions import IsOrganizationManager
 from .models import ProviderProfile, ProviderDocument, ProviderService, WeeklySchedule, ScheduleBreak, ProviderLeave
 from django.db.models import Prefetch
-from .permissions import IsOrganizationManagerOrOwnProvider, IsProviderOnboardingParticipant
+from .permissions import IsOrganizationManagerOrOwnProvider, IsProviderOnboardingParticipant, require_provider_average_manager
 from .serializers import (
     ProviderProfileSerializer,
     ProviderDiscoverySerializer,
@@ -211,10 +211,13 @@ class ProviderProfileDetailView(APIView):
     )
     def patch(self, request, organization_id, provider_id):
         profile = _get_provider(organization_id, provider_id, require_active_membership=False)
+        if 'average_service_minutes' in request.data:
+            require_provider_average_manager(profile=profile, actor=request.user)
         serializer = ProviderProfileUpdateSerializer(data=request.data, partial=True)
         if serializer.is_valid():
             updated = ProviderBizService.update_provider_profile(
                 profile=profile,
+                actor=request.user,
                 **serializer.validated_data
             )
             return Response(ProviderProfileSerializer(updated).data)
@@ -490,7 +493,8 @@ class ProviderLeaveListCreateView(APIView):
         operational = _can_read_operational_schedule(request.user, profile)
         if not operational and request.user.pk != profile.membership.user_id and not profile.is_operationally_active:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        leaves = profile.leaves.all()
+        from apps.appointments.capacity import effective_leaves
+        leaves = profile.leaves.all() if operational or request.user.pk == profile.membership.user_id else effective_leaves(profile)
         serializer_class = ProviderLeaveSerializer if operational else ProviderLeavePublicSerializer
         return Response(serializer_class(leaves, many=True).data)
 
@@ -505,11 +509,9 @@ class ProviderLeaveListCreateView(APIView):
     )
     def post(self, request, organization_id, provider_id):
         profile = _get_provider(organization_id, provider_id, require_active_membership=False)
-        if profile.application_status == 'APPROVED' and not _is_org_manager_or_admin(request.user, organization_id):
-            return Response({'detail': 'Request a manager-approved schedule change instead.'}, status=403)
         serializer = ProviderLeaveSerializer(data=request.data)
         if serializer.is_valid():
-            leave = ProviderBizService.create_leave(provider=profile, **serializer.validated_data)
+            leave = ProviderBizService.create_leave(provider=profile, actor=request.user, **serializer.validated_data)
             return Response(ProviderLeaveSerializer(leave).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -525,10 +527,26 @@ class ProviderLeaveDetailView(APIView):
     def delete(self, request, organization_id, provider_id, leave_id):
         profile = _get_provider(organization_id, provider_id, require_active_membership=False)
         leave = get_object_or_404(ProviderLeave, id=leave_id, provider=profile)
-        if profile.application_status == 'APPROVED' and not _is_org_manager_or_admin(request.user, organization_id):
-            return Response(status=403)
-        leave.delete()
+        from .leave_requests import LeaveRequestService
+        LeaveRequestService.remove(leave=leave, actor=request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProviderLeaveReviewView(APIView):
+    permission_classes = [IsAuthenticated, IsOrganizationManager]
+
+    def post(self, request, organization_id, provider_id, leave_id):
+        from .leave_requests import LeaveRequestService
+        from rest_framework import serializers
+        class DecisionSerializer(serializers.Serializer):
+            decision = serializers.ChoiceField(choices=['APPROVED', 'REJECTED'])
+            reason = serializers.CharField(required=False, allow_blank=True, default='')
+        profile = _get_provider(organization_id, provider_id, require_active_membership=False)
+        leave = get_object_or_404(ProviderLeave, pk=leave_id, provider=profile)
+        payload = DecisionSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        updated = LeaveRequestService.review(leave=leave, actor=request.user, **payload.validated_data)
+        return Response(ProviderLeaveSerializer(updated).data)
 
 
 # ---------------------------------------------------------------------------

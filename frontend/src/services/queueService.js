@@ -73,9 +73,13 @@ export const queueService = {
    * Register a front-desk walk-in customer.
    */
   async registerWalkIn(orgId, providerId, walkInData) {
+    const payload = { ...(walkInData || {}) };
+    if (!payload.provider_id) {
+      payload.provider_id = providerId;
+    }
     const response = await apiClient.post(
       `/organizations/${orgId}/queue/providers/${providerId}/walk-in/`,
-      walkInData
+      payload
     );
     return response.data;
   },

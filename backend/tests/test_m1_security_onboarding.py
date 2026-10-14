@@ -190,7 +190,7 @@ def schedule_env(env):
     )
     ScheduleBreak.objects.create(weekly_schedule=schedule, start_time=time(12), end_time=time(13), title='Private medical note')
     start = timezone.now() + timedelta(days=10)
-    ProviderLeave.objects.create(provider=env['profile'], start_datetime=start, end_datetime=start + timedelta(hours=2), reason='Private family note')
+    ProviderLeave.objects.create(status='APPROVED', provider=env['profile'], start_datetime=start, end_datetime=start + timedelta(hours=2), reason='Private family note')
     env['schedule'] = schedule
     return env
 
@@ -446,7 +446,7 @@ def test_pending_owner_onboarding_without_operational_authority(env, application
         'end_datetime': (leave_start + timedelta(hours=1)).isoformat(),
         'reason': 'Pending applicant operational write',
     }, format='json').status_code == 403
-    protected_leave = ProviderLeave.objects.create(
+    protected_leave = ProviderLeave.objects.create(status='APPROVED',
         provider=profile, start_datetime=leave_start,
         end_datetime=leave_start + timedelta(hours=1), reason='Existing authorized record',
     )
@@ -460,7 +460,7 @@ def test_pending_owner_onboarding_without_operational_authority(env, application
     assert client.post(provider_url(env, f"documents/{env['doc'].pk}/review/"), {'status': 'APPROVED'}).status_code == 403
     assert client_for(env, 'foreign').post(provider_url(env, 'submit-application/')).status_code == 403
     wrong_org = provider_url(env, 'documents/').replace(str(env['org'].pk), str(env['foreign_org'].pk))
-    assert client.get(wrong_org).status_code == 403
+    assert client.get(wrong_org).status_code == 404  # F-024 scoped object non-disclosure.
     assert client.post(provider_url(env, 'submit-application/')).status_code == 200
     profile.refresh_from_db()
     profile.membership.refresh_from_db()
@@ -515,7 +515,9 @@ def test_inactive_approved_owner_does_not_gain_onboarding_access(env):
     client = client_for(env, 'provider')
     assert client.get(provider_url(env)).status_code == 404
     assert client.patch(provider_url(env), {'bio': 'forged'}).status_code == 403
-    assert client.get(provider_url(env, 'documents/')).status_code == 403
+    # F-024 own-document reads are independent of operational approval/activity.
+    assert client.get(provider_url(env, 'documents/')).status_code == 200
+    assert client.post(provider_url(env, 'documents/'), upload_payload(), format='multipart').status_code == 403
     assert client.post(provider_url(env, 'submit-application/')).status_code == 403
 
 

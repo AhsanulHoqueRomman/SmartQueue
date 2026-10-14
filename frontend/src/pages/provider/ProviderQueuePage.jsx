@@ -1,3 +1,5 @@
+import { EmergencyPanel } from '../../components/EmergencyPanel';
+import { useRequestScope } from '../../hooks/useRequestScope';
 import { currentBusinessDate } from '../../utils/bookingDisplay';
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,7 +15,7 @@ export function ProviderQueuePage() {
   const { currentOrg } = useTenant();
 
   const [providerProfile, setProviderProfile] = useState(null);
-  const [queueEntries, setQueueEntries] = useState([]);
+  const [queueRows, setQueueEntries] = useState([]);
   const [queueDate, setQueueDate] = useState(currentBusinessDate);
   const [queueDates, setQueueDates] = useState([]);
   const [services, setServices] = useState([]);
@@ -72,26 +74,34 @@ export function ProviderQueuePage() {
     };
   }, [currentOrg?.id, user?.id]);
 
-  const queueContext = `${currentOrg?.id}:${providerProfile?.id}:${queueDate}`;
+  const queueContext = `${user?.id}:${currentOrg?.id}:${providerProfile?.id}:${queueDate}`;
   const latestQueueContext = useRef(queueContext);
   useLayoutEffect(() => { latestQueueContext.current = queueContext; }, [queueContext]);
 
-  const fetchQueue = async () => {
+  const [loadedQueueContext, setLoadedQueueContext] = useState('');
+  const queueEntries = loadedQueueContext === queueContext ? queueRows : [];
+  const mutationBusy = useRef(false);
+  const requestScope = useRequestScope(queueContext);
+  const fetchQueue = async (force = false) => {
     const context = queueContext;
+    if (context !== latestQueueContext.current || (mutationBusy.current && !force)) return;
+    const ticket = requestScope.begin(queueContext, { background: !force });
     if (!currentOrg?.id || !providerProfile?.id) return;
+    if (!ticket) return;
     try {
       const data = await queueService.getProviderQueue(currentOrg.id, providerProfile.id, queueDate);
-      if (context !== latestQueueContext.current) return;
+      if (context !== latestQueueContext.current || !requestScope.isCurrent(ticket)) return;
       const list = Array.isArray(data) ? data : data.entries || data.results || [];
-      setQueueEntries(list);
+      setError(null); setQueueEntries(list); setLoadedQueueContext(context);
       setQueueDates(data.available_queue_dates || []);
     } catch (err) {
-      if (context !== latestQueueContext.current) return;
+      if (context !== latestQueueContext.current || !requestScope.isCurrent(ticket)) return;
       setError(err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to update queue data.');
-    }
+    } finally { requestScope.finish(ticket); }
   };
 
   useEffect(() => {
+    mutationBusy.current = false; setProcessingId(null); setActionFeedback(null);
     if (providerProfile?.id) {
       fetchQueue();
     }
@@ -105,92 +115,114 @@ export function ProviderQueuePage() {
       }
     }, 10000);
     return () => clearInterval(interval);
-  }, [autoRefresh, currentOrg?.id, providerProfile?.id]);
+  }, [autoRefresh, currentOrg?.id, providerProfile?.id, queueDate]);
+
+  const setBusy = value => {
+    if (queueContext !== latestQueueContext.current) return;
+    mutationBusy.current = value !== null;
+    if (value !== null) requestScope.invalidate();
+    setProcessingId(value);
+  };
 
   const handleCallNext = async () => {
+    if (mutationBusy.current) return;
     if (!currentOrg?.id || !providerProfile?.id) return;
-    setProcessingId('call-next');
+    setBusy('call-next');
     setActionFeedback(null);
     setError(null);
 
     try {
       const entry = await queueService.callNext(currentOrg.id, providerProfile.id, queueDate);
+      if (queueContext !== latestQueueContext.current) return;
       setActionFeedback({
         type: 'success',
         message: `Called Serial #${entry.serial_number || entry.token_number} (${entry.customer_name || entry.customer_email}).`,
       });
-      fetchQueue();
+      fetchQueue(true);
     } catch (err) {
+      if (queueContext !== latestQueueContext.current) return;
       const msg = err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to call next patient. Ensure next patient is checked in.';
       setActionFeedback({ type: 'error', message: msg });
     } finally {
-      setProcessingId(null);
+      setBusy(null);
     }
   };
 
   const handleStart = async (entryId) => {
-    setProcessingId(entryId);
+    if (mutationBusy.current) return;
+    setBusy(entryId);
     setActionFeedback(null);
 
     try {
       await queueService.startEntry(currentOrg.id, entryId);
+      if (queueContext !== latestQueueContext.current) return;
       setActionFeedback({ type: 'success', message: 'Started service for patient.' });
-      fetchQueue();
+      fetchQueue(true);
     } catch (err) {
+      if (queueContext !== latestQueueContext.current) return;
       setActionFeedback({ type: 'error', message: err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to start service.' });
     } finally {
-      setProcessingId(null);
+      setBusy(null);
     }
   };
 
   const handleComplete = async (entryId) => {
-    setProcessingId(entryId);
+    if (mutationBusy.current) return;
+    setBusy(entryId);
     setActionFeedback(null);
 
     try {
       await queueService.completeEntry(currentOrg.id, entryId);
+      if (queueContext !== latestQueueContext.current) return;
       setActionFeedback({ type: 'success', message: 'Completed appointment service.' });
-      fetchQueue();
+      fetchQueue(true);
     } catch (err) {
+      if (queueContext !== latestQueueContext.current) return;
       setActionFeedback({ type: 'error', message: err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to complete service.' });
     } finally {
-      setProcessingId(null);
+      setBusy(null);
     }
   };
 
   const handleSkip = async (entryId) => {
-    setProcessingId(entryId);
+    if (mutationBusy.current) return;
+    setBusy(entryId);
     setActionFeedback(null);
 
     try {
       await queueService.skipEntry(currentOrg.id, entryId);
+      if (queueContext !== latestQueueContext.current) return;
       setActionFeedback({ type: 'success', message: 'Skipped entry and marked appointment NO_SHOW.' });
-      fetchQueue();
+      fetchQueue(true);
     } catch (err) {
+      if (queueContext !== latestQueueContext.current) return;
       setActionFeedback({ type: 'error', message: err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to skip entry.' });
     } finally {
-      setProcessingId(null);
+      setBusy(null);
     }
   };
 
   const handleWalkInSubmit = async (e) => {
+    if (mutationBusy.current) return;
     e.preventDefault();
     if (!currentOrg?.id || !providerProfile?.id) return;
-    setProcessingId('walkin');
+    setBusy('walkin');
 
     try {
       const entry = await queueService.registerWalkIn(currentOrg.id, providerProfile.id, walkInForm);
+      if (queueContext !== latestQueueContext.current) return;
       setActionFeedback({
         type: 'success',
         message: `Walk-in patient registered with Serial #${entry.serial_number || entry.token_number}.`,
       });
       setShowWalkInModal(false);
       setWalkInForm({ first_name: '', last_name: '', phone_number: '', service_id: services[0]?.id || '', notes: '' });
-      fetchQueue();
+      fetchQueue(true);
     } catch (err) {
+      if (queueContext !== latestQueueContext.current) return;
       setActionFeedback({ type: 'error', message: err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to register walk-in patient.' });
     } finally {
-      setProcessingId(null);
+      setBusy(null);
     }
   };
 
@@ -214,6 +246,7 @@ export function ProviderQueuePage() {
 
   return (
     <div className="app-container animate-page-entrance">
+      <EmergencyPanel orgId={currentOrg.id} providerId={providerProfile.id} serviceDate={queueDate} mode="provider" onChanged={() => fetchQueue(true)} />
       <div className="flex justify-between items-center flex-wrap gap-md" style={{ marginBottom: '1.75rem' }}>
         <div>
           <h1>Serial Provider Queue Command Board</h1>

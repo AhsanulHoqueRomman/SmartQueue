@@ -14,6 +14,8 @@ def _get_temporal_classification(obj) -> str:
 
 
 def _get_is_live_queue(obj) -> bool:
+    if obj.emergency_recoveries.filter(resolution='RESCHEDULED').exists():
+        return False
     q = getattr(obj, 'queue_entry', None)
     if q is None:
         from apps.queue.models import QueueEntry
@@ -34,6 +36,7 @@ def _get_is_live_queue(obj) -> bool:
 
 
 def _get_can_check_in(obj) -> bool:
+    if obj.emergency_recoveries.filter(resolution='RESCHEDULED').exists(): return False
     classification = _get_temporal_classification(obj)
     if classification != 'today':
         return False
@@ -56,6 +59,7 @@ def _get_can_check_in(obj) -> bool:
 
 
 def _get_can_cancel(obj) -> bool:
+    if obj.emergency_recoveries.filter(resolution='RESCHEDULED').exists(): return False
     from datetime import timedelta
     from django.utils import timezone
     from .services import _get_working_schedule, _combine_date_time
@@ -77,7 +81,14 @@ def _get_can_review(obj) -> bool:
     return not Review.objects.filter(appointment=obj).exists()
 
 
-class AppointmentSerializer(serializers.ModelSerializer):
+class EmergencyProjectionSerializer(serializers.ModelSerializer):
+    emergency = serializers.SerializerMethodField()
+    def get_emergency(self, obj):
+        from apps.providers.emergency_read import summary
+        return summary(obj)
+
+
+class AppointmentSerializer(EmergencyProjectionSerializer):
     """Full read serializer for appointments."""
     customer_email = serializers.EmailField(source='customer.email', read_only=True)
     customer_name = serializers.CharField(source='customer_display_name', read_only=True)
@@ -117,7 +128,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'is_live_queue',
             'can_check_in',
             'can_cancel',
-            'self_reschedule',
+            'self_reschedule', 'emergency',
             'can_review',
             'created_at',
             'updated_at',
@@ -144,7 +155,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
         return _get_can_review(obj)
 
 
-class AppointmentListSerializer(serializers.ModelSerializer):
+class AppointmentListSerializer(EmergencyProjectionSerializer):
     """Compact list serializer."""
     customer_email = serializers.EmailField(source='customer.email', read_only=True)
     customer_name = serializers.CharField(source='customer_display_name', read_only=True)
@@ -180,7 +191,7 @@ class AppointmentListSerializer(serializers.ModelSerializer):
             'is_live_queue',
             'can_check_in',
             'can_cancel',
-            'self_reschedule',
+            'self_reschedule', 'emergency',
         ]
         read_only_fields = fields
 
@@ -299,7 +310,7 @@ class AvailabilityResponseSerializer(serializers.Serializer):
 
 
 
-class CustomerDashboardItemSerializer(serializers.ModelSerializer):
+class CustomerDashboardItemSerializer(EmergencyProjectionSerializer):
     customer_name = serializers.CharField(source='customer_display_name', read_only=True)
     organization_id = serializers.UUIDField(source='organization.id', read_only=True)
     organization_name = serializers.CharField(source='organization.name', read_only=True)
@@ -350,7 +361,7 @@ class CustomerDashboardItemSerializer(serializers.ModelSerializer):
             'is_live_queue',
             'can_check_in',
             'can_cancel',
-            'self_reschedule',
+            'self_reschedule', 'emergency',
             'can_review',
             'has_issue_report',
             'created_at',

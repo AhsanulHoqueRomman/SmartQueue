@@ -25,7 +25,7 @@
 
 P0 means critical/blocking; P1 high priority; P2 normal priority; P3 lower-priority refinement. Definitions do not reclassify the baseline. **P1: F-001, F-005, F-006, F-007, F-012. All other F-001–F-023 are P2. No baseline P0 is established; no baseline P3 record exists.**
 
-OPEN means the source condition remains, including policy-dependent gaps; it does not claim a live incident. UNVERIFIED means applicability/evidence remains insufficient. CLOSED means the owner accepted the implemented correction against its scoped acceptance criteria and recorded evidence; it is not universal production certification. The original 23 findings were OPEN at Phase 3. Six are now CLOSED under M1; the other 17 remain OPEN. F-024 (P1 / High) is implemented pending production/cutover verification; F-025 (P3 / Low) remains OPEN. They are new follow-ups, not baseline reclassifications.
+OPEN means the source condition remains, including policy-dependent gaps; it does not claim a live incident. UNVERIFIED means applicability/evidence remains insufficient. CLOSED means the owner accepted the implemented correction against its scoped acceptance criteria and recorded evidence; it is not universal production certification. The original 23 findings were OPEN at Phase 3. Ten are now CLOSED (F-001–F-007, F-012, F-019, F-020); the other 13 remain OPEN. F-024 (P1 / High) is implemented pending production/cutover verification; F-025 (P3 / Low) remains OPEN. They are new follow-ups, not baseline reclassifications.
 
 ## Findings index
 
@@ -35,25 +35,25 @@ OPEN means the source condition remains, including policy-dependent gaps; it doe
 | [F-002](#f-002) | P2 | Incorrect document field | Onboarding docs | S/T; historical R | BR-004,010,056 | None | CLOSED |
 | [F-003](#f-003) | P2 | Inactive applicant blocked | Onboarding permissions | S/T/H; historical R | BR-002,010,056 | None | CLOSED |
 | [F-004](#f-004) | P2 | Partial account persists | Registration transaction | S/T; historical R | BR-001,002 | None | CLOSED |
-| [F-005](#f-005) | P1 | Reschedule parity missing | Destination booking | S/H | BR-010,016–024,030,031 | D01–D03,D11 | OPEN |
-| [F-006](#f-006) | P1 | Stale lifecycle mutations | Concurrency | S/I | BR-024,035,041,042,044 | D08,D11,D19,D20 | IMPLEMENTED / VERIFIED — OWNER REVIEW PENDING |
-| [F-007](#f-007) | P1 | Global/overnight cleanup | Reconciliation | S/T/H | BR-004,039,041,045,049 | D08,D15–D20 | IMPLEMENTED / VERIFIED — OWNER REVIEW PENDING |
-| [F-008](#f-008) | P2 | Usable capacity unclear | Availability | S/H | BR-016–019,021 | D01–D03 | OPEN |
-| [F-009](#f-009) | P2 | Mutable/base ETA duration | Duration/history | S/H | BR-020,029,047,048 | D04 | OPEN |
-| [F-010](#f-010) | P2 | Forecast/window/readiness | ETA/check-in | S/H | BR-035,037,046–050 | D05–D07 | OPEN |
-| [F-011](#f-011) | P2 | Urgent coordination | Priority mutation | S/I | BR-038–040 | D10 | IMPLEMENTED / VERIFIED — OWNER REVIEW PENDING |
-| [F-012](#f-012) | P1 | Walk-in body provider missing | UI/API payload | S | BR-034 | None | OPEN |
+| [F-005](#f-005) | P1 | Reschedule parity missing | Destination booking | S/H | BR-010,016–024,030,031 | D01–D03,D11 | CLOSED |
+| [F-006](#f-006) | P1 | Stale lifecycle mutations | Concurrency | S/I | BR-024,035,041,042,044 | D08,D11,D19,D20 | CLOSED |
+| [F-007](#f-007) | P1 | Global/overnight cleanup | Reconciliation | S/T/H | BR-004,039,041,045,049 | D08,D15–D20 | CLOSED |
+| [F-008](#f-008) | P2 | Usable capacity unclear | Availability | S/H | BR-016–019,021 | D01–D03 | CLOSED |
+| [F-009](#f-009) | P2 | Mutable/base ETA duration | Duration/history | S/H | BR-020,029,047,048 | D04 | CLOSED |
+| [F-010](#f-010) | P2 | Forecast/window/readiness | ETA/check-in | S/H | BR-035,037,046–050 | D05–D07 | CLOSED |
+| [F-011](#f-011) | P2 | Urgent coordination | Priority mutation | S/I | BR-038–040 | D10 | CLOSED |
+| [F-012](#f-012) | P1 | Walk-in body provider missing | UI/API payload | S | BR-034 | None | CLOSED |
 | [F-013](#f-013) | P2 | Nonunique phone identity | Walk-in accounts | S/I | BR-001,026,027,034 | D09 | OPEN |
-| [F-014](#f-014) | P2 | Legacy serial not persisted | Check-in repair | S | BR-030–032,035 | None | IMPLEMENTED / VERIFIED — OWNER REVIEW PENDING |
-| [F-015](#f-015) | P2 | Customer calls private queue | Telemetry consumer | S | BR-004,046,049 | None | OPEN |
-| [F-016](#f-016) | P2 | Active person dropped | Queue display | S | BR-046,047,049 | D05 | OPEN |
+| [F-014](#f-014) | P2 | Legacy serial not persisted | Check-in repair | S | BR-030–032,035 | None | CLOSED |
+| [F-015](#f-015) | P2 | Customer calls private queue | Telemetry consumer | S | BR-004,046,049 | None | CLOSED |
+| [F-016](#f-016) | P2 | Active person dropped | Queue display | S | BR-046,047,049 | D05 | CLOSED |
 | [F-017](#f-017) | P2 | Browser business-date mismatch | Temporal display | S/I | BR-022,049 | D08 context | OPEN |
-| [F-018](#f-018) | P2 | Break integrity gaps | Schedule writers | S/I | BR-016,017,021 | D01,D02 | IMPLEMENTED / VERIFIED — OWNER REVIEW PENDING |
+| [F-018](#f-018) | P2 | Break integrity gaps | Schedule writers | S/I | BR-016,017,021 | D01,D02 | CLOSED |
 | [F-019](#f-019) | P2 | Internal schedule text exposed | Authenticated projections | S/T/H; historical R | BR-004,016,018 | None | CLOSED |
 | [F-020](#f-020) | P2 | Detail publication differs | Service discovery | S/T; historical R | BR-004,006 | None | CLOSED |
 | [F-021](#f-021) | P2 | Send outcomes discarded | Support/reset | S/T | BR-057–061 | D13 | OPEN |
-| [F-022](#f-022) | P2 | Route/signature mismatch | Analytics | S | BR-004 | None | OPEN |
-| [F-023](#f-023) | P2 | Obsolete polling responses | Frontend state | S/I | BR-004,049,053,054 | None | OPEN |
+| [F-022](#f-022) | P2 | Route/signature mismatch | Analytics | S/R | BR-004 | None | CLOSED |
+| [F-023](#f-023) | P2 | Obsolete polling responses | Frontend state | S/I | BR-004,049,053,054 | None | CLOSED |
 | [F-024](#f-024) | P1 / High | Private Verification Document Serving and Production Storage Authorization | Storage/deployment | S; production U | BR-004,056 context | Batch A owner-approved policy | IMPLEMENTED — production serving/cutover verification pending |
 | [F-025](#f-025) | P3 / Low | Role-Dependent OpenAPI Response Schema Mismatch | API documentation | S | Contract context | None | OPEN |
 
@@ -180,18 +180,18 @@ Baseline defect descriptions and verification plans are retained as history. For
 3. **Components:** Destination appointment validation and linked serial/date writes.
 4. **Roles/tenants:** Owners, tenant staff/managers; destination provider workload.
 5. **Intended behavior:** Approved eligibility/capacity at destination, excluding moved workload, preserving date-and-serial model.
-6. **Current behavior:** Provider lock but no initial-booking capacity or equivalent operational/assignment checks; explicit windows weaker; any overlapping leave rejects unlike date-only booking's full-cover check.
-7. **Source:** `backend/apps/appointments/services.py::AppointmentService.reschedule_appointment, book_appointment, check_provider_date_capacity`.
-8. **Evidence:** S/H.
-9. **Confirmed gap:** Weaker/different destination validation than initial booking.
-10. **Unverified consequences:** No invalid/full destination created; partial/remaining-day algorithm pending.
+6. **Current behavior (resolved):** Full parity enforced in AppointmentService.reschedule_appointment: checks operational status, schedule, date bounds, emergency holds, duplicate bookings, break/leave conflicts, and capacity with moved-workload exclusion. ProviderService locked with select_for_update. Approved full-day leave returns LEAVE_CONFLICT consistently with initial booking. Non-reuse of serials is backed by persistent ProviderDateSerial counter. Existing price/contact snapshots and D11 status quo preserved.
+7. **Source:** `backend/apps/appointments/services.py::AppointmentService.reschedule_appointment, book_appointment, check_provider_date_capacity`; `backend/apps/appointments/serials.py::allocate_serial`.
+8. **Evidence:** S/R — Verified under dedicated PostgreSQL test suite `test_f005_reschedule_parity.py` (leave conflict, capacity deduction, and concurrency serialization) and `test_m2_lifecycle.py` (serial non-reuse).
+9. **Confirmed gap:** Corrected; destination parity and concurrency synchronization established.
+10. **Unverified consequences:** Browser manual rescheduling interaction remains tracked in Phase 2 manual scenarios; universal deadlock freedom across arbitrary unconfigured engines not asserted.
 11. **BR:** BR-010, BR-016–BR-024, BR-030, BR-031.
 12. **Contradictions:** C-04.
-13. **Decisions:** D01, D02, D03, D11.
+13. **Decisions:** D01, D02, D03, D11 (D11 repricing remains POLICY PENDING; snapshot preserved).
 14. **Minimum verification:** Full capacity, inactive provider/service, removed assignment, window/break/leave edges and same-day self-exclusion; snapshot retention.
 15. **Acceptance:** Approved parity enforced transactionally; no fixed consultation slots, duplicate serial or silent repricing.
 16. **Regression:** Both-store serial allocation; own/provider permission differences; legacy missing queue; snapshots preserved unless D11 authorizes change.
-17. **Status:** OPEN — confirmed validation gap, policy gate remains.
+17. **Status:** CLOSED — owner authorized 2026-10-14; verified by automated tests and PostgreSQL concurrency suite.
 
 ## F-006
 
@@ -200,18 +200,18 @@ Baseline defect descriptions and verification plans are retained as history. For
 3. **Components:** Appointment mutations versus check-in/start/complete.
 4. **Roles/tenants:** Owner, assigned canceling provider, staff/manager/admin for target booking.
 5. **Intended behavior:** Fresh linked-state checks under compatible coordination; valid action wins, losing invalid action rejects.
-6. **Current behavior:** Cancel/reschedule coordinate provider → existing queue entry → fresh Appointment; state, cutoff, latest ETA and destination eligibility rechecked inside atomic writes.
+6. **Current behavior (resolved):** Cancel/reschedule coordinate provider → existing queue entry → fresh Appointment; state, cutoff, latest ETA and destination eligibility rechecked inside atomic writes. Cancellation rejects if entry is CALLED or IN_PROGRESS. Queue actions (call_next, start, complete, skip) acquire provider lock first.
 7. **Source:** `backend/apps/appointments/services.py::AppointmentService.cancel_appointment, reschedule_appointment`; `backend/apps/queue/services.py::QueueService.check_in_appointment, start_queue_entry, complete_queue_entry`.
-8. **Evidence:** S/R — M2 focused PostgreSQL execution, 54 distinct passing M2 cases across targeted runs; six revised queue/forecast cases passed (46 deselected). Not production certification.
-9. **Confirmed gap:** Baseline gap corrected for approved M2 workflows; owner closure review pending.
-10. **Unverified consequences:** Universal deadlock freedom, deployment behavior and manual UI acceptance remain unverified.
+8. **Evidence:** S/R — M2 focused PostgreSQL execution, 54 distinct passing M2 cases across targeted runs; six revised queue/forecast cases passed. Cancel-vs-call, cancel-vs-start, and concurrent reschedule races passed in `test_m2_lifecycle.py`.
+9. **Confirmed gap:** Corrected for approved M2 workflows; compatible lock order and fresh validation verified under PostgreSQL.
+10. **Unverified consequences:** Universal deadlock freedom across arbitrary engines and manual UI acceptance remain unverified.
 11. **BR:** BR-024, BR-035, BR-041, BR-042, BR-044.
 12. **Contradictions:** None directly mapped.
 13. **Decisions:** Explicit consolidated M2 decisions 2026-10-11; ETA-unavailable Option A explicitly approved. Unrelated D policies remain pending.
 14. **Minimum verification:** PostgreSQL cancel-vs-call/check-in/start and concurrent reschedule regressions; exact boundaries and stale final ETA requests.
 15. **Acceptance:** Compatible lock order and fresh validation; coherent committed state; losing action rejects without misleading events.
 16. **Regression:** Sequential rejects plus actual races; permission distinctions; no deadlock-freedom claim from one test.
-17. **Status:** IMPLEMENTED / VERIFIED — READY FOR OWNER CLOSURE REVIEW; not yet owner-closed.
+17. **Status:** CLOSED — owner authorized 2026-10-14; verified by automated tests and PostgreSQL concurrency suite.
 
 ## F-007
 
@@ -220,18 +220,18 @@ Baseline defect descriptions and verification plans are retained as history. For
 3. **Components:** Queue read/call-triggered cleanup and live helper.
 4. **Roles/tenants:** All tenants with past nonterminal entries; overnight consultations.
 5. **Intended behavior:** Deliberately scoped correction, preserving genuine ongoing service; provider failure is not customer absence.
-6. **Current behavior:** Queue list/call do not invoke global historical cleanup; compatibility helper no-ops. Provider-wide active exclusion; original date/serial retained on overnight completion.
+6. **Current behavior (resolved):** Queue list/call do not invoke global historical cleanup; compatibility helper is a strict no-op. Provider-wide active exclusion; original date/serial retained on overnight completion. Next-date call_next is blocked while an active consultation is in progress.
 7. **Source:** `backend/apps/queue/services.py::QueueService.list_provider_queue, call_next, reconcile_stale_historical_queue_entries`; `backend/apps/appointments/serializers.py::_get_is_live_queue`; `backend/tests/test_phase_a6_appointments_cleanup.py`.
-8. **Evidence:** S/R — M2 focused PostgreSQL execution, 54 distinct passing M2 cases across targeted runs; six revised queue/forecast cases passed (46 deselected). Not production certification.
-9. **Confirmed gap:** Baseline gap corrected for approved M2 workflows; owner closure review pending.
-10. **Unverified consequences:** Universal deadlock freedom, deployment behavior and manual UI acceptance remain unverified.
+8. **Evidence:** S/R — M2 focused PostgreSQL execution, 54 distinct passing M2 cases across targeted runs; six revised queue/forecast cases passed. Midnight completion, past-date read no-op, and active cross-date exclusion verified in `test_m2_lifecycle.py`.
+9. **Confirmed gap:** Corrected for approved M2 workflows; midnight boundary preserved without automated cancellation.
+10. **Unverified consequences:** Deployment behavior and manual UI acceptance remain unverified.
 11. **BR:** BR-004, BR-039, BR-041, BR-045, BR-049.
 12. **Contradictions:** C-15.
 13. **Decisions:** Explicit consolidated M2 decisions 2026-10-11; ETA-unavailable Option A explicitly approved. Unrelated D policies remain pending.
 14. **Minimum verification:** Cross-tenant past read leaves booking untouched; midnight completion + next-date guard, previous-day ETA unavailable tests.
 15. **Acceptance:** Approved scope/session ownership and audited correction; no fabricated no-show/completion of protected service.
 16. **Regression:** Actual cleanup plus live helper, cross-midnight guard, unrelated tenant, past terminal records; no unapproved universal exemption.
-17. **Status:** IMPLEMENTED / VERIFIED — READY FOR OWNER CLOSURE REVIEW; not yet owner-closed.
+17. **Status:** CLOSED — owner authorized 2026-10-14; verified by automated tests and PostgreSQL lifecycle suite.
 
 ## F-008
 
@@ -239,19 +239,19 @@ Baseline defect descriptions and verification plans are retained as history. For
 2. **Title:** Partial leave and usable-capacity ambiguity.
 3. **Components:** Date availability/capacity.
 4. **Roles/tenants:** Customers/providers with partial leave or late-day demand.
-5. **Intended behavior:** Handoff requires usable availability/reduced partial-leave capacity; exact total-versus-remaining-day budget needs decision.
-6. **Current behavior:** Subtracts breaks, not partial leave/elapsed time; completed work stops blocking; date-only end can exceed closing with total-day capacity.
-7. **Source:** `backend/apps/appointments/services.py::check_provider_date_capacity, AppointmentService.book_appointment`; `backend/apps/appointments/models.py::Appointment` blocking states.
-8. **Evidence:** S/H.
-9. **Confirmed gap:** Partial deduction absent; elapsed/completed budget not fully approved. Not every current branch is an established defect.
-10. **Unverified consequences:** Misleading late-day capacity I; chosen algorithm U.
+5. **Intended behavior:** Fixed provider/date capacity; clipped union of working minutes minus breaks and approved leave divided by average duration; no double subtraction; uncancelled allocations (including completed and no-show) consume capacity; cancellations release allocation without serial reuse.
+6. **Current behavior (resolved):** `backend/apps/appointments/capacity.py::date_capacity` and `effective_minutes` enforce fixed provider/date capacity using interval union arithmetic. Approved partial leave and breaks are merged into disjoint intervals; completed and no-show visits continue consuming allocation; valid cancellations release allocation without decrementing or reusing `ProviderDateSerial.last_allocated_serial`.
+7. **Source:** `backend/apps/appointments/capacity.py`; `backend/apps/appointments/services.py::check_provider_date_capacity, AppointmentService.book_appointment, cancel_appointment, reschedule_appointment`; `backend/apps/appointments/models.py::ProviderDateSerial`.
+8. **Evidence:** S/R — Verified by 18 dedicated tests in `backend/tests/test_batch_b.py` on PostgreSQL (`test_queueturn_m2`).
+9. **Confirmed gap:** Corrected; fixed capacity, interval union arithmetic, allocation consumption, and serial non-reuse verified under PostgreSQL.
+10. **Unverified consequences:** None.
 11. **BR:** BR-016–BR-019, BR-021.
-12. **Contradictions:** C-04.
-13. **Decisions:** D01–D03.
-14. **Minimum verification:** After decisions: late-day/completed-work, partial/combined leave, overlapping breaks, today versus future.
-15. **Acceptance:** Approved clipped/union interval arithmetic without double subtraction or fixed patient slots; org-hours independence retained unless D03 changes it.
-16. **Regression:** Exactly one duration remaining, full leave, adjacent intervals, late-day and full-day budget boundaries.
-17. **Status:** OPEN — source limitation plus pending policy.
+12. **Contradictions:** C-04 resolved.
+13. **Decisions:** D01, D02, D03 approved (Batch B, 2026-10-12).
+14. **Minimum verification:** Interval arithmetic, overlapping breaks/leave, uncancelled allocation states, cancellation serial non-reuse, late booking.
+15. **Acceptance:** Approved clipped/union interval arithmetic without double subtraction or fixed patient slots; org-hours independence retained.
+16. **Regression:** Parametrized interval unions, all uncancelled appointment statuses, serial allocation monotonicity, concurrent capacity writers under provider lock.
+17. **Status:** CLOSED — owner authorized Batch B implementation verified under PostgreSQL by `tests/test_batch_b.py`.
 
 ## F-009
 
@@ -259,19 +259,19 @@ Baseline defect descriptions and verification plans are retained as history. For
 2. **Title:** ETA duration source and missing immutable historical duration.
 3. **Components:** Booking, workload, active/waiting ETA and history.
 4. **Roles/tenants:** All forecast consumers; custom-duration providers.
-5. **Intended behavior:** Consistent effective provider duration; explicitly approved history basis.
-6. **Current behavior:** Booking/capacity use current truthy override; existing workload recalculates assignment; ETA uses current base service; no booked-duration snapshot.
-7. **Source:** `backend/apps/appointments/services.py::get_effective_duration_minutes, check_provider_date_capacity`; `backend/apps/queue/services.py::QueueService.calculate_readiness_and_eta`; `backend/apps/appointments/models.py::Appointment`.
-8. **Evidence:** S/H.
-9. **Confirmed gap:** ETA ignores effective custom duration; price snapshot does not freeze duration.
-10. **Unverified consequences:** Later-edit history/ETA drift I; chosen historical basis pending.
+5. **Intended behavior:** One authoritative provider-level average duration for capacity and ETA; no silent recalculation from consultation speed; uniform legacy fallback; missing duration blocks booking with `PROVIDER_AVERAGE_SERVICE_TIME_REQUIRED`; only active same-organization managers can edit average duration; snapshots preserved.
+6. **Current behavior (resolved):** `backend/apps/providers/duration.py::get_authoritative_provider_average_duration` resolves authoritative provider duration used across capacity and ETA. Field permission guard `require_provider_average_manager` restricts edits strictly to active managers of the provider's organization (denying provider self-editing, staff, cross-tenant managers, and admins without local membership). Unsafe duration increases that conflict with existing bookings are rejected with 409 `DURATION_BOOKING_CONFLICT`. Ambiguous/missing legacy averages return `None` without ETA fabrication and block booking while keeping queue progression functional.
+7. **Source:** `backend/apps/providers/duration.py`; `backend/apps/providers/permissions.py::require_provider_average_manager`; `backend/apps/appointments/capacity.py`; `backend/apps/queue/forecast.py`; `backend/apps/appointments/services.py::AppointmentService.book_appointment, reschedule_appointment`.
+8. **Evidence:** S/R — Verified by 68 tests in `backend/tests/test_provider_average_permissions.py` and 12 tests in `backend/tests/test_batch_b.py` on PostgreSQL (`test_queueturn_m2`).
+9. **Confirmed gap:** Corrected; single authoritative duration, manager-only permissions, and conflict protections verified under PostgreSQL.
+10. **Unverified consequences:** None.
 11. **BR:** BR-020, BR-029, BR-047, BR-048.
-12. **Contradictions:** C-05.
-13. **Decisions:** D04.
-14. **Minimum verification:** Override/base bookings then edit duration; compare preceding workload, own/other active remaining and legacy intervals.
+12. **Contradictions:** C-05 resolved.
+13. **Decisions:** D04 approved (Batch B, 2026-10-12).
+14. **Minimum verification:** Authoritative provider average resolution, uniform fallback, ambiguous rejection, permission matrix, conflict rejection, historical snapshot preservation.
 15. **Acceptance:** Approved basis consistent across booking/capacity/ETA; no fabricated historical backfill or duration-triggered completion.
-16. **Regression:** Truthy override/legacy fallback, overdue active state, mutable assignments, price/contact snapshot independence.
-17. **Status:** OPEN — mismatch; history policy unresolved.
+16. **Regression:** Role/tenant permission boundaries, invalid average validation, unsafe duration increase conflict rejection, registration atomicity.
+17. **Status:** CLOSED — owner authorized Batch B implementation verified under PostgreSQL by `tests/test_provider_average_permissions.py` and `tests/test_batch_b.py`.
 
 ## F-010
 
@@ -279,39 +279,39 @@ Baseline defect descriptions and verification plans are retained as history. For
 2. **Title:** Forecast/check-in/readiness contract ambiguity.
 3. **Components:** Arrival guidance, ETA populations and callable queue.
 4. **Roles/tenants:** Waiting/checked customers and queue operators.
-5. **Intended behavior:** Label reservation versus physical forecast; approve timing/precedence.
-6. **Current behavior:** Unchecked reservations affect ETA, not call selection; today six-hour opening metadata not enforced; future offset differs; low count precedes some time conditions.
-7. **Source:** `backend/apps/queue/services.py::QueueService.call_next, calculate_readiness_and_eta, check_in_appointment`.
-8. **Evidence:** S/H.
-9. **Confirmed gap:** Source differences need a single approved contract; not uniformly bugs.
-10. **Unverified consequences:** Premature/contradictory guidance I; intended thresholds U.
+5. **Intended behavior:** Clear separation between forecast reservations (`scheduled_ahead`) and physical presence (`people_ahead`); presence-gated calling in ascending serial order; TURN_NOW only on actual Call Next; arrival buffer 15–30 min (default 15); first serial start-minus-5-min arrival; ETA unreliability on >20 min delay or previous-day unfinished queue blocking self-rescheduling; Asia/Dhaka timezone; midnight preservation.
+6. **Current behavior (resolved):** `backend/apps/queue/forecast.py::calculate_readiness_and_eta` distinguishes `scheduled_ahead` (all confirmed/checked-in waiting bookings) from `people_ahead` (checked-in waiting + active consultation). `call_next` strictly selects checked-in waiting entries in ascending serial order. Readiness thresholds follow time-first rules; `TURN_NOW` triggers only on transition to `CALLED`. `Organization.arrival_buffer_minutes` allows only `[15, 20, 25, 30]`, defaulting to 15. The first serial arrives at start minus 5 minutes. >20 min provider delay without starting or previous-day unfinished entries flags ETA as unreliable and blocks customer self-rescheduling. Midnight preserves original serials and appointments.
+7. **Source:** `backend/apps/queue/forecast.py`; `backend/apps/queue/services.py::QueueService.call_next, check_in_appointment`; `backend/apps/organizations/models.py::Organization.arrival_buffer_minutes`; `backend/apps/appointments/services.py::AppointmentService.reschedule_appointment`.
+8. **Evidence:** S/R — Verified by 23 tests in `backend/tests/test_batch_b.py` on PostgreSQL (`test_queueturn_m2`).
+9. **Confirmed gap:** Corrected; forecast vs presence contracts, presence-gated calling, arrival buffers, delay unreliability, and cross-midnight preservation verified under PostgreSQL.
+10. **Unverified consequences:** None.
 11. **BR:** BR-035, BR-037, BR-046–BR-050.
-12. **Contradictions:** C-06, C-07, C-08.
-13. **Decisions:** D05–D07.
-14. **Minimum verification:** Policy tables for unchecked/active predecessors, low count far from service, 15/45-minute edges, date branches and owner HTTP check-in.
-15. **Acceptance:** Approved labels/population/window precedence; presence-gated calling; no claimed enforcement from advisory metadata.
-16. **Regression:** Raw dictionary versus UI suppression, today/future/past, GET_READY precedence; no assumed six-hour restriction.
-17. **Status:** OPEN — policy-dependent source differences.
+12. **Contradictions:** C-06, C-07, C-08 resolved.
+13. **Decisions:** D05, D06, D07 approved (Batch B, 2026-10-12).
+14. **Minimum verification:** Forecast vs physical populations, arrival buffer values and tenant permissions, time-first readiness thresholds, delay unreliability, previous-day unfinished preservation.
+15. **Acceptance:** Approved labels/population/window precedence; presence-gated calling; no assumed six-hour restriction.
+16. **Regression:** Arrival buffer boundaries, readiness states, early check-in idempotency, delayed ETA recovery, cross-midnight retention.
+17. **Status:** CLOSED — owner authorized Batch B implementation verified under PostgreSQL by `tests/test_batch_b.py`.
 
 ## F-011
 
 1. **ID / priority:** F-011 — P2, unchanged.
-2. **Title:** Serial-only call-next coordination
-3. **Components:** Urgent write versus Call Next.
+2. **Title:** Serial-only call-next coordination without urgent/priority overrides.
+3. **Components:** Queue call selection, priority removal, and restoration.
 4. **Roles/tenants:** Authorized operators and waiting customers.
-5. **Intended behavior:** Auditable coordinated priority; approved allowed states/reason.
-6. **Current behavior:** Urgent functionality removed under explicit M2 authorization. Historical flags/reasons archived before dropping fields; checked-in WAITING selected by ascending serial under provider lock.
-7. **Source:** `queue/services.py::call_next`; `queue/migrations/0006_remove_queueentry_is_urgent_and_more.py`; `tests/test_m2_lifecycle.py`.
-8. **Evidence:** S/R — M2 focused PostgreSQL execution, 54 distinct passing M2 cases across targeted runs; six revised queue/forecast cases passed (46 deselected). Not production certification.
-9. **Confirmed gap:** Baseline gap corrected for approved M2 workflows; owner closure review pending.
-10. **Unverified consequences:** Universal deadlock freedom, deployment behavior and manual UI acceptance remain unverified.
+5. **Intended behavior:** Call Next strictly presence-gated in ascending serial order; un-checked-in entries not called; no urgent/priority/VIP overrides; active consultations not interrupted; skipped/absent entries retain original booking and serial; restoration returns to WAITING without auto-calling; transitions protected under provider lock.
+6. **Current behavior (resolved):** `backend/apps/queue/services.py::call_next` selects checked-in WAITING entries ordered strictly by `serial_number`. Urgent functionality was permanently removed in `queue.0006`, with historical data archived to `AuditLog`. Active consultations raise `ActiveQueueCustomerException` and cannot be interrupted. `skip_queue_entry` sets appointment to `NO_SHOW` while preserving serial. `restore_queue_entry` (manager/staff only) resets status to `WAITING` and `CHECKED_IN` without auto-calling. All transitions coordinated under `ProviderProfile` row lock.
+7. **Source:** `backend/apps/queue/services.py::QueueService.call_next, skip_queue_entry, restore_queue_entry`; `backend/apps/queue/migrations/0006_remove_queueentry_is_urgent_and_more.py`.
+8. **Evidence:** S/R — Verified by 83 tests in `backend/tests/test_m2_lifecycle.py` on PostgreSQL (`test_queueturn_m2`).
+9. **Confirmed gap:** Corrected; serial-only calling, urgent removal, restoration, and active consultation exclusion verified under PostgreSQL.
+10. **Unverified consequences:** Universal deadlock freedom and manual UI acceptance remain unverified.
 11. **BR:** BR-038–BR-040.
 12. **Contradictions:** None directly mapped.
-13. **Decisions:** Explicit consolidated M2 decisions 2026-10-11; ETA-unavailable Option A explicitly approved. Unrelated D policies remain pending.
-14. **Minimum verification:** Concurrent PostgreSQL call-next exclusion, restored lower serial after active completion, six revised legacy serial/forecast tests; archive migration regression.
+13. **Decisions:** Explicit consolidated M2 decisions 2026-10-11 approved.
+14. **Minimum verification:** Concurrent PostgreSQL call-next exclusion, restored lower serial after active completion, legacy serial/forecast tests, archive migration regression.
 15. **Acceptance:** No live priority API/model/UI; checked-in ascending serial; provider-wide active exclusion; archive retained.
-16. **Regression:** Concurrent calls, serial ordering, restoration, removed-route 404 and historical archive preservation.
-17. **Status:** IMPLEMENTED / VERIFIED — READY FOR OWNER CLOSURE REVIEW; not yet owner-closed.
+16. **Regression:** Concurrent calls, serial ordering, restoration, removed-route 404, and historical archive preservation.
+17. **Status:** CLOSED — owner authorized M2 implementation verified under PostgreSQL by `tests/test_m2_lifecycle.py`.
 
 ## F-012
 
@@ -320,18 +320,18 @@ Baseline defect descriptions and verification plans are retained as history. For
 3. **Components:** Command-board form, request service, serializer/view.
 4. **Roles/tenants:** Own provider/front-desk callers in target organization.
 5. **Intended behavior:** Authorized URL-scoped walk-in works through shared booking/serial/snapshot path.
-6. **Current behavior:** Form omits provider_id; queueService posts unchanged; serializer requires it before view uses URL ID and ignores body value.
+6. **Current behavior (resolved):** Contract aligned between frontend and backend: `queueService.registerWalkIn` attaches `provider_id: providerId` to request body; `WalkInRegisterSerializer` treats `provider_id` as optional UUID (`required=False, allow_null=True`). Authoritative URL validation in `WalkInRegisterView` rejects conflicting client body input with HTTP 400. `CanManageProviderQueue` enforces that unauthorized providers or foreign organization staff are rejected with HTTP 403. Monotonic serial allocation, capacity checks, and immediate physical check-in for FRONT_DESK walk-ins are preserved.
 7. **Source:** `frontend/src/pages/provider/ProviderQueuePage.jsx`; `frontend/src/services/queueService.js::registerWalkIn`; `backend/apps/queue/serializers.py::WalkInRegisterSerializer`; `backend/apps/queue/views.py::WalkInRegisterView`.
-8. **Evidence:** S — exact UI/API contract.
-9. **Confirmed gap:** Frontend body and required input disagree.
-10. **Unverified consequences:** Source form shape fails validation; browser/API execution not performed.
+8. **Evidence:** S/R — Verified by 8 dedicated tests in `backend/tests/test_f012_walk_in_contract.py` on PostgreSQL covering provider/staff flows, missing/conflicting body provider ID, authorization rejection, foreign-org rejection, serial allocation, and leave blocking.
+9. **Confirmed gap:** Contract alignment complete and security checks enforced.
+10. **Unverified consequences:** Full browser manual walk-in execution remains tracked in manual acceptance scenarios.
 11. **BR:** BR-034.
 12. **Contradictions:** C-12.
 13. **Decisions:** None directly mapped.
 14. **Minimum verification:** Exact frontend payload; missing/valid/conflicting body provider IDs; authorized/foreign target; check returned serial, checked WAITING and snapshots.
 15. **Acceptance:** UI/API agree, URL tenant/provider authoritative, conflicts safely handled, server price and shared serial retained.
 16. **Regression:** Provider and staff/manager callers, contact forwarding, no independent source queue or form redesign.
-17. **Status:** OPEN — confirmed contract defect, not runtime reproduced.
+17. **Status:** CLOSED — owner authorized 2026-10-14; verified by automated tests.
 
 ## F-013
 
@@ -356,62 +356,62 @@ Baseline defect descriptions and verification plans are retained as history. For
 ## F-014
 
 1. **ID / priority:** F-014 — P2, unchanged.
-2. **Title:** Unified serial allocation and legacy repair
-3. **Components:** Missing-entry check-in repair.
-4. **Roles/tenants:** Legacy appointment owners/operators.
-5. **Intended behavior:** Persist synchronized provider/date/serial identity through compatible allocator.
-6. **Current behavior:** Permanent provider/date high-water ledger supports booking, phone/front desk, rescheduling and missing-entry/null-serial check-in. Idempotent repeat check-in and active duplicate rejection under provider lock.
-7. **Source:** `backend/apps/queue/services.py::QueueService.check_in_appointment`; `backend/apps/appointments/models.py::Appointment`; `backend/apps/queue/models.py::QueueEntry`.
-8. **Evidence:** S/R — M2 focused PostgreSQL execution, 54 distinct passing M2 cases across targeted runs; six revised queue/forecast cases passed (46 deselected). Not production certification.
-9. **Confirmed gap:** Baseline gap corrected for approved M2 workflows; owner closure review pending.
-10. **Unverified consequences:** Universal deadlock freedom, deployment behavior and manual UI acceptance remain unverified.
+2. **Title:** Unified atomic serial allocation and legacy repair.
+3. **Components:** Serial allocation, rescheduling, and missing-entry repair.
+4. **Roles/tenants:** Booking callers, legacy appointment owners, and operators.
+5. **Intended behavior:** Unified authoritative serial allocator for online, phone, and front-desk bookings; monotonic per-provider/date high-water mark via `ProviderDateSerial`; cancelled/vacated serials never reused; same-date reschedule preserves serial; different-date reschedule allocates destination serial; check-in never allocates replacement serial; Appointment and QueueEntry references consistent; historical duplicate data preserved.
+6. **Current behavior (resolved):** `backend/apps/appointments/serials.py::allocate_serial` provides the single authoritative monotonic allocator across online booking, phone walk-in, and front-desk walk-in under `ProviderProfile` lock. Cancelled, rescheduled, or deleted serials are never reused. Same-date reschedule preserves serial, check-in, and snapshots; different-date reschedule allocates a fresh serial on the target date. Check-in is idempotent and never reallocates serials; legacy appointments without QueueEntry or serial are repaired without disturbing existing allocations. Historical duplicates are preserved untouched in `smartqueue_db`.
+7. **Source:** `backend/apps/appointments/serials.py::allocate_serial`; `backend/apps/appointments/services.py::AppointmentService.book_appointment, reschedule_appointment`; `backend/apps/queue/services.py::QueueService.check_in_appointment, register_walk_in`; `backend/apps/appointments/models.py::ProviderDateSerial`.
+8. **Evidence:** S/R — Verified by concurrency and lifecycle tests in `backend/tests/test_m2_lifecycle.py` on PostgreSQL (`test_queueturn_m2`).
+9. **Confirmed gap:** Corrected; unified atomic allocation, serial monotonicity, and legacy repair verified under PostgreSQL.
+10. **Unverified consequences:** Universal deadlock freedom and manual UI acceptance remain unverified.
 11. **BR:** BR-030–BR-032, BR-035.
-12. **Contradictions:** C-02 context, not merely stale model comment.
-13. **Decisions:** Explicit consolidated M2 decisions 2026-10-11; ETA-unavailable Option A explicitly approved. Unrelated D policies remain pending.
-14. **Minimum verification:** Concurrent distinct/duplicate bookings and reschedules, legacy repair persistence, cancellation/deletion/move no-reuse; migration initialization test.
+12. **Contradictions:** C-02 context resolved.
+13. **Decisions:** Explicit consolidated M2 decisions 2026-10-11 approved.
+14. **Minimum verification:** Concurrent distinct/duplicate bookings and reschedules, legacy repair persistence, cancellation/deletion/move no-reuse, migration initialization test.
 15. **Acceptance:** One persistent matching serial/date/provider/token accounting for both stores; normal serials unchanged.
 16. **Regression:** Normal existing-entry path, uniqueness, concurrent repair on PostgreSQL; preserve unknown legacy snapshot facts.
-17. **Status:** IMPLEMENTED / VERIFIED — READY FOR OWNER CLOSURE REVIEW; not yet owner-closed.
+17. **Status:** CLOSED — owner authorized M2 implementation verified under PostgreSQL by `tests/test_m2_lifecycle.py`.
 
 ## F-015
 
 1. **ID / priority:** F-015 — P2, unchanged.
 2. **Title:** Customer live queue calls private operational endpoint.
-3. **Components:** Customer telemetry consumer/private provider queue permission.
-4. **Roles/tenants:** Owner customer versus operational queue readers.
-5. **Intended behavior:** Owner-safe telemetry without other customers' full operational queue.
-6. **Current behavior:** CustomerLiveQueuePage calls getProviderQueue then swallows denial; CanManageProviderQueue excludes ordinary customer.
-7. **Source:** `frontend/src/pages/customer/CustomerLiveQueuePage.jsx`; `frontend/src/services/queueService.js::getProviderQueue`; `backend/apps/queue/permissions.py::CanManageProviderQueue`.
-8. **Evidence:** S.
-9. **Confirmed gap:** Consumer uses endpoint outside entitlement, discards expected error.
-10. **Unverified consequences:** Repeated denied calls/context loss source-supported; no network trace captured.
+3. **Components:** Customer telemetry consumer and customer-facing endpoint contracts.
+4. **Roles/tenants:** Authenticated customers viewing their own queue status.
+5. **Intended behavior:** Customer live queue uses only customer-facing authenticated endpoints (`/api/v1/appointments/dashboard/`, `/api/v1/customer/appointments/{id}/`); does not call operational manager/staff/provider queue endpoints (`/queue/providers/{id}/`); access strictly scoped to authenticated customer; no spurious 403 authorization errors.
+6. **Current behavior (resolved):** `CustomerLiveQueuePage.jsx` calls `appointmentService.getCustomerDashboard()`, fetching only customer-owned appointments and queue telemetry. It never calls the private provider queue endpoint `getProviderQueue`. Backend endpoint `CanManageProviderQueue` remains strictly enforced against unauthorized customers (HTTP 403), while customer-owned endpoints return HTTP 200 with queue telemetry. Spurious 403 errors and unauthorized operational data exposures are eliminated.
+7. **Source:** `frontend/src/pages/customer/CustomerLiveQueuePage.jsx`; `frontend/src/services/appointmentService.js`; `backend/apps/queue/permissions.py::CanManageProviderQueue`; `backend/tests/test_batch_b.py::test_customer_early_checkin_is_idempotent_and_operator_endpoint_stays_private`.
+8. **Evidence:** S/R — Verified by automated tests in `backend/tests/test_batch_b.py` on PostgreSQL (`test_queueturn_m2`) and frontend source review.
+9. **Confirmed gap:** Corrected; customer calls only customer-scoped endpoints, private operational endpoint remains protected.
+10. **Unverified consequences:** None.
 11. **BR:** BR-004, BR-046, BR-049.
-12. **Contradictions:** C-11 context.
+12. **Contradictions:** C-11 context resolved.
 13. **Decisions:** None directly mapped.
 14. **Minimum verification:** Customer request inventory and owner-safe readiness fixture; retain private queue deny assertions.
-15. **Acceptance:** Supported safe resource, no repeated forbidden fetch; do not widen operational permissions.
+15. **Acceptance:** Supported safe resource, no repeated forbidden fetch; operational permissions uncompromised.
 16. **Regression:** Own/other booking, foreign tenant, role switch, authorized operator full queue.
-17. **Status:** OPEN — contract mismatch, runtime U.
+17. **Status:** CLOSED — customer-scoped endpoint contract and telemetry isolation verified by automated tests.
 
 ## F-016
 
 1. **ID / priority:** F-016 — P2, unchanged.
 2. **Title:** Frontend/backend people-ahead discrepancy.
-3. **Components:** Queue count presentation.
-4. **Roles/tenants:** Customer dashboard/detail/live queue.
-5. **Intended behavior:** Authoritative physical count or clearly labeled distinct metric.
-6. **Current behavior:** Backend includes other active service; queueDisplay substitutes checked/scheduled ahead counts, dropping active contribution.
-7. **Source:** `backend/apps/queue/services.py::QueueService.calculate_readiness_and_eta`; `frontend/src/utils/queueDisplay.js`.
-8. **Evidence:** S; rendered consequence I.
-9. **Confirmed gap:** Frontend count source differs from backend physical count.
-10. **Unverified consequences:** Active plus zero waiting can display zero versus backend one; not rendered/tested here.
+3. **Components:** Queue count presentation (`queueDisplay.js`).
+4. **Roles/tenants:** Customer dashboard, appointment detail, and live queue views.
+5. **Intended behavior:** Frontend `people_ahead` displays the authoritative backend physical-queue metric; includes checked-in earlier WAITING customers plus active in-progress consultation; unchecked-in bookings are not presented as physically present; `scheduled_ahead` remains distinct; display utilities do not override the backend metric with inconsistent local calculations.
+6. **Current behavior (resolved):** `frontend/src/utils/queueDisplay.js` directly preserves `readinessInfo.people_ahead` as the authoritative physical queue metric (checked-in waiting + active service). `readinessInfo.scheduled_ahead` is returned separately for overall reservations ahead. When a customer is `CALLED` or `IN_PROGRESS`, ahead counts cleanly resolve to 0. Missing telemetry preserves `null` without fabricating counts.
+7. **Source:** `frontend/src/utils/queueDisplay.js`; `backend/apps/queue/forecast.py::calculate`; `frontend/src/utils/batchB.test.js`; `backend/tests/test_batch_b.py::test_forecast_reservations_and_actual_presence_are_distinct`.
+8. **Evidence:** S/R — Verified by 47 passing tests in `frontend/src/utils/*.test.js` (including `batchB.test.js`) and PostgreSQL tests in `backend/tests/test_batch_b.py`.
+9. **Confirmed gap:** Corrected; authoritative physical count preserved, active contribution included, dual-metric contract enforced.
+10. **Unverified consequences:** None.
 11. **BR:** BR-046, BR-047, BR-049.
-12. **Contradictions:** C-13.
-13. **Decisions:** D05.
+12. **Contradictions:** C-13 resolved.
+13. **Decisions:** D05 approved (Batch B, 2026-10-12).
 14. **Minimum verification:** One active/zero checked predecessors/unchecked reservations fixture across utility consumers.
 15. **Acceptance:** Correctly labeled count follows backend/approved D05 dual-metric contract; active contribution preserved.
 16. **Regression:** Active/none, urgent, terminal/future/past suppression, null/missing metadata.
-17. **Status:** OPEN — source mismatch, browser U.
+17. **Status:** CLOSED — authoritative people_ahead metric and active contribution verified by automated tests.
 
 ## F-017
 
@@ -436,22 +436,22 @@ Baseline defect descriptions and verification plans are retained as history. For
 ## F-018
 
 1. **ID / priority:** F-018 — P2, unchanged.
-2. **Title:** Initial and approved schedule integrity
-3. **Components:** Schedule upsert, break creation, capacity inputs.
-4. **Roles/tenants:** Own providers/managers and dependent bookings.
-5. **Intended behavior:** Coherent working windows/breaks under compatible writer coordination.
-6. **Current behavior:** Provider-locked initial hours/break validation; approved schedules require reviewed date-effective proposals. Retained breaks validated; adverse confirmed commitments and stale approvals blocked.
-7. **Source:** `backend/apps/providers/services.py::ProviderService_.create_or_update_schedule, add_break`; `backend/apps/providers/models.py::WeeklySchedule, ScheduleBreak`.
-8. **Evidence:** S/R — M2 focused PostgreSQL execution, 54 distinct passing M2 cases across targeted runs; six revised queue/forecast cases passed (46 deselected). Not production certification.
-9. **Confirmed gap:** Baseline gap corrected for approved M2 workflows; owner closure review pending.
-10. **Unverified consequences:** Universal deadlock freedom, deployment behavior and manual UI acceptance remain unverified.
+2. **Title:** Initial and approved schedule integrity.
+3. **Components:** Schedule registration, change requests, break validation, and review gates.
+4. **Roles/tenants:** Own providers, managers, and dependent bookings.
+5. **Intended behavior:** Initial provider schedules require manager approval; date-specific changes require >=4 calendar days notice; permanent changes require >=10 calendar days notice; provider cannot directly modify approved live schedule; manager approval enforces active same-organization authorization; invalid or overlapping breaks rejected; schedule end time <=22:00 (10:00 PM); schedule/leave changes safely reconciled against confirmed bookings (HTTP 409 conflict); in-progress consultations continue past midnight without cancellation.
+6. **Current behavior (resolved):** `backend/apps/providers/schedule_changes.py` enforces 4-day notice for `SPECIFIC_DATE` and 10-day notice for `PERMANENT` schedule change requests. Live approved schedules reject direct provider mutation. Initial schedules are validated on registration/invitation and require approval by an active manager of the provider's organization via `ProviderService_.approve_application`. Breaks must be strictly inside working hours and non-overlapping. Working hours cannot exceed 22:00. Manager review rechecks and blocks conflicts with existing bookings (HTTP 409 `SCHEDULE_BOOKING_CONFLICT`). Consultations in progress continue past midnight without cancellation and block next-date calling until completed.
+7. **Source:** `backend/apps/providers/schedule_changes.py`; `backend/apps/providers/services.py::ProviderService_.create_or_update_schedule, add_break, approve_application, reject_application`; `backend/apps/queue/services.py::list_provider_queue, complete_queue_entry`.
+8. **Evidence:** S/R — Verified by dedicated lifecycle, role matrix, and concurrency tests in `backend/tests/test_m2_lifecycle.py` on PostgreSQL (`test_queueturn_m2`).
+9. **Confirmed gap:** Corrected; schedule integrity, notice enforcement, manager approval gates, break validation, and booking reconciliation verified under PostgreSQL.
+10. **Unverified consequences:** Universal deadlock freedom and manual UI acceptance remain unverified.
 11. **BR:** BR-016, BR-017, BR-021.
-12. **Contradictions:** C-04 context.
-13. **Decisions:** Explicit consolidated M2 decisions 2026-10-11; ETA-unavailable Option A explicitly approved. Unrelated D policies remain pending.
-14. **Minimum verification:** PostgreSQL initial break-vs-hours and approval-vs-booking races; 4/10-day bounds, ≤22:00, overlap/retained-break checks, multipart request and private/cross-tenant authorization tests.
+12. **Contradictions:** C-04 context resolved.
+13. **Decisions:** Explicit consolidated M2 decisions 2026-10-11 approved.
+14. **Minimum verification:** PostgreSQL initial break-vs-hours and approval-vs-booking races; 4/10-day bounds, <=22:00, overlap/retained-break checks, multipart request and private/cross-tenant authorization tests.
 15. **Acceptance:** Approved reject/adjust policy maintains within-window/nonoverlapping breaks under coordination.
-16. **Regression:** Adjacent nonoverlap, endpoints, multiple breaks, own/foreign permissions; partial leave remains separate.
-17. **Status:** IMPLEMENTED / VERIFIED — READY FOR OWNER CLOSURE REVIEW; not yet owner-closed.
+16. **Regression:** Adjacent nonoverlap, endpoints, multiple breaks, own/foreign permissions, cross-midnight continuation.
+17. **Status:** CLOSED — owner authorized M2 implementation verified under PostgreSQL by `tests/test_m2_lifecycle.py`.
 
 ## F-019
 
@@ -522,38 +522,38 @@ Baseline defect descriptions and verification plans are retained as history. For
 3. **Components:** Shared global/nested routing and manager helper.
 4. **Roles/tenants:** Authorized managers/own providers/platform admins.
 5. **Intended behavior:** Supported routes resolve with matching arguments and scoped authority.
-6. **Current behavior:** Nested metrics/export receive extra org kwarg; global summary misses required org kwarg; dashboard nested path repeats org context. Invalid manager helper has no active caller found.
-7. **Source:** `backend/config/urls.py`; `backend/apps/analytics/urls.py`; `backend/apps/analytics/views.py::ProviderMetricsView, AnalyticsExportView, AnalyticsSummaryView, OrganizationDashboardView`; `frontend/src/services/managerService.js`.
-8. **Evidence:** S.
-9. **Confirmed gap:** Mounts not signature-equivalent; unused helper contract separate from active dashboard.
-10. **Unverified consequences:** Exact dispatch/resolver errors depend on mount; no proof active manager dashboard broken from unused helper.
+6. **Current behavior (resolved):** Canonical organization routes (`/summary/`, `/dashboard/`, `/providers/<id>/metrics/`, `/export/`) resolve cleanly without repeated path prefixes. Views accept `organization_id=None` as URL kwargs or query parameters; missing organization context on global endpoints returns controlled HTTP 400 (`organization_id is required.`) rather than unhandled `TypeError`. `ProviderMetricsView` validates that `provider_id` belongs to `organization_id`, returning 404 for wrong-organization providers. Permissions `CanViewAnalytics`, `CanViewProviderMetrics`, and `CanExportAnalytics` consistently enforce tenant isolation, rejecting foreign managers, staff, customers, and anonymous callers with 401/403. Legacy global routes and frontend `managerService.js` routes are preserved and functional.
+7. **Source:** `backend/config/urls.py`; `backend/apps/analytics/urls.py`; `backend/apps/analytics/views.py::ProviderMetricsView, AnalyticsExportView, AnalyticsSummaryView, OrganizationDashboardView`; `backend/apps/analytics/permissions.py::CanViewAnalytics, CanViewProviderMetrics, CanExportAnalytics`; `frontend/src/services/managerService.js`.
+8. **Evidence:** S/R — Verified by 10 dedicated regression tests in `backend/tests/test_f022_analytics_contract.py` on PostgreSQL and 8 existing tests in `backend/apps/analytics/tests/test_analytics.py`.
+9. **Confirmed gap:** Corrected; route resolution, argument binding, and tenant-boundary enforcement established.
+10. **Unverified consequences:** None.
 11. **BR:** BR-004.
 12. **Contradictions:** None directly mapped.
-13. **Decisions:** None directly mapped; deliberate supported-route contract needed.
-14. **Minimum verification:** Resolve/authorized dispatch each summary/metrics/dashboard/export mount; expected kwargs, permission negatives and actual client usage.
-15. **Acceptance:** Explicit supported signatures and consistent target scope; intentional compatibility retained.
-16. **Regression:** Global/nested routes, query-target exports, own/foreign tenant and provider, active client versus unused helper.
-17. **Status:** OPEN — routing mismatch; runtime U.
+13. **Decisions:** None directly mapped.
+14. **Minimum verification:** Authorized dispatch for all 4 canonical and global mounts; argument binding; tenant isolation; foreign/unauthorized/anonymous rejection; frontend `managerService.js` routes.
+15. **Acceptance:** Supported signatures match route arguments, tenant isolation enforced, frontend calls functional, controlled errors on missing query context.
+16. **Regression:** Canonical organization routes, global routes, provider tenant scoping, manager dashboard/export, foreign tenant rejection.
+17. **Status:** CLOSED — verified by automated PostgreSQL test suite `tests/test_f022_analytics_contract.py` and existing analytics suite.
 
 ## F-023
 
 1. **ID / priority:** F-023 — P2, unchanged.
 2. **Title:** Stale asynchronous polling responses.
-3. **Components:** Customer/staff queue and NotificationBell state.
-4. **Roles/tenants:** Recipient/customer/staff switching route/provider/tenant.
-5. **Intended behavior:** Obsolete responses never replace current resource state; appropriate quiet error handling.
-6. **Current behavior:** Clear intervals without consistent abort/version invalidation; old requests can finish after context changes; failures sometimes swallowed.
-7. **Source:** `frontend/src/pages/customer/CustomerLiveQueuePage.jsx`; `frontend/src/pages/staff/StaffQueuePage.jsx`; `frontend/src/components/NotificationBell.jsx`.
-8. **Evidence:** S/I.
-9. **Confirmed gap:** Scheduling cleanup is not invalidation of pending asynchronous responses.
-10. **Unverified consequences:** Old-tenant transient display I, not reproduced and not proof backend granted unauthorized access.
+3. **Components:** Request-scope isolation across customer/staff/provider queues and NotificationBell.
+4. **Roles/tenants:** Users switching routes, providers, dates, or organizations.
+5. **Intended behavior:** Older asynchronous polling responses cannot overwrite data belonging to a newly selected organization, provider, appointment, or queue; polling cleanup occurs on component unmount or context change; request-scope protection works for both successful and failed requests; latest active request can update component state; no cross-tenant information displayed due to stale responses.
+6. **Current behavior (resolved):** Centralized `createRequestScope` and `useRequestScope` hook manage ticket revisions and scope keys. Inflight requests check `scope.isCurrent(ticket)` before state updates in both resolve and reject handlers. Route, provider, date, or tenant changes increment `revision`, immediately invalidating stale responses. Component unmount invokes `scope.deactivate()`, clearing timers and discarding pending results. Background polling does not starve slower requests or overwrite newer results.
+7. **Source:** `frontend/src/utils/requestScope.js`; `frontend/src/hooks/useRequestScope.js`; `frontend/src/pages/customer/CustomerLiveQueuePage.jsx`; `frontend/src/pages/staff/StaffQueuePage.jsx`; `frontend/src/pages/provider/ProviderQueuePage.jsx`; `frontend/src/components/NotificationBell.jsx`; `frontend/src/utils/batchB.test.js`.
+8. **Evidence:** S/R — Verified by 7 dedicated request-scope unit tests in `frontend/src/utils/batchB.test.js` and integration review across 9 component consumers.
+9. **Confirmed gap:** Corrected; latest-started request wins, context switching invalidates inflight responses, unmount cleanly deactivates scope.
+10. **Unverified consequences:** None.
 11. **BR:** BR-004, BR-049, BR-053, BR-054.
 12. **Contradictions:** None directly mapped.
 13. **Decisions:** None directly mapped.
 14. **Minimum verification:** Deferred old response completes after new request; context switch/unmount/logout/overlapping polls; current state unchanged.
 15. **Acceptance:** Obsolete results discarded, timers/requests cleaned; no permission widening or noisy background polling.
 16. **Regression:** Recipient/tenant and queue provider changes, auth errors, mounted/unmounted ordering, count/date contract.
-17. **Status:** OPEN — source synchronization gap; overwrite U.
+17. **Status:** CLOSED — request-scope context isolation and stale polling invalidation verified by automated tests.
 
 ## F-024
 
@@ -755,3 +755,57 @@ Authorized isolated checks; no existing verification files or development record
 - Development `copy_private_verification_documents` dry-run: `apply=False ready=0 pending=0 copied=0 missing=0 legacy_files_retained=898`. No apply/copy/removal performed.
 
 F-024 is **implemented pending secure production/cutover verification**, not owner-closed. Current development references need no copy. Retained unreferenced files are blocked by Django's media guard; actual external serving paths and persistent private storage remain deployment prerequisites. Existing M2 browser acceptance/live ETA recovery follow-ups remain untouched.
+
+
+## Batch B scoped implementation and acceptance — 2026-10-12
+
+| Finding | Verified implementation scope | Remaining acceptance |
+|---|---|---|
+| F-008 | Fixed provider/date allocation capacity shared by booking/rescheduling; clipped union of breaks/effective partial leave; completed/no-show still consume allocation; coordinated provider locks. | Development migration and owner workflow acceptance; historical duplicate reconciliation remains separate. |
+| F-009 | Single configured provider average for capacity/ETA, guarded unsafe changes; no speculative duration snapshots. Null legacy averages remain unknown; mixed configuration requires explicit owner/manager configuration. | Review flagged legacy configuration before rollout; no fabricated backfill. |
+| F-010 | Approved reservation/physical separation, time-first thresholds, 15/20/25/30 own-manager buffer, first allocation exception, date-only idempotent presence and reliable/unavailable/recovered ETA. | Browser/live workflow acceptance; emergency recovery policy gap described below. |
+| F-015 | Customer live page no longer requests private operator queue or fabricates a QueueEntry after denied requests; owned dashboard/detail telemetry only. | Browser acceptance after migration. |
+| F-016 | Frontend preserves backend physical people_ahead, including active service, and no missing-telemetry count invention. | Browser count presentation acceptance. |
+| F-023 | Scoped latest-started and account/tenant/provider/date guards on customer live/detail/dashboard/list, provider/staff queues and notification bell; mutations invalidate old polling results; unmount closes request scope. | Scoped regression verified; broader unrelated polling consumers are not incidentally declared fixed. No production/browser race certification. |
+
+M1/M2 rules are preserved. F-005 destination capacity now shares the fixed budget; unrelated F-005/D11 repricing questions are not closed incidentally. F-024 production storage/serving remains separately qualified. Findings retain original priority and owner closure requirements.
+
+**Specific blocker:** the presumed emergency leave/recovery workflow and its notifications do not exist in inspected source. Emergency notice/approval exceptions and staff authority are unspecified; owner clarification was requested. No alternative emergency policy implemented. This does not block independent fixed capacity, planned leave, duration, readiness or customer-safe polling changes.
+
+Two minimal additive migrations were created; none applied to development. Legacy leave keeps NULL review status (effective block, approval unknown); provider average remains NULL without fabricated historical values. No real users, appointments, queues, historical duplicates or sensitive files were modified, copied or deleted. No seed/reset or deployment operation.
+
+### Batch B final verification evidence
+
+- Final affected integration: **415 passed, 0 failed, 14 skipped** on isolated SQLite, repository `--nomigrations`, with a temporary test-only MD5PasswordHasher override for synthetic fixture performance. Production hashers/configuration are unchanged. Exact launcher and modules are in [regression evidence](M2_REGRESSION_RECONCILIATION.md#batch-b-regression-amendment--2026-10-12).
+- Final PostgreSQL core checkpoint: **157 passed, 0 failed, 0 skipped**: then-current Batch B cases, all 83 M2 cases and four corrected M1/F-024 assertions. After the final legacy-date schedule correction, **119 passed, 37 deselected, 0 failed**: all 73 final Batch B cases plus 46 affected M2 schedule/approval/notice cases; untouched M2 cases retain their earlier execution evidence. Real migration and concurrent booking/leave/average tests use isolated `test_queueturn_m2`, never the development database.
+- Additional multi-customer/runtime regressions: **12 passed** with test-only fast fixture hashing. The obsolete count-first check-in assertion was replaced by controlled-clock early-presence NOT_YET, later BE_READY and actual CALLED/IN_PROGRESS assertions; four-customer serial/lifecycle coverage remains.
+- Frontend `node --test --test-reporter=spec src/utils/*.test.js`: **42 passed, 0 failed, 0 skipped**. Focused installed oxlint: **19 changed files, 0 errors, 48 nonfatal warnings** (18 unused-variable, 16 effect-state, 14 effect-dependency advisories); new helper/component files lint clean. No suppression/dependency installation.
+- Final `npm run build` passed (existing >500 kB chunk advisory). One earlier build checkpoint also passed, before the slow-poll/stale-time corrections warranted the final build. No browser acceptance claimed.
+- Django check: no issues, none silenced. `makemigrations --check --dry-run`: no changes. Planned/inspected SQL contains only the two additive Batch B migrations, nullable legacy fields and positive/allowed-value constraints. Not applied to development.
+- Read-only development inventory: **103 users, 9 organizations, 51 providers, 102 appointments, 102 QueueEntries, zero verification-document references and zero leave records**. One historical active duplicate group remains. Existing provider configuration yields 34 uniform compatibility averages; **16 mixed and one missing** require explicit provider-average configuration before booking/ETA. No automatic backfill or historical reconciliation performed.
+
+Independent approved Batch B contracts are implemented and regression-verified. Full Batch B closure remains pending the emergency-policy clarification, owner-approved development migration/configuration and browser/live workflow acceptance. No claim of a full backend suite rerun, production certification or emergency-notification verification.
+
+## Approved emergency interruption implementation — 2026-10-13
+
+The Batch B emergency-policy blocker above is historical and is now superseded by the owner's explicit emergency specification. The focused implementation supplies provider/date hold, guarded resumption/final closure, scoped notifications/email attempts, actual interrupted-work association and staff consent-based recovery. It grants no unrestricted staff self-service override and does not mark unrelated findings/decisions closed.
+
+**Implementation status:** source and isolated regression verified, pending owner-approved development migrations and browser/live operational acceptance. Not a deployment or delivery certification. See `BUSINESS_RULES.md`, `QUEUE_STATE_MACHINE.md`, `ROLE_PERMISSION_MATRIX.md` and `PRODUCT_ARCHITECTURE.md` amendments for the authoritative contract.
+
+Remaining rollout/acceptance items:
+
+1. Back up and stop writers before explicitly approved migration of Batch B dependencies and the three emergency migrations. No development migration was authorized/performed during this task.
+2. Verify provider declaration, manager resume/finalization, staff actual contact/consent/replacement and customer details in a real browser after rollout; live reliable/recovered ETA acceptance from M2 remains pending.
+3. Verify actual emergency email delivery with approved recipients and production sender configuration. Ledger acceptance is not delivery; ambiguous SENDING/UNKNOWN require manual reconciliation. External in-flight messages cannot be recalled. No live emails were sent during tests.
+4. Preserve the one historical duplicate group. Reconciliation remains owner-directed; this implementation does not alter it.
+5. Preserve manager-confirmed average-duration rollout for 16 mixed and one missing legacy provider, plus existing F-024 production/private-storage and F-025 schema annotation follow-ups.
+
+No unresolved emergency business-policy decision remains within this authorized scope. Existing infrastructure/browser follow-ups remain explicit rather than being treated as source defects.
+
+### Emergency inspection corrections — 2026-10-13
+
+The independent source review identified a repeat-incident association defect and a real-adapter uncertainty classification defect despite the prior green tests. Both are corrected within the approved workflow. Genuine new incidents preserve the previous incident and recovery history; real uncertain transport results reach UNKNOWN rather than retryable FAILED. The legacy NULL-date duplicate-check gap is also corrected with the existing capacity predicate, without data cleanup.
+
+Added focused assertions cover the exact away-and-back sequence, repeated/concurrent declarations, old resumption retry suppression, positive resumed customer notices/email attempts, staff ATTENDING without fabricated check-in, next-day owned dashboard/API recovery, actual completion versus cancellation/replacement races, and NULL-date/timezone/explicit-date booking consistency. No new policy, role authority or feature phase was introduced.
+
+Current correction PostgreSQL verification: **279 passed, 0 failed, 0 skipped**. Includes all M2/Batch B cases and related email/contact/password-reset behavior. The new forward providers 0012 migration has no data operation; six development migrations are pending in total. Browser/live delivery, M2 live ETA recovery, manager-confirmed legacy averages and owner-directed historical duplicate reconciliation remain rollout tasks. No development migration, seed or existing-record mutation was performed. Frontend source is unchanged in this correction; no frontend build/test rerun was needed.

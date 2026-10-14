@@ -66,7 +66,7 @@ class ProviderService_:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def create_provider_profile(*, organization, membership_id, bio='', title=''):
+    def create_provider_profile(*, organization, membership_id, bio='', title='', average_service_minutes=None):
         """
         Create a ProviderProfile.
         Validates:
@@ -97,15 +97,34 @@ class ProviderService_:
             membership=membership,
             bio=bio,
             title=title,
+            average_service_minutes=average_service_minutes,
             is_active=True,
         )
 
     @staticmethod
-    def update_provider_profile(*, profile, **kwargs):
+    @transaction.atomic
+    def update_provider_profile(*, profile, actor=None, **kwargs):
+        profile = ProviderProfile.objects.select_for_update(of=('self',)).get(pk=profile.pk)
+        if 'average_service_minutes' in kwargs:
+            from .permissions import require_provider_average_manager
+            require_provider_average_manager(profile=profile, actor=actor)
+            value = kwargs['average_service_minutes']
+            if value is None or isinstance(value, bool) or value < 1:
+                raise ApplicationError(message='Average service time must be a positive number of minutes.')
+            from apps.appointments.capacity import date_capacity
+            from apps.appointments.models import Appointment
+            from apps.queue.services import business_date_for_appointment, current_business_date
+            dates = {business_date_for_appointment(a) for a in profile.appointments.exclude(status='CANCELLED')
+                     if business_date_for_appointment(a) >= current_business_date() or a.status in Appointment.BLOCKING_STATUSES}
+            for on_date in dates:
+                result = date_capacity(profile, on_date, average=value)
+                if result['daily_capacity'] < result['allocated_count']:
+                    raise ApplicationError(message='This average service time would reduce capacity below protected bookings.',
+                                           code='DURATION_BOOKING_CONFLICT', status_code=409)
         allowed_fields = {
             'bio', 'title', 'profile_photo', 'experience_years',
             'education', 'experience_history', 'certifications',
-            'specialties', 'is_active'
+            'specialties', 'is_active', 'average_service_minutes'
         }
         for field, value in kwargs.items():
             if field in allowed_fields:
@@ -269,6 +288,8 @@ class ProviderService_:
         if ProviderService.objects.filter(provider=provider, service=service).exists():
             raise DuplicateProviderServiceException()
 
+        from .duration import protect_legacy_average
+        protect_legacy_average(provider, extra_duration=custom_duration_minutes if custom_duration_minutes is not None else service.duration_minutes)
         return ProviderService.objects.create(
             provider=provider,
             service=service,
@@ -311,6 +332,8 @@ class ProviderService_:
     def remove_service_from_provider(*, provider, provider_service_id):
         provider = ProviderService_._lock_assignment_provider(provider)
         ps = ProviderService_._lock_assignment(provider, provider_service_id)
+        from .duration import protect_legacy_average
+        protect_legacy_average(provider, exclude_assignment_id=ps.pk)
         ps.delete()
 
     # ------------------------------------------------------------------
@@ -378,15 +401,7 @@ class ProviderService_:
     # ------------------------------------------------------------------
 
     @staticmethod
-    @transaction.atomic
-    def create_leave(*, provider, start_datetime, end_datetime, reason=''):
-        provider = ProviderProfile.objects.select_for_update().get(pk=provider.pk)
-        from apps.appointments.models import Appointment
-        if Appointment.objects.filter(provider=provider, status__in=Appointment.BLOCKING_STATUSES, start_datetime__lt=end_datetime, end_datetime__gt=start_datetime).exists():
-            raise ApplicationError(message='Leave would affect an existing confirmed booking.', code='SCHEDULE_BOOKING_CONFLICT', status_code=409)
-        return ProviderLeave.objects.create(
-            provider=provider,
-            start_datetime=start_datetime,
-            end_datetime=end_datetime,
-            reason=reason,
-        )
+    def create_leave(*, provider, start_datetime, end_datetime, reason='', actor=None):
+        from .leave_requests import LeaveRequestService
+        return LeaveRequestService.submit(provider=provider, actor=actor,
+            start_datetime=start_datetime, end_datetime=end_datetime, reason=reason)

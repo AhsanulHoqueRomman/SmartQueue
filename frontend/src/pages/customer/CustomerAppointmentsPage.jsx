@@ -1,3 +1,6 @@
+import { EmergencyNotice } from '../../components/EmergencyNotice';
+import { useRequestScope } from '../../hooks/useRequestScope';
+import { confirmCustomerArrival } from '../../utils/customerArrival.js';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,24 +12,28 @@ import ReportIssueModal from '../../components/ReportIssueModal';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
+import { formatBookingDate } from '../../utils/homeBookingDisplay.js';
 import { getNormalizedCustomerQueueState } from '../../utils/queueDisplay';
 
 export function CustomerAppointmentsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
+  const requestScope = useRequestScope(String(user?.id));
   const { showSuccess, showError } = useToast();
 
   const getSanitizedTab = (tabStr) => {
     if (!tabStr) return 'active';
     const normalized = tabStr.toLowerCase().replace(/-/g, '_');
-    if (['active', 'upcoming', 'completed', 'cancelled', 'missed', 'skipped', 'needs_followup'].includes(normalized)) {
+    if (['active', 'upcoming', 'completed', 'cancelled', 'missed', 'skipped', 'needs_followup', 'emergency_recovery'].includes(normalized)) {
       return normalized;
     }
     return 'active';
   };
 
-  const [appointments, setAppointments] = useState([]);
+  const [appointmentRows, setAppointments] = useState([]);
+  const [loadedUser, setLoadedUser] = useState(null);
+  const appointments = loadedUser === user?.id ? appointmentRows : [];
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -55,40 +62,51 @@ export function CustomerAppointmentsPage() {
   const [checkingInId, setCheckingInId] = useState(null);
 
   const fetchAppointments = async (isManual = false) => {
+    if (!user?.id) return;
+    const ticket = requestScope.begin(String(user?.id));
+    if (!ticket) return;
     if (isManual) setRefreshing(true);
     setLoading(true);
     setError(null);
 
     try {
       const data = await appointmentService.getCustomerDashboard();
+      if (!requestScope.isCurrent(ticket)) return;
       const list = Array.isArray(data) ? data : data.results || [];
-      setAppointments(list);
+      setAppointments(list); setLoadedUser(user.id);
     } catch (err) {
+      if (!requestScope.isCurrent(ticket)) return;
       setError(err.response?.data?.detail || 'Failed to load your appointments schedule.');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestScope.isCurrent(ticket)) { setLoading(false); setRefreshing(false); }
     }
   };
 
   useEffect(() => {
+    setCancelModalOpen(false); setReviewModalOpen(false); setReportModalOpen(false);
+    setSelectedAppointment(null); setCheckingInId(null); setLoading(true);
     fetchAppointments();
-  }, []);
+  }, [user?.id]);
 
   const handleCheckIn = async (orgId, appointmentId) => {
+    if (!confirmCustomerArrival()) return;
     if (!orgId || !appointmentId) return;
+    const ticket = requestScope.begin(String(user?.id));
+    if (!ticket) return;
     setCheckingInId(appointmentId);
     setError(null);
 
     try {
       await appointmentService.checkInAppointment(orgId, appointmentId);
+      if (!requestScope.isCurrentScope(ticket)) return;
       showSuccess('Checked in successfully! You are now in the live queue.');
       await fetchAppointments(true);
     } catch (err) {
+      if (!requestScope.isCurrentScope(ticket)) return;
       const msg = err.response?.data?.detail || 'Check-in failed. Please verify your appointment status.';
       showError(msg);
     } finally {
-      setCheckingInId(null);
+      if (requestScope.isCurrentScope(ticket)) setCheckingInId(null);
     }
   };
 
@@ -109,14 +127,18 @@ export function CustomerAppointmentsPage() {
 
   const handleConfirmCancel = async (reason) => {
     if (!selectedAppointment) return;
+    const ticket = requestScope.begin(String(user?.id));
+    if (!ticket) return;
     const orgId = selectedAppointment.organization_id || selectedAppointment.organization;
     try {
       await appointmentService.cancelAppointment(orgId, selectedAppointment.id, reason);
+      if (!requestScope.isCurrentScope(ticket)) return;
       showSuccess('Appointment successfully cancelled.');
       setCancelModalOpen(false);
       setSelectedAppointment(null);
       await fetchAppointments(true);
     } catch (err) {
+      if (!requestScope.isCurrentScope(ticket)) return;
       const msg = err.response?.data?.detail || 'Failed to cancel appointment.';
       showError(msg);
       setCancelModalOpen(false);
@@ -125,6 +147,7 @@ export function CustomerAppointmentsPage() {
 
   const categorizeAppointment = (item) => {
     const norm = getNormalizedCustomerQueueState(item);
+    if (item.emergency?.resolution === 'RESCHEDULED' || item.emergency?.resolution === 'CANCELLED') return 'emergency_recovery';
     const qStatus = item.queue_entry?.status || item.status;
     const isPast = norm.isPast;
     const isFuture = item.temporal_classification === 'future';
@@ -149,6 +172,7 @@ export function CustomerAppointmentsPage() {
   };
 
   const tabCounts = {
+    emergency_recovery: appointments.filter(a => categorizeAppointment(a) === 'emergency_recovery').length,
     active: appointments.filter((a) => categorizeAppointment(a) === 'active').length,
     upcoming: appointments.filter((a) => categorizeAppointment(a) === 'upcoming').length,
     completed: appointments.filter((a) => categorizeAppointment(a) === 'completed').length,
@@ -161,6 +185,7 @@ export function CustomerAppointmentsPage() {
   const filteredAppointments = appointments.filter((item) => categorizeAppointment(item) === activeTab);
 
   const TABS = [
+    { id: 'emergency_recovery', label: 'Emergency Recovery', icon: '📋' },
     { id: 'active', label: 'Active Today', icon: '🟢' },
     { id: 'upcoming', label: 'Upcoming', icon: '📅' },
     { id: 'completed', label: 'Completed', icon: '✅' },
@@ -339,26 +364,17 @@ export function CustomerAppointmentsPage() {
 
             const canCheckIn = appt.can_check_in !== undefined
               ? appt.can_check_in
-              : (appt.temporal_classification === 'today' && appt.status === 'CONFIRMED');
+              : normState.canCheckIn;
             const canCancel = appt.can_cancel !== undefined
               ? appt.can_cancel
               : (['CONFIRMED', 'PENDING'].includes(appt.status) && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED', 'IN_PROGRESS'].includes(qStatus));
 
-            const formattedDate = appt.start_datetime
-              ? new Date(appt.start_datetime).toLocaleDateString(undefined, {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                })
-              : (appt.appointment_date || 'Date TBD');
-
-            const formattedTime = appt.start_datetime
-              ? new Date(appt.start_datetime).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-              : 'Time TBD';
+            const formattedDate = formatBookingDate(appt.appointment_date || (appt.start_datetime
+              ? new Date(appt.start_datetime).toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' }) : null));
+            const displayTime = normState.estimatedStartTime || normState.actualStartedAt;
+            const formattedTime = displayTime
+              ? new Date(displayTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : (normState.isTerminal ? 'Service history' : normState.timingPlaceholder);
 
             return (
               <div
@@ -404,6 +420,7 @@ export function CustomerAppointmentsPage() {
                     Specialist: <strong style={{ color: 'var(--lp-text)' }}>{appt.provider_name || appt.provider_title || 'Assigned Specialist'}</strong>
                   </div>
 
+                  <EmergencyNotice appointment={appt} />
                   {/* Contextual Guidance / Status explanation */}
                   <div style={{ fontSize: '0.85rem', color: normState.statusTone === 'warning' ? 'var(--color-warning)' : 'var(--lp-text-subtle)', lineHeight: 1.45, marginTop: '0.25rem' }}>
                     {normState.guidance}
@@ -580,7 +597,7 @@ export function CustomerAppointmentsPage() {
       )}
 
       {/* Cancel Modal */}
-      {cancelModalOpen && selectedAppointment && (
+      {loadedUser === user?.id && cancelModalOpen && selectedAppointment && (
         <CancelAppointmentModal
           isOpen={cancelModalOpen}
           appointment={selectedAppointment}
@@ -590,7 +607,7 @@ export function CustomerAppointmentsPage() {
       )}
 
       {/* Review Modal */}
-      {reviewModalOpen && selectedAppointment && (
+      {loadedUser === user?.id && reviewModalOpen && selectedAppointment && (
         <LeaveReviewModal
           isOpen={reviewModalOpen}
           appointment={selectedAppointment}
@@ -604,7 +621,7 @@ export function CustomerAppointmentsPage() {
       )}
 
       {/* Report Issue Modal */}
-      {reportModalOpen && selectedAppointment && (
+      {loadedUser === user?.id && reportModalOpen && selectedAppointment && (
         <ReportIssueModal
           isOpen={reportModalOpen}
           appointment={selectedAppointment}

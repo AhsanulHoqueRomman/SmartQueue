@@ -6,6 +6,7 @@ from django.utils.translation import gettext_lazy as _
 
 from config.private_documents import private_document_storage, verification_upload_path, validate_verification_file
 from django.conf import settings
+from django.core.validators import MinValueValidator
 
 
 class ProviderProfile(models.Model):
@@ -30,6 +31,10 @@ class ProviderProfile(models.Model):
     title = models.CharField(_('title'), max_length=100, blank=True)
     profile_photo = models.URLField(_('profile photo url'), max_length=500, blank=True)
     experience_years = models.PositiveIntegerField(_('years of experience'), default=0)
+    average_service_minutes = models.PositiveIntegerField(
+        _('average service time (minutes)'), null=True, blank=True,
+        validators=[MinValueValidator(1)],
+    )
     education = models.JSONField(_('education'), default=list, blank=True)
     experience_history = models.JSONField(_('experience history'), default=list, blank=True)
     certifications = models.JSONField(_('certifications'), default=list, blank=True)
@@ -57,6 +62,10 @@ class ProviderProfile(models.Model):
         verbose_name = _('provider profile')
         verbose_name_plural = _('provider profiles')
         ordering = ['-created_at']
+        constraints = [models.CheckConstraint(
+            condition=models.Q(average_service_minutes__isnull=True) | models.Q(average_service_minutes__gt=0),
+            name='provider_average_service_positive',
+        )]
 
     def __str__(self):
         return f"{self.membership.user.email} — Provider @ {self.membership.organization.name}"
@@ -307,6 +316,16 @@ class ProviderLeave(models.Model):
     start_datetime = models.DateTimeField(_('start datetime'))
     end_datetime = models.DateTimeField(_('end datetime'))
     reason = models.TextField(_('reason'), blank=True)
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', _('Pending review')
+        APPROVED = 'APPROVED', _('Approved')
+        REJECTED = 'REJECTED', _('Rejected')
+
+    # NULL preserves legacy effective blocks without inventing past approval.
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, null=True, blank=True)
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    decision_reason = models.TextField(blank=True)
 
     class Meta:
         verbose_name = _('provider leave')
@@ -363,3 +382,6 @@ class ScheduleChangeRequest(models.Model):
     class Meta:
         ordering = ['-created_at']
         indexes = [models.Index(fields=['provider', 'status', 'effective_date'], name='schedule_request_effective_idx')]
+
+
+from .emergency_models import ProviderEmergency, EmergencyRecovery, EmergencyCommunication  # noqa: F401,E402
