@@ -9,6 +9,7 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { LoadingState } from '../../components/LoadingState';
 import { EmptyState } from '../../components/EmptyState';
 import { StatCard } from '../../components/StatCard';
+import '../../styles/ProviderDashboard.css';
 
 export const ProviderDashboard = () => {
   const { user } = useAuth();
@@ -174,70 +175,89 @@ export const ProviderDashboard = () => {
   };
 
   return (
-    <div className="app-container animate-page-entrance">
-      {/* Header Banner */}
-      <div
-        className="card"
-        style={{
-          marginBottom: '1.75rem',
-          backgroundColor: 'var(--color-surface)',
-          borderColor: 'var(--color-border)',
-          boxShadow: 'var(--shadow-sm)',
-        }}
-      >
-        <div className="flex justify-between items-center flex-wrap gap-md">
-          <div>
-            <span className="badge badge-info" style={{ marginBottom: '0.5rem' }}>
-              Provider Operational Center
-            </span>
-            <h1 style={{ marginTop: '0.25rem' }}>
-              Welcome, {providerProfile?.title ? `${providerProfile.title} ` : ''}
-              {user?.first_name || user?.email}!
-            </h1>
-            <p className="subtitle" style={{ marginTop: '0.25rem' }}>
-              Operational schedule & queue telemetry for <strong>{currentOrg?.name || 'QueueTurn'}</strong>.
-            </p>
-          </div>
-          <div className="flex gap-sm flex-wrap">
-            <button className="btn btn-primary" onClick={() => navigate('/provider/queue')}>
-              ⚡ Live Queue Board
-            </button>
-            <button className="btn btn-secondary" onClick={() => navigate('/provider/appointments')}>
-              📋 All Bookings
-            </button>
-            <button className="btn btn-outline" onClick={() => navigate('/provider/schedule')}>
-              📆 Manage Schedule
-            </button>
-          </div>
+    <div className="qt-provider-dashboard app-container animate-page-entrance">
+      {/* 1. Header Command Card */}
+      <header className="qt-provider-dashboard__header">
+        <div className="qt-provider-dashboard__header-info">
+          <span className="qt-provider-dashboard__badge">
+            Provider Operational Center
+          </span>
+          <h1 className="qt-provider-dashboard__title">
+            Welcome, {providerProfile?.title ? `${providerProfile.title} ` : ''}
+            {user?.first_name || user?.email}!
+          </h1>
+          <p className="qt-provider-dashboard__subtitle">
+            Operational schedule & queue telemetry for <strong>{currentOrg?.name || 'QueueTurn'}</strong>.
+          </p>
         </div>
-      </div>
+        <div className="qt-provider-dashboard__header-actions">
+          <button
+            type="button"
+            className="btn btn-primary qt-provider-dashboard__nav-btn"
+            onClick={() => navigate('/provider/queue')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+            Live Queue Board
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary qt-provider-dashboard__nav-btn"
+            onClick={() => navigate('/provider/appointments')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            All Bookings
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline qt-provider-dashboard__nav-btn"
+            onClick={() => navigate('/provider/schedule')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            Manage Schedule
+          </button>
+        </div>
+      </header>
 
+      {/* 2. Operational Feedback Banner */}
       {actionFeedback && (
         <div
-          className="banner"
-          style={{
-            padding: '1rem',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '1.5rem',
-            background: actionFeedback.type === 'success' ? 'var(--color-success-bg)' : 'var(--color-error-bg)',
-            color: actionFeedback.type === 'success' ? 'var(--color-success)' : 'var(--color-error)',
-            border: `1px solid ${actionFeedback.type === 'success' ? 'var(--color-success-border)' : 'var(--color-error-border)'}`,
-          }}
+          className={`qt-provider-dashboard__feedback qt-provider-dashboard__feedback--${actionFeedback.type}`}
+          role={actionFeedback.type === 'error' ? 'alert' : 'status'}
         >
-          {actionFeedback.message}
+          <div className="qt-provider-dashboard__feedback-icon" aria-hidden="true">
+            {actionFeedback.type === 'success' ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            )}
+          </div>
+          <div className="qt-provider-dashboard__feedback-message">
+            {actionFeedback.message}
+          </div>
         </div>
       )}
 
+      {/* 3. Error Banner */}
       {error && (
         <div
-          className="error-banner"
-          style={{
-            padding: '1rem',
-            background: 'var(--color-error-bg)',
-            color: 'var(--color-error)',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '1.5rem',
-          }}
+          className="qt-provider-dashboard__error-banner"
+          role="alert"
         >
           {error}
         </div>
@@ -257,8 +277,8 @@ export const ProviderDashboard = () => {
         />
       ) : (
         <>
-          {/* Operational Metrics Row */}
-          <div className="grid-responsive grid-cols-4 animate-section stagger-1" style={{ marginBottom: '1.75rem' }}>
+          {/* 4. Operational Metrics Row */}
+          <section className="qt-provider-dashboard__metrics animate-section stagger-1" aria-label="Provider operational metrics">
             <StatCard
               title="Today's Bookings"
               value={todayAppointments.length}
@@ -287,114 +307,117 @@ export const ProviderDashboard = () => {
               subtitle="Finished consultations"
               color="success"
             />
-          </div>
+          </section>
 
-          {/* Consultation Action Control Card */}
-          <div
-            className="card animate-section stagger-2"
-            style={{
-              marginBottom: '1.75rem',
-              backgroundColor: 'var(--color-surface)',
-              border: '1px solid var(--color-border)',
-            }}
-          >
-            <h3 style={{ marginBottom: '1rem' }}>Active Consultation Status & Controls</h3>
+          {/* 5. Consultation Action Control Card */}
+          <section className="qt-provider-dashboard__control-card animate-section stagger-2" aria-labelledby="provider-consultation-heading">
+            <h3 id="provider-consultation-heading" className="qt-provider-dashboard__section-title">
+              Active Consultation Status & Controls
+            </h3>
 
             {activeEntry ? (
-              <div
-                className="flex justify-between items-center flex-wrap gap-md"
-                style={{
-                  backgroundColor: 'var(--color-primary-light)',
-                  padding: '1.5rem',
-                  borderRadius: 'var(--radius-lg)',
-                  border: '1px solid var(--color-primary-border)',
-                }}
-              >
-                <div>
+              <div className="qt-provider-dashboard__panel qt-provider-dashboard__panel--active">
+                <div className="qt-provider-dashboard__panel-details">
                   <StatusBadge status="IN_PROGRESS" type="queue" />
-                  <h2 style={{ fontSize: '2.25rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--color-primary-text)' }}>
+                  <h2 className="qt-provider-dashboard__token-number">
                     Token #{activeEntry.token_number}
                   </h2>
-                  <p className="text-main font-semibold" style={{ marginTop: '0.15rem' }}>
+                  <p className="qt-provider-dashboard__patient-info">
                     {activeEntry.customer_email || 'Customer'} &bull; Service: {activeEntry.appointment?.service_name || 'Consultation'}
                   </p>
                 </div>
-                <button
-                  className="btn btn-success btn-lg"
-                  onClick={() => handleCompleteService(activeEntry.id)}
-                  disabled={processingId === activeEntry.id}
-                >
-                  {processingId === activeEntry.id ? 'Completing...' : '✔ Complete Service'}
-                </button>
+                <div className="qt-provider-dashboard__panel-actions">
+                  <button
+                    type="button"
+                    className="btn btn-success btn-lg qt-provider-dashboard__action-btn"
+                    onClick={() => handleCompleteService(activeEntry.id)}
+                    disabled={processingId === activeEntry.id}
+                    aria-busy={processingId === activeEntry.id}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    {processingId === activeEntry.id ? 'Completing...' : 'Complete Service'}
+                  </button>
+                </div>
               </div>
             ) : calledEntry ? (
-              <div
-                className="flex justify-between items-center flex-wrap gap-md"
-                style={{
-                  backgroundColor: 'var(--color-warning-bg)',
-                  padding: '1.5rem',
-                  borderRadius: 'var(--radius-lg)',
-                  border: '1px solid var(--color-warning-border)',
-                }}
-              >
-                <div>
+              <div className="qt-provider-dashboard__panel qt-provider-dashboard__panel--called">
+                <div className="qt-provider-dashboard__panel-details">
                   <StatusBadge status="CALLED" type="queue" />
-                  <h2 style={{ fontSize: '2.25rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--color-warning)' }}>
+                  <h2 className="qt-provider-dashboard__token-number">
                     Token #{calledEntry.token_number}
                   </h2>
-                  <p className="text-main font-semibold" style={{ marginTop: '0.15rem' }}>
+                  <p className="qt-provider-dashboard__patient-info">
                     {calledEntry.customer_email || 'Customer'}
                   </p>
                 </div>
-                <div className="flex gap-sm flex-wrap">
+                <div className="qt-provider-dashboard__panel-actions">
                   <button
-                    className="btn btn-primary btn-lg"
+                    type="button"
+                    className="btn btn-primary btn-lg qt-provider-dashboard__action-btn"
                     onClick={() => handleStartService(calledEntry.id)}
                     disabled={processingId === calledEntry.id}
+                    aria-busy={processingId === calledEntry.id}
                   >
-                    {processingId === calledEntry.id ? 'Starting...' : '▶ Start Service'}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    {processingId === calledEntry.id ? 'Starting...' : 'Start Service'}
                   </button>
                   <button
-                    className="btn btn-danger"
+                    type="button"
+                    className="btn btn-danger qt-provider-dashboard__action-btn"
                     onClick={() => handleSkipPatient(calledEntry.id)}
                     disabled={processingId === calledEntry.id}
+                    aria-busy={processingId === calledEntry.id}
                   >
-                    {processingId === calledEntry.id ? 'Skipping...' : '✖ Skip (No-Show)'}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                    {processingId === calledEntry.id ? 'Skipping...' : 'Skip (No-Show)'}
                   </button>
                 </div>
               </div>
             ) : (
-              <div
-                className="flex justify-between items-center flex-wrap gap-md"
-                style={{
-                  backgroundColor: 'var(--color-bg-subtle)',
-                  padding: '1.5rem',
-                  borderRadius: 'var(--radius-lg)',
-                  border: '1px solid var(--color-border)',
-                }}
-              >
-                <div>
-                  <p className="text-main font-semibold">No active patient currently called or in consultation.</p>
-                  <p className="text-sm text-muted" style={{ marginTop: '0.15rem' }}>
+              <div className="qt-provider-dashboard__panel qt-provider-dashboard__panel--idle">
+                <div className="qt-provider-dashboard__panel-details">
+                  <p className="qt-provider-dashboard__patient-info">No active patient currently called or in consultation.</p>
+                  <p className="qt-provider-dashboard__panel-hint">
                     Click below to call the next waiting patient into your consultation room.
                   </p>
                 </div>
-                <button
-                  className="btn btn-primary btn-lg"
-                  onClick={handleCallNext}
-                  disabled={waitingEntries.length === 0 || processingId === 'call-next'}
-                >
-                  {processingId === 'call-next' ? 'Calling...' : `🔊 Call Next Patient (${waitingEntries.length} Waiting)`}
-                </button>
+                <div className="qt-provider-dashboard__panel-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-lg qt-provider-dashboard__action-btn"
+                    onClick={handleCallNext}
+                    disabled={waitingEntries.length === 0 || processingId === 'call-next'}
+                    aria-busy={processingId === 'call-next'}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    </svg>
+                    {processingId === 'call-next' ? 'Calling...' : `Call Next Patient (${waitingEntries.length} Waiting)`}
+                  </button>
+                </div>
               </div>
             )}
-          </div>
+          </section>
 
-          {/* Today's Schedule Roster */}
-          <div className="card animate-section stagger-3" style={{ marginBottom: '1.75rem' }}>
-            <div className="flex justify-between items-center" style={{ marginBottom: '1rem' }}>
-              <h3>Today's Schedule ({todayAppointments.length})</h3>
-              <button className="btn btn-outline btn-sm" onClick={() => navigate('/provider/appointments')}>
+          {/* 6. Today's Schedule Roster Card & Table */}
+          <section className="qt-provider-dashboard__schedule-card animate-section stagger-3" aria-labelledby="provider-schedule-heading">
+            <div className="qt-provider-dashboard__schedule-header">
+              <h3 id="provider-schedule-heading" className="qt-provider-dashboard__section-title">
+                Today's Schedule ({todayAppointments.length})
+              </h3>
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={() => navigate('/provider/appointments')}
+              >
                 View All Appointments &rarr;
               </button>
             </div>
@@ -402,15 +425,15 @@ export const ProviderDashboard = () => {
             {todayAppointments.length === 0 ? (
               <EmptyState title="No Appointments Today" message="You have no scheduled appointments for today's date." />
             ) : (
-              <div className="table-container">
-                <table className="table">
+              <div className="qt-provider-dashboard__table-wrapper" role="region" aria-label="Today's provider schedule table" tabIndex="0">
+                <table className="qt-provider-dashboard__table">
                   <thead>
                     <tr>
-                      <th>Time</th>
-                      <th>Customer</th>
-                      <th>Service</th>
-                      <th>Status</th>
-                      <th>Notes</th>
+                      <th scope="col">Time</th>
+                      <th scope="col">Customer</th>
+                      <th scope="col">Service</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Notes</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -418,18 +441,22 @@ export const ProviderDashboard = () => {
                       const dt = appt.start_datetime ? new Date(appt.start_datetime) : null;
                       return (
                         <tr key={appt.id}>
-                          <td className="font-semibold">
+                          <td className="qt-provider-dashboard__time-cell">
                             {dt ? dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                           </td>
                           <td>
-                            <div className="font-semibold">{appt.customer_name || appt.customer_email}</div>
-                            <div className="text-xs text-muted">{appt.customer_email}</div>
+                            <div className="qt-provider-dashboard__customer-name">
+                              {appt.customer_name || appt.customer_email}
+                            </div>
+                            <div className="qt-provider-dashboard__customer-sub">{appt.customer_email}</div>
                           </td>
-                          <td>{appt.service_name || 'Consultation'}</td>
+                          <td className="qt-provider-dashboard__service-name">
+                            {appt.service_name || 'Consultation'}
+                          </td>
                           <td>
                             <StatusBadge status={appt.status} />
                           </td>
-                          <td className="text-xs text-muted" style={{ fontStyle: 'italic' }}>
+                          <td className="qt-provider-dashboard__notes-cell">
                             {appt.notes || '—'}
                           </td>
                         </tr>
@@ -439,7 +466,7 @@ export const ProviderDashboard = () => {
                 </table>
               </div>
             )}
-          </div>
+          </section>
         </>
       )}
     </div>

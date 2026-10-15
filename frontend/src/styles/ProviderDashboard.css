@@ -1,0 +1,509 @@
+/* ==========================================================================
+   QueueTurn — Provider Dashboard Scoped Stylesheet (.qt-provider-dashboard)
+   Provides responsive operational telemetry, high-contrast consultation controls,
+   theme-aware tokens, and accessible front-desk clinical supervision.
+   ========================================================================== */
+
+.qt-provider-dashboard {
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+/* --------------------------------------------------------------------------
+   1. Provider Command Header
+   -------------------------------------------------------------------------- */
+.qt-provider-dashboard__header {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 1.75rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.qt-provider-dashboard__header:hover {
+  border-color: var(--color-border-hover);
+}
+
+.qt-provider-dashboard__header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 650px;
+}
+
+.qt-provider-dashboard__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  align-self: flex-start;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  border: 1px solid var(--color-info-border);
+  line-height: 1.2;
+}
+
+.qt-provider-dashboard__badge::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-info);
+}
+
+.qt-provider-dashboard__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.qt-provider-dashboard__subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+}
+
+.qt-provider-dashboard__subtitle strong {
+  color: var(--color-text-main);
+  font-weight: 600;
+}
+
+.qt-provider-dashboard__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+}
+
+.qt-provider-dashboard__nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.95rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.qt-provider-dashboard__nav-btn svg {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+}
+
+/* --------------------------------------------------------------------------
+   2. Operational Feedback & Error Banners
+   -------------------------------------------------------------------------- */
+.qt-provider-dashboard__feedback {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  box-shadow: var(--shadow-xs);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.qt-provider-dashboard__feedback--success {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success-border);
+}
+
+.qt-provider-dashboard__feedback--error {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid var(--color-error-border);
+}
+
+.qt-provider-dashboard__feedback-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.qt-provider-dashboard__feedback-message {
+  flex: 1;
+}
+
+.qt-provider-dashboard__error-banner {
+  padding: 1rem 1.25rem;
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  box-shadow: var(--shadow-xs);
+}
+
+/* --------------------------------------------------------------------------
+   3. Operational Metric Cards Grid
+   -------------------------------------------------------------------------- */
+.qt-provider-dashboard__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+/* --------------------------------------------------------------------------
+   4. Consultation Control Workspace
+   -------------------------------------------------------------------------- */
+.qt-provider-dashboard__control-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.qt-provider-dashboard__control-card:hover {
+  border-color: var(--color-border-hover);
+}
+
+.qt-provider-dashboard__section-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  letter-spacing: -0.015em;
+}
+
+/* Active Consultation Panel */
+.qt-provider-dashboard__panel {
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.qt-provider-dashboard__panel-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.qt-provider-dashboard__token-number {
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0.25rem 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.qt-provider-dashboard__patient-info {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0.15rem 0 0;
+  line-height: 1.4;
+}
+
+.qt-provider-dashboard__panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Tone Variants for Consultation Panels */
+.qt-provider-dashboard__panel--active {
+  background-color: var(--color-primary-light);
+  border: 1px solid var(--color-primary-border);
+}
+
+.qt-provider-dashboard__panel--active .qt-provider-dashboard__token-number {
+  color: var(--color-text-main);
+}
+
+.qt-provider-dashboard__panel--active .qt-provider-dashboard__patient-info {
+  color: var(--color-text-secondary);
+}
+
+.qt-provider-dashboard__panel--called {
+  background-color: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+}
+
+.qt-provider-dashboard__panel--called .qt-provider-dashboard__token-number {
+  color: var(--color-warning);
+}
+
+.qt-provider-dashboard__panel--called .qt-provider-dashboard__patient-info {
+  color: var(--color-text-main);
+}
+
+.qt-provider-dashboard__panel--idle {
+  background-color: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+}
+
+.qt-provider-dashboard__panel--idle .qt-provider-dashboard__patient-info {
+  color: var(--color-text-main);
+}
+
+.qt-provider-dashboard__panel-hint {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0.15rem 0 0;
+  line-height: 1.4;
+}
+
+.qt-provider-dashboard__action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  font-weight: 600;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.qt-provider-dashboard__action-btn svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+/* --------------------------------------------------------------------------
+   5. Today's Schedule Roster Card & Table
+   -------------------------------------------------------------------------- */
+.qt-provider-dashboard__schedule-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.qt-provider-dashboard__schedule-card:hover {
+  border-color: var(--color-border-hover);
+}
+
+.qt-provider-dashboard__schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.qt-provider-dashboard__table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  -webkit-overflow-scrolling: touch;
+}
+
+.qt-provider-dashboard__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84375rem;
+  text-align: left;
+  min-width: 680px;
+}
+
+.qt-provider-dashboard__table thead th {
+  background-color: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  font-size: 0.71875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.qt-provider-dashboard__table tbody tr {
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.qt-provider-dashboard__table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.qt-provider-dashboard__table tbody tr:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.qt-provider-dashboard__table td {
+  padding: 0.875rem 1rem;
+  color: var(--color-text-main);
+  vertical-align: middle;
+}
+
+.qt-provider-dashboard__time-cell {
+  font-family: inherit;
+  font-weight: 700;
+  color: var(--color-text-main);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.qt-provider-dashboard__customer-name {
+  font-weight: 600;
+  color: var(--color-text-main);
+  line-height: 1.3;
+}
+
+.qt-provider-dashboard__customer-sub {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  line-height: 1.25;
+}
+
+.qt-provider-dashboard__service-name {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.qt-provider-dashboard__notes-cell {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   6. Responsive Adaptations (1024px, 768px, 480px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .qt-provider-dashboard__metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .qt-provider-dashboard {
+    padding: 1rem 0.75rem 2rem;
+    gap: 1.25rem;
+  }
+
+  .qt-provider-dashboard__header {
+    padding: 1.25rem 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .qt-provider-dashboard__header-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .qt-provider-dashboard__header-actions .btn {
+    flex: 1 1 auto;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .qt-provider-dashboard__panel {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.25rem 1rem;
+  }
+
+  .qt-provider-dashboard__panel-actions {
+    width: 100%;
+  }
+
+  .qt-provider-dashboard__panel-actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .qt-provider-dashboard__metrics {
+    grid-template-columns: 1fr;
+    gap: 0.875rem;
+  }
+
+  .qt-provider-dashboard__header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .qt-provider-dashboard__nav-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .qt-provider-dashboard__title {
+    font-size: 1.25rem;
+  }
+
+  .qt-provider-dashboard__panel-actions {
+    flex-direction: column;
+  }
+
+  .qt-provider-dashboard__action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .qt-provider-dashboard__token-number {
+    font-size: 1.875rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   7. Reduced Motion Safeguard
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .qt-provider-dashboard,
+  .qt-provider-dashboard *,
+  .qt-provider-dashboard *::before,
+  .qt-provider-dashboard *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
