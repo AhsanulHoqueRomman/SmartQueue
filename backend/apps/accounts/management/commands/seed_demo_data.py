@@ -651,20 +651,27 @@ class Command(BaseCommand):
                     defaults={'role': OrganizationMembership.Role.PROVIDER, 'is_active': True}
                 )
 
+                profile_defaults = {
+                    'title': p_item['title'],
+                    'bio': p_item['bio'],
+                    'profile_photo': p_item['profile_photo'],
+                    'experience_years': p_item['experience_years'],
+                    'education': p_item['education'],
+                    'experience_history': p_item['experience_history'],
+                    'certifications': p_item['certifications'],
+                    'specialties': p_item['specialties'],
+                    'application_status': ProviderProfile.ApplicationStatus.APPROVED,
+                    'is_active': True,
+                }
+                existing_profile = ProviderProfile.objects.filter(membership=mem).first()
+                if existing_profile and existing_profile.average_service_minutes is not None:
+                    profile_defaults['average_service_minutes'] = existing_profile.average_service_minutes
+                else:
+                    profile_defaults['average_service_minutes'] = p_item.get('average_service_minutes')
+
                 profile, _ = ProviderProfile.objects.update_or_create(
                     membership=mem,
-                    defaults={
-                        'title': p_item['title'],
-                        'bio': p_item['bio'],
-                        'profile_photo': p_item['profile_photo'],
-                        'experience_years': p_item['experience_years'],
-                        'education': p_item['education'],
-                        'experience_history': p_item['experience_history'],
-                        'certifications': p_item['certifications'],
-                        'specialties': p_item['specialties'],
-                        'application_status': ProviderProfile.ApplicationStatus.APPROVED,
-                        'is_active': True,
-                    }
+                    defaults=profile_defaults,
                 )
                 provider_instances.append(profile)
 

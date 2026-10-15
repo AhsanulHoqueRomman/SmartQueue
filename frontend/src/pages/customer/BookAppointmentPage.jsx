@@ -11,6 +11,7 @@ import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import { deriveProfessionalDisplay } from '../../utils/providerDisplay';
 import { formatCurrency, providerCharge, bookingError } from '../../utils/bookingDisplay';
+import { formatAvailabilityError } from '../../utils/availabilityDisplay';
 import { weeklyWindows } from '../../utils/scheduleDisplay';
 import { BookingContactFields, BookingSummary } from '../../components/BookingContact';
 import { useBookingContact } from '../../hooks/useBookingContact';
@@ -209,8 +210,8 @@ export function BookAppointmentPage() {
     setLoadingAvailability(true);
     appointmentService.getAvailability(selection.organization, selection.provider, selection.service, selection.date).then(data => {
       if (active && availabilityRequest.current === request) setAvailabilityResult({ key: availabilityKey, data });
-    }).catch(() => {
-      if (active && availabilityRequest.current === request) setAvailabilityError('Unable to check availability. Choose the date again to retry.');
+    }).catch(err => {
+      if (active && availabilityRequest.current === request) setAvailabilityError(formatAvailabilityError(err));
     }).finally(() => {
       if (active && availabilityRequest.current === request) setLoadingAvailability(false);
     });
@@ -259,6 +260,7 @@ export function BookAppointmentPage() {
       {availability?.is_available && <p className="direct-summary-availability">Available{availability.working_hours_display ? ` · ${availability.working_hours_display}` : ''} · Capacity Available</p>}
       {loadingAvailability && selectedProvider && <p>Checking date availability…</p>}
       {availability?.is_available === false && <p>{availability.reason || 'Not available on this date'}</p>}
+      {availabilityError && <p className="direct-summary-error">{availabilityError}</p>}
       <p className="direct-summary-next">{!selectedOrg ? 'Choose an organization next' : !selectedService ? 'Choose a service next' : !selectedProvider ? 'Choose a professional next' : !validDate ? 'Choose an available date to continue' : 'Add your contact details, then review your booking'}</p>
     </>}
   </div>;
@@ -314,7 +316,7 @@ export function BookAppointmentPage() {
           <div className="direct-availability" aria-live="polite">
             {isPastDate && <p className="banner banner-danger">Appointments cannot be booked for a past date.</p>}
             {loadingAvailability && <p>Checking provider availability…</p>}
-            {availabilityError && <p role="alert">{availabilityError}</p>}
+            {availabilityError && <p className="banner banner-danger" role="alert">{availabilityError}</p>}
             {availability && <p className={`banner ${availability.is_available ? 'banner-success' : 'banner-warning'}`}>{availability.is_available ? `Available${availability.working_hours_display ? ` · ${availability.working_hours_display}` : ''} · Capacity Available` : availability.reason || 'Not available on this date'}</p>}
           </div>
         </SelectionSection>}
