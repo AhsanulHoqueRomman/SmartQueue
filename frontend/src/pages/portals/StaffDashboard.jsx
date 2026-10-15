@@ -8,6 +8,7 @@ import { LoadingState } from '../../components/LoadingState';
 import { EmptyState } from '../../components/EmptyState';
 import { StatCard } from '../../components/StatCard';
 import { StatusBadge } from '../../components/StatusBadge';
+import '../../styles/StaffDashboard.css';
 
 export const StaffDashboard = () => {
   const { user } = useAuth();
@@ -87,54 +88,82 @@ export const StaffDashboard = () => {
   });
 
   return (
-    <div className="app-container animate-page-entrance">
-      {/* Staff Header */}
-      <div
-        className="card"
-        style={{
-          marginBottom: '1.75rem',
-          backgroundColor: 'var(--color-surface)',
-          borderColor: 'var(--color-border)',
-          boxShadow: 'var(--shadow-sm)',
-        }}
-      >
-        <div className="flex justify-between items-center flex-wrap gap-md">
-          <div>
-            <span className="badge badge-info" style={{ marginBottom: '0.5rem' }}>
-              Staff Front-Desk Command
-            </span>
-            <h1 style={{ marginTop: '0.25rem' }}>Welcome, {user?.first_name || user?.email}!</h1>
-            <p className="subtitle" style={{ marginTop: '0.25rem' }}>
-              Patient check-in, identity verification & queue supervision for <strong>{currentOrg?.name || 'QueueTurn'}</strong>.
-            </p>
-          </div>
-          <div className="flex gap-sm flex-wrap">
-            <button className="btn btn-primary" onClick={() => navigate('/staff/appointments')}>
-              📋 All Appointments
-            </button>
-            <button className="btn btn-secondary" onClick={() => navigate('/staff/queue')}>
-              ⏳ Monitor Queue
-            </button>
-            <button className="btn btn-outline" onClick={() => navigate('/staff/customers')}>
-              👥 Customers Roster
-            </button>
-          </div>
+    <div className="qt-staff-dashboard app-container animate-page-entrance">
+      {/* 1. Staff Header Command Card */}
+      <header className="qt-staff-dashboard__header">
+        <div className="qt-staff-dashboard__header-info">
+          <span className="qt-staff-dashboard__badge">
+            Staff Front-Desk Command
+          </span>
+          <h1 className="qt-staff-dashboard__title">Welcome, {user?.first_name || user?.email}!</h1>
+          <p className="qt-staff-dashboard__subtitle">
+            Patient check-in, identity verification & queue supervision for <strong>{currentOrg?.name || 'QueueTurn'}</strong>.
+          </p>
         </div>
-      </div>
+        <div className="qt-staff-dashboard__header-actions">
+          <button
+            type="button"
+            className="btn btn-primary qt-staff-dashboard__nav-btn"
+            onClick={() => navigate('/staff/appointments')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            All Appointments
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary qt-staff-dashboard__nav-btn"
+            onClick={() => navigate('/staff/queue')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            Monitor Queue
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline qt-staff-dashboard__nav-btn"
+            onClick={() => navigate('/staff/customers')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            Customers Roster
+          </button>
+        </div>
+      </header>
 
+      {/* 2. Operational Feedback Banner */}
       {checkInFeedback && (
         <div
-          className="banner"
-          style={{
-            padding: '1rem',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '1.5rem',
-            background: checkInFeedback.type === 'success' ? 'var(--color-success-bg)' : 'var(--color-error-bg)',
-            color: checkInFeedback.type === 'success' ? 'var(--color-success)' : 'var(--color-error)',
-            border: `1px solid ${checkInFeedback.type === 'success' ? 'var(--color-success-border)' : 'var(--color-error-border)'}`,
-          }}
+          className={`qt-staff-dashboard__feedback qt-staff-dashboard__feedback--${checkInFeedback.type}`}
+          role={checkInFeedback.type === 'error' ? 'alert' : 'status'}
+          aria-live={checkInFeedback.type === 'error' ? 'assertive' : 'polite'}
         >
-          {checkInFeedback.message}
+          <div className="qt-staff-dashboard__feedback-icon" aria-hidden="true">
+            {checkInFeedback.type === 'success' ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            )}
+          </div>
+          <div className="qt-staff-dashboard__feedback-message">
+            {checkInFeedback.message}
+          </div>
         </div>
       )}
 
@@ -147,8 +176,8 @@ export const StaffDashboard = () => {
         <LoadingState type="skeleton-card" rows={3} />
       ) : (
         <>
-          {/* Staff Operational Metrics */}
-          <div className="grid-responsive grid-cols-4 animate-section stagger-1" style={{ marginBottom: '1.75rem' }}>
+          {/* 3. Staff Operational Metrics Grid */}
+          <section className="qt-staff-dashboard__metrics animate-section stagger-1" aria-label="Daily metrics overview">
             <StatCard
               title="Today's Bookings"
               value={todayAppointments.length}
@@ -177,44 +206,50 @@ export const StaffDashboard = () => {
               subtitle="Finished consultations"
               color="success"
             />
-          </div>
+          </section>
 
-          {/* Quick Front-Desk Customer Check-In Search */}
-          <div className="card animate-section stagger-2" style={{ marginBottom: '1.75rem' }}>
-            <div className="flex justify-between items-center flex-wrap gap-sm" style={{ marginBottom: '1rem' }}>
-              <div>
-                <h3>Front-Desk Patient Lookup & Check-In</h3>
-                <p className="text-xs text-muted">Lookup confirmed bookings to issue queue check-in tokens</p>
+          {/* 4. Quick Front-Desk Customer Check-In Search & Table */}
+          <section className="qt-staff-dashboard__table-card animate-section stagger-2" aria-labelledby="staff-lookup-heading">
+            <div className="qt-staff-dashboard__search-header">
+              <div className="qt-staff-dashboard__search-titles">
+                <h3 id="staff-lookup-heading">Front-Desk Patient Lookup & Check-In</h3>
+                <p className="qt-staff-dashboard__search-desc">Lookup confirmed bookings to issue queue check-in tokens</p>
               </div>
-              <input
-                type="text"
-                placeholder="Search patient name, email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  padding: '0.45rem 0.85rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--color-border)',
-                  background: 'var(--color-bg-subtle)',
-                  fontSize: '0.85rem',
-                  minWidth: '220px',
-                }}
-              />
+              <div className="qt-staff-dashboard__search-wrap">
+                <span className="qt-staff-dashboard__search-icon" aria-hidden="true">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </span>
+                <label htmlFor="staff-patient-search" className="sr-only">
+                  Search patient by name, email, service, or provider
+                </label>
+                <input
+                  id="staff-patient-search"
+                  type="search"
+                  placeholder="Search patient name, email, service..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="qt-staff-dashboard__search-input"
+                  aria-label="Search patient by name, email, service, or provider"
+                />
+              </div>
             </div>
 
             {filteredAppts.length === 0 ? (
               <EmptyState title="No Matching Appointments" message="No appointments match your search term for today." />
             ) : (
-              <div className="table-container">
-                <table className="table">
+              <div className="qt-staff-dashboard__table-wrapper" role="region" aria-label="Today's patient appointments table" tabIndex="0">
+                <table className="qt-staff-dashboard__table">
                   <thead>
                     <tr>
-                      <th>Time</th>
-                      <th>Patient</th>
-                      <th>Service</th>
-                      <th>Provider</th>
-                      <th>Status</th>
-                      <th style={{ textAlign: 'right' }}>Front-Desk Action</th>
+                      <th scope="col">Time</th>
+                      <th scope="col">Patient</th>
+                      <th scope="col">Service</th>
+                      <th scope="col">Provider</th>
+                      <th scope="col">Status</th>
+                      <th scope="col" style={{ textAlign: 'right' }}>Front-Desk Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -222,33 +257,44 @@ export const StaffDashboard = () => {
                       const dt = appt.start_datetime ? new Date(appt.start_datetime) : null;
                       return (
                         <tr key={appt.id}>
-                          <td className="font-semibold">
+                          <td className="qt-staff-dashboard__time-cell">
                             {dt ? dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                           </td>
                           <td>
-                            <div className="font-semibold">{appt.customer_name || appt.customer_email}</div>
-                            <div className="text-xs text-muted">{appt.customer_email}</div>
+                            <div className="qt-staff-dashboard__customer-name">
+                              {appt.customer_name || appt.customer_email}
+                            </div>
+                            <div className="qt-staff-dashboard__customer-sub">{appt.customer_email}</div>
                           </td>
-                          <td>{appt.service_name || 'Consultation'}</td>
-                          <td className="font-semibold text-muted">🩺 {appt.provider_name || 'Provider'}</td>
+                          <td className="qt-staff-dashboard__service-name">
+                            {appt.service_name || 'Consultation'}
+                          </td>
+                          <td>
+                            <span className="qt-staff-dashboard__provider-cell">
+                              <span className="qt-staff-dashboard__provider-icon" aria-hidden="true">🩺</span>
+                              <span>{appt.provider_name || 'Provider'}</span>
+                            </span>
+                          </td>
                           <td>
                             <StatusBadge status={appt.status} />
                           </td>
-                          <td style={{ textAlign: 'right' }}>
+                          <td className="qt-staff-dashboard__action-cell">
                             {appt.status === 'CONFIRMED' ? (
                               <button
-                                className="btn btn-primary btn-sm"
+                                type="button"
+                                className="btn btn-primary btn-sm qt-staff-dashboard__checkin-btn"
                                 onClick={() => handleCheckIn(appt.id)}
                                 disabled={checkingInId === appt.id}
+                                aria-busy={checkingInId === appt.id}
                               >
                                 {checkingInId === appt.id ? 'Checking In...' : '🎫 Check In Patient'}
                               </button>
                             ) : appt.status === 'CHECKED_IN' ? (
-                              <span className="badge badge-info">In Queue</span>
+                              <span className="qt-staff-dashboard__pill qt-staff-dashboard__pill--queue">In Queue</span>
                             ) : appt.status === 'IN_PROGRESS' ? (
-                              <span className="badge badge-warning">In Room</span>
+                              <span className="qt-staff-dashboard__pill qt-staff-dashboard__pill--room">In Room</span>
                             ) : (
-                              <span className="text-xs text-muted">—</span>
+                              <span className="qt-staff-dashboard__dash" aria-label="No action available">—</span>
                             )}
                           </td>
                         </tr>
@@ -258,35 +304,32 @@ export const StaffDashboard = () => {
                 </table>
               </div>
             )}
-          </div>
+          </section>
 
-          {/* Provider Supervision Cards */}
-          <div className="card animate-section stagger-3">
-            <h3 style={{ marginBottom: '1rem' }}>Active Organization Providers ({providers.length})</h3>
+          {/* 5. Provider Supervision Cards */}
+          <section className="qt-staff-dashboard__providers-card animate-section stagger-3" aria-labelledby="staff-providers-heading">
+            <h3 id="staff-providers-heading" className="qt-staff-dashboard__section-title">
+              Active Organization Providers ({providers.length})
+            </h3>
             {providers.length === 0 ? (
               <p className="text-muted text-sm">No active providers configured in this organization.</p>
             ) : (
-              <div className="grid-responsive grid-cols-3">
+              <div className="qt-staff-dashboard__providers-grid">
                 {providers.map((p) => (
-                  <div
-                    key={p.id}
-                    style={{
-                      padding: '1rem',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'var(--color-bg-subtle)',
-                      border: '1px solid var(--color-border)',
-                    }}
-                  >
-                    <div className="font-semibold" style={{ fontSize: '1rem' }}>
-                      🩺 {p.user_name || p.title || 'Provider'}
-                    </div>
-                    <div className="text-xs text-muted" style={{ marginTop: '0.25rem' }}>
-                      {p.specialization || 'General Specialist'}
+                  <div key={p.id} className="qt-staff-dashboard__provider-card">
+                    <div className="qt-staff-dashboard__provider-info">
+                      <div className="qt-staff-dashboard__provider-name">
+                        <span aria-hidden="true">🩺</span>
+                        <span>{p.user_name || p.title || 'Provider'}</span>
+                      </div>
+                      <div className="qt-staff-dashboard__provider-spec">
+                        {p.specialization || 'General Specialist'}
+                      </div>
                     </div>
                     <button
-                      className="btn btn-outline btn-sm"
+                      type="button"
+                      className="btn btn-outline btn-sm qt-staff-dashboard__provider-action"
                       onClick={() => navigate('/staff/queue')}
-                      style={{ marginTop: '0.75rem', width: '100%' }}
                     >
                       View Live Queue &rarr;
                     </button>
@@ -294,7 +337,7 @@ export const StaffDashboard = () => {
                 ))}
               </div>
             )}
-          </div>
+          </section>
         </>
       )}
     </div>
