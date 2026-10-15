@@ -4,6 +4,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
 import { getNormalizedCustomerQueueState } from '../utils/queueDisplay';
+import '../styles/CustomerBookingCard.css';
 
 export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
   const navigate = useNavigate();
@@ -40,74 +41,48 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
   const isCheckingIn = checkingInId === item.id;
 
   return (
-    <div
-      className="card animate-section"
-      style={{
-        background: 'var(--lp-surface)',
-        border: '1px solid var(--lp-border)',
-        borderRadius: '16px',
-        padding: '1.5rem',
-        boxShadow: 'var(--card-shadow)',
-        display: 'flex',
-        flexDirection: 'column',
-        justify: 'space-between',
-        width: '100%',
-        boxSizing: 'border-box',
-        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-      }}
-    >
-      <div>
+    <div className="qt-booking-card animate-section">
+      <div className="qt-booking-card__content">
         {/* Header: Organization & Category Badge */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-          <div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div className="qt-booking-card__header">
+          <div className="qt-booking-card__identity">
+            <span className="qt-booking-card__org-meta">
               {item.organization_category || 'CLINIC'} &bull; {item.organization_name}
             </span>
-            <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1.2rem', color: 'var(--lp-text)', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
+            <h3 className="qt-booking-card__service-title">
               {item.service_name || 'Service Consultation'}
             </h3>
           </div>
-          <StatusBadge status={qState.rawStatus} customLabel={qState.displayStatus} />
+          <div className="qt-booking-card__badge-wrapper">
+            <StatusBadge status={qState.rawStatus} customLabel={qState.displayStatus} />
+          </div>
         </div>
 
         {/* Subheader: Provider & Category */}
-        <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginBottom: '1.25rem' }}>
-          Provider: <strong style={{ color: 'var(--lp-text)' }}>{item.provider_name || item.provider_title || 'Assigned Specialist'}</strong>
-          {item.category_name && <span> &bull; {item.category_name}</span>}
+        <div className="qt-booking-card__provider-meta">
+          <span className="qt-booking-card__provider-label">Provider:</span>{' '}
+          <strong className="qt-booking-card__provider-name">
+            {item.provider_name || item.provider_title || 'Assigned Specialist'}
+          </strong>
+          {item.category_name && (
+            <span className="qt-booking-card__category-tag"> &bull; {item.category_name}</span>
+          )}
         </div>
 
         <EmergencyNotice appointment={item} />
+
         {/* State-Specific Callout Banners for Live Queue */}
         {qStatus === 'IN_PROGRESS' && !qState.emergencyHold && (
-          <div
-            style={{
-              background: 'var(--lp-btn-bg, #2F2520)',
-              color: 'var(--lp-btn-text, #FAF8F3)',
-              borderRadius: '12px',
-              padding: '0.85rem 1rem',
-              marginBottom: '1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              justify: 'space-between',
-            }}
-          >
-            <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>🩺 YOU ARE BEING SERVED</div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--color-success)', fontWeight: 600 }}>Active Service</span>
+          <div className="qt-booking-card__banner qt-booking-card__banner--in-progress">
+            <div className="qt-booking-card__banner-title">🩺 YOU ARE BEING SERVED</div>
+            <span className="qt-booking-card__banner-tag">Active Service</span>
           </div>
         )}
 
         {qStatus === 'CALLED' && !qState.emergencyHold && (
-          <div
-            style={{
-              background: 'var(--color-success-bg, rgba(79, 122, 90, 0.12))',
-              border: '1px solid var(--color-success-border, rgba(79, 122, 90, 0.25))',
-              borderRadius: '12px',
-              padding: '0.85rem 1rem',
-              marginBottom: '1.25rem',
-            }}
-          >
-            <div style={{ fontWeight: 700, color: 'var(--color-success)', fontSize: '0.95rem' }}>⚡ YOUR TURN — Please proceed to service area</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--color-success)', marginTop: '0.15rem' }}>
+          <div className="qt-booking-card__banner qt-booking-card__banner--called">
+            <div className="qt-booking-card__banner-title">⚡ YOUR TURN — Please proceed to service area</div>
+            <div className="qt-booking-card__banner-desc">
               The provider is waiting for you now.
             </div>
           </div>
@@ -115,53 +90,45 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
 
         {/* Live Telemetry Box if active in queue */}
         {isLive && (
-          <div
-            style={{
-              background: 'var(--lp-bg-subtle)',
-              border: '1px solid var(--lp-border)',
-              borderRadius: '12px',
-              padding: '1rem',
-              marginBottom: '1.25rem',
-            }}
-          >
+          <div className="qt-booking-card__telemetry">
             {/* Dual Counter Grid: Serial, Now Serving, Scheduled Ahead, Checked-In Ahead */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', marginBottom: '0.85rem', textAlign: 'center' }}>
-              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.6rem 0.25rem' }}>
-                <span style={{ fontSize: '0.62rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Your Serial</span>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+            <div className="qt-booking-card__counters-grid">
+              <div className="qt-booking-card__counter-tile">
+                <span className="qt-booking-card__counter-label">Your Serial</span>
+                <div className="qt-booking-card__counter-value">
                   #{qState.serialNumber}
                 </div>
               </div>
 
-              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.6rem 0.25rem' }}>
-                <span style={{ fontSize: '0.62rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Now Serving</span>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+              <div className="qt-booking-card__counter-tile">
+                <span className="qt-booking-card__counter-label">Now Serving</span>
+                <div className="qt-booking-card__counter-value qt-booking-card__counter-value--accent">
                   {nowServingSerial ? `#${nowServingSerial}` : 'Not started'}
                 </div>
               </div>
 
-              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.6rem 0.25rem' }}>
-                <span style={{ fontSize: '0.62rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Scheduled Ahead</span>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-warning)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+              <div className="qt-booking-card__counter-tile">
+                <span className="qt-booking-card__counter-label">Scheduled Ahead</span>
+                <div className="qt-booking-card__counter-value qt-booking-card__counter-value--warning">
                   {qState.scheduledAhead}
                 </div>
               </div>
 
-              <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '10px', padding: '0.6rem 0.25rem' }}>
-                <span style={{ fontSize: '0.62rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>Checked-In Ahead</span>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', marginTop: '0.1rem' }}>
+              <div className="qt-booking-card__counter-tile">
+                <span className="qt-booking-card__counter-label">Checked-In Ahead</span>
+                <div className="qt-booking-card__counter-value">
                   {qState.checkedInAhead}
                 </div>
               </div>
             </div>
 
             {/* Service Range & Recommended Arrival */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)' }}>
-              <div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--lp-text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>
+            <div className="qt-booking-card__timing-grid">
+              <div className="qt-booking-card__timing-col">
+                <div className="qt-booking-card__timing-label">
                   {qStatus === 'IN_PROGRESS' ? 'Consultation Status' : 'Estimated Service'}
                 </div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-text)', marginTop: '0.1rem' }}>
+                <div className="qt-booking-card__timing-value">
                   {qStatus === 'IN_PROGRESS'
                     ? (qState.remainingServiceMinutes != null ? `In Consultation (~${qState.remainingServiceMinutes}m rem.)` : 'In Consultation')
                     : (!qState.providerHasStarted && qState.isDelayed
@@ -171,9 +138,9 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
               </div>
 
               {recArrivalStr && qStatus !== 'IN_PROGRESS' && qStatus !== 'CALLED' && !qState.isCheckedIn && (
-                <div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--lp-text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Recommended Arrival</div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-accent)', marginTop: '0.1rem' }}>
+                <div className="qt-booking-card__timing-col">
+                  <div className="qt-booking-card__timing-label">Recommended Arrival</div>
+                  <div className="qt-booking-card__timing-value qt-booking-card__timing-value--accent">
                     {recArrivalStr}
                   </div>
                 </div>
@@ -181,32 +148,29 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
             </div>
 
             {/* Readiness Pill Row */}
-            <div style={{ marginTop: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="qt-booking-card__readiness-row">
               <div
+                className="qt-booking-card__readiness-badge"
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
                   background: readinessConfig.bg,
                   color: readinessConfig.color,
                   border: `1px solid ${readinessConfig.border}`,
-                  padding: '0.3rem 0.75rem',
-                  borderRadius: '9999px',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
                 }}
               >
-                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: readinessConfig.color }} />
+                <span
+                  className="qt-booking-card__readiness-dot"
+                  style={{ background: readinessConfig.color }}
+                />
                 {qState.emergencyHold ? 'Service interrupted' : readinessConfig.label}
               </div>
 
               {!qState.isCheckedIn && !isTerminal && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-warning)', fontWeight: 600 }}>
+                <span className="qt-booking-card__arrival-status qt-booking-card__arrival-status--warning">
                   {canCheckIn ? '📍 Check-In Available' : (qState.checkInAvailableAt ? `Check-in opens around ${formatTime(qState.checkInAvailableAt)}` : 'Awaiting Arrival')}
                 </span>
               )}
               {qState.isCheckedIn && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-success)', fontWeight: 600 }}>
+                <span className="qt-booking-card__arrival-status qt-booking-card__arrival-status--success">
                   ✓ Checked In
                 </span>
               )}
@@ -216,15 +180,19 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
 
         {/* Scheduled appointment info for upcoming non-active */}
         {!isLive && (
-          <div style={{ background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '1.25rem', fontSize: '0.85rem', color: 'var(--lp-text)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>📅 Date: <strong>{formatBookingDate(item.appointment_date || (item.start_datetime ? new Date(item.start_datetime).toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' }) : null))}</strong></span>
-              <span>⏰ <strong>{estStartStr || qState.timingPlaceholder}</strong></span>
+          <div className="qt-booking-card__scheduled-info">
+            <div className="qt-booking-card__scheduled-row">
+              <span className="qt-booking-card__scheduled-date">
+                📅 Date: <strong>{formatBookingDate(item.appointment_date || (item.start_datetime ? new Date(item.start_datetime).toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' }) : null))}</strong>
+              </span>
+              <span className="qt-booking-card__scheduled-time">
+                ⏰ <strong>{estStartStr || qState.timingPlaceholder}</strong>
+              </span>
             </div>
             {item.serial_number && (
-              <div style={{ marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid var(--lp-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Allocated Serial</span>
-                <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif' }}>Your Serial: #{item.serial_number}</span>
+              <div className="qt-booking-card__scheduled-serial-row">
+                <span className="qt-booking-card__scheduled-serial-label">Allocated Serial</span>
+                <span className="qt-booking-card__scheduled-serial-val">Your Serial: #{item.serial_number}</span>
               </div>
             )}
           </div>
@@ -232,24 +200,13 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
       </div>
 
       {/* Action Footer */}
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+      <div className="qt-booking-card__actions">
         {canCheckIn && !isTerminal && onCheckIn && (
           <button
+            type="button"
+            className="qt-booking-card__btn qt-booking-card__btn--check-in"
             onClick={() => onCheckIn(item.organization_id, item.id)}
             disabled={isCheckingIn}
-            style={{
-              flex: 1,
-              minWidth: '130px',
-              padding: '0.6rem 1rem',
-              background: isCheckingIn ? 'var(--lp-text-subtle)' : 'var(--color-warning)',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '8px',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              cursor: isCheckingIn ? 'not-allowed' : 'pointer',
-              transition: 'background 0.15s ease',
-            }}
           >
             {isCheckingIn ? 'Checking In...' : '✓ Check In Now'}
           </button>
@@ -257,53 +214,27 @@ export function CustomerBookingCard({ item, onCheckIn, checkingInId }) {
 
         {isLive && qId && (
           <button
+            type="button"
+            className="qt-booking-card__btn qt-booking-card__btn--telemetry"
             onClick={() => navigate(`/customer/queue/${qId}`)}
-            style={{
-              flex: 1,
-              minWidth: '130px',
-              padding: '0.6rem 1rem',
-              background: 'var(--lp-btn-bg, #2F2520)',
-              color: 'var(--lp-btn-text, #FAF8F3)',
-              border: 'none',
-              borderRadius: '8px',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-            }}
           >
             Open Telemetry →
           </button>
         )}
 
         <button
+          type="button"
+          className="qt-booking-card__btn qt-booking-card__btn--secondary"
           onClick={() => navigate(`/customer/appointments/${apptId}`)}
-          style={{
-            padding: '0.6rem 0.9rem',
-            background: 'var(--lp-bg-subtle)',
-            color: 'var(--lp-accent)',
-            border: '1px solid var(--lp-border)',
-            borderRadius: '8px',
-            fontWeight: 600,
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-          }}
         >
           Details
         </button>
 
         {qStatus === 'COMPLETED' && (
           <button
+            type="button"
+            className="qt-booking-card__btn qt-booking-card__btn--review"
             onClick={() => navigate('/customer/reviews')}
-            style={{
-              padding: '0.6rem 0.9rem',
-              background: 'var(--lp-bg-subtle)',
-              color: 'var(--color-warning)',
-              border: '1px solid var(--lp-border)',
-              borderRadius: '8px',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-            }}
           >
             ★ Review
           </button>
