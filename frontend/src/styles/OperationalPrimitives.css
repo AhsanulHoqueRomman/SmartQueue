@@ -1,0 +1,277 @@
+/* ==========================================================================
+   Operational Primitives — QueueTurn UI Design System
+   Scoped styles for StatCard (.qt-stat-card) and StatusBadge (.qt-status-badge)
+   Consumes design tokens from index.css without global leakage or overrides.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   StatCard Component (.qt-stat-card)
+   -------------------------------------------------------------------------- */
+.qt-stat-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              transform var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.qt-stat-card:hover {
+  border-color: var(--color-border-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.qt-stat-card .stat-card-header,
+.qt-stat-card .qt-stat-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.qt-stat-card .stat-card-title,
+.qt-stat-card .qt-stat-card__title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+}
+
+.qt-stat-card .stat-card-icon,
+.qt-stat-card .qt-stat-card__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.qt-stat-card .stat-card-icon svg,
+.qt-stat-card .qt-stat-card__icon svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  stroke-width: 1.85;
+}
+
+/* Color variant mappings for StatCard icon containers */
+.qt-stat-card--primary .stat-card-icon,
+.qt-stat-card.stat-card-primary .stat-card-icon {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary-border);
+}
+
+.qt-stat-card--secondary .stat-card-icon,
+.qt-stat-card.stat-card-secondary .stat-card-icon {
+  background-color: var(--color-secondary-accent-light);
+  color: var(--color-secondary-accent);
+  border: 1px solid rgba(95, 122, 112, 0.25);
+}
+
+.qt-stat-card--info .stat-card-icon,
+.qt-stat-card.stat-card-info .stat-card-icon {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  border: 1px solid var(--color-info-border);
+}
+
+.qt-stat-card--warning .stat-card-icon,
+.qt-stat-card.stat-card-warning .stat-card-icon {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning-border);
+}
+
+.qt-stat-card--success .stat-card-icon,
+.qt-stat-card.stat-card-success .stat-card-icon {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success-border);
+}
+
+.qt-stat-card--danger .stat-card-icon,
+.qt-stat-card.stat-card-danger .stat-card-icon {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid var(--color-error-border);
+}
+
+.qt-stat-card .stat-card-body,
+.qt-stat-card .qt-stat-card__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.qt-stat-card .stat-card-value,
+.qt-stat-card .qt-stat-card__value {
+  font-size: 1.875rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.qt-stat-card .stat-card-footer,
+.qt-stat-card .qt-stat-card__footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.qt-stat-card .stat-subtitle,
+.qt-stat-card .qt-stat-card__subtitle {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.qt-stat-card .stat-trend,
+.qt-stat-card .qt-stat-card__trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+}
+
+.qt-stat-card .stat-trend-positive {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.qt-stat-card .stat-trend-negative {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+/* --------------------------------------------------------------------------
+   StatusBadge Component (.qt-status-badge)
+   -------------------------------------------------------------------------- */
+.qt-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.71875rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  white-space: nowrap;
+  vertical-align: middle;
+  border: 1px solid transparent;
+  transition: background-color var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+}
+
+.qt-status-badge .qt-status-badge__dot,
+.qt-status-badge .status-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  background-color: currentColor;
+}
+
+/* Tone: pending / warning */
+.qt-status-badge.qt-status-badge--pending,
+.qt-status-badge.status-pending {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+  border-color: var(--color-warning-border);
+}
+.qt-status-badge.qt-status-badge--pending .qt-status-badge__dot,
+.qt-status-badge.status-pending .status-badge-dot {
+  background-color: var(--color-warning);
+}
+
+/* Tone: confirmed / info */
+.qt-status-badge.qt-status-badge--confirmed,
+.qt-status-badge.status-confirmed {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  border-color: var(--color-info-border);
+}
+.qt-status-badge.qt-status-badge--confirmed .qt-status-badge__dot,
+.qt-status-badge.status-confirmed .status-badge-dot {
+  background-color: var(--color-info);
+}
+
+/* Tone: in_progress / active / success */
+.qt-status-badge.qt-status-badge--in_progress,
+.qt-status-badge.status-in_progress {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+  border-color: var(--color-success-border);
+}
+.qt-status-badge.qt-status-badge--in_progress .qt-status-badge__dot,
+.qt-status-badge.status-in_progress .status-badge-dot {
+  background-color: var(--color-success);
+}
+
+/* Tone: completed */
+.qt-status-badge.qt-status-badge--completed,
+.qt-status-badge.status-completed {
+  background-color: var(--color-completed-bg, rgba(42, 157, 143, 0.12));
+  color: var(--color-completed, #2A9D8F);
+  border-color: var(--color-completed-border, rgba(42, 157, 143, 0.28));
+}
+.qt-status-badge.qt-status-badge--completed .qt-status-badge__dot,
+.qt-status-badge.status-completed .status-badge-dot {
+  background-color: var(--color-completed, #2A9D8F);
+}
+
+/* Tone: cancelled / skipped / danger */
+.qt-status-badge.qt-status-badge--cancelled,
+.qt-status-badge.status-cancelled {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  border-color: var(--color-error-border);
+}
+.qt-status-badge.qt-status-badge--cancelled .qt-status-badge__dot,
+.qt-status-badge.status-cancelled .status-badge-dot {
+  background-color: var(--color-error);
+}
+
+/* Tone: no_show / inactive / neutral */
+.qt-status-badge.qt-status-badge--no_show,
+.qt-status-badge.qt-status-badge--neutral,
+.qt-status-badge.status-no_show {
+  background-color: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+}
+.qt-status-badge.qt-status-badge--no_show .qt-status-badge__dot,
+.qt-status-badge.qt-status-badge--neutral .qt-status-badge__dot,
+.qt-status-badge.status-no_show .status-badge-dot {
+  background-color: var(--color-text-muted);
+}
+
+/* Reduced Motion Fallback */
+@media (prefers-reduced-motion: reduce) {
+  .qt-stat-card,
+  .qt-status-badge {
+    transition: none;
+    transform: none;
+  }
+}
