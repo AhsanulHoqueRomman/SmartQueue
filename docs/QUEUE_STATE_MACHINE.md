@@ -126,7 +126,7 @@ No statement here certifies deadlock freedom, universal atomic lifecycle safety 
 
 ## ETA and readiness
 
-Authoritative current implementation: `backend/apps/queue/services.py::QueueService.calculate_readiness_and_eta` (approximately 425–692), invoked by queue serialization. All formulas below are **S / CURRENT IMPLEMENTATION**, with policy choices still pending. It is read computation, not a lifecycle transition or readiness-notification writer.
+Authoritative current implementation: `backend/apps/queue/services.py::QueueService.calculate_readiness_and_eta` (approximately 425–692), invoked by queue serialization. All formulas below are **S / CURRENT IMPLEMENTATION**, with policy choices still pending. It is read computation, not a lifecycle transition or readiness-notification writer. (A future non-executable architecture proposal for service-aware workload summation is documented in [SERVICE_AWARE_ETA_FUTURE_PROPOSAL.md](SERVICE_AWARE_ETA_FUTURE_PROPOSAL.md)).
 
 ### Inputs and branch order
 
