@@ -1,0 +1,682 @@
+/* ==========================================================================
+   QueueTurn — Customer Dashboard Scoped Stylesheet (.qt-customer-dashboard)
+   Provides responsive command center layout, summary metrics, follow-up
+   banners, upcoming schedule timeline presentation, and accessible controls.
+   ========================================================================== */
+
+.qt-customer-dashboard {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+/* --------------------------------------------------------------------------
+   1. Customer Command Header
+   -------------------------------------------------------------------------- */
+.qt-customer-dashboard__header {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem 2rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.qt-customer-dashboard__header:hover {
+  border-color: var(--color-border-hover);
+}
+
+.qt-customer-dashboard__header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 680px;
+}
+
+.qt-customer-dashboard__header-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.2rem;
+}
+
+.qt-customer-dashboard__welcome-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+
+.qt-customer-dashboard__role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  border: 1px solid var(--color-info-border);
+  line-height: 1.2;
+}
+
+.qt-customer-dashboard__title {
+  margin: 0;
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--color-heading, var(--color-text-main));
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.qt-customer-dashboard__subtitle {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.qt-customer-dashboard__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.qt-customer-dashboard__sync-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.65rem 1rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.qt-customer-dashboard__sync-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.qt-customer-dashboard__sync-icon {
+  flex-shrink: 0;
+}
+
+.qt-customer-dashboard__sync-icon--spin {
+  animation: qtCustomerSpin 1s linear infinite;
+}
+
+.qt-customer-dashboard__book-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+/* --------------------------------------------------------------------------
+   2. Error Banner
+   -------------------------------------------------------------------------- */
+.qt-customer-dashboard__banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  box-shadow: var(--shadow-xs);
+  animation: qtCustomerFadeSlideIn var(--duration-normal) var(--ease-out);
+}
+
+.qt-customer-dashboard__banner-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.125rem;
+}
+
+.qt-customer-dashboard__banner-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.qt-customer-dashboard__banner-content {
+  flex: 1;
+  word-break: break-word;
+}
+
+.qt-customer-dashboard__banner--error {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid var(--color-error-border);
+}
+
+/* --------------------------------------------------------------------------
+   3. Summary Metrics Strip (4-Column)
+   -------------------------------------------------------------------------- */
+.qt-customer-dashboard__metrics-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+.qt-customer-dashboard__metric-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.35rem;
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.qt-customer-dashboard__metric-card:hover {
+  border-color: var(--color-border-hover);
+}
+
+.qt-customer-dashboard__metric-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+.qt-customer-dashboard__metric-value {
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--color-text-main);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+}
+
+.qt-customer-dashboard__metric-value--warning {
+  color: var(--color-warning);
+}
+
+.qt-customer-dashboard__metric-value--success {
+  color: var(--color-success);
+}
+
+.qt-customer-dashboard__metric-desc {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.qt-customer-dashboard__metric-link {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.qt-customer-dashboard__metric-link:hover {
+  text-decoration: underline;
+}
+
+.qt-customer-dashboard__metric-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.qt-customer-dashboard__metric-link--success {
+  color: var(--color-success);
+}
+
+/* --------------------------------------------------------------------------
+   4. Follow-up & Incident Notice Banner
+   -------------------------------------------------------------------------- */
+.qt-customer-dashboard__followup-banner {
+  border-radius: var(--radius-md);
+  padding: 1rem 1.35rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.9rem;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.qt-customer-dashboard__followup-banner--warning {
+  background-color: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  color: var(--color-text-main);
+}
+
+.qt-customer-dashboard__followup-banner--surface {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-main);
+}
+
+.qt-customer-dashboard__followup-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 260px;
+}
+
+.qt-customer-dashboard__followup-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-warning);
+}
+
+.qt-customer-dashboard__followup-text {
+  line-height: 1.45;
+  color: var(--color-text-main);
+}
+
+.qt-customer-dashboard__followup-text strong {
+  font-weight: 700;
+}
+
+.qt-customer-dashboard__followup-link {
+  color: var(--color-warning);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.qt-customer-dashboard__followup-link:hover {
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
+}
+
+.qt-customer-dashboard__followup-link:focus-visible {
+  outline: 2px solid var(--color-warning);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   5. Section Container & Headers
+   -------------------------------------------------------------------------- */
+.qt-customer-dashboard__section {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 1.75rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.qt-customer-dashboard__section:hover {
+  border-color: var(--color-border-hover);
+}
+
+.qt-customer-dashboard__section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.qt-customer-dashboard__section-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  letter-spacing: -0.015em;
+}
+
+.qt-customer-dashboard__section-desc {
+  margin: 0.2rem 0 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.qt-customer-dashboard__section-link {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.qt-customer-dashboard__section-link:hover {
+  text-decoration: underline;
+}
+
+.qt-customer-dashboard__section-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* --------------------------------------------------------------------------
+   6. Live Queue Telemetry Section List
+   -------------------------------------------------------------------------- */
+.qt-customer-dashboard__live-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   7. Upcoming Schedule Timeline List
+   -------------------------------------------------------------------------- */
+.qt-customer-dashboard__empty-upcoming {
+  padding: 2.5rem 1.5rem;
+  background-color: var(--color-bg-subtle);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--color-border);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.qt-customer-dashboard__upcoming-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.qt-customer-dashboard__upcoming-row {
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.qt-customer-dashboard__upcoming-row--last {
+  border-bottom: none;
+  padding-bottom: 0.25rem;
+}
+
+.qt-customer-dashboard__upcoming-main {
+  flex: 1;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.qt-customer-dashboard__upcoming-org {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.qt-customer-dashboard__upcoming-service {
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--color-text-main);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.qt-customer-dashboard__upcoming-provider {
+  font-size: 0.84375rem;
+  color: var(--color-text-secondary);
+}
+
+.qt-customer-dashboard__upcoming-provider strong {
+  color: var(--color-text-main);
+}
+
+.qt-customer-dashboard__upcoming-meta {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.qt-customer-dashboard__upcoming-datetime {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.qt-customer-dashboard__upcoming-date {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.qt-customer-dashboard__upcoming-date svg {
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+.qt-customer-dashboard__upcoming-time {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.qt-customer-dashboard__upcoming-time svg {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.qt-customer-dashboard__upcoming-serial {
+  text-align: center;
+  padding: 0 0.5rem;
+}
+
+.qt-customer-dashboard__upcoming-serial-label {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.qt-customer-dashboard__upcoming-serial-number {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.qt-customer-dashboard__upcoming-details-link {
+  padding: 0.45rem 0.95rem;
+  background-color: var(--color-bg-subtle);
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.84375rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.qt-customer-dashboard__upcoming-details-link:hover {
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
+}
+
+.qt-customer-dashboard__upcoming-details-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   8. Keyframe Animations
+   -------------------------------------------------------------------------- */
+@keyframes qtCustomerSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes qtCustomerFadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   9. Responsive Design System
+   -------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .qt-customer-dashboard {
+    padding: 1.25rem 1rem 3rem;
+    gap: 1.5rem;
+  }
+
+  .qt-customer-dashboard__metrics-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .qt-customer-dashboard__header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.25rem 1.5rem;
+    gap: 1.25rem;
+  }
+
+  .qt-customer-dashboard__header-actions {
+    width: 100%;
+  }
+
+  .qt-customer-dashboard__sync-btn,
+  .qt-customer-dashboard__book-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .qt-customer-dashboard__section {
+    padding: 1.25rem 1.25rem;
+  }
+
+  .qt-customer-dashboard__upcoming-meta {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .qt-customer-dashboard__upcoming-details-link {
+    width: 100%;
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .qt-customer-dashboard {
+    padding: 1rem 0.75rem 2.5rem;
+  }
+
+  .qt-customer-dashboard__title {
+    font-size: 1.5rem;
+  }
+
+  .qt-customer-dashboard__header-actions {
+    flex-direction: column;
+  }
+
+  .qt-customer-dashboard__sync-btn,
+  .qt-customer-dashboard__book-btn {
+    width: 100%;
+  }
+
+  .qt-customer-dashboard__metrics-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .qt-customer-dashboard__followup-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .qt-customer-dashboard__followup-link {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   10. Reduced Motion Accessibility
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .qt-customer-dashboard,
+  .qt-customer-dashboard *,
+  .qt-customer-dashboard__banner {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .qt-customer-dashboard__sync-icon--spin {
+    animation: none !important;
+  }
+}

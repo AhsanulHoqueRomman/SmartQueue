@@ -13,6 +13,7 @@ import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import StatusBadge from '../../components/StatusBadge';
 import { getNormalizedCustomerQueueState } from '../../utils/queueDisplay';
+import '../../styles/CustomerDashboard.css';
 
 export const CustomerDashboard = () => {
   const { user } = useAuth();
@@ -134,160 +135,178 @@ export const CustomerDashboard = () => {
   };
 
   return (
-    <div className="animate-page-entrance" style={{ maxWidth: '1100px', margin: '0 auto', paddingBottom: '3rem' }}>
+    <div className="qt-customer-dashboard animate-page-entrance">
       {/* Header Banner - Streamlined & Task-First */}
-      <div
-        style={{
-          background: 'var(--lp-surface)',
-          border: '1px solid var(--lp-border)',
-          borderRadius: '18px',
-          padding: '1.75rem 2rem',
-          boxShadow: 'var(--lp-shadow-sm)',
-          marginBottom: '1.75rem',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.25rem' }}>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+      <header className="qt-customer-dashboard__header">
+        <div className="qt-customer-dashboard__header-info">
+          <div className="qt-customer-dashboard__header-badges">
+            <span className="qt-customer-dashboard__welcome-badge">
               Welcome back, {getUserFirstName()}!
-            </div>
-            <h1 style={{ fontSize: '1.85rem', fontWeight: 700, margin: '0 0 0.35rem 0', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)' }}>
-              Customer Command Center
-            </h1>
-            <p style={{ color: 'var(--lp-text-subtle)', margin: 0, fontSize: '0.925rem' }}>
-              Track your live queue telemetry, arrival windows, and upcoming consultations.
-            </p>
+            </span>
+            <span className="qt-customer-dashboard__role-badge">
+              Customer Portal
+            </span>
           </div>
-
-          <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => fetchDashboardData(true)}
-              disabled={refreshing}
-              title="Refresh dashboard data"
-              style={{
-                padding: '0.65rem 0.9rem',
-                background: 'var(--lp-bg-subtle)',
-                color: 'var(--lp-text-subtle)',
-                border: '1px solid var(--lp-border)',
-                borderRadius: '10px',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                cursor: refreshing ? 'not-allowed' : 'pointer',
-              }}
-            >
-              🔄 {refreshing ? 'Updating...' : 'Sync'}
-            </button>
-
-            <button
-              onClick={() => navigate('/customer/book')}
-              style={{
-                padding: '0.75rem 1.4rem',
-                background: 'var(--lp-btn-bg, #2F2520)',
-                color: 'var(--lp-btn-text, #FFFFFF)',
-                border: 'none',
-                borderRadius: '10px',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(47, 37, 32, 0.25)',
-              }}
-            >
-              ✨ Book Appointment
-            </button>
-          </div>
+          <h1 className="qt-customer-dashboard__title">
+            Customer Command Center
+          </h1>
+          <p className="qt-customer-dashboard__subtitle">
+            Track your live queue telemetry, arrival windows, and upcoming consultations.
+          </p>
         </div>
-      </div>
 
-      {error && <div className="banner banner-danger" style={{ marginBottom: '1.5rem' }}>{error}</div>}
+        <div className="qt-customer-dashboard__header-actions">
+          <button
+            type="button"
+            className="btn btn-secondary qt-customer-dashboard__sync-btn"
+            onClick={() => fetchDashboardData(true)}
+            disabled={refreshing}
+            title="Refresh dashboard data"
+            aria-label={refreshing ? 'Updating dashboard data' : 'Sync dashboard data'}
+          >
+            <svg
+              className={`qt-customer-dashboard__sync-icon ${refreshing ? 'qt-customer-dashboard__sync-icon--spin' : ''}`}
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            <span>{refreshing ? 'Updating...' : 'Sync'}</span>
+          </button>
 
+          <button
+            type="button"
+            className="btn btn-primary qt-customer-dashboard__book-btn"
+            onClick={() => navigate('/customer/book')}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>Book Appointment</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Error Banner */}
+      {error && (
+        <div
+          className="qt-customer-dashboard__banner qt-customer-dashboard__banner--error"
+          role="alert"
+          aria-live="assertive"
+        >
+          <div className="qt-customer-dashboard__banner-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          </div>
+          <div className="qt-customer-dashboard__banner-content">{error}</div>
+        </div>
+      )}
+
+      {/* Global Emergency Notices for Non-Live Today Appointments */}
       {dashboardItems.filter(item => item.emergency && !item.is_live_queue && item.temporal_classification !== 'future').map(item => <EmergencyNotice key={item.id} appointment={item} />)}
+
       {/* Summary Metrics Bar - Single Compact Typography-Led Strip */}
-      <div
-        style={{
-          background: 'var(--lp-surface)',
-          border: '1px solid var(--lp-border)',
-          borderRadius: '14px',
-          padding: '1.25rem 1.5rem',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-          gap: '1rem',
-          boxShadow: 'var(--lp-shadow-sm)',
-          marginBottom: '2rem',
-        }}
-      >
-        <div style={{ paddingRight: '1rem' }}>
-          <div style={{ fontSize: '0.725rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <section className="qt-customer-dashboard__metrics-strip" aria-label="Customer Activity Summary">
+        <div className="qt-customer-dashboard__metric-card">
+          <div className="qt-customer-dashboard__metric-eyebrow">
             Live Queue
           </div>
-          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', lineHeight: 1.15, marginTop: '0.2rem' }}>
+          <div className="qt-customer-dashboard__metric-value">
             {liveQueueItems.length}
           </div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--lp-text-subtle)' }}>Active sessions</div>
+          <div className="qt-customer-dashboard__metric-desc">
+            Active sessions
+          </div>
         </div>
 
-        <div style={{ paddingRight: '1rem', borderLeft: '1px solid var(--lp-border)', paddingLeft: '1rem' }}>
-          <div style={{ fontSize: '0.725rem', fontWeight: 700, color: 'var(--lp-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div className="qt-customer-dashboard__metric-card">
+          <div className="qt-customer-dashboard__metric-eyebrow">
             Upcoming
           </div>
-          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', lineHeight: 1.15, marginTop: '0.2rem' }}>
+          <div className="qt-customer-dashboard__metric-value">
             {upcomingItems.length}
           </div>
-          <Link to="/customer/appointments" style={{ fontSize: '0.78rem', color: 'var(--lp-accent)', fontWeight: 600, textDecoration: 'none' }}>
+          <Link
+            to="/customer/appointments"
+            className="qt-customer-dashboard__metric-link"
+          >
             View all →
           </Link>
         </div>
 
-        <div style={{ paddingRight: '1rem', borderLeft: '1px solid var(--lp-border)', paddingLeft: '1rem' }}>
-          <div style={{ fontSize: '0.725rem', fontWeight: 700, color: 'var(--lp-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div className="qt-customer-dashboard__metric-card">
+          <div className="qt-customer-dashboard__metric-eyebrow">
             Today's Schedule
           </div>
-          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-warning)', fontFamily: 'Outfit, sans-serif', lineHeight: 1.15, marginTop: '0.2rem' }}>
+          <div className="qt-customer-dashboard__metric-value qt-customer-dashboard__metric-value--warning">
             {todayApptsCount}
           </div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--lp-text-subtle)' }}>Consultations today</div>
+          <div className="qt-customer-dashboard__metric-desc">
+            Consultations today
+          </div>
         </div>
 
-        <div style={{ borderLeft: '1px solid var(--lp-border)', paddingLeft: '1rem' }}>
-          <div style={{ fontSize: '0.725rem', fontWeight: 700, color: 'var(--lp-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div className="qt-customer-dashboard__metric-card">
+          <div className="qt-customer-dashboard__metric-eyebrow">
             Completed Care
           </div>
-          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-success)', fontFamily: 'Outfit, sans-serif', lineHeight: 1.15, marginTop: '0.2rem' }}>
+          <div className="qt-customer-dashboard__metric-value qt-customer-dashboard__metric-value--success">
             {completedCount}
           </div>
-          <Link to="/customer/reviews" style={{ fontSize: '0.78rem', color: 'var(--color-success)', fontWeight: 600, textDecoration: 'none' }}>
+          <Link
+            to="/customer/reviews"
+            className="qt-customer-dashboard__metric-link qt-customer-dashboard__metric-link--success"
+          >
             Reviews →
           </Link>
         </div>
-      </div>
+      </section>
 
       {/* Needs Follow-up / Reports Notice Bar */}
       {totalUnresolved > 0 && (
         <div
-          style={{
-            background: unreportedCount > 0 
-              ? 'var(--color-warning-light, rgba(217, 119, 6, 0.08))' 
-              : 'var(--lp-surface)',
-            border: unreportedCount > 0 
-              ? '1px solid var(--color-warning, #d97706)' 
-              : '1px solid var(--lp-border)',
-            borderRadius: '12px',
-            padding: '1rem 1.35rem',
-            marginBottom: '2rem',
-            display: 'flex',
-            justify: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '1rem',
-            fontSize: '0.9rem',
-            color: 'var(--lp-text)',
-            boxShadow: unreportedCount > 0 ? 'none' : 'var(--lp-shadow-sm)',
-          }}
+          className={`qt-customer-dashboard__followup-banner ${unreportedCount > 0 ? 'qt-customer-dashboard__followup-banner--warning' : 'qt-customer-dashboard__followup-banner--surface'}`}
+          role="status"
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: '260px' }}>
-            <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>
-              {unreportedCount > 0 ? '⚠️' : '✓'}
+          <div className="qt-customer-dashboard__followup-content">
+            <span className="qt-customer-dashboard__followup-icon" aria-hidden="true">
+              {unreportedCount > 0 ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+              )}
             </span>
-            <span style={{ lineHeight: 1.45 }}>
+            <span className="qt-customer-dashboard__followup-text">
               {unreportedCount > 0 && underReviewCount === 0 && (
                 <>
                   You have <strong>{unreportedCount}</strong> {unreportedCount === 1 ? 'appointment that needs' : 'appointments that need'} follow-up.
@@ -308,20 +327,7 @@ export const CustomerDashboard = () => {
 
           <Link
             to="/customer/appointments?tab=needs-follow-up"
-            style={{
-              color: unreportedCount > 0 ? 'var(--color-warning, #d97706)' : 'var(--lp-accent, #5F7A70)',
-              fontWeight: 700,
-              textDecoration: 'none',
-              whiteSpace: 'nowrap',
-              padding: '0.4rem 0.85rem',
-              borderRadius: '8px',
-              background: 'var(--lp-bg-subtle)',
-              border: '1px solid var(--lp-border)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              marginLeft: 'auto',
-            }}
+            className="qt-customer-dashboard__followup-link"
           >
             {unreportedCount > 0 ? 'Review appointments →' : 'View follow-ups →'}
           </Link>
@@ -329,13 +335,13 @@ export const CustomerDashboard = () => {
       )}
 
       {/* SECTION 1: LIVE QUEUE TELEMETRY */}
-      <div style={{ marginBottom: '2.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--lp-border)' }}>
+      <section className="qt-customer-dashboard__section" aria-label="Live Queue Telemetry Section">
+        <div className="qt-customer-dashboard__section-header">
           <div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--lp-text)', margin: 0, fontFamily: 'Cinzel, serif' }}>
+            <h2 className="qt-customer-dashboard__section-title">
               Live Queue Telemetry ({liveQueueItems.length})
             </h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', margin: '0.2rem 0 0 0' }}>
+            <p className="qt-customer-dashboard__section-desc">
               Real-time position, estimated service time, and checked-in readiness status.
             </p>
           </div>
@@ -351,7 +357,7 @@ export const CustomerDashboard = () => {
             onAction={() => navigate('/customer/book')}
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
+          <div className="qt-customer-dashboard__live-queue-list">
             {liveQueueItems.map((item) => (
               <CustomerBookingCard
                 key={item.id}
@@ -362,30 +368,30 @@ export const CustomerDashboard = () => {
             ))}
           </div>
         )}
-      </div>
+      </section>
 
       {/* SECTION 2: UPCOMING SCHEDULE (Timeline List Layout) */}
-      <div style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--lp-border)' }}>
+      <section className="qt-customer-dashboard__section" aria-label="Upcoming Schedule Section">
+        <div className="qt-customer-dashboard__section-header">
           <div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--lp-text)', margin: 0, fontFamily: 'Cinzel, serif' }}>
+            <h2 className="qt-customer-dashboard__section-title">
               Upcoming Schedule ({upcomingItems.length})
             </h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', margin: '0.2rem 0 0 0' }}>
+            <p className="qt-customer-dashboard__section-desc">
               Scheduled future consultations across QueueTurn clinics.
             </p>
           </div>
-          <Link to="/customer/appointments" style={{ fontSize: '0.85rem', color: 'var(--lp-accent)', fontWeight: 700, textDecoration: 'none' }}>
+          <Link to="/customer/appointments" className="qt-customer-dashboard__section-link">
             View all appointments →
           </Link>
         </div>
 
         {upcomingItems.length === 0 ? (
-          <div style={{ padding: '2rem 1.5rem', background: 'var(--lp-surface)', borderRadius: '14px', border: '1px solid var(--lp-border)', textAlign: 'center', color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>
-            No future appointments scheduled yet. Click "Book Appointment" to reserve your slot.
+          <div className="qt-customer-dashboard__empty-upcoming">
+            No future appointments scheduled yet. Click &quot;Book Appointment&quot; to reserve your slot.
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+          <div className="qt-customer-dashboard__upcoming-list">
             {upcomingItems.map((item, idx) => {
               const qEntry = item.queue_entry;
               const normState = getNormalizedCustomerQueueState(item, qEntry);
@@ -403,44 +409,46 @@ export const CustomerDashboard = () => {
               return (
                 <div
                   key={item.id}
-                  style={{
-                    padding: '1.25rem 0',
-                    borderBottom: idx === upcomingItems.length - 1 ? 'none' : '1px solid var(--lp-border)',
-                    display: 'flex',
-                    justify: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: '1rem',
-                  }}
+                  className={`qt-customer-dashboard__upcoming-row ${idx === upcomingItems.length - 1 ? 'qt-customer-dashboard__upcoming-row--last' : ''}`}
                 >
-                  <div style={{ flex: 1, minWidth: '260px' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <div className="qt-customer-dashboard__upcoming-main">
+                    <div className="qt-customer-dashboard__upcoming-org">
                       {item.organization_name || 'Organization Clinic'}
                     </div>
-                    <h3 style={{ margin: '0.15rem 0 0.2rem 0', fontSize: '1.15rem', color: 'var(--lp-text)', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
+                    <h3 className="qt-customer-dashboard__upcoming-service">
                       {item.service_name || 'Consultation Service'}
                     </h3>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)' }}>
-                      Provider: <strong style={{ color: 'var(--lp-text)' }}>{item.provider_name || item.provider_title || 'Assigned Specialist'}</strong>
+                    <div className="qt-customer-dashboard__upcoming-provider">
+                      Provider: <strong>{item.provider_name || item.provider_title || 'Assigned Specialist'}</strong>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
-                    <div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--lp-text)' }}>
-                        📅 {formattedDate}
+                  <div className="qt-customer-dashboard__upcoming-meta">
+                    <div className="qt-customer-dashboard__upcoming-datetime">
+                      <div className="qt-customer-dashboard__upcoming-date">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                          <line x1="16" y1="2" x2="16" y2="6"></line>
+                          <line x1="8" y1="2" x2="8" y2="6"></line>
+                          <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        <span>{formattedDate}</span>
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)', marginTop: '0.15rem' }}>
-                        ⏰ {formattedTime}
+                      <div className="qt-customer-dashboard__upcoming-time">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>{formattedTime}</span>
                       </div>
                     </div>
 
                     {normState.serial_number && (
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Serial</div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif' }}>
+                      <div className="qt-customer-dashboard__upcoming-serial">
+                        <span className="qt-customer-dashboard__upcoming-serial-label">Serial</span>
+                        <span className="qt-customer-dashboard__upcoming-serial-number">
                           #{normState.serial_number}
-                        </div>
+                        </span>
                       </div>
                     )}
 
@@ -448,16 +456,7 @@ export const CustomerDashboard = () => {
 
                     <Link
                       to={`/customer/appointments/${item.id}`}
-                      style={{
-                        padding: '0.5rem 0.9rem',
-                        background: 'var(--lp-bg-subtle)',
-                        color: 'var(--lp-accent)',
-                        border: '1px solid var(--lp-border)',
-                        borderRadius: '8px',
-                        fontWeight: 600,
-                        fontSize: '0.85rem',
-                        textDecoration: 'none',
-                      }}
+                      className="qt-customer-dashboard__upcoming-details-link"
                     >
                       Details →
                     </Link>
@@ -467,7 +466,9 @@ export const CustomerDashboard = () => {
             })}
           </div>
         )}
-      </div>
+      </section>
+
+      {/* SECTION 3: RECENTLY VIEWED ORGANIZATIONS */}
       <RecentlyViewedOrganizations />
     </div>
   );
