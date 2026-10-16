@@ -285,3 +285,54 @@ Existing provider registration and manager assignment/settings/review surfaces e
 This functional extension reuses existing card, form, button and warning-banner tokens. Landing layout, themes, animation, discovery and approved rails are unchanged. `EmergencyPanel` lives in existing provider/staff queues and manager provider review, with scope-keyed state and guarded mutations/polling. Provider declares/requests return; manager reviews/finalizes; staff records actual direction/outcomes and explicit agreement before recovery. Temporary incidents do not present outbound contact as allowed. Unknown email outcome is never labelled delivered.
 
 Owned customer dashboard, appointment list/detail and live queue show short `EmergencyNotice` plus expandable full status/original serial/date/contact details. Replaced originals have historical derived display and replacement navigation, not a forged persisted status. Held CALLED/IN_PROGRESS screens suppress proceed-now advice without pretending service completed. Editable recovery forms record actual consent; no guessed customer agreement is prefilled. Reusable semantic buttons/labels and safe fallback text are used; browser responsive/accessibility acceptance remains pending development migration.
+
+## O. Approved Operational Visual Direction & Layout Philosophy (Owner Approved 2026-10-17)
+
+### 1. Refined Operational UI vs. Repetitive Card Boxes
+The refined QueueTurn landing page (`LandingPage.jsx`) provides the authoritative visual personality:
+- **Warm Sand & Espresso Light Theme** (`--color-bg: #FAF8F3`, `--color-surface: #FFFFFF`, `--color-primary: #2F2520`).
+- **Deep Navy & Vibrant Teal Dark Theme** (`--color-bg: #0B1220`, `--color-surface: #151F2D`, `--color-primary: #2A9D8F`).
+- **Typography and Hierarchy:** Modern high-contrast typography, restrained elevation, and clean visual grouping.
+
+**Critical Architectural Directive:** Operational interfaces must NOT copy the landing page's card-heavy or box-heavy composition everywhere.
+- **Open, Breathable Layouts:** Prefer thoughtful whitespace, subtle hairline dividers (`--color-border`), and background tonal transitions (`--color-bg` vs `--color-bg-subtle`).
+- **Selective Containment:** Use cards, panels, borders, and drop shadows selectively—only when containment directly improves semantic grouping or interaction clarity.
+- **Avoid Box Overload:** Do not wrap every heading, metric, table, action bar, or informational block in its own rectangular container. Use typography scale, alignment, and subtle horizontal rules to structure content.
+
+### 2. Motion and Interaction Guidelines
+Reuse established motion patterns from `LandingPage.css` (`--motion-fast: 160ms`, `--motion-normal: 220ms`, `--motion-slow: 380ms`, `--motion-ease: cubic-bezier(0.16, 1, 0.3, 1)`):
+- **Permitted Operational Motion:**
+  - Sidebar and mobile drawer slide transitions.
+  - Button hover and focus ring micro-interactions (`:focus-visible`).
+  - Dropdown, modal dialog, and popover entrances/exits.
+  - Subtle section reveals on initial route load.
+  - Smooth, restrained chart/telemetry transitions.
+  - Clear visual feedback for queue status mutations (e.g., call, check-in).
+  - Accessible loading skeletons and subtle progress indicators.
+- **Prohibited Motion:**
+  - Excessive scroll-triggered parallax or continuous animation loops.
+  - Repeated entrance animations on routine polling data refreshes.
+  - Animated controls that cause layout shifts or delay critical operational clicks.
+  - Decorative animation on every individual table row or card.
+- **Accessibility & Preferences:** Strict compliance with `@media (prefers-reduced-motion: reduce)`. Motion must serve comprehension, never mere decoration.
+
+### 3. Role-Specific Layout Density
+Avoid applying one universal dashboard layout across different personas:
+- **Customer:** Calm, approachable, minimal. Emphasize booking CTA, upcoming appointment cards, and clear live queue guidance.
+- **Staff:** Efficient operational layout with scan-friendly lists, prominent presence toggles, and rapid access to check-in/call controls.
+- **Provider:** Focused operational view prioritizing the current active consultation, next eligible serial, daily workload, and queue state triggers.
+- **Organization Manager:** Analytical and governance overview, operational insights, appointment volume trends, staff oversight, and capacity management.
+- **Platform Admin:** High-density platform management, audit-ready data tables, organization approvals, and platform health metrics.
+
+### 4. Organization Manager Dashboard — Real Dynamic Trend Graph Specification
+- **Approved Metrics:**
+  1. **Appointments Trend** (daily/weekly volume based on authoritative `appointment_date`).
+  2. **Completed Services Trend** (volume based on canonical `completed_at` timestamp in `Asia/Dhaka` business timezone).
+  *(Explicit Exclusion: Revenue, earnings, commissions, and financial metrics are NOT part of this graph).*
+- **Functional Requirements:** Real backend data, tenant isolation, historical selectable date ranges, explicit axis labels, legends, tooltips, loading/empty/error states, and valid zero-data handling matching Light and Dark design tokens.
+- **Scope Boundary & Staging:**
+  - UI-1E Manager Dashboard is **COMPLETED and ACCEPTED**.
+  - The dynamic trend graph is a **SEPARATELY SCOPED PENDING ENHANCEMENT**.
+  - Requires prior audit of existing analytics endpoints and historical data availability.
+  - Does NOT block or alter milestone **UI-2A (Reusable Table and List Presentation)**.
+

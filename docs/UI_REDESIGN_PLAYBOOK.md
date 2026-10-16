@@ -148,3 +148,30 @@ Stop boundary; no automatic next phase/commit/push:
 ```
 
 Maintain this playbook when an approved workflow changes. Preserve current/proposed/unverified labels and link to the canonical owner rather than copying full rule/finding registers.
+
+## O. Refined Operational Layout & Motion Playbook (Owner Approved 2026-10-17)
+
+### 1. Architectural Guardrail: Avoiding Box Overload
+The approved QueueTurn landing page (`LandingPage.jsx`) provides color tokens, typography, and premium SaaS personality, but its box-dense marketing composition must **not** be copied blindly into operational applications.
+- **Open Layouts:** Build open, breathable operational views. Use whitespace and background hierarchy (`--color-bg` vs `--color-bg-subtle`) instead of wrapping every UI section in a bordered card.
+- **Selective Framing:** Apply cards, borders, and shadows only when physical elevation or discrete boundary containment is functionally necessary.
+- **Visual Separation:** Use subtle hairline dividers (`--color-border`), typographic scale, and alignment to distinguish sections, headers, and action rows.
+
+### 2. Operational Motion Rules
+- **Approved Patterns:** Restrained drawer/sidebar transitions, button hover/focus rings, modal entrances, subtle section reveals, and loading skeletons.
+- **Forbidden Patterns:** Do not apply scroll-triggered animations to operational boards. Do not trigger repeated entrance animations on data polling refreshes. Do not animate controls in a way that creates layout shift or slows down staff/provider task completion.
+- **Reduced Motion:** Always provide `@media (prefers-reduced-motion: reduce)` fallbacks.
+
+### 3. Role-Tailored Layout Composition
+- **Customer Interfaces:** Clean, calm, minimal, clear focal action (booking CTA or upcoming appointment status).
+- **Staff Interfaces:** Information-dense, scan-friendly tables and lists, high-contrast presence toggles, rapid workflow buttons.
+- **Provider Interfaces:** Consultation-first ergonomics, current turn visibility, next serial, operational queue controls.
+- **Organization Manager Interfaces:** Executive governance, capacity overview, staff directory, operational metrics, and future trend charts.
+- **Platform Admin Interfaces:** Audit-ready platform directory tables, dense organization records, clean filter bars.
+
+### 4. Manager Dashboard Dynamic Trend Graph Scope Boundary
+- The real dynamic graph requested for the Manager Dashboard (focusing strictly on Appointments trend and Completed services trend, excluding financial data) is a **SEPARATELY SCOPED PENDING ENHANCEMENT**.
+- UI-1E Manager Dashboard remains completed and accepted.
+- Before implementing the graph, an audit of existing analytics endpoints and historical data must be performed.
+- This enhancement does not block or modify milestone **UI-2A (Reusable Table and List Presentation)**.
+

@@ -38,6 +38,23 @@ This plan combines the 2026-10-15 QueueTurn Complete Project Handoff and Source 
 
 Use **existing application tokens** rather than copying these hex values into every component. Preserve Inter/system typography, restrained shadows, sensible radius, compact operational density, 150–250ms transitions and reduced-motion support. Use consistent stroke SVG iconography when feasible, but preserve backward compatibility with existing icon props. Do **not** import ambient landing hero motion into queues, status rows, or time-sensitive actions. No glassmorphism, loud gradients, fake metrics, decorative spinners that conceal loading truth, or motion that delays interaction.
 
+### Refined Operational UI vs. Repetitive Card Boxes (Owner Approved 2026-10-17)
+- **Open, Breathable Layouts:** Preserve the landing page's visual identity, typography, and warm-sand/espresso and navy/teal palette, but explicitly **avoid copying its card-heavy or box-heavy composition everywhere**.
+- **Selective Framing:** Avoid wrapping every heading, metric, table, action, or informational block in its own rectangular container. Use whitespace, subtle hairline dividers (`--color-border`), and background hierarchy to structure content. Apply cards and elevated surfaces selectively where functional grouping requires it.
+- **Selective & Purposeful Motion:**
+  - *Permitted:* Sidebar/drawer transitions, button hover/focus rings (`:focus-visible`), modal/popover entrances, subtle initial section reveals, restrained telemetry/chart transitions, and accessible loading skeletons.
+  - *Forbidden:* Excessive scroll-triggered animations, repeated entrance animations on data polling refreshes, animated operational controls that cause layout shifts or delay clicks, and decorative animations on every table row or card.
+  - *Compliance:* Strict support for `@media (prefers-reduced-motion: reduce)`.
+- **Role-Specific Density:**
+  - *Customer:* Calm, approachable, minimal, clear booking CTA and live queue status.
+  - *Staff:* Information-dense, scan-friendly lists, high-contrast presence toggles, rapid workflow triggers.
+  - *Provider:* Focused consultation ergonomics, current turn visibility, next serial, operational queue actions.
+  - *Organization Manager:* Executive overview, capacity oversight, staff roster, operational metrics, and future performance trend visualization.
+  - *Platform Admin:* High-density audit-ready tables, organization directory, platform health metrics.
+- **Organization Manager Dashboard — Dynamic Trend Graph (Pending Separate Enhancement):**
+  - Graph metrics: Appointments trend and Completed services trend (no revenue/financial data).
+  - Scope: UI-1E Manager Dashboard remains **completed and accepted**. This dynamic graph is a **separately scoped pending enhancement** requiring a prior backend analytics/data audit. It does **not** block or alter milestone **UI-2A (Reusable Table and List Presentation)**.
+
 ## 4. UI behavior and accessibility standards
 
 1. **Semantic controls:** buttons for actions, links for navigation, native form labels and clear validation errors. Never replace working keyboard behavior with visual-only affordances.
