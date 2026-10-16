@@ -270,8 +270,294 @@
 /* Reduced Motion Fallback */
 @media (prefers-reduced-motion: reduce) {
   .qt-stat-card,
-  .qt-status-badge {
+  .qt-status-badge,
+  .qt-search-btn,
+  .qt-clear-btn,
+  .qt-pagination-btn {
     transition: none;
     transform: none;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Search & Filter Toolbar (.qt-search-filter-bar)
+   Refined Operational UI: open layout, subtle hairline border, no nested card boxes
+   -------------------------------------------------------------------------- */
+.qt-search-filter-bar {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.875rem 1rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.qt-search-filter-form {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.875rem;
+  flex-wrap: wrap;
+}
+
+.qt-search-filter-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1 1 320px;
+  flex-wrap: wrap;
+}
+
+.qt-search-field {
+  flex: 1 1 220px;
+}
+
+.qt-filter-field {
+  flex: 0 1 180px;
+}
+
+.qt-input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.qt-input-icon {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.qt-search-control {
+  padding-left: 2.25rem !important;
+  height: 2.375rem;
+  font-size: 0.875rem;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-main);
+}
+
+.qt-search-control:focus-visible,
+.qt-filter-select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+  border-color: var(--color-primary);
+}
+
+.qt-filter-select {
+  height: 2.375rem;
+  font-size: 0.875rem;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-main);
+  padding: 0 0.75rem;
+}
+
+.qt-search-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.qt-search-btn,
+.qt-clear-btn {
+  height: 2.375rem;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.qt-search-btn:focus-visible,
+.qt-clear-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Table Container (.qt-table-container)
+   Accessible scrollable table frame with tabular numbers & sticky action support
+   -------------------------------------------------------------------------- */
+.qt-table-container {
+  position: relative;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.qt-table-container:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.qt-responsive-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+}
+
+.qt-responsive-table th {
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  background-color: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.qt-responsive-table td {
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  color: var(--color-text-main);
+  border-bottom: 1px solid var(--color-border-subtle);
+  vertical-align: middle;
+}
+
+.qt-responsive-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.qt-responsive-table tbody tr:hover td {
+  background-color: var(--color-bg-subtle);
+}
+
+.qt-tabular-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Optional Sticky Actions column on narrow screens */
+@media (max-width: 768px) {
+  .qt-table-sticky-actions th:last-child,
+  .qt-table-sticky-actions td:last-child {
+    position: sticky;
+    right: 0;
+    background-color: var(--color-surface);
+    box-shadow: -3px 0 6px -2px rgba(0, 0, 0, 0.08);
+    z-index: 1;
+  }
+
+  .qt-table-sticky-actions tbody tr:hover td:last-child {
+    background-color: var(--color-bg-subtle);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Pagination Presentation (.qt-pagination)
+   Accessible navigation bar with page info and Prev/Next controls
+   -------------------------------------------------------------------------- */
+.qt-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border-subtle);
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.qt-pagination-summary {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.qt-pagination-summary strong {
+  color: var(--color-text-main);
+}
+
+.qt-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.qt-pagination-btn {
+  height: 2rem;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-main);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out);
+}
+
+.qt-pagination-btn:hover:not(:disabled) {
+  background-color: var(--color-bg-subtle);
+  border-color: var(--color-border-hover);
+}
+
+.qt-pagination-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.qt-pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.qt-pagination-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  background-color: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mobile adjustments */
+@media (max-width: 640px) {
+  .qt-search-filter-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .qt-search-filter-inputs {
+    flex-direction: column;
+  }
+
+  .qt-search-field,
+  .qt-filter-field {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .qt-search-filter-actions {
+    width: 100%;
+  }
+
+  .qt-search-btn,
+  .qt-clear-btn {
+    flex: 1;
+  }
+
+  .qt-pagination {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
