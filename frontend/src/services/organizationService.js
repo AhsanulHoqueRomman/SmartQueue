@@ -52,9 +52,11 @@ export const organizationService = {
 
   /**
    * Fetch active services for a given organization.
+   * @param {string} orgId
+   * @param {Object} [params={}] - Optional query params e.g. { page, page_size, search }
    */
-  async getServices(orgId) {
-    const response = await apiClient.get(`/organizations/${orgId}/services/`);
+  async getServices(orgId, params = {}) {
+    const response = await apiClient.get(`/organizations/${orgId}/services/`, { params });
     return response.data;
   },
 

@@ -1,111 +1,303 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
 import organizationService from '../../services/organizationService';
-import LoadingState from '../../components/LoadingState';
-import EmptyState from '../../components/EmptyState';
+import { LoadingState } from '../../components/LoadingState';
+import { EmptyState } from '../../components/EmptyState';
+import { SearchFilterBar } from '../../components/common/SearchFilterBar';
+import { ResponsiveTable } from '../../components/common/ResponsiveTable';
+import { Pagination } from '../../components/common/Pagination';
+import { normalizePaginatedResponse, DEFAULT_PAGE_SIZE } from '../../utils/paginationUtils';
+import { formatCurrency } from '../../utils/bookingDisplay';
+
+const TABLE_COLUMNS = [
+  { key: 'name', label: 'Service Name' },
+  { key: 'category', label: 'Category' },
+  { key: 'duration', label: 'Duration' },
+  { key: 'price', label: 'Standard Fee' },
+];
+
+/**
+ * Formats duration according to QueueTurn data integrity rules:
+ * - Positive number: "{num} min"
+ * - Missing / invalid / non-positive: "Duration unavailable"
+ * - Never substitutes a fabricated default duration
+ */
+function renderDuration(durationMinutes) {
+  if (durationMinutes === null || durationMinutes === undefined || durationMinutes === '') {
+    return 'Duration unavailable';
+  }
+  const num = Number(durationMinutes);
+  if (!Number.isFinite(num) || num <= 0) {
+    return 'Duration unavailable';
+  }
+  return `${num} min`;
+}
+
+/**
+ * Formats category name according to QueueTurn data integrity rules:
+ * - Assigned category object/string: actual name
+ * - Missing / unassigned: "—"
+ * - Never invents an artificial category
+ */
+function renderCategory(category) {
+  if (category && typeof category === 'object' && category.name) {
+    return category.name;
+  }
+  if (typeof category === 'string' && category.trim()) {
+    return category.trim();
+  }
+  return '—';
+}
+
+/**
+ * Formats service fee according to QueueTurn currency standards:
+ * - Positive number: formatCurrency(num) (e.g. "৳1,200")
+ * - Zero: "Free"
+ * - Missing / invalid: "Price unavailable"
+ */
+function renderServicePrice(price) {
+  if (price === null || price === undefined || price === '') {
+    return 'Price unavailable';
+  }
+  const num = Number(price);
+  if (!Number.isFinite(num)) {
+    return 'Price unavailable';
+  }
+  if (num === 0) {
+    return 'Free';
+  }
+  return formatCurrency(num);
+}
 
 export function StaffServicesPage() {
   const { currentOrg } = useTenant();
 
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
+  // Search: draft vs applied
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [paginationInfo, setPaginationInfo] = useState({
+    totalCount: 0,
+    totalPages: 1,
+    currentPage: 1,
+    hasNext: false,
+    hasPrevious: false,
+    itemRange: { start: 0, end: 0, total: 0 },
+  });
+
+  // Stale request guards & organization change tracking
+  const activeRequestIdRef = useRef(0);
+  const prevOrgIdRef = useRef(currentOrg?.id);
+
+  const fetchServices = useCallback(async (targetPage, searchToApply) => {
     if (!currentOrg?.id) return;
-    let isMounted = true;
+
+    const requestId = ++activeRequestIdRef.current;
+    const orgIdAtRequest = currentOrg.id;
     setLoading(true);
+    setError(null);
 
-    organizationService
-      .getServices(currentOrg.id)
-      .then((data) => {
-        if (!isMounted) return;
-        const list = Array.isArray(data) ? data : data.results || [];
-        setServices(list);
-      })
-      .catch((err) => {
-        if (isMounted) setError('Failed to load services.');
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
+    try {
+      const params = {
+        page: targetPage,
+        page_size: DEFAULT_PAGE_SIZE,
+      };
+      if (searchToApply) params.search = searchToApply;
 
-    return () => {
-      isMounted = false;
-    };
+      const data = await organizationService.getServices(orgIdAtRequest, params);
+
+      // Stale response guard: discard if newer request was triggered or org switched
+      if (requestId !== activeRequestIdRef.current || orgIdAtRequest !== currentOrg?.id) {
+        return;
+      }
+
+      const normalized = normalizePaginatedResponse(data, targetPage, DEFAULT_PAGE_SIZE);
+      setServices(normalized.items);
+      setPaginationInfo(normalized);
+    } catch (err) {
+      if (requestId !== activeRequestIdRef.current || orgIdAtRequest !== currentOrg?.id) {
+        return;
+      }
+
+      // Strict 404 pagination recovery: only recover if targetPage > 1 and detail matches backend empty page error
+      const isPaginationEmptyPage =
+        err.response?.status === 404 &&
+        targetPage > 1 &&
+        err.response?.data?.detail === 'That page contains no results.';
+
+      if (isPaginationEmptyPage) {
+        setPage((prev) => Math.max(1, prev - 1));
+        return;
+      }
+
+      setError(err.response?.data?.detail || 'Failed to load facility services.');
+    } finally {
+      if (requestId === activeRequestIdRef.current && orgIdAtRequest === currentOrg?.id) {
+        setLoading(false);
+      }
+    }
   }, [currentOrg?.id]);
 
+  // Reset state when switching active organization
+  useEffect(() => {
+    if (prevOrgIdRef.current !== currentOrg?.id) {
+      prevOrgIdRef.current = currentOrg?.id;
+      activeRequestIdRef.current += 1;
+      setPage(1);
+      setSearchInput('');
+      setAppliedSearch('');
+      setServices([]);
+      setPaginationInfo({
+        totalCount: 0,
+        totalPages: 1,
+        currentPage: 1,
+        hasNext: false,
+        hasPrevious: false,
+        itemRange: { start: 0, end: 0, total: 0 },
+      });
+      setError(null);
+    }
+  }, [currentOrg?.id]);
+
+  // Fetch when active org, page, or applied search changes
+  useEffect(() => {
+    fetchServices(page, appliedSearch);
+  }, [fetchServices, page, appliedSearch]);
+
+  const handleSearchSubmit = () => {
+    const trimmed = searchInput.trim();
+    setAppliedSearch(trimmed);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearchInput('');
+    setAppliedSearch('');
+    setPage(1);
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+  };
+
   if (!currentOrg) {
-    return <EmptyState title="No Organization Selected" message="Select an organization to view services." />;
+    return (
+      <EmptyState
+        title="No Organization Selected"
+        message="Please select an organization from the header dropdown above."
+      />
+    );
   }
 
-  if (loading) {
-    return <LoadingState message="Fetching active services list..." />;
-  }
+  const isFiltered = Boolean(appliedSearch || searchInput);
 
   return (
-    <div className="animate-page-entrance" style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '1.75rem' }}>
-        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-          ⚙️ Services Catalog
+    <div className="app-container animate-page-entrance">
+      {/* Page Header */}
+      <div className="flex justify-between items-center flex-wrap gap-md" style={{ marginBottom: '1.75rem' }}>
+        <div>
+          <h1>Facility Services & Pricing</h1>
+          <p className="subtitle" style={{ marginTop: '0.25rem' }}>
+            Active service catalog, standard durations, and consultation fees at {currentOrg.name}.
+          </p>
         </div>
-        <h1 style={{ fontSize: '1.75rem', color: 'var(--lp-text)', margin: '0 0 0.4rem 0', fontFamily: 'Cinzel, serif' }}>
-          Facility Services & Pricing
-        </h1>
-        <p style={{ color: 'var(--lp-text-subtle)', margin: 0, fontSize: '0.95rem' }}>
-          Service offerings, session durations, and fee rates at <strong style={{ color: 'var(--lp-text)' }}>{currentOrg.name}</strong>.
-        </p>
       </div>
 
-      {error ? (
-        <div style={{ padding: '1rem', background: 'var(--color-danger-light)', border: '1px solid var(--color-danger)', color: 'var(--color-danger)', borderRadius: '10px' }}>
+      {/* Error Alert Banner */}
+      {error && (
+        <div
+          role="alert"
+          className="error-banner"
+          style={{
+            padding: '1rem',
+            background: 'var(--color-error-bg)',
+            color: 'var(--color-error)',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: '1.25rem',
+            border: '1px solid var(--color-error-border)',
+          }}
+        >
           ⚠️ {error}
         </div>
-      ) : services.length === 0 ? (
-        <EmptyState title="No Services Found" message="No active service offerings configured for this facility." />
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
-          {services.map((svc) => (
-            <div
-              key={svc.id}
-              style={{
-                background: 'var(--lp-surface)',
-                border: '1px solid var(--lp-border)',
-                borderRadius: '16px',
-                padding: '1.5rem',
-                boxShadow: 'var(--lp-shadow-sm)',
-                display: 'flex',
-                flexDirection: 'column',
-                justify: 'space-between',
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ background: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: '1px solid var(--lp-border)', fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-                    {svc.is_active ? '● Active Offering' : '○ Inactive'}
-                  </span>
-                  <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-warning)' }}>
-                    ${parseFloat(svc.price || 0).toFixed(2)}
-                  </span>
-                </div>
-
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                  {svc.name}
-                </h3>
-
-                <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.85rem', lineHeight: 1.4, margin: '0 0 1rem 0' }}>
-                  {svc.description || 'Standard outpatient service consultation and care.'}
-                </p>
-              </div>
-
-              <div style={{ padding: '0.65rem 0.85rem', background: 'var(--lp-bg-subtle)', borderRadius: '8px', border: '1px solid var(--lp-border)', fontSize: '0.85rem', color: 'var(--lp-text)', fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
-                <span>Duration:</span>
-                <span>{svc.duration_minutes || 30} minutes</span>
-              </div>
-            </div>
-          ))}
-        </div>
       )}
+
+      {/* Search Bar Toolbar */}
+      <SearchFilterBar
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
+        onSearchSubmit={handleSearchSubmit}
+        searchPlaceholder="Search service name, description..."
+        searchLabel="Search facility services"
+        filters={[]}
+        isFiltered={isFiltered}
+        onClear={handleClearFilters}
+        isLoading={loading}
+      />
+
+      {/* Table & Pagination Content Surface */}
+      <div>
+        {loading ? (
+          <LoadingState type="skeleton-table" rows={4} cols={4} />
+        ) : services.length === 0 ? (
+          <EmptyState
+            title={isFiltered ? 'No Matching Services' : 'No Services Configured'}
+            message={
+              isFiltered
+                ? 'No active services matched your search query.'
+                : `No active services configured for ${currentOrg.name}.`
+            }
+            actionLabel={isFiltered ? 'Clear Search' : undefined}
+            onAction={isFiltered ? handleClearFilters : undefined}
+          />
+        ) : (
+          <div className="qt-table-surface">
+            <ResponsiveTable
+              caption={`Active Services Catalog for ${currentOrg.name}`}
+              columns={TABLE_COLUMNS}
+            >
+              {services.map((svc) => (
+                <tr key={svc.id}>
+                  <td>
+                    <div className="font-semibold">{svc.name}</div>
+                    {svc.description && (
+                      <div className="text-xs text-muted" style={{ marginTop: '0.15rem' }}>
+                        {svc.description}
+                      </div>
+                    )}
+                  </td>
+                  <td>
+                    <span className="badge badge-neutral">
+                      {renderCategory(svc.category)}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="qt-tabular-num">{renderDuration(svc.duration_minutes)}</span>
+                  </td>
+                  <td>
+                    <span className="qt-tabular-num">{renderServicePrice(svc.price)}</span>
+                  </td>
+                </tr>
+              ))}
+            </ResponsiveTable>
+
+            <Pagination
+              currentPage={paginationInfo.currentPage}
+              totalPages={paginationInfo.totalPages}
+              totalCount={paginationInfo.totalCount}
+              itemRange={paginationInfo.itemRange}
+              onPageChange={handlePageChange}
+              disabled={loading}
+              ariaLabel="Facility services pagination"
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
