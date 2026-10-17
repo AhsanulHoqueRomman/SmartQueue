@@ -1,10 +1,8 @@
-import { EmergencyNotice } from '../../components/EmergencyNotice';
-import { useRequestScope } from '../../hooks/useRequestScope';
-import { confirmCustomerArrival } from '../../utils/customerArrival.js';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import { useRequestScope } from '../../hooks/useRequestScope';
 import appointmentService from '../../services/appointmentService';
 import CancelAppointmentModal from '../../components/CancelAppointmentModal';
 import LeaveReviewModal from '../../components/LeaveReviewModal';
@@ -12,8 +10,29 @@ import ReportIssueModal from '../../components/ReportIssueModal';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
+import { EmergencyNotice } from '../../components/EmergencyNotice';
 import { formatBookingDate } from '../../utils/homeBookingDisplay.js';
 import { getNormalizedCustomerQueueState } from '../../utils/queueDisplay';
+import { confirmCustomerArrival } from '../../utils/customerArrival.js';
+
+const TABS = [
+  { id: 'active', label: 'Active Today' },
+  { id: 'upcoming', label: 'Upcoming' },
+  { id: 'completed', label: 'Completed' },
+  { id: 'needs_followup', label: 'Needs Follow-up' },
+  { id: 'cancelled', label: 'Cancelled' },
+  { id: 'missed', label: 'Missed' },
+  { id: 'skipped', label: 'Skipped' },
+  { id: 'emergency_recovery', label: 'Emergency Recovery' },
+];
+
+function formatTime(isoStr) {
+  if (!isoStr) return null;
+  const d = new Date(isoStr);
+  return isNaN(d.getTime())
+    ? null
+    : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Dhaka' });
+}
 
 export function CustomerAppointmentsPage() {
   const navigate = useNavigate();
@@ -73,18 +92,26 @@ export function CustomerAppointmentsPage() {
       const data = await appointmentService.getCustomerDashboard();
       if (!requestScope.isCurrent(ticket)) return;
       const list = Array.isArray(data) ? data : data.results || [];
-      setAppointments(list); setLoadedUser(user.id);
+      setAppointments(list);
+      setLoadedUser(user.id);
     } catch (err) {
       if (!requestScope.isCurrent(ticket)) return;
       setError(err.response?.data?.detail || 'Failed to load your appointments schedule.');
     } finally {
-      if (requestScope.isCurrent(ticket)) { setLoading(false); setRefreshing(false); }
+      if (requestScope.isCurrent(ticket)) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
   useEffect(() => {
-    setCancelModalOpen(false); setReviewModalOpen(false); setReportModalOpen(false);
-    setSelectedAppointment(null); setCheckingInId(null); setLoading(true);
+    setCancelModalOpen(false);
+    setReviewModalOpen(false);
+    setReportModalOpen(false);
+    setSelectedAppointment(null);
+    setCheckingInId(null);
+    setLoading(true);
     fetchAppointments();
   }, [user?.id]);
 
@@ -172,7 +199,7 @@ export function CustomerAppointmentsPage() {
   };
 
   const tabCounts = {
-    emergency_recovery: appointments.filter(a => categorizeAppointment(a) === 'emergency_recovery').length,
+    emergency_recovery: appointments.filter((a) => categorizeAppointment(a) === 'emergency_recovery').length,
     active: appointments.filter((a) => categorizeAppointment(a) === 'active').length,
     upcoming: appointments.filter((a) => categorizeAppointment(a) === 'upcoming').length,
     completed: appointments.filter((a) => categorizeAppointment(a) === 'completed').length,
@@ -183,17 +210,6 @@ export function CustomerAppointmentsPage() {
   };
 
   const filteredAppointments = appointments.filter((item) => categorizeAppointment(item) === activeTab);
-
-  const TABS = [
-    { id: 'emergency_recovery', label: 'Emergency Recovery', icon: '📋' },
-    { id: 'active', label: 'Active Today', icon: '🟢' },
-    { id: 'upcoming', label: 'Upcoming', icon: '📅' },
-    { id: 'completed', label: 'Completed', icon: '✅' },
-    { id: 'cancelled', label: 'Cancelled', icon: '❌' },
-    { id: 'missed', label: 'Missed', icon: '🚫' },
-    { id: 'skipped', label: 'Skipped', icon: '⏭️' },
-    { id: 'needs_followup', label: 'Needs Follow-up', icon: '⚠️' },
-  ];
 
   const getEmptyMessage = () => {
     switch (activeTab) {
@@ -211,89 +227,140 @@ export function CustomerAppointmentsPage() {
         return 'You have no missed appointments.';
       case 'skipped':
         return 'You have no skipped queue entries.';
+      case 'emergency_recovery':
+        return 'No appointments requiring emergency recovery.';
       default:
-        return 'No appointments found.';
+        return 'No appointments found in this category.';
     }
   };
 
   return (
-    <div className="animate-page-entrance" style={{ maxWidth: '1150px', margin: '0 auto', paddingBottom: '3rem' }}>
+    <div
+      className="animate-page-entrance"
+      style={{
+        maxWidth: '1080px',
+        margin: '0 auto',
+        padding: '1.75rem 1rem 3.5rem 1rem',
+        boxSizing: 'border-box',
+        width: '100%',
+      }}
+    >
       {/* Header Banner */}
-      <div
+      <header
         style={{
-          background: 'var(--lp-surface)',
-          border: '1px solid var(--lp-border)',
-          borderRadius: '18px',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-lg, 14px)',
           padding: '1.75rem 2rem',
-          boxShadow: 'var(--lp-shadow-sm)',
+          boxShadow: 'var(--shadow-sm)',
           marginBottom: '1.75rem',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1.25rem',
+          }}
+        >
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--lp-accent)', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.35rem' }}>
-              📋 Appointment Lifecycle &amp; History
+            <div
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                color: 'var(--color-secondary-accent)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                marginBottom: '0.35rem',
+              }}
+            >
+              Customer Care &bull; Appointment Roster
             </div>
-            <h1 style={{ fontSize: '1.85rem', fontWeight: 700, margin: '0 0 0.35rem 0', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)' }}>
+            <h1
+              style={{
+                fontSize: '1.75rem',
+                fontWeight: 700,
+                margin: '0 0 0.35rem 0',
+                color: 'var(--color-text-main)',
+                letterSpacing: '-0.02em',
+              }}
+            >
               My Appointments &amp; Consultations
             </h1>
-            <p style={{ color: 'var(--lp-text-subtle)', margin: 0, fontSize: '0.925rem' }}>
-              Track active appointments, view lifecycle history, check in online, and report service discrepancies.
+            <p
+              style={{
+                color: 'var(--color-text-secondary)',
+                margin: 0,
+                fontSize: '0.925rem',
+                lineHeight: 1.5,
+              }}
+            >
+              Track active appointments, monitor live queue status, confirm arrival, and manage consultation history.
             </p>
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
+              type="button"
+              className="btn btn-outline"
               onClick={() => fetchAppointments(true)}
               disabled={refreshing}
               title="Refresh schedule"
-              style={{
-                padding: '0.65rem 0.9rem',
-                background: 'var(--lp-bg-subtle)',
-                color: 'var(--lp-text-subtle)',
-                border: '1px solid var(--lp-border)',
-                borderRadius: '10px',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                cursor: refreshing ? 'not-allowed' : 'pointer',
-              }}
+              style={{ fontSize: '0.85rem' }}
             >
-              🔄 {refreshing ? 'Updating...' : 'Sync'}
+              {refreshing ? 'Syncing...' : 'Sync'}
             </button>
 
             <button
+              type="button"
+              className="btn btn-primary"
               onClick={() => navigate('/customer/book')}
-              style={{
-                padding: '0.7rem 1.25rem',
-                background: 'var(--lp-btn-bg, #2F2520)',
-                color: 'var(--lp-btn-text, #FFFFFF)',
-                border: 'none',
-                borderRadius: '10px',
-                fontWeight: 600,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(47, 37, 32, 0.25)',
-              }}
+              style={{ fontSize: '0.875rem' }}
             >
-              ✨ Book Appointment
+              Book Appointment
             </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      {error && <div className="banner banner-danger" style={{ marginBottom: '1.5rem' }}>{error}</div>}
+      {error && (
+        <div
+          className="banner banner-danger"
+          style={{
+            marginBottom: '1.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+          }}
+        >
+          <span>{error}</span>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline"
+            onClick={() => fetchAppointments(true)}
+          >
+            Try Again
+          </button>
+        </div>
+      )}
 
-      {/* Accessible Tabs Bar */}
-      <div
+      {/* Accessible Filter Tabs Bar */}
+      <nav
         role="tablist"
         aria-label="Appointment Lifecycle Categories"
         style={{
           display: 'flex',
-          gap: '0.35rem',
-          borderBottom: '2px solid var(--lp-border)',
+          gap: '0.5rem',
+          borderBottom: '1px solid var(--color-border)',
           marginBottom: '1.75rem',
           overflowX: 'auto',
-          paddingBottom: '2px',
+          paddingBottom: '0.5rem',
+          scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         {TABS.map((tab) => {
@@ -303,36 +370,42 @@ export function CustomerAppointmentsPage() {
             <button
               key={tab.id}
               role="tab"
+              type="button"
               aria-selected={isActive}
               tabIndex={0}
               onClick={() => handleSelectTab(tab.id)}
               style={{
-                padding: '0.75rem 1.1rem',
-                background: isActive ? 'var(--lp-surface)' : 'transparent',
-                border: 'none',
-                borderBottom: isActive ? '3px solid var(--lp-accent)' : '3px solid transparent',
-                color: isActive ? 'var(--lp-accent)' : 'var(--lp-text-subtle)',
+                padding: '0.65rem 0.95rem',
+                background: isActive ? 'var(--color-surface)' : 'transparent',
+                border: `1px solid ${isActive ? 'var(--color-border)' : 'transparent'}`,
+                borderBottom: isActive ? '2px solid var(--color-primary)' : '2px solid transparent',
+                borderRadius: 'var(--radius-md, 10px) var(--radius-md, 10px) 0 0',
+                color: isActive ? 'var(--color-text-main)' : 'var(--color-text-secondary)',
                 fontWeight: isActive ? 700 : 500,
-                fontSize: '0.925rem',
+                fontSize: '0.875rem',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
-                transition: 'all 0.2s ease',
-                marginBottom: '-2px',
-                borderRadius: '8px 8px 0 0',
+                transition: 'all var(--duration-fast, 0.15s) ease',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.4rem',
+                gap: '0.5rem',
               }}
             >
-              <span>{tab.icon} {tab.label}</span>
+              <span>{tab.label}</span>
               <span
                 style={{
                   fontSize: '0.75rem',
                   fontWeight: 700,
-                  padding: '0.1rem 0.45rem',
-                  borderRadius: '999px',
-                  background: isActive ? 'var(--lp-accent)' : 'var(--lp-border)',
-                  color: isActive ? '#FFFFFF' : 'var(--lp-text-subtle)',
+                  minWidth: '20px',
+                  height: '20px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 6px',
+                  borderRadius: 'var(--radius-full, 9999px)',
+                  background: isActive ? 'var(--color-primary)' : 'var(--color-bg-subtle)',
+                  color: isActive ? 'var(--color-primary-text)' : 'var(--color-text-muted)',
+                  border: `1px solid ${isActive ? 'var(--color-primary)' : 'var(--color-border)'}`,
                 }}
               >
                 {count}
@@ -340,20 +413,20 @@ export function CustomerAppointmentsPage() {
             </button>
           );
         })}
-      </div>
+      </nav>
 
-      {/* Main Flat Appointments History List */}
+      {/* Main Appointment Tickets Roster */}
       {loading ? (
         <LoadingState message="Loading your appointments schedule..." />
       ) : filteredAppointments.length === 0 ? (
         <EmptyState
           title={getEmptyMessage()}
-          message="Select another tab or schedule a new consultation with a specialist."
+          message="Select another category tab or schedule a new consultation with a specialist."
           actionText="Book New Appointment"
           onAction={() => navigate('/customer/book')}
         />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {filteredAppointments.map((appt) => {
             const qEntry = appt.queue_entry;
             const normState = getNormalizedCustomerQueueState(appt, qEntry);
@@ -369,228 +442,405 @@ export function CustomerAppointmentsPage() {
               ? appt.can_cancel
               : (['CONFIRMED', 'PENDING'].includes(appt.status) && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED', 'IN_PROGRESS'].includes(qStatus));
 
-            const formattedDate = formatBookingDate(appt.appointment_date || (appt.start_datetime
-              ? new Date(appt.start_datetime).toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' }) : null));
-            const displayTime = normState.estimatedStartTime || normState.actualStartedAt;
-            const formattedTime = displayTime
-              ? new Date(displayTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              : (normState.isTerminal ? 'Service history' : normState.timingPlaceholder);
+            const canReschedule = Boolean(appt.self_reschedule?.allowed === true);
+
+            const formattedDate = formatBookingDate(
+              appt.appointment_date ||
+              (appt.start_datetime ? new Date(appt.start_datetime).toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' }) : null)
+            );
+
+            let timingLabel = 'Consultation Timing:';
+            let timingValue = normState.timingPlaceholder;
+            if (normState.actualStartedAt) {
+              timingLabel = 'Consultation Started:';
+              timingValue = formatTime(normState.actualStartedAt);
+            } else if (normState.estimatedStartTime) {
+              timingLabel = 'Estimated Start:';
+              timingValue = formatTime(normState.estimatedStartTime);
+            } else if (appt.appointment_time) {
+              timingLabel = 'Scheduled Slot:';
+              timingValue = appt.appointment_time.slice(0, 5);
+            } else if (normState.isTerminal) {
+              timingLabel = 'Service Outcome:';
+              timingValue = 'Concluded';
+            }
+
+            const recArrival = formatTime(normState.recommendedArrivalTime);
 
             return (
-              <div
+              <article
                 key={appt.id}
                 style={{
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-lg, 14px)',
+                  padding: '1.5rem',
+                  boxShadow: 'var(--shadow-sm)',
+                  boxSizing: 'border-box',
+                  width: '100%',
                   display: 'flex',
-                  flexDirection: 'row',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  padding: '1.5rem 0',
-                  borderBottom: '1px solid var(--lp-border)',
-                  gap: '1.5rem',
-                  flexWrap: 'wrap',
+                  flexDirection: 'column',
+                  gap: '1.25rem',
+                  transition: 'border-color var(--duration-fast, 0.15s) ease, box-shadow var(--duration-fast, 0.15s) ease',
                 }}
               >
-                {/* Left: Date & Time */}
-                <div style={{ minWidth: '160px', flexShrink: 0 }}>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    {formattedDate}
+                {/* Top Row: Identity & Status Badges */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    flexWrap: 'wrap',
+                    gap: '1rem',
+                  }}
+                >
+                  <div style={{ flex: '1 1 300px', minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: 'var(--color-secondary-accent)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '0.25rem',
+                      }}
+                    >
+                      {appt.organization_category || 'CLINIC'} &bull; {appt.organization_name || 'Organization'}
+                    </div>
+                    <h2
+                      style={{
+                        margin: '0 0 0.35rem 0',
+                        fontSize: '1.25rem',
+                        fontWeight: 700,
+                        color: 'var(--color-text-main)',
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      {appt.service_name || 'Service Consultation'}
+                    </h2>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+                      Specialist:{' '}
+                      <strong style={{ color: 'var(--color-text-main)' }}>
+                        {appt.provider_name || appt.provider_title || 'Assigned Specialist'}
+                      </strong>
+                    </div>
                   </div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', marginTop: '0.2rem' }}>
-                    {formattedTime}
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-end',
+                      gap: '0.5rem',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <StatusBadge
+                      status={normState.rawStatus}
+                      customLabel={category === 'needs_followup' ? 'Service outcome not recorded' : normState.displayStatus}
+                    />
+
+                    {normState.serialNumber && normState.serialNumber !== '—' && (
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          padding: '0.25rem 0.65rem',
+                          background: 'var(--color-bg-subtle)',
+                          border: '1px solid var(--color-border)',
+                          borderRadius: 'var(--radius-sm, 6px)',
+                          fontSize: '0.825rem',
+                          fontWeight: 700,
+                          color: 'var(--color-text-main)',
+                        }}
+                      >
+                        <span style={{ color: 'var(--color-text-muted)' }}>Serial</span>
+                        <span style={{ color: 'var(--color-primary)' }}>#{normState.serialNumber}</span>
+                      </div>
+                    )}
                   </div>
-                  {normState.serialNumber && normState.serialNumber !== '—' && (
-                    <div style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)', marginTop: '0.35rem', fontWeight: 600 }}>
-                      Serial <span style={{ color: 'var(--lp-accent)', fontWeight: 700 }}>#{normState.serialNumber}</span>
+                </div>
+
+                {/* Emergency Interruption Notice */}
+                <EmergencyNotice appointment={appt} />
+
+                {/* Ticket Details Summary Bar */}
+                <div
+                  style={{
+                    background: 'var(--color-bg-subtle)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-md, 10px)',
+                    padding: '0.85rem 1.15rem',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    gap: '1rem 1.75rem',
+                    fontSize: '0.85rem',
+                    color: 'var(--color-text-main)',
+                  }}
+                >
+                  <div>
+                    <span style={{ color: 'var(--color-text-muted)', marginRight: '0.35rem' }}>Date:</span>
+                    <strong>{formattedDate}</strong>
+                  </div>
+
+                  <div>
+                    <span style={{ color: 'var(--color-text-muted)', marginRight: '0.35rem' }}>{timingLabel}</span>
+                    <strong>{timingValue}</strong>
+                  </div>
+
+                  {appt.booked_service_charge != null && (
+                    <div>
+                      <span style={{ color: 'var(--color-text-muted)', marginRight: '0.35rem' }}>Booked Fee:</span>
+                      <strong>
+                        ৳{Number(appt.booked_service_charge).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                      </strong>
+                    </div>
+                  )}
+
+                  {(appt.contact_name || appt.contact_phone) && (
+                    <div>
+                      <span style={{ color: 'var(--color-text-muted)', marginRight: '0.35rem' }}>Contact:</span>
+                      <span>
+                        {appt.contact_name || 'Customer'}
+                        {appt.contact_phone ? ` (${appt.contact_phone})` : ''}
+                      </span>
                     </div>
                   )}
                 </div>
 
-                {/* Center: Service, Organization, Provider & Contextual Notes */}
-                <div style={{ flex: 1, minWidth: '260px' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lp-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    {appt.organization_category || 'CLINIC'} &bull; {appt.organization_name || 'Organization'}
-                  </div>
-                  <h3 style={{ margin: '0.2rem 0 0.35rem 0', fontSize: '1.2rem', color: 'var(--lp-text)', fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
-                    {appt.service_name || 'Service Consultation'}
-                  </h3>
-                  {appt.contact_name && <div>Customer: {appt.contact_name}</div>}
-                  {appt.contact_phone && <div>Phone: {appt.contact_phone}</div>}
-                  {appt.booked_service_charge != null && <div>Service Charge: ৳{Number(appt.booked_service_charge).toLocaleString('en-US', { maximumFractionDigits: 2 })}</div>}
-                  <div style={{ fontSize: '0.875rem', color: 'var(--lp-text-subtle)', marginBottom: '0.5rem' }}>
-                    Specialist: <strong style={{ color: 'var(--lp-text)' }}>{appt.provider_name || appt.provider_title || 'Assigned Specialist'}</strong>
-                  </div>
-
-                  <EmergencyNotice appointment={appt} />
-                  {/* Contextual Guidance / Status explanation */}
-                  <div style={{ fontSize: '0.85rem', color: normState.statusTone === 'warning' ? 'var(--color-warning)' : 'var(--lp-text-subtle)', lineHeight: 1.45, marginTop: '0.25rem' }}>
-                    {normState.guidance}
-                  </div>
-                </div>
-
-                {/* Right: Status Badge & Actions */}
-                <div style={{ minWidth: '200px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.75rem', flexShrink: 0 }}>
-                  <StatusBadge status={normState.rawStatus} customLabel={category === 'needs_followup' ? 'Service outcome not recorded' : normState.displayStatus} />
-
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                    {canCheckIn && (
-                      <button
-                        onClick={() => handleCheckIn(orgId, appt.id)}
-                        disabled={checkingInId === appt.id}
-                        style={{
-                          padding: '0.5rem 0.85rem',
-                          background: 'var(--color-warning)',
-                          color: '#FFFFFF',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontWeight: 700,
-                          fontSize: '0.85rem',
-                          cursor: checkingInId === appt.id ? 'not-allowed' : 'pointer',
-                        }}
-                      >
-                        {checkingInId === appt.id ? 'Checking in...' : '✓ Check-In'}
-                      </button>
-                    )}
-
-                    {normState.can_open_telemetry && (
-                      <button
-                        onClick={() => navigate(`/customer/queue/${qEntry?.id || appt.id}`)}
-                        style={{
-                          padding: '0.5rem 0.85rem',
-                          background: 'var(--lp-btn-bg)',
-                          color: 'var(--lp-btn-text)',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontWeight: 600,
-                          fontSize: '0.85rem',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Open Live Queue →
-                      </button>
-                    )}
-
-                    {category === 'needs_followup' && (
-                      appt.has_issue_report ? (
-                        <span
-                          style={{
-                            padding: '0.45rem 0.8rem',
-                            background: 'var(--lp-bg-subtle)',
-                            color: 'var(--lp-accent)',
-                            border: '1px solid var(--lp-border)',
-                            borderRadius: '8px',
-                            fontWeight: 700,
-                            fontSize: '0.8rem',
-                          }}
-                        >
-                          ✓ Issue Reported
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => handleOpenReportModal(appt)}
-                          style={{
-                            padding: '0.5rem 0.85rem',
-                            background: 'var(--lp-bg-subtle)',
-                            color: 'var(--color-warning)',
-                            border: '1px solid var(--lp-border)',
-                            borderRadius: '8px',
-                            fontWeight: 600,
-                            fontSize: '0.85rem',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          ⚠️ Report an Issue
-                        </button>
-                      )
-                    )}
-
-                    {(category === 'completed' || qStatus === 'COMPLETED' || appt.status === 'COMPLETED') && (
-                      appt.can_review ? (
-                        <button
-                          onClick={() => handleOpenReviewModal(appt)}
-                          style={{
-                            padding: '0.5rem 0.85rem',
-                            background: 'var(--lp-bg-subtle)',
-                            color: 'var(--color-warning)',
-                            border: '1px solid var(--lp-border)',
-                            borderRadius: '8px',
-                            fontWeight: 600,
-                            fontSize: '0.85rem',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          ★ Leave Review
-                        </button>
-                      ) : (
-                        <span
-                          style={{
-                            padding: '0.4rem 0.75rem',
-                            background: 'var(--lp-sage-bg)',
-                            color: 'var(--lp-sage)',
-                            border: '1px solid var(--lp-sage-border)',
-                            borderRadius: '8px',
-                            fontWeight: 600,
-                            fontSize: '0.8rem',
-                          }}
-                        >
-                          ✓ Reviewed
-                        </span>
-                      )
-                    )}
-
-                    {canCancel && (
-                      <button
-                        onClick={() => handleOpenCancelModal(appt)}
-                        style={{
-                          padding: '0.5rem 0.85rem',
-                          background: 'var(--color-danger-light)',
-                          color: 'var(--color-danger)',
-                          border: '1px solid var(--color-danger)',
-                          borderRadius: '8px',
-                          fontWeight: 600,
-                          fontSize: '0.85rem',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    )}
-
-                    {(category === 'missed' || category === 'cancelled') && (
-                      <button
-                        onClick={() => navigate('/customer/book')}
-                        style={{
-                          padding: '0.5rem 0.85rem',
-                          background: 'var(--lp-btn-bg, #2F2520)',
-                          color: 'var(--lp-btn-text, #FFFFFF)',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontWeight: 600,
-                          fontSize: '0.85rem',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Book Again
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => navigate(`/customer/appointments/${appt.id}`)}
+                {/* Queue & Readiness Guidance Box */}
+                {normState.can_open_telemetry && (
+                  <div
+                    style={{
+                      background: 'var(--color-surface)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: 'var(--radius-md, 10px)',
+                      padding: '0.85rem 1.15rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.65rem',
+                    }}
+                  >
+                    <div
                       style={{
-                        padding: '0.5rem 0.85rem',
-                        background: 'var(--lp-bg-subtle)',
-                        color: 'var(--lp-accent)',
-                        border: '1px solid var(--lp-border)',
-                        borderRadius: '8px',
-                        fontWeight: 600,
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        fontSize: '0.825rem',
                       }}
                     >
-                      Details →
-                    </button>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background:
+                              normState.rawStatus === 'CALLED'
+                                ? 'var(--color-warning)'
+                                : normState.rawStatus === 'IN_PROGRESS'
+                                ? 'var(--color-primary)'
+                                : 'var(--color-success)',
+                          }}
+                        />
+                        <strong style={{ color: 'var(--color-text-main)' }}>
+                          {normState.rawStatus === 'CALLED'
+                            ? 'Your turn is called — Proceed to service room'
+                            : normState.rawStatus === 'IN_PROGRESS'
+                            ? 'Consultation in progress'
+                            : normState.isCheckedIn
+                            ? 'Checked in — In queue'
+                            : 'Awaiting check-in / arrival'}
+                        </strong>
+                      </div>
+
+                      <div style={{ color: 'var(--color-text-secondary)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                        {normState.nowServing && (
+                          <span>
+                            Now Serving: <strong style={{ color: 'var(--color-text-main)' }}>#{normState.nowServing}</strong>
+                          </span>
+                        )}
+                        {(normState.checkedInAhead > 0 || normState.scheduledAhead > 0) && (
+                          <span>
+                            Queue Ahead:{' '}
+                            <strong style={{ color: 'var(--color-text-main)' }}>
+                              {normState.checkedInAhead} checked in
+                            </strong>{' '}
+                            ({normState.scheduledAhead} booked)
+                          </span>
+                        )}
+                        {normState.estimatedWaitMinutes != null && normState.estimatedWaitMinutes > 0 && (
+                          <span>
+                            Est. Wait: <strong style={{ color: 'var(--color-text-main)' }}>~{normState.estimatedWaitMinutes} min</strong>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {recArrival && !normState.isCheckedIn && (
+                      <div style={{ fontSize: '0.8rem', color: 'var(--color-secondary-accent)', fontWeight: 600 }}>
+                        Recommended arrival window: by {recArrival}
+                      </div>
+                    )}
                   </div>
+                )}
+
+                {/* Contextual Guidance Text */}
+                {normState.guidance && (
+                  <div
+                    style={{
+                      fontSize: '0.85rem',
+                      color: normState.statusTone === 'warning' ? 'var(--color-warning)' : 'var(--color-text-secondary)',
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    {normState.guidance}
+                  </div>
+                )}
+
+                {/* Reschedule Ineligibility Notice (when active/upcoming but self-reschedule is disallowed) */}
+                {appt.self_reschedule && !appt.self_reschedule.allowed && (category === 'active' || category === 'upcoming') && appt.self_reschedule.message && (
+                  <div
+                    style={{
+                      fontSize: '0.8rem',
+                      color: 'var(--color-text-muted)',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    Self-rescheduling: {appt.self_reschedule.message}
+                  </div>
+                )}
+
+                {/* Action Buttons Bar */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'flex-end',
+                    gap: '0.65rem',
+                    paddingTop: '0.5rem',
+                    borderTop: '1px solid var(--color-border)',
+                  }}
+                >
+                  {canCheckIn && (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-primary"
+                      onClick={() => handleCheckIn(orgId, appt.id)}
+                      disabled={checkingInId === appt.id}
+                      style={{ fontWeight: 700 }}
+                    >
+                      {checkingInId === appt.id ? 'Checking In...' : 'Confirm Arrival / Check In'}
+                    </button>
+                  )}
+
+                  {normState.can_open_telemetry && (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-primary"
+                      onClick={() => navigate(`/customer/queue/${qEntry?.id || appt.id}`)}
+                    >
+                      Live Queue Tracker &rarr;
+                    </button>
+                  )}
+
+                  {canReschedule && (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline"
+                      onClick={() => navigate(`/customer/appointments/${appt.id}`)}
+                    >
+                      Reschedule
+                    </button>
+                  )}
+
+                  {canCancel && (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline btn-danger"
+                      onClick={() => handleOpenCancelModal(appt)}
+                    >
+                      Cancel Appointment
+                    </button>
+                  )}
+
+                  {category === 'needs_followup' && (
+                    appt.has_issue_report ? (
+                      <span
+                        style={{
+                          padding: '0.35rem 0.75rem',
+                          background: 'var(--color-bg-subtle)',
+                          color: 'var(--color-info)',
+                          border: '1px solid var(--color-border)',
+                          borderRadius: 'var(--radius-sm, 6px)',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        Issue Reported
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline"
+                        onClick={() => handleOpenReportModal(appt)}
+                        style={{ color: 'var(--color-warning)' }}
+                      >
+                        Report an Issue
+                      </button>
+                    )
+                  )}
+
+                  {(category === 'completed' || qStatus === 'COMPLETED' || appt.status === 'COMPLETED') && (
+                    appt.can_review ? (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline"
+                        onClick={() => handleOpenReviewModal(appt)}
+                      >
+                        Leave Review
+                      </button>
+                    ) : (
+                      <span
+                        style={{
+                          padding: '0.35rem 0.75rem',
+                          background: 'var(--color-bg-subtle)',
+                          color: 'var(--color-success)',
+                          border: '1px solid var(--color-border)',
+                          borderRadius: 'var(--radius-sm, 6px)',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        Reviewed
+                      </span>
+                    )
+                  )}
+
+                  {(category === 'missed' || category === 'cancelled') && (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-primary"
+                      onClick={() => navigate('/customer/book')}
+                    >
+                      Book Again
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline"
+                    onClick={() => navigate(`/customer/appointments/${appt.id}`)}
+                  >
+                    Details &rarr;
+                  </button>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>
@@ -614,7 +864,7 @@ export function CustomerAppointmentsPage() {
           orgId={selectedAppointment.organization_id || selectedAppointment.organization}
           onSuccess={() => {
             showSuccess('Thank you! Your review has been recorded.');
-            fetchAppointments();
+            fetchAppointments(true);
           }}
           onClose={() => setReviewModalOpen(false)}
         />
@@ -626,7 +876,7 @@ export function CustomerAppointmentsPage() {
           isOpen={reportModalOpen}
           appointment={selectedAppointment}
           onSuccess={() => {
-            fetchAppointments();
+            fetchAppointments(true);
           }}
           onClose={() => setReportModalOpen(false)}
         />
@@ -634,5 +884,4 @@ export function CustomerAppointmentsPage() {
     </div>
   );
 }
-
 export default CustomerAppointmentsPage;
