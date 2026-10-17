@@ -7,10 +7,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import appointmentService from '../../services/appointmentService';
 import { getNormalizedCustomerQueueState } from '../../utils/queueDisplay';
-import StatusBadge from '../../components/StatusBadge';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import ReportIssueModal from '../../components/ReportIssueModal';
+import '../../styles/CustomerLiveQueue.css';
 
 export function CustomerLiveQueuePage() {
   const { queueEntryId } = useParams();
@@ -109,7 +109,7 @@ export function CustomerLiveQueuePage() {
 
   if (!myQueueEntry || loadedScope !== scopeKey) {
     return (
-      <div className="animate-fade-in" style={{ maxWidth: '850px', margin: '0 auto' }}>
+      <div className="customer-live-queue animate-fade-in">
         <EmptyState
           title="Queue Information Unavailable"
           message={error || 'Could not retrieve active queue status for this appointment.'}
@@ -138,90 +138,45 @@ export function CustomerLiveQueuePage() {
       ? new Date(appointment.start_datetime).toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' }) : null));
 
     return (
-      <div className="animate-fade-in" style={{ maxWidth: '800px', margin: '2rem auto' }}>
+      <div className="customer-live-queue animate-page-entrance">
         <EmergencyNotice appointment={appointment} />
-        <div style={{ marginBottom: '1.25rem' }}>
+        <div className="customer-live-queue__top-nav">
           <Link
             to="/customer/appointments"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              color: 'var(--lp-accent)',
-              fontWeight: 600,
-              textDecoration: 'none',
-              fontSize: '0.9rem',
-            }}
+            className="customer-live-queue__back-link"
           >
             ← Back to My Appointments
           </Link>
         </div>
 
-        <div
-          style={{
-            background: 'var(--lp-surface)',
-            borderRadius: '20px',
-            border: '1px solid var(--lp-border)',
-            padding: '2.5rem',
-            textAlign: 'center',
-            boxShadow: 'var(--lp-shadow-sm)',
-          }}
-        >
-          <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>⏱️</div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 0.5rem 0', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)' }}>
+        <div className="customer-live-queue__inactive-card">
+          <div className="customer-live-queue__inactive-icon" aria-hidden="true">⏱️</div>
+          <h2 className="customer-live-queue__inactive-title">
             This Queue Session Is No Longer Active
           </h2>
-          <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.95rem', maxWidth: '600px', margin: '0 auto 1.75rem auto', lineHeight: 1.5 }}>
+          <p className="customer-live-queue__inactive-desc">
             {qState.isUnresolved
               ? `This queue session was scheduled for ${formattedDate}. You checked in, but no consultation outcome was recorded by clinic staff.`
               : qState.guidance}
           </p>
 
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <div className="customer-live-queue__inactive-actions">
             <button
               onClick={() => navigate(`/customer/appointments/${appointment?.id || queueEntryId}`)}
-              style={{
-                padding: '0.7rem 1.25rem',
-                background: 'var(--lp-btn-bg)',
-                color: 'var(--lp-btn-text)',
-                border: 'none',
-                borderRadius: '10px',
-                fontWeight: 600,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-              }}
+              className="customer-live-queue__details-btn"
             >
               View Appointment Details
             </button>
 
             {qState.isUnresolved && (
               appointment?.has_issue_report ? (
-                <span
-                  style={{
-                    padding: '0.65rem 1.1rem',
-                    background: 'var(--lp-bg-subtle)',
-                    color: 'var(--lp-accent)',
-                    border: '1px solid var(--lp-border)',
-                    borderRadius: '10px',
-                    fontWeight: 700,
-                    fontSize: '0.9rem',
-                  }}
-                >
+                <span className="customer-live-queue__reported-badge">
                   ✓ Issue Reported
                 </span>
               ) : (
                 <button
                   onClick={() => setReportModalOpen(true)}
-                  style={{
-                    padding: '0.7rem 1.25rem',
-                    background: 'var(--lp-bg-subtle)',
-                    color: 'var(--color-warning)',
-                    border: '1px solid var(--lp-border)',
-                    borderRadius: '10px',
-                    fontWeight: 600,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                  }}
+                  className="customer-live-queue__report-btn"
                 >
                   ⚠️ Report an Issue
                 </button>
@@ -246,206 +201,148 @@ export function CustomerLiveQueuePage() {
   const estEndStr = formatTime(qState.estimatedEndTime);
 
   return (
-    <div className="animate-page-entrance" style={{ maxWidth: '820px', margin: '0 auto', padding: '0 0.5rem' }}>
-      {error && <p className="banner banner-warning" role="alert">{error}</p>}
-      {/* Top Header Bar */}
-      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="customer-live-queue animate-page-entrance">
+      {error && <p className="customer-live-queue__error-banner" role="alert">{error}</p>}
+
+      {/* Top Navigation Bar */}
+      <div className="customer-live-queue__top-nav">
         <Link
           to="/customer/appointments"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            color: 'var(--lp-accent)',
-            fontWeight: 600,
-            textDecoration: 'none',
-            fontSize: '0.9rem',
-          }}
+          className="customer-live-queue__back-link"
         >
           ← Back to My Appointments
         </Link>
         <button
           onClick={() => fetchQueueStatus(true)}
           disabled={refreshing}
-          style={{
-            padding: '0.45rem 0.9rem',
-            background: 'var(--lp-bg-subtle)',
-            color: 'var(--lp-text-subtle)',
-            border: '1px solid var(--lp-border)',
-            borderRadius: '8px',
-            fontSize: '0.85rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-          }}
+          className="customer-live-queue__refresh-btn"
+          aria-label="Refresh telemetry data"
         >
-          🔄 {refreshing ? 'Refreshing...' : 'Refresh Telemetry'}
+          <span className={`customer-live-queue__refresh-icon ${refreshing ? 'customer-live-queue__refresh-icon--spinning' : ''}`} aria-hidden="true">
+            🔄
+          </span>
+          <span>{refreshing ? 'Refreshing...' : 'Refresh Telemetry'}</span>
         </button>
       </div>
 
       <EmergencyNotice appointment={appointment} />
-      {/* Hero Queue Section (De-boxed open design) */}
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          {appointment?.organization_name || myQueueEntry.organization_name || 'Clinic'} &bull; {appointment?.service_name || myQueueEntry.service_name || 'Service Consultation'}
-        </div>
-        <div style={{ fontSize: '0.9rem', color: 'var(--lp-text-subtle)', marginTop: '0.2rem', marginBottom: '1.5rem' }}>
-          Provider: <strong style={{ color: 'var(--lp-text)' }}>{appointment?.provider_name || myQueueEntry.provider_name || 'Specialist'}</strong>
+
+      {/* Primary Hero Queue Card */}
+      <div className="customer-live-queue__hero-card">
+        <div className="customer-live-queue__meta-header">
+          <span className="customer-live-queue__org-service">
+            {appointment?.organization_name || myQueueEntry.organization_name || 'Clinic'} &bull; {appointment?.service_name || myQueueEntry.service_name || 'Service Consultation'}
+          </span>
+          <span className="customer-live-queue__provider">
+            Provider: <strong className="customer-live-queue__provider-name">{appointment?.provider_name || myQueueEntry.provider_name || 'Specialist'}</strong>
+          </span>
         </div>
 
         {/* Primary Serial Number Display */}
-        <div style={{ margin: '1rem 0' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--lp-text-subtle)' }}>
+        <div className="customer-live-queue__serial-container">
+          <span className="customer-live-queue__serial-label">
             Your Serial Number
           </span>
-          <h1 style={{ fontSize: '3.75rem', fontWeight: 800, fontFamily: 'Outfit, sans-serif', color: 'var(--lp-text)', margin: '0.2rem 0' }}>
+          <h1 className="customer-live-queue__serial-number">
             #{qState.serialNumber}
           </h1>
 
           {/* Status Pills */}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.4rem 1rem',
-              borderRadius: '9999px',
-              fontWeight: 700,
-              fontSize: '0.88rem',
-              background: qState.statusTone === 'success' ? 'var(--color-success-light)' : qState.statusTone === 'warning' ? 'var(--color-warning-light)' : 'var(--lp-bg-subtle)',
-              color: qState.statusTone === 'success' ? 'var(--color-success)' : qState.statusTone === 'warning' ? 'var(--color-warning)' : 'var(--lp-accent)',
-              border: `1px solid ${qState.statusTone === 'success' ? 'var(--color-success)' : qState.statusTone === 'warning' ? 'var(--color-warning)' : 'var(--lp-border)'}`,
-            }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'currentColor' }} />
+          <div className="customer-live-queue__status-row">
+            <span className={`customer-live-queue__status-pill customer-live-queue__status-pill--${qState.statusTone || 'info'}`}>
+              <span className={`customer-live-queue__status-dot ${qState.rawStatus === 'IN_PROGRESS' || qState.rawStatus === 'CALLED' ? 'customer-live-queue__status-dot--pulse' : ''}`} aria-hidden="true" />
               {qState.displayStatus}
             </span>
 
             {qState.secondaryStatus && (
-              <span style={{
-                padding: '0.4rem 0.9rem',
-                borderRadius: '9999px',
-                fontWeight: 600,
-                fontSize: '0.82rem',
-                background: 'var(--color-warning-light)',
-                color: 'var(--color-warning)',
-                border: '1px solid var(--color-warning)',
-              }}>
-                ⏰ {qState.secondaryStatus}
+              <span className="customer-live-queue__secondary-pill">
+                <span aria-hidden="true">⏰</span> {qState.secondaryStatus}
               </span>
             )}
           </div>
 
           {/* Human Guidance Statement */}
-          <p style={{ maxWidth: '560px', margin: '1.25rem auto 0 auto', fontSize: '1rem', color: 'var(--lp-text)', lineHeight: 1.5, fontWeight: 500 }}>
+          <p className="customer-live-queue__guidance">
             {qState.guidance}
           </p>
         </div>
       </div>
 
-      {/* Check-In Banner if pending */}
+      {/* Check-In Card if pending */}
       {canCheckIn && (
-        <div style={{
-          background: 'var(--color-warning-light)',
-          border: '1px solid var(--color-warning)',
-          borderRadius: '14px',
-          padding: '1.25rem 1.5rem',
-          marginBottom: '2rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '1rem',
-        }}>
-          <div>
-            <div style={{ fontWeight: 700, color: 'var(--color-warning)', fontSize: '0.95rem' }}>📍 Venue Check-In Available</div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--color-warning)', marginTop: '0.2rem' }}>
-              Check in upon arrival at the venue to enter the active queue list.
+        <div className="customer-live-queue__checkin-card">
+          <div className="customer-live-queue__checkin-content">
+            <div className="customer-live-queue__checkin-title">
+              <span aria-hidden="true">📍</span> Venue Check-In Available
             </div>
+            <p className="customer-live-queue__checkin-desc">
+              Check in upon arrival at the venue to enter the active queue list.
+            </p>
           </div>
           <button
             onClick={handleCheckInNow}
             disabled={checkingIn}
-            style={{
-              padding: '0.65rem 1.35rem',
-              background: 'var(--color-warning)',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '8px',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-            }}
+            className="customer-live-queue__checkin-btn"
           >
             {checkingIn ? 'Checking In...' : '✓ Check In Now'}
           </button>
         </div>
       )}
 
-      {/* Metrics Row (Horizontal typography-led, minimal borders) */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
-        gap: '1.25rem',
-        background: 'var(--lp-surface)',
-        border: '1px solid var(--lp-border)',
-        borderRadius: '16px',
-        padding: '1.5rem',
-        marginBottom: '2rem',
-      }}>
+      {/* Metrics Row (4-Column Command Grid) */}
+      <div className="customer-live-queue__metrics-grid">
         {/* Metric 1: Now Serving */}
-        <div style={{ textAlign: 'center', padding: '0.5rem' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-text-subtle)' }}>
+        <div className="customer-live-queue__metric-card">
+          <div className="customer-live-queue__metric-label">
             Now Serving
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif', margin: '0.2rem 0' }}>
+          <div className="customer-live-queue__metric-value customer-live-queue__metric-value--accent">
             {nowServingSerial ? `#${nowServingSerial}` : 'Not started'}
           </div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--lp-text-subtle)' }}>
+          <div className="customer-live-queue__metric-subtext">
             Active Consultation
           </div>
         </div>
 
         {/* Metric 2: Scheduled Ahead */}
-        <div style={{ textAlign: 'center', padding: '0.5rem', borderLeft: '1px solid var(--lp-border)', borderRight: '1px solid var(--lp-border)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-text-subtle)' }}>
+        <div className="customer-live-queue__metric-card">
+          <div className="customer-live-queue__metric-label">
             Scheduled Ahead
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-warning)', fontFamily: 'Outfit, sans-serif', margin: '0.2rem 0' }}>
+          <div className="customer-live-queue__metric-value customer-live-queue__metric-value--warning">
             {qState.scheduledAhead}
           </div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--lp-text-subtle)' }}>
+          <div className="customer-live-queue__metric-subtext">
             Reserved Serials
           </div>
         </div>
 
         {/* Metric 3: Checked-in Ahead */}
-        <div style={{ textAlign: 'center', padding: '0.5rem', borderRight: '1px solid var(--lp-border)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-text-subtle)' }}>
+        <div className="customer-live-queue__metric-card">
+          <div className="customer-live-queue__metric-label">
             Checked-In Ahead
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', margin: '0.2rem 0' }}>
+          <div className="customer-live-queue__metric-value">
             {qState.checkedInAhead}
           </div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--lp-text-subtle)' }}>
+          <div className="customer-live-queue__metric-subtext">
             Present at Venue
           </div>
         </div>
 
-        {/* Metric 4: Estimated Service / Recommended Arrival */}
-        <div style={{ textAlign: 'center', padding: '0.5rem' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--lp-text-subtle)' }}>
+        {/* Metric 4: Estimated Service / Consultation Status */}
+        <div className="customer-live-queue__metric-card">
+          <div className="customer-live-queue__metric-label">
             {qState.rawStatus === 'IN_PROGRESS' ? 'Consultation Status' : 'Estimated Service'}
           </div>
-          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif', margin: '0.5rem 0 0.2rem 0' }}>
+          <div className="customer-live-queue__metric-value customer-live-queue__metric-value--timing">
             {qState.rawStatus === 'IN_PROGRESS'
               ? (qState.remainingServiceMinutes != null ? `In Consultation (~${qState.remainingServiceMinutes}m rem.)` : 'In Consultation')
               : (!qState.providerHasStarted && qState.isDelayed
                   ? qState.timingPlaceholder
                   : (estStartStr && estEndStr ? `${estStartStr} – ${estEndStr}` : (estStartStr || qState.timingPlaceholder)))}
           </div>
-          <div style={{ fontSize: '0.78rem', color: (qState.rawStatus === 'IN_PROGRESS' || qState.isCheckedIn) ? 'var(--color-success)' : 'var(--lp-accent)' }}>
+          <div className={`customer-live-queue__metric-subtext ${(qState.rawStatus === 'IN_PROGRESS' || qState.isCheckedIn) ? 'customer-live-queue__metric-subtext--success' : 'customer-live-queue__metric-subtext--accent'}`}>
             {qState.rawStatus === 'IN_PROGRESS'
               ? (qState.actualStartedAt ? `Started at ${formatTime(qState.actualStartedAt)}` : 'Service underway')
               : (qState.isCheckedIn
@@ -456,8 +353,17 @@ export function CustomerLiveQueuePage() {
       </div>
 
       {/* Live Status Metadata Footer */}
-      <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--lp-text-subtle)', margin: '1.5rem 0' }}>
-        Live queue updates automatically every 10s {lastUpdated && `• Last updated ${lastUpdated.toLocaleTimeString()}`}
+      <div className="customer-live-queue__footer">
+        <div className="customer-live-queue__auto-refresh-text">
+          <span className="customer-live-queue__pulse-dot" aria-hidden="true" />
+          <span>Live queue updates automatically every 10s {lastUpdated && `• Last updated ${lastUpdated.toLocaleTimeString()}`}</span>
+        </div>
+        <Link
+          to={`/customer/appointments/${appointment?.id || queueEntryId}`}
+          className="customer-live-queue__view-details-link"
+        >
+          View Full Appointment Details →
+        </Link>
       </div>
     </div>
   );

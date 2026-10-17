@@ -1,0 +1,674 @@
+/* ==========================================================================
+   QueueTurn — Customer Live Queue Scoped Stylesheet
+   Prefix: .customer-live-queue
+   Design Language: Warm Ivory / Espresso Light, Deep Navy / Teal Dark
+   ========================================================================== */
+
+.customer-live-queue {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+/* --------------------------------------------------------------------------
+   1. Top Navigation Bar & Action Row
+   -------------------------------------------------------------------------- */
+.customer-live-queue__top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.customer-live-queue__back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-secondary-accent);
+  text-decoration: none;
+  transition: color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              transform var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.customer-live-queue__back-link:hover {
+  color: var(--color-secondary-accent-hover);
+  transform: translateX(-2px);
+}
+
+.customer-live-queue__back-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm, 6px);
+}
+
+.customer-live-queue__refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.95rem;
+  background-color: var(--color-surface);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              border-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              box-shadow var(--duration-fast, 150ms) var(--ease-out, ease-out);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.customer-live-queue__refresh-btn:hover:not(:disabled) {
+  background-color: var(--color-surface-subtle);
+  border-color: var(--color-border-hover, var(--color-border));
+  color: var(--color-text-main);
+}
+
+.customer-live-queue__refresh-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.customer-live-queue__refresh-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.customer-live-queue__refresh-icon {
+  font-size: 0.875rem;
+  display: inline-block;
+}
+
+.customer-live-queue__refresh-icon--spinning {
+  animation: customer-live-queue-spin 1s linear infinite;
+}
+
+@keyframes customer-live-queue-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.customer-live-queue__error-banner {
+  padding: 0.875rem 1.25rem;
+  border-radius: var(--radius-lg, 12px);
+  background-color: var(--color-warning-bg, #fffbeb);
+  border: 1px solid var(--color-warning-border, #fef3c7);
+  color: var(--color-warning, #b45309);
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   2. Primary Hero Queue Card
+   -------------------------------------------------------------------------- */
+.customer-live-queue__hero-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl, 20px);
+  padding: 2.25rem 2rem;
+  text-align: center;
+  box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.07));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.customer-live-queue__hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary-accent));
+}
+
+.customer-live-queue__meta-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 600px;
+}
+
+.customer-live-queue__org-service {
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: var(--color-secondary-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.customer-live-queue__provider {
+  font-size: 0.925rem;
+  color: var(--color-text-secondary);
+}
+
+.customer-live-queue__provider-name {
+  color: var(--color-text-main);
+  font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   3. Serial Number Display Ring
+   -------------------------------------------------------------------------- */
+.customer-live-queue__serial-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.5rem 0;
+}
+
+.customer-live-queue__serial-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.customer-live-queue__serial-number {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: clamp(3.25rem, 8vw, 4.25rem);
+  font-weight: 800;
+  color: var(--color-text-main);
+  line-height: 1.05;
+  margin: 0;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   4. Status Pills & Guidance Statement
+   -------------------------------------------------------------------------- */
+.customer-live-queue__status-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.customer-live-queue__status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 1.1rem;
+  border-radius: var(--radius-pill, 9999px);
+  font-size: 0.875rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.customer-live-queue__status-pill--success {
+  background-color: var(--color-success-bg, #ecfdf5);
+  color: var(--color-success, #059669);
+  border-color: var(--color-success-border, #a7f3d0);
+}
+
+.customer-live-queue__status-pill--warning {
+  background-color: var(--color-warning-bg, #fffbeb);
+  color: var(--color-warning, #d97706);
+  border-color: var(--color-warning-border, #fde68a);
+}
+
+.customer-live-queue__status-pill--info {
+  background-color: var(--color-info-bg, #eff6ff);
+  color: var(--color-info, #2563eb);
+  border-color: var(--color-info-border, #bfdbfe);
+}
+
+.customer-live-queue__status-pill--accent {
+  background-color: var(--color-accent-bg, #f0fdfa);
+  color: var(--color-secondary-accent, #0d9488);
+  border-color: var(--color-accent-border, #99f6e4);
+}
+
+.customer-live-queue__status-pill--danger {
+  background-color: var(--color-danger-bg, #fef2f2);
+  color: var(--color-danger, #dc2626);
+  border-color: var(--color-danger-border, #fecaca);
+}
+
+.customer-live-queue__status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
+}
+
+.customer-live-queue__status-dot--pulse {
+  animation: customer-live-queue-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes customer-live-queue-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+}
+
+.customer-live-queue__secondary-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.95rem;
+  border-radius: var(--radius-pill, 9999px);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background-color: var(--color-warning-bg, #fffbeb);
+  color: var(--color-warning, #d97706);
+  border: 1px solid var(--color-warning-border, #fde68a);
+}
+
+.customer-live-queue__guidance {
+  max-width: 580px;
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-text-main);
+  line-height: 1.55;
+  font-weight: 500;
+}
+
+/* --------------------------------------------------------------------------
+   5. Action Card: Venue Check-In Available
+   -------------------------------------------------------------------------- */
+.customer-live-queue__checkin-card {
+  background: linear-gradient(135deg, var(--color-warning-bg, #fffbeb) 0%, var(--color-surface) 100%);
+  border: 1.5px solid var(--color-warning-border, #fde68a);
+  border-radius: var(--radius-xl, 16px);
+  padding: 1.35rem 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+}
+
+.customer-live-queue__checkin-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 240px;
+}
+
+.customer-live-queue__checkin-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--color-warning, #b45309);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.customer-live-queue__checkin-desc {
+  font-size: 0.865rem;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.customer-live-queue__checkin-btn {
+  padding: 0.75rem 1.6rem;
+  background-color: var(--color-warning, #d97706);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.925rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              transform var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              box-shadow var(--duration-fast, 150ms) var(--ease-out, ease-out);
+  box-shadow: 0 2px 4px rgba(217, 119, 6, 0.25);
+  white-space: nowrap;
+}
+
+.customer-live-queue__checkin-btn:hover:not(:disabled) {
+  background-color: var(--color-warning-hover, #b45309);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(217, 119, 6, 0.35);
+}
+
+.customer-live-queue__checkin-btn:focus-visible {
+  outline: 2px solid var(--color-warning);
+  outline-offset: 3px;
+}
+
+.customer-live-queue__checkin-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* --------------------------------------------------------------------------
+   6. Queue Progression Metrics Grid (4-Column)
+   -------------------------------------------------------------------------- */
+.customer-live-queue__metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.customer-live-queue__metric-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 14px);
+  padding: 1.35rem 1rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+  transition: transform var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              box-shadow var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.customer-live-queue__metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.08));
+}
+
+.customer-live-queue__metric-label {
+  font-size: 0.725rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.customer-live-queue__metric-value {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+  line-height: 1.1;
+  margin: 0.15rem 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.customer-live-queue__metric-value--accent {
+  color: var(--color-secondary-accent);
+}
+
+.customer-live-queue__metric-value--warning {
+  color: var(--color-warning, #d97706);
+}
+
+.customer-live-queue__metric-value--timing {
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+}
+
+.customer-live-queue__metric-subtext {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  line-height: 1.35;
+}
+
+.customer-live-queue__metric-subtext--success {
+  color: var(--color-success, #059669);
+  font-weight: 600;
+}
+
+.customer-live-queue__metric-subtext--accent {
+  color: var(--color-secondary-accent);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   7. Live Metadata Footer
+   -------------------------------------------------------------------------- */
+.customer-live-queue__footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.customer-live-queue__auto-refresh-text {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.customer-live-queue__pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--color-success, #059669);
+  display: inline-block;
+  animation: customer-live-queue-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.customer-live-queue__view-details-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-secondary-accent);
+  text-decoration: none;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-md, 8px);
+  transition: background-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.customer-live-queue__view-details-link:hover {
+  background-color: var(--color-surface-subtle);
+  color: var(--color-secondary-accent-hover);
+}
+
+.customer-live-queue__view-details-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   8. Inactive / Past Session Card
+   -------------------------------------------------------------------------- */
+.customer-live-queue__inactive-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl, 20px);
+  padding: 2.75rem 2rem;
+  text-align: center;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.customer-live-queue__inactive-icon {
+  font-size: 2.75rem;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.customer-live-queue__inactive-title {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+.customer-live-queue__inactive-desc {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  max-width: 580px;
+  line-height: 1.55;
+  margin: 0 0 0.5rem 0;
+}
+
+.customer-live-queue__inactive-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.customer-live-queue__details-btn {
+  padding: 0.7rem 1.4rem;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              transform var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.customer-live-queue__details-btn:hover {
+  background-color: var(--color-primary-hover);
+  transform: translateY(-1px);
+}
+
+.customer-live-queue__details-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.customer-live-queue__report-btn {
+  padding: 0.7rem 1.3rem;
+  background-color: var(--color-surface-subtle);
+  color: var(--color-warning, #d97706);
+  border: 1px solid var(--color-warning-border, #fde68a);
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.customer-live-queue__report-btn:hover {
+  background-color: var(--color-warning-bg, #fffbeb);
+}
+
+.customer-live-queue__report-btn:focus-visible {
+  outline: 2px solid var(--color-warning);
+  outline-offset: 3px;
+}
+
+.customer-live-queue__reported-badge {
+  padding: 0.65rem 1.2rem;
+  background-color: var(--color-surface-subtle);
+  color: var(--color-secondary-accent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   9. Responsive Breakpoints
+   -------------------------------------------------------------------------- */
+@media (max-width: 860px) {
+  .customer-live-queue__metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .customer-live-queue {
+    padding: 1rem 0.75rem 2.5rem;
+    gap: 1.25rem;
+  }
+
+  .customer-live-queue__hero-card {
+    padding: 1.75rem 1.25rem;
+    border-radius: var(--radius-lg, 16px);
+  }
+
+  .customer-live-queue__serial-number {
+    font-size: 3.5rem;
+  }
+
+  .customer-live-queue__checkin-card {
+    padding: 1.15rem 1.25rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .customer-live-queue__checkin-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .customer-live-queue__inactive-card {
+    padding: 2rem 1.25rem;
+    border-radius: var(--radius-lg, 16px);
+  }
+
+  .customer-live-queue__inactive-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .customer-live-queue__inactive-actions > button,
+  .customer-live-queue__inactive-actions > span {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 420px) {
+  .customer-live-queue__metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-live-queue__metric-card {
+    padding: 1.1rem 0.85rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   10. Reduced Motion
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .customer-live-queue *,
+  .customer-live-queue *::before,
+  .customer-live-queue *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
