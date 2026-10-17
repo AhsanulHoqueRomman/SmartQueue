@@ -1,0 +1,681 @@
+/* ==========================================================================
+   QueueTurn — Provider Queue Command Board Scoped Stylesheet
+   Prefix: .provider-queue
+   Design Language: Warm Ivory / Espresso Light, Deep Navy / Teal Dark
+   ========================================================================== */
+
+.provider-queue {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  min-width: 0;
+}
+
+/* --------------------------------------------------------------------------
+   1. Command Board Header
+   -------------------------------------------------------------------------- */
+.provider-queue__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.provider-queue__header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.provider-queue__title {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-weight: 800;
+  color: var(--color-text-main);
+  margin: 0;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.provider-queue__subtitle {
+  font-size: 0.925rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.provider-queue__subtitle-org {
+  color: var(--color-secondary-accent);
+  font-weight: 600;
+}
+
+.provider-queue__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.provider-queue__auto-refresh-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-md, 8px);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  transition: border-color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.provider-queue__auto-refresh-label:hover {
+  border-color: var(--color-border-hover, var(--color-border));
+}
+
+.provider-queue__auto-refresh-input {
+  accent-color: var(--color-primary);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
+   2. Date Control & Unfinished Queue Bar
+   -------------------------------------------------------------------------- */
+.provider-queue__date-bar {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl, 16px);
+  padding: 1.1rem 1.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.provider-queue__date-picker-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.provider-queue__date-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.provider-queue__date-input {
+  padding: 0.45rem 0.85rem;
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-main);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              box-shadow var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.provider-queue__date-input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.provider-queue__unfinished-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.provider-queue__unfinished-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-pill, 9999px);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  background-color: var(--color-warning-bg, #fffbeb);
+  color: var(--color-warning, #d97706);
+  border: 1px solid var(--color-warning-border, #fde68a);
+  cursor: pointer;
+  transition: background-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              transform var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.provider-queue__unfinished-pill:hover {
+  background-color: #fef3c7;
+  transform: translateY(-1px);
+}
+
+.provider-queue__unfinished-pill:focus-visible {
+  outline: 2px solid var(--color-warning);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   3. Banners & Feedback
+   -------------------------------------------------------------------------- */
+.provider-queue__banner {
+  padding: 0.875rem 1.25rem;
+  border-radius: var(--radius-lg, 12px);
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.45;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.provider-queue__banner--success {
+  background-color: var(--color-success-bg, #ecfdf5);
+  border: 1px solid var(--color-success-border, #a7f3d0);
+  color: var(--color-success, #059669);
+}
+
+.provider-queue__banner--error {
+  background-color: var(--color-danger-bg, #fef2f2);
+  border: 1px solid var(--color-danger-border, #fecaca);
+  color: var(--color-danger, #dc2626);
+}
+
+/* --------------------------------------------------------------------------
+   4. Active Consultation Console
+   -------------------------------------------------------------------------- */
+.provider-queue__console {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl, 20px);
+  padding: 1.75rem 2rem;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.06));
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.provider-queue__console-title {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+/* State A: In Progress */
+.provider-queue__stage-card {
+  border-radius: var(--radius-lg, 16px);
+  padding: 1.75rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.75rem;
+  flex-wrap: wrap;
+  border: 1.5px solid transparent;
+  transition: box-shadow var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.provider-queue__stage-card--in-progress {
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-accent-bg, #f0fdfa) 100%);
+  border-color: var(--color-accent-border, #99f6e4);
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.08);
+}
+
+.provider-queue__stage-card--called {
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-warning-bg, #fffbeb) 100%);
+  border-color: var(--color-warning-border, #fde68a);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.08);
+}
+
+.provider-queue__stage-card--idle {
+  background-color: var(--color-surface-subtle);
+  border-color: var(--color-border);
+}
+
+.provider-queue__stage-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 260px;
+}
+
+.provider-queue__stage-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.provider-queue__stage-serial {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: clamp(2rem, 5vw, 2.75rem);
+  font-weight: 800;
+  color: var(--color-text-main);
+  line-height: 1.1;
+  margin: 0.15rem 0;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.provider-queue__stage-serial--called {
+  color: var(--color-warning, #d97706);
+}
+
+.provider-queue__stage-patient {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0;
+}
+
+.provider-queue__stage-contact {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.provider-queue__stage-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+/* --------------------------------------------------------------------------
+   5. Buttons & Controls
+   -------------------------------------------------------------------------- */
+.provider-queue__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.35rem;
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              transform var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              box-shadow var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              border-color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+  white-space: nowrap;
+}
+
+.provider-queue__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.provider-queue__btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.provider-queue__btn--primary {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.provider-queue__btn--primary:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.12);
+}
+
+.provider-queue__btn--success {
+  background-color: var(--color-success, #059669);
+  color: #ffffff;
+}
+
+.provider-queue__btn--success:hover:not(:disabled) {
+  background-color: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(5, 150, 105, 0.25);
+}
+
+.provider-queue__btn--danger {
+  background-color: var(--color-danger, #dc2626);
+  color: #ffffff;
+}
+
+.provider-queue__btn--danger:hover:not(:disabled) {
+  background-color: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(220, 38, 38, 0.25);
+}
+
+.provider-queue__btn--secondary {
+  background-color: var(--color-surface);
+  color: var(--color-text-main);
+  border-color: var(--color-border);
+}
+
+.provider-queue__btn--secondary:hover:not(:disabled) {
+  background-color: var(--color-surface-subtle);
+  border-color: var(--color-border-hover, var(--color-border));
+}
+
+.provider-queue__btn--walkin {
+  background-color: var(--color-secondary-accent);
+  color: #ffffff;
+}
+
+.provider-queue__btn--walkin:hover:not(:disabled) {
+  background-color: var(--color-secondary-accent-hover, #0f766e);
+  transform: translateY(-1px);
+}
+
+.provider-queue__btn--refresh {
+  background-color: var(--color-surface);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+  padding: 0.55rem 0.95rem;
+}
+
+.provider-queue__btn--refresh:hover:not(:disabled) {
+  color: var(--color-text-main);
+}
+
+/* --------------------------------------------------------------------------
+   6. Daily Waiting Queue Roster Table
+   -------------------------------------------------------------------------- */
+.provider-queue__roster-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl, 20px);
+  padding: 1.75rem 2rem;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.06));
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.provider-queue__roster-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.provider-queue__roster-title {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0;
+}
+
+.provider-queue__table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--color-border);
+}
+
+.provider-queue__table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.provider-queue__table th {
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.provider-queue__table td {
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid var(--color-border-subtle, var(--color-border));
+  color: var(--color-text-main);
+  vertical-align: middle;
+}
+
+.provider-queue__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.provider-queue__table tbody tr:hover {
+  background-color: var(--color-surface-subtle);
+}
+
+.provider-queue__serial-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-md, 8px);
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1rem;
+  font-weight: 800;
+  background-color: var(--color-surface-subtle);
+  color: var(--color-secondary-accent);
+  border: 1px solid var(--color-border);
+  font-variant-numeric: tabular-nums;
+}
+
+.provider-queue__arrival-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-pill, 9999px);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.provider-queue__arrival-badge--walkin {
+  background-color: var(--color-warning-bg, #fffbeb);
+  color: var(--color-warning, #d97706);
+  border-color: var(--color-warning-border, #fde68a);
+}
+
+.provider-queue__arrival-badge--scheduled {
+  background-color: var(--color-info-bg, #eff6ff);
+  color: var(--color-info, #2563eb);
+  border-color: var(--color-info-border, #bfdbfe);
+}
+
+.provider-queue__presence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-pill, 9999px);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.provider-queue__presence-badge--ready {
+  background-color: var(--color-success-bg, #ecfdf5);
+  color: var(--color-success, #059669);
+  border: 1px solid var(--color-success-border, #a7f3d0);
+}
+
+.provider-queue__presence-badge--pending {
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+/* --------------------------------------------------------------------------
+   7. Modals: Walk-In Registration & Skip Confirmation
+   -------------------------------------------------------------------------- */
+.provider-queue__modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.provider-queue__modal-dialog {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl, 20px);
+  padding: 2rem 2.25rem;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.provider-queue__modal-title {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+.provider-queue__modal-desc {
+  font-size: 0.925rem;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.provider-queue__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.provider-queue__form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.provider-queue__form-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.provider-queue__form-input,
+.provider-queue__form-select,
+.provider-queue__form-textarea {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-main);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.9rem;
+  transition: border-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              box-shadow var(--duration-fast, 150ms) var(--ease-out, ease-out);
+  box-sizing: border-box;
+}
+
+.provider-queue__form-input:focus-visible,
+.provider-queue__form-select:focus-visible,
+.provider-queue__form-textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.provider-queue__modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   8. Responsive Breakpoints
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .provider-queue {
+    padding: 1rem 0.75rem 3rem;
+    gap: 1.25rem;
+  }
+
+  .provider-queue__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .provider-queue__header-actions {
+    justify-content: space-between;
+  }
+
+  .provider-queue__date-bar {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .provider-queue__console,
+  .provider-queue__roster-card {
+    padding: 1.25rem 1rem;
+    border-radius: var(--radius-lg, 16px);
+  }
+
+  .provider-queue__stage-card {
+    padding: 1.25rem 1rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .provider-queue__stage-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .provider-queue__stage-actions > button {
+    width: 100%;
+  }
+
+  .provider-queue__modal-dialog {
+    padding: 1.5rem 1.25rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   9. Reduced Motion
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .provider-queue *,
+  .provider-queue *::before,
+  .provider-queue *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

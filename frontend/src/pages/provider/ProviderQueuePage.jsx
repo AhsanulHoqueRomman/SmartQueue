@@ -1,7 +1,7 @@
 import { EmergencyPanel } from '../../components/EmergencyPanel';
 import { useRequestScope } from '../../hooks/useRequestScope';
 import { currentBusinessDate } from '../../utils/bookingDisplay';
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTenant } from '../../contexts/TenantContext';
 import organizationService from '../../services/organizationService';
@@ -9,6 +9,7 @@ import queueService from '../../services/queueService';
 import { StatusBadge } from '../../components/StatusBadge';
 import { LoadingState } from '../../components/LoadingState';
 import { EmptyState } from '../../components/EmptyState';
+import '../../styles/ProviderQueue.css';
 
 export function ProviderQueuePage() {
   const { user } = useAuth();
@@ -24,6 +25,12 @@ export function ProviderQueuePage() {
   const [actionFeedback, setActionFeedback] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [processingId, setProcessingId] = useState(null);
+
+  // Skip confirmation state and accessibility refs
+  const [skipConfirmEntry, setSkipConfirmEntry] = useState(null);
+  const skipOriginatingBtnRef = useRef(null);
+  const skipCancelBtnRef = useRef(null);
+  const skipDialogRef = useRef(null);
 
   // Walk-in modal state
   const [showWalkInModal, setShowWalkInModal] = useState(false);
@@ -202,6 +209,82 @@ export function ProviderQueuePage() {
     }
   };
 
+  const closeSkipConfirm = useCallback(() => {
+    if (mutationBusy.current || processingId) return;
+    setSkipConfirmEntry(null);
+    const triggerEl = skipOriginatingBtnRef.current;
+    skipOriginatingBtnRef.current = null;
+    if (triggerEl && typeof triggerEl.focus === 'function') {
+      setTimeout(() => {
+        try {
+          triggerEl.focus();
+        } catch {
+          // ignore if unmounted
+        }
+      }, 0);
+    }
+  }, [processingId]);
+
+  const handleConfirmSkip = async () => {
+    if (!skipConfirmEntry || mutationBusy.current || processingId) return;
+    const entryId = skipConfirmEntry.id;
+    skipOriginatingBtnRef.current = null;
+    try {
+      await handleSkip(entryId);
+    } finally {
+      setSkipConfirmEntry(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!skipConfirmEntry) return;
+
+    // 1. Initial focus: place focus on Cancel button
+    const focusTimer = setTimeout(() => {
+      skipCancelBtnRef.current?.focus?.();
+    }, 50);
+
+    // 2. Focus trap and Escape key listener
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        closeSkipConfirm();
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        if (!skipDialogRef.current) return;
+        const focusableElements = skipDialogRef.current.querySelectorAll(
+          'button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (!focusableElements.length) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement.focus();
+          }
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      clearTimeout(focusTimer);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [skipConfirmEntry, closeSkipConfirm]);
+
   const handleWalkInSubmit = async (e) => {
     if (mutationBusy.current) return;
     e.preventDefault();
@@ -245,24 +328,46 @@ export function ProviderQueuePage() {
   const checkedInWaitingCount = waitingEntries.filter((e) => e.is_checked_in).length;
 
   return (
-    <div className="app-container animate-page-entrance">
-      <EmergencyPanel orgId={currentOrg.id} providerId={providerProfile.id} serviceDate={queueDate} mode="provider" onChanged={() => fetchQueue(true)} />
-      <div className="flex justify-between items-center flex-wrap gap-md" style={{ marginBottom: '1.75rem' }}>
-        <div>
-          <h1>Serial Provider Queue Command Board</h1>
-          <p className="subtitle" style={{ marginTop: '0.25rem' }}>Serial-Based Provider Desk &bull; {currentOrg?.name}</p>
+    <div className="provider-queue animate-page-entrance">
+      <EmergencyPanel
+        orgId={currentOrg.id}
+        providerId={providerProfile.id}
+        serviceDate={queueDate}
+        mode="provider"
+        onChanged={() => fetchQueue(true)}
+      />
+
+      {/* Top Header Command Bar */}
+      <div className="provider-queue__header">
+        <div className="provider-queue__header-info">
+          <h1 className="provider-queue__title">Provider Queue Command Board</h1>
+          <p className="provider-queue__subtitle">
+            Serial-Based Provider Desk &bull; <span className="provider-queue__subtitle-org">{currentOrg?.name}</span>
+          </p>
         </div>
-        <div className="flex items-center gap-sm">
+
+        <div className="provider-queue__header-actions">
           <button
-            className="btn btn-secondary"
+            type="button"
+            className="provider-queue__btn provider-queue__btn--walkin"
             onClick={() => setShowWalkInModal(true)}
-            style={{ fontWeight: 700 }}
           >
             ➕ Register Front-Desk Walk-In
           </button>
-          <label className="flex items-center gap-xs text-sm text-muted" style={{ cursor: 'pointer', marginLeft: '0.5rem' }}>
+
+          <button
+            type="button"
+            className="provider-queue__btn provider-queue__btn--refresh"
+            onClick={() => fetchQueue(true)}
+            title="Refresh queue data now"
+          >
+            🔄 Refresh
+          </button>
+
+          <label className="provider-queue__auto-refresh-label">
             <input
               type="checkbox"
+              className="provider-queue__auto-refresh-input"
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
             />
@@ -271,79 +376,130 @@ export function ProviderQueuePage() {
         </div>
       </div>
 
-      <div className="card">
-        <label>Booking-date queue<input className="form-control" type="date" value={queueDate} onChange={e => setQueueDate(e.target.value)} /></label>
-        {queueDates.filter(date => date !== queueDate).map(date => <button key={date} className="btn btn-sm btn-outline" onClick={() => setQueueDate(date)}>Unfinished queue: {date}</button>)}
+      {/* Queue Date Control & Unfinished Queues Bar */}
+      <div className="provider-queue__date-bar">
+        <div className="provider-queue__date-picker-wrap">
+          <span className="provider-queue__date-label">Queue Date:</span>
+          <input
+            className="provider-queue__date-input"
+            type="date"
+            value={queueDate}
+            onChange={(e) => setQueueDate(e.target.value)}
+          />
+        </div>
+
+        {queueDates.filter((date) => date !== queueDate).length > 0 && (
+          <div className="provider-queue__unfinished-pills">
+            {queueDates
+              .filter((date) => date !== queueDate)
+              .map((date) => (
+                <button
+                  key={date}
+                  type="button"
+                  className="provider-queue__unfinished-pill"
+                  onClick={() => setQueueDate(date)}
+                >
+                  ⚠️ Unfinished queue: {date}
+                </button>
+              ))}
+          </div>
+        )}
       </div>
+
+      {/* Action Feedback Banner */}
       {actionFeedback && (
         <div
-          className="banner"
-          style={{
-            padding: '1rem',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '1.5rem',
-            background: actionFeedback.type === 'success' ? 'var(--color-success-bg)' : 'var(--color-error-bg)',
-            color: actionFeedback.type === 'success' ? 'var(--color-success)' : 'var(--color-error)',
-            border: `1px solid ${actionFeedback.type === 'success' ? 'var(--color-success-border)' : 'var(--color-error-border)'}`,
-          }}
+          className={`provider-queue__banner provider-queue__banner--${actionFeedback.type}`}
+          role="status"
         >
+          {actionFeedback.type === 'success' ? '✓ ' : '⚠️ '}
           {actionFeedback.message}
         </div>
       )}
 
+      {/* Error Banner */}
       {error && (
-        <div className="error-banner" style={{ padding: '1rem', background: 'var(--color-error-bg)', color: 'var(--color-error)', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem' }}>
-          {error}
+        <div className="provider-queue__banner provider-queue__banner--error" role="alert">
+          ⚠️ {error}
         </div>
       )}
 
-      {/* Active / Called Patient Highlight Card */}
-      <div className="card animate-section stagger-1 animate-zoom-in" style={{ marginBottom: '1.75rem', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
-        <h3 style={{ marginBottom: '1rem' }}>Active Consultation & Service Controls</h3>
+      {/* Active Consultation Console */}
+      <div className="provider-queue__console">
+        <h2 className="provider-queue__console-title">Active Consultation & Service Controls</h2>
 
         {activeEntry ? (
-          <div className="flex justify-between items-center flex-wrap gap-md animate-zoom-in" style={{ backgroundColor: 'var(--color-primary-light)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-primary-border)' }}>
-            <div>
-              <StatusBadge status="IN_PROGRESS" type="queue" />
-              <h2 className="animate-float" style={{ fontSize: '2.5rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--color-primary-text)' }}>
+          /* State 1: In Consultation */
+          <div className="provider-queue__stage-card provider-queue__stage-card--in-progress">
+            <div className="provider-queue__stage-info">
+              <div className="provider-queue__stage-badge-row">
+                <StatusBadge status="IN_PROGRESS" type="queue" />
+                <span className="provider-queue__arrival-badge provider-queue__arrival-badge--scheduled">
+                  Service In Progress
+                </span>
+              </div>
+              <div className="provider-queue__stage-serial">
                 Serial #{activeEntry.serial_number || activeEntry.token_number}
-              </h2>
-              <p className="text-main font-semibold" style={{ marginTop: '0.15rem' }}>
+              </div>
+              <p className="provider-queue__stage-patient">
                 {activeEntry.customer_name || activeEntry.customer_email || 'Patient'}
               </p>
-              <span className="badge badge-success" style={{ marginTop: '0.35rem' }}>Service In Progress</span>
+              <div className="provider-queue__stage-contact">
+                {activeEntry.service_name && `${activeEntry.service_name} • `}
+                {activeEntry.customer_phone || activeEntry.customer_email || ''}
+              </div>
             </div>
-            <button
-              className="btn btn-success"
-              onClick={() => handleComplete(activeEntry.id)}
-              disabled={processingId === activeEntry.id}
-            >
-              {processingId === activeEntry.id ? 'Completing...' : '✔ Complete Service'}
-            </button>
+
+            <div className="provider-queue__stage-actions">
+              <button
+                type="button"
+                className="provider-queue__btn provider-queue__btn--success"
+                onClick={() => handleComplete(activeEntry.id)}
+                disabled={processingId === activeEntry.id}
+              >
+                {processingId === activeEntry.id ? 'Completing...' : '✔ Complete Service'}
+              </button>
+            </div>
           </div>
         ) : calledEntry ? (
-          <div className="flex justify-between items-center flex-wrap gap-md" style={{ backgroundColor: 'var(--color-warning-bg)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-warning-border)' }}>
-            <div>
-              <StatusBadge status="CALLED" type="queue" />
-              <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--color-warning)' }}>
+          /* State 2: Patient Called */
+          <div className="provider-queue__stage-card provider-queue__stage-card--called">
+            <div className="provider-queue__stage-info">
+              <div className="provider-queue__stage-badge-row">
+                <StatusBadge status="CALLED" type="queue" />
+                <span className="provider-queue__arrival-badge provider-queue__arrival-badge--walkin">
+                  Called to Counter / Room
+                </span>
+              </div>
+              <div className="provider-queue__stage-serial provider-queue__stage-serial--called">
                 Serial #{calledEntry.serial_number || calledEntry.token_number}
-              </h2>
-              <p className="text-main font-semibold" style={{ marginTop: '0.15rem' }}>
+              </div>
+              <p className="provider-queue__stage-patient">
                 {calledEntry.customer_name || calledEntry.customer_email || 'Patient'}
               </p>
-              <span className="badge badge-warning" style={{ marginTop: '0.35rem' }}>Called to Counter/Room</span>
+              <div className="provider-queue__stage-contact">
+                {calledEntry.service_name && `${calledEntry.service_name} • `}
+                {calledEntry.customer_phone || calledEntry.customer_email || ''}
+              </div>
             </div>
-            <div className="flex gap-sm">
+
+            <div className="provider-queue__stage-actions">
               <button
-                className="btn btn-primary"
+                type="button"
+                className="provider-queue__btn provider-queue__btn--primary"
                 onClick={() => handleStart(calledEntry.id)}
                 disabled={processingId === calledEntry.id}
               >
                 {processingId === calledEntry.id ? 'Starting...' : '▶ Start Service'}
               </button>
+
               <button
-                className="btn btn-danger"
-                onClick={() => handleSkip(calledEntry.id)}
+                type="button"
+                className="provider-queue__btn provider-queue__btn--danger"
+                onClick={(e) => {
+                  skipOriginatingBtnRef.current = e.currentTarget;
+                  setSkipConfirmEntry(calledEntry);
+                }}
                 disabled={processingId === calledEntry.id}
               >
                 {processingId === calledEntry.id ? 'Skipping...' : '✖ Skip'}
@@ -351,30 +507,39 @@ export function ProviderQueuePage() {
             </div>
           </div>
         ) : (
-          <div className="flex justify-between items-center flex-wrap gap-md" style={{ backgroundColor: 'var(--color-bg-subtle)', padding: '1.5rem', borderRadius: 'var(--radius-lg)' }}>
-            <div>
-              <p className="text-main font-semibold">No active patient currently in consultation room.</p>
-              <p className="text-sm text-muted" style={{ marginTop: '0.15rem' }}>
+          /* State 3: Idle */
+          <div className="provider-queue__stage-card provider-queue__stage-card--idle">
+            <div className="provider-queue__stage-info">
+              <p className="provider-queue__stage-patient">No active patient currently in consultation room.</p>
+              <p className="provider-queue__stage-contact">
                 {checkedInWaitingCount > 0
                   ? `${checkedInWaitingCount} checked-in patient(s) ready to be called.`
                   : 'No checked-in patients waiting. Click Call Next when a checked-in patient arrives.'}
               </p>
             </div>
-            <button
-              className="btn btn-primary"
-              onClick={handleCallNext}
-              disabled={checkedInWaitingCount === 0 || processingId === 'call-next'}
-            >
-              {processingId === 'call-next' ? 'Calling...' : `🔊 Call Next (${checkedInWaitingCount} Checked-In Ready)`}
-            </button>
+
+            <div className="provider-queue__stage-actions">
+              <button
+                type="button"
+                className="provider-queue__btn provider-queue__btn--primary"
+                onClick={handleCallNext}
+                disabled={checkedInWaitingCount === 0 || processingId === 'call-next'}
+              >
+                {processingId === 'call-next'
+                  ? 'Calling...'
+                  : `🔊 Call Next (${checkedInWaitingCount} Checked-In Ready)`}
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Waiting List Table */}
-      <div className="card animate-section stagger-2">
-        <div className="flex justify-between items-center" style={{ marginBottom: '1rem' }}>
-          <h3>Daily Serial Queue List ({waitingEntries.length} Total &bull; {checkedInWaitingCount} Checked In)</h3>
+      {/* Daily Waiting Queue Roster Table */}
+      <div className="provider-queue__roster-card">
+        <div className="provider-queue__roster-header">
+          <h2 className="provider-queue__roster-title">
+            Daily Serial Queue List ({waitingEntries.length} Total &bull; {checkedInWaitingCount} Checked In)
+          </h2>
         </div>
 
         {waitingEntries.length === 0 ? (
@@ -383,13 +548,13 @@ export function ProviderQueuePage() {
             message="No patients are currently in the waiting list for today."
           />
         ) : (
-          <div className="table-container">
-            <table className="table">
+          <div className="provider-queue__table-wrap">
+            <table className="provider-queue__table">
               <thead>
                 <tr>
                   <th>Serial #</th>
-                  <th>Patient Name & Contact</th>
-                  <th>Arrival Type</th>
+                  <th>Patient Details</th>
+                  <th>Arrival Channel</th>
                   <th>Presence / Check-In</th>
                 </tr>
               </thead>
@@ -397,24 +562,34 @@ export function ProviderQueuePage() {
                 {waitingEntries.map((entry) => (
                   <tr key={entry.id}>
                     <td>
-                      <span className="badge badge-info" style={{ fontSize: '0.9rem', fontWeight: 800 }}>
+                      <span className="provider-queue__serial-badge">
                         #{entry.serial_number || entry.token_number}
                       </span>
                     </td>
                     <td>
-                      <div className="font-semibold">{entry.customer_name || 'Walk-In / Customer'}</div>
-                      <div className="text-xs text-muted">{entry.customer_email || entry.customer_phone || ''}</div>
+                      <div style={{ fontWeight: 700 }}>{entry.customer_name || 'Walk-In / Customer'}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                        {entry.customer_email || entry.customer_phone || ''}
+                      </div>
                     </td>
                     <td>
-                      <span className="badge" style={{ fontSize: '0.75rem', background: 'var(--lp-bg-subtle)', color: entry.arrival_type === 'WALK_IN' ? 'var(--color-warning)' : 'var(--lp-accent)', border: '1px solid var(--lp-border)' }}>
+                      <span
+                        className={`provider-queue__arrival-badge provider-queue__arrival-badge--${
+                          entry.arrival_type === 'WALK_IN' ? 'walkin' : 'scheduled'
+                        }`}
+                      >
                         {entry.arrival_type === 'WALK_IN' ? '🚶 Walk-In' : '📅 Scheduled'}
                       </span>
                     </td>
                     <td>
                       {entry.is_checked_in ? (
-                        <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>✓ Checked In</span>
+                        <span className="provider-queue__presence-badge provider-queue__presence-badge--ready">
+                          ✓ Checked In
+                        </span>
                       ) : (
-                        <span className="badge badge-warning" style={{ fontSize: '0.75rem' }}>⏳ Not Checked In</span>
+                        <span className="provider-queue__presence-badge provider-queue__presence-badge--pending">
+                          ⏳ Not Checked In
+                        </span>
                       )}
                     </td>
                   </tr>
@@ -425,46 +600,93 @@ export function ProviderQueuePage() {
         )}
       </div>
 
+      {/* Skip Confirmation Modal */}
+      {skipConfirmEntry && (
+        <div
+          className="provider-queue__modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="skip-dialog-title"
+        >
+          <div className="provider-queue__modal-dialog" ref={skipDialogRef}>
+            <h3 id="skip-dialog-title" className="provider-queue__modal-title">
+              Confirm Skip / Mark Absent
+            </h3>
+            <p className="provider-queue__modal-desc">
+              Are you sure you want to skip Serial #{skipConfirmEntry.serial_number || skipConfirmEntry.token_number} (
+              {skipConfirmEntry.customer_name || skipConfirmEntry.customer_email || 'Patient'})?
+            </p>
+            <p className="provider-queue__modal-desc" style={{ fontSize: '0.875rem', color: 'var(--color-warning)' }}>
+              ⚠️ The customer will be marked absent and their appointment transitioned to NO_SHOW. Staff or managers may handle an authorized restoration if the customer returns.
+            </p>
+            <div className="provider-queue__modal-actions">
+              <button
+                ref={skipCancelBtnRef}
+                type="button"
+                className="provider-queue__btn provider-queue__btn--secondary"
+                onClick={closeSkipConfirm}
+                disabled={processingId === skipConfirmEntry.id || mutationBusy.current}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="provider-queue__btn provider-queue__btn--danger"
+                onClick={handleConfirmSkip}
+                disabled={processingId === skipConfirmEntry.id || mutationBusy.current}
+              >
+                {processingId === skipConfirmEntry.id ? 'Skipping...' : 'Confirm Skip / Mark Absent'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Front-Desk Walk-In Registration Modal */}
       {showWalkInModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div className="card animate-zoom-in" style={{ width: '90%', maxWidth: '500px', background: 'var(--lp-surface)', color: 'var(--lp-text)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--lp-border)' }}>
-            <h2 style={{ marginBottom: '1rem', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)' }}>Register Front-Desk Walk-In Patient</h2>
-            <form onSubmit={handleWalkInSubmit}>
-              <div className="form-group">
-                <label className="form-label">First Name *</label>
+        <div className="provider-queue__modal-overlay" role="dialog" aria-modal="true" aria-labelledby="walkin-dialog-title">
+          <div className="provider-queue__modal-dialog">
+            <h3 id="walkin-dialog-title" className="provider-queue__modal-title">
+              Register Front-Desk Walk-In Patient
+            </h3>
+            <form onSubmit={handleWalkInSubmit} className="provider-queue__form">
+              <div className="provider-queue__form-group">
+                <label className="provider-queue__form-label">First Name *</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className="provider-queue__form-input"
                   required
                   value={walkInForm.first_name}
                   onChange={(e) => setWalkInForm({ ...walkInForm, first_name: e.target.value })}
                 />
               </div>
-              <div className="form-group">
-                <label className="form-label">Last Name *</label>
+
+              <div className="provider-queue__form-group">
+                <label className="provider-queue__form-label">Last Name *</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className="provider-queue__form-input"
                   required
                   value={walkInForm.last_name}
                   onChange={(e) => setWalkInForm({ ...walkInForm, last_name: e.target.value })}
                 />
               </div>
-              <div className="form-group">
-                <label className="form-label">Phone Number (Optional)</label>
+
+              <div className="provider-queue__form-group">
+                <label className="provider-queue__form-label">Phone Number (Optional)</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className="provider-queue__form-input"
                   placeholder="+8801700000000"
                   value={walkInForm.phone_number}
                   onChange={(e) => setWalkInForm({ ...walkInForm, phone_number: e.target.value })}
                 />
               </div>
-              <div className="form-group">
-                <label className="form-label">Service *</label>
+
+              <div className="provider-queue__form-group">
+                <label className="provider-queue__form-label">Service *</label>
                 <select
-                  className="form-control"
+                  className="provider-queue__form-select"
                   required
                   value={walkInForm.service_id}
                   onChange={(e) => setWalkInForm({ ...walkInForm, service_id: e.target.value })}
@@ -476,11 +698,30 @@ export function ProviderQueuePage() {
                   ))}
                 </select>
               </div>
-              <div className="flex justify-end gap-sm" style={{ marginTop: '1.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowWalkInModal(false)}>
+
+              <div className="provider-queue__form-group">
+                <label className="provider-queue__form-label">Notes (Optional)</label>
+                <textarea
+                  className="provider-queue__form-textarea"
+                  rows={2}
+                  value={walkInForm.notes}
+                  onChange={(e) => setWalkInForm({ ...walkInForm, notes: e.target.value })}
+                />
+              </div>
+
+              <div className="provider-queue__modal-actions">
+                <button
+                  type="button"
+                  className="provider-queue__btn provider-queue__btn--secondary"
+                  onClick={() => setShowWalkInModal(false)}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={processingId === 'walkin'}>
+                <button
+                  type="submit"
+                  className="provider-queue__btn provider-queue__btn--primary"
+                  disabled={processingId === 'walkin'}
+                >
                   {processingId === 'walkin' ? 'Registering...' : 'Register & Assign Serial'}
                 </button>
               </div>
@@ -488,8 +729,6 @@ export function ProviderQueuePage() {
           </div>
         </div>
       )}
-
-
     </div>
   );
 }
