@@ -2,8 +2,11 @@ import apiClient from '../api/client';
 
 export const managerService = {
   // Services Management
-  async getServices(orgId) {
-    const response = await apiClient.get(`/organizations/${orgId}/services/`);
+  async getServices(orgId, params = {}) {
+    const response = await apiClient.get(
+      `/organizations/${orgId}/services/`,
+      { params }
+    );
     return response.data;
   },
 
