@@ -1,148 +1,461 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTenant } from '../../contexts/TenantContext';
 import organizationService from '../../services/organizationService';
 import appointmentService from '../../services/appointmentService';
-import StatusBadge from '../../components/StatusBadge';
-import LoadingState from '../../components/LoadingState';
-import EmptyState from '../../components/EmptyState';
+import { StatusBadge } from '../../components/StatusBadge';
+import { LoadingState } from '../../components/LoadingState';
+import { EmptyState } from '../../components/EmptyState';
+import { SearchFilterBar } from '../../components/common/SearchFilterBar';
+import { ResponsiveTable } from '../../components/common/ResponsiveTable';
+import { Pagination } from '../../components/common/Pagination';
+import { normalizePaginatedResponse, DEFAULT_PAGE_SIZE } from '../../utils/paginationUtils';
+
+const TABLE_COLUMNS = [
+  { key: 'datetime', label: 'Date, Time & Serial' },
+  { key: 'patient', label: 'Patient' },
+  { key: 'service', label: 'Service' },
+  { key: 'status', label: 'Status' },
+  { key: 'notes', label: 'Notes' },
+];
+
+/**
+ * Valid backend Appointment.Status choices from Appointment model.
+ */
+const STATUS_OPTIONS = [
+  { value: '', label: 'All Statuses' },
+  { value: 'CONFIRMED', label: 'Confirmed' },
+  { value: 'CHECKED_IN', label: 'Checked In' },
+  { value: 'IN_PROGRESS', label: 'In Progress' },
+  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'CANCELLED', label: 'Cancelled' },
+  { value: 'NO_SHOW', label: 'No Show' },
+  { value: 'PENDING', label: 'Pending' },
+];
+
+/**
+ * Format date in Asia/Dhaka without fabricating missing dates.
+ */
+function formatDhakaDate(dateStr) {
+  if (!dateStr) return 'Date unavailable';
+  try {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m - 1, d));
+      return new Intl.DateTimeFormat('en-US', {
+        timeZone: 'UTC',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }).format(dt);
+    }
+    const dt = new Date(dateStr);
+    if (isNaN(dt.getTime())) return 'Date unavailable';
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Dhaka',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(dt);
+  } catch {
+    return 'Date unavailable';
+  }
+}
+
+/**
+ * Format scheduled time in Asia/Dhaka. Returns null if invalid or missing.
+ */
+function formatDhakaTime(isoStr) {
+  if (!isoStr) return null;
+  try {
+    const dt = new Date(isoStr);
+    if (isNaN(dt.getTime())) return null;
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Dhaka',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(dt);
+  } catch {
+    return null;
+  }
+}
 
 export function ProviderAppointmentsPage() {
   const { user } = useAuth();
   const { currentOrg } = useTenant();
 
+  // Profile resolution state
   const [providerProfile, setProviderProfile] = useState(null);
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [error, setError] = useState('');
+  const [resolvingProfile, setResolvingProfile] = useState(true);
+  const [profileNotFound, setProfileNotFound] = useState(false);
 
+  // Appointments state
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Search & Filter state
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [paginationInfo, setPaginationInfo] = useState({
+    totalCount: 0,
+    totalPages: 1,
+    currentPage: 1,
+    hasNext: false,
+    hasPrevious: false,
+    itemRange: { start: 0, end: 0, total: 0 },
+  });
+
+  // Stale request guards
+  const activeRequestIdRef = useRef(0);
+
+  // Phase 1: Resolve provider profile when tenant or authenticated user changes
   useEffect(() => {
-    if (!currentOrg?.id || !user?.id) return;
-    let isMounted = true;
-    setLoading(true);
+    if (!currentOrg?.id || !user?.id) {
+      setResolvingProfile(false);
+      setProviderProfile(null);
+      return;
+    }
+
+    const requestId = ++activeRequestIdRef.current;
+    const orgIdAtRequest = currentOrg.id;
+    const userIdAtRequest = user.id;
+
+    setResolvingProfile(true);
+    setProfileNotFound(false);
+    setAppointments([]);
+    setPage(1);
+    setSearchInput('');
+    setAppliedSearch('');
+    setStatusFilter('');
+    setError(null);
+    setPaginationInfo({
+      totalCount: 0,
+      totalPages: 1,
+      currentPage: 1,
+      hasNext: false,
+      hasPrevious: false,
+      itemRange: { start: 0, end: 0, total: 0 },
+    });
 
     organizationService
-      .getProviders(currentOrg.id)
-      .then(async (data) => {
-        if (!isMounted) return;
-        const list = Array.isArray(data) ? data : data.results || [];
-        const myProfile = list.find((p) => p.user_id === user.id);
-        setProviderProfile(myProfile || null);
+      .getProviders(orgIdAtRequest)
+      .then((data) => {
+        if (
+          requestId !== activeRequestIdRef.current ||
+          orgIdAtRequest !== currentOrg?.id ||
+          userIdAtRequest !== user?.id
+        ) {
+          return;
+        }
+
+        const list = Array.isArray(data) ? data : data?.results || [];
+        const myProfile = list.find((p) => p.user_id === userIdAtRequest);
 
         if (myProfile) {
-          const apptData = await appointmentService.getAppointments(currentOrg.id, { provider_id: myProfile.id });
-          const apptList = Array.isArray(apptData) ? apptData : apptData.results || [];
-          if (isMounted) setAppointments(apptList);
+          setProviderProfile(myProfile);
+          setProfileNotFound(false);
+        } else {
+          setProviderProfile(null);
+          setProfileNotFound(true);
         }
       })
       .catch((err) => {
-        if (isMounted) setError('Failed to load assigned appointments.');
+        if (
+          requestId !== activeRequestIdRef.current ||
+          orgIdAtRequest !== currentOrg?.id ||
+          userIdAtRequest !== user?.id
+        ) {
+          return;
+        }
+        setError(err.response?.data?.detail || 'Failed to resolve provider profile.');
+        setProviderProfile(null);
       })
       .finally(() => {
-        if (isMounted) setLoading(false);
+        if (
+          requestId === activeRequestIdRef.current &&
+          orgIdAtRequest === currentOrg?.id &&
+          userIdAtRequest === user?.id
+        ) {
+          setResolvingProfile(false);
+        }
       });
-
-    return () => {
-      isMounted = false;
-    };
   }, [currentOrg?.id, user?.id]);
 
-  const filteredAppointments = appointments.filter((appt) => {
-    if (statusFilter !== 'ALL' && appt.status !== statusFilter) return false;
-    return true;
-  });
+  // Phase 2: Fetch assigned appointments for the resolved provider profile
+  const fetchAppointments = useCallback(
+    async (profileId, targetPage, searchToApply, statusToApply) => {
+      const activeOrgId = currentOrg?.id;
+      if (!activeOrgId || !profileId) return;
+
+      const requestId = ++activeRequestIdRef.current;
+      setLoading(true);
+      setError(null);
+
+      try {
+        const params = {
+          provider_id: profileId,
+          page: targetPage,
+          page_size: DEFAULT_PAGE_SIZE,
+        };
+        if (searchToApply) params.search = searchToApply;
+        if (statusToApply) params.status = statusToApply;
+
+        const data = await appointmentService.getAppointments(activeOrgId, params);
+
+        if (
+          requestId !== activeRequestIdRef.current ||
+          activeOrgId !== currentOrg?.id ||
+          profileId !== providerProfile?.id
+        ) {
+          return;
+        }
+
+        const normalized = normalizePaginatedResponse(data, targetPage, DEFAULT_PAGE_SIZE);
+        setAppointments(normalized.items);
+        setPaginationInfo(normalized);
+      } catch (err) {
+        if (
+          requestId !== activeRequestIdRef.current ||
+          activeOrgId !== currentOrg?.id ||
+          profileId !== providerProfile?.id
+        ) {
+          return;
+        }
+
+        // Strict 404 out-of-range pagination recovery
+        const isPaginationEmptyPage =
+          err.response?.status === 404 &&
+          targetPage > 1 &&
+          err.response?.data?.detail === 'That page contains no results.';
+
+        if (isPaginationEmptyPage) {
+          setPage((prev) => Math.max(1, prev - 1));
+          return;
+        }
+
+        setError(err.response?.data?.detail || 'Failed to load assigned appointments.');
+      } finally {
+        if (
+          requestId === activeRequestIdRef.current &&
+          activeOrgId === currentOrg?.id &&
+          profileId === providerProfile?.id
+        ) {
+          setLoading(false);
+        }
+      }
+    },
+    [currentOrg, providerProfile]
+  );
+
+  // Fetch when page, appliedSearch, or statusFilter changes for active profile
+  useEffect(() => {
+    if (providerProfile?.id) {
+      fetchAppointments(providerProfile.id, page, appliedSearch, statusFilter);
+    }
+  }, [fetchAppointments, providerProfile?.id, page, appliedSearch, statusFilter]);
+
+  const handleSearchSubmit = () => {
+    const trimmed = searchInput.trim();
+    setAppliedSearch(trimmed);
+    setPage(1);
+  };
+
+  const handleStatusChange = (newStatus) => {
+    setStatusFilter(newStatus);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearchInput('');
+    setAppliedSearch('');
+    setStatusFilter('');
+    setPage(1);
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+  };
 
   if (!currentOrg) {
-    return <EmptyState title="No Organization Selected" message="Select an organization to view your appointments." />;
+    return (
+      <EmptyState
+        title="No Organization Selected"
+        message="Please select an organization from the header dropdown above."
+      />
+    );
   }
 
-  if (loading) {
-    return <LoadingState message="Loading your appointments roster..." />;
-  }
+  const isFiltered = Boolean(appliedSearch || statusFilter || searchInput);
+
+  const filterConfigs = [
+    {
+      id: 'status-filter',
+      label: 'Status',
+      value: statusFilter,
+      onChange: handleStatusChange,
+      options: STATUS_OPTIONS,
+    },
+  ];
 
   return (
-    <div className="animate-page-entrance" style={{ maxWidth: '1050px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+    <div className="app-container animate-page-entrance">
+      {/* Page Header */}
+      <div className="flex justify-between items-center flex-wrap gap-md" style={{ marginBottom: '1.75rem' }}>
         <div>
-          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-            📅 Provider Schedule Roster
-          </div>
-          <h1 style={{ fontSize: '1.75rem', color: 'var(--lp-text)', margin: '0 0 0.4rem 0', fontFamily: 'Cinzel, serif' }}>
-            My Patient Appointments
-          </h1>
-          <p style={{ color: 'var(--lp-text-subtle)', margin: 0, fontSize: '0.95rem' }}>
-            Bookings assigned to <strong style={{ color: 'var(--lp-text)' }}>{providerProfile?.user_name || user?.first_name || user?.email}</strong> at {currentOrg.name}.
+          <h1>My Patient Appointments</h1>
+          <p className="subtitle" style={{ marginTop: '0.25rem' }}>
+            Bookings assigned to{' '}
+            <strong>
+              {providerProfile?.user_name || user?.first_name || user?.email}
+            </strong>{' '}
+            at {currentOrg.name}.
           </p>
         </div>
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          style={{ padding: '0.65rem 1rem', borderRadius: '8px', border: '1px solid var(--lp-border)', background: 'var(--lp-surface)', color: 'var(--lp-text)', fontWeight: 600, fontSize: '0.9rem' }}
-        >
-          <option value="ALL">All Statuses</option>
-          <option value="CONFIRMED">CONFIRMED</option>
-          <option value="CHECKED_IN">CHECKED_IN</option>
-          <option value="IN_PROGRESS">IN_PROGRESS</option>
-          <option value="COMPLETED">COMPLETED</option>
-          <option value="CANCELLED">CANCELLED</option>
-        </select>
       </div>
 
-      {error ? (
-        <div style={{ padding: '1rem', background: 'var(--color-danger-light)', border: '1px solid var(--color-danger)', color: 'var(--color-danger)', borderRadius: '10px' }}>
+      {/* Error Alert Banner */}
+      {error && (
+        <div
+          role="alert"
+          className="error-banner"
+          style={{
+            padding: '1rem',
+            background: 'var(--color-error-bg)',
+            color: 'var(--color-error)',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: '1.25rem',
+            border: '1px solid var(--color-error-border)',
+          }}
+        >
           ⚠️ {error}
         </div>
-      ) : filteredAppointments.length === 0 ? (
-        <EmptyState title="No Appointments Assigned" message="You currently have no patient appointments matching this status filter." />
-      ) : (
-        <div style={{ background: 'var(--lp-surface)', border: '1px solid var(--lp-border)', borderRadius: '16px', overflow: 'hidden', boxShadow: 'var(--lp-shadow-sm)' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
-              <thead>
-                <tr style={{ background: 'var(--lp-bg-subtle)', borderBottom: '1px solid var(--lp-border)', color: 'var(--lp-text-subtle)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Start Time</th>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Patient</th>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Service Requested</th>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Status</th>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAppointments.map((appt) => {
-                  const startDt = appt.start_datetime ? new Date(appt.start_datetime) : null;
+      )}
 
-                  return (
-                    <tr key={appt.id} style={{ borderBottom: '1px solid var(--lp-border)' }}>
-                      <td style={{ padding: '0.85rem 1.25rem', fontWeight: 600, color: 'var(--lp-text)' }}>
-                        <div>{startDt ? startDt.toLocaleDateString() : 'N/A'}</div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--lp-accent)', fontWeight: 600 }}>
-                          {startDt ? startDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+      {/* Profile Not Found State */}
+      {profileNotFound && (
+        <EmptyState
+          title="No Provider Profile Found"
+          message={`You do not have an active provider profile registered with ${currentOrg.name}.`}
+        />
+      )}
+
+      {/* Resolving Profile Loading State */}
+      {resolvingProfile && !profileNotFound && (
+        <LoadingState message="Resolving provider profile and workload..." />
+      )}
+
+      {/* Main Content (when provider profile resolved) */}
+      {!resolvingProfile && !profileNotFound && providerProfile && (
+        <>
+          {/* Search & Filter Toolbar */}
+          <SearchFilterBar
+            searchValue={searchInput}
+            onSearchChange={setSearchInput}
+            onSearchSubmit={handleSearchSubmit}
+            searchPlaceholder="Search patient email, service name..."
+            searchLabel="Search assigned appointments"
+            filters={filterConfigs}
+            isFiltered={isFiltered}
+            onClear={handleClearFilters}
+            isLoading={loading}
+          />
+
+          {/* Table & Pagination Surface */}
+          <div>
+            {loading ? (
+              <LoadingState type="skeleton-table" rows={4} cols={5} />
+            ) : appointments.length === 0 ? (
+              <EmptyState
+                title={isFiltered ? 'No Matching Appointments' : 'No Appointments Assigned'}
+                message={
+                  isFiltered
+                    ? 'No assigned appointments matched your active search and status filters.'
+                    : `You currently have no patient appointments assigned at ${currentOrg.name}.`
+                }
+                actionLabel={isFiltered ? 'Clear Filters' : undefined}
+                onAction={isFiltered ? handleClearFilters : undefined}
+              />
+            ) : (
+              <div className="qt-table-surface">
+                <ResponsiveTable
+                  caption={`Assigned Appointments for ${providerProfile?.user_name || user?.first_name || 'Provider'}`}
+                  columns={TABLE_COLUMNS}
+                >
+                  {appointments.map((appt) => (
+                    <tr key={appt.id}>
+                      <td>
+                        <div className="font-semibold">
+                          {formatDhakaDate(appt.appointment_date || appt.start_datetime)}
+                        </div>
+                        <div className="flex items-center gap-xs flex-wrap" style={{ marginTop: '0.2rem' }}>
+                          {formatDhakaTime(appt.start_datetime) && (
+                            <span className="text-xs text-muted qt-tabular-num">
+                              {formatDhakaTime(appt.start_datetime)}
+                            </span>
+                          )}
+                          {appt.serial_number != null && (
+                            <span
+                              className="badge badge-neutral qt-tabular-num"
+                              style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem' }}
+                            >
+                              Serial #{appt.serial_number}
+                            </span>
+                          )}
                         </div>
                       </td>
-                      <td style={{ padding: '0.85rem 1.25rem' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--lp-text)' }}>
-                          {appt.customer_name || appt.customer_email?.split('@')[0] || 'Patient'}
+                      <td>
+                        <div className="font-semibold">
+                          {appt.customer_name || 'Patient'}
                         </div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--lp-text-subtle)' }}>{appt.customer_email}</div>
+                        {appt.customer_email && (
+                          <div className="text-xs text-muted" style={{ marginTop: '0.15rem' }}>
+                            {appt.customer_email}
+                          </div>
+                        )}
+                        {appt.contact_phone && (
+                          <div className="text-xs text-muted" style={{ marginTop: '0.1rem' }}>
+                            📞 {appt.contact_phone}
+                          </div>
+                        )}
                       </td>
-                      <td style={{ padding: '0.85rem 1.25rem', color: 'var(--lp-text)', fontWeight: 600 }}>
-                        {appt.service_name || 'Medical Consultation'}
+                      <td>
+                        <span className="font-medium">{appt.service_name || '—'}</span>
                       </td>
-                      <td style={{ padding: '0.85rem 1.25rem' }}>
-                        <StatusBadge status={appt.status} />
+                      <td>
+                        <StatusBadge status={appt.status} type="appointment" />
                       </td>
-                      <td style={{ padding: '0.85rem 1.25rem', color: 'var(--lp-text-subtle)', fontSize: '0.85rem', fontStyle: 'italic' }}>
-                        {appt.notes || 'No special instructions.'}
+                      <td>
+                        {appt.notes ? (
+                          <span className="text-sm text-muted" style={{ fontStyle: 'italic' }}>
+                            {appt.notes}
+                          </span>
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  ))}
+                </ResponsiveTable>
+
+                <Pagination
+                  currentPage={paginationInfo.currentPage}
+                  totalPages={paginationInfo.totalPages}
+                  totalCount={paginationInfo.totalCount}
+                  itemRange={paginationInfo.itemRange}
+                  onPageChange={handlePageChange}
+                  disabled={loading}
+                  ariaLabel="Assigned appointments pagination"
+                />
+              </div>
+            )}
           </div>
-        </div>
+        </>
       )}
     </div>
   );
