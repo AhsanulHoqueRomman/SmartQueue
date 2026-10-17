@@ -1,0 +1,845 @@
+/* ==========================================================================
+   QueueTurn — Staff Queue Board Scoped Stylesheet
+   Prefix: .staff-queue
+   Design Language: Warm Ivory / Espresso Light, Deep Navy / Teal Dark
+   ========================================================================== */
+
+.staff-queue {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  min-width: 0;
+}
+
+/* --------------------------------------------------------------------------
+   1. Command Header & Controls
+   -------------------------------------------------------------------------- */
+.staff-queue__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.staff-queue__header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.staff-queue__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.staff-queue__title {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-weight: 800;
+  color: var(--color-text-main);
+  margin: 0;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.staff-queue__role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: var(--radius-pill, 9999px);
+  background-color: var(--color-accent-bg, rgba(13, 148, 136, 0.12));
+  color: var(--color-accent, #0d9488);
+  border: 1px solid var(--color-accent-border, rgba(13, 148, 136, 0.3));
+}
+
+.staff-queue__subtitle {
+  font-size: 0.925rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.staff-queue__subtitle-org {
+  color: var(--color-secondary-accent);
+  font-weight: 600;
+}
+
+.staff-queue__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.staff-queue__auto-refresh-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-md, 8px);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  transition: border-color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.staff-queue__auto-refresh-label:hover {
+  border-color: var(--color-border-hover, var(--color-border));
+}
+
+.staff-queue__auto-refresh-input {
+  accent-color: var(--color-primary);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
+   2. Provider & Date Selection Bar
+   -------------------------------------------------------------------------- */
+.staff-queue__control-bar {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl, 16px);
+  padding: 1.1rem 1.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.staff-queue__control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.staff-queue__control-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.staff-queue__select,
+.staff-queue__date-input {
+  padding: 0.55rem 0.95rem;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-main);
+  font-size: 0.9rem;
+  font-weight: 600;
+  outline: none;
+  transition: border-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              box-shadow var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.staff-queue__select {
+  min-width: 220px;
+}
+
+.staff-queue__select:focus-visible,
+.staff-queue__date-input:focus-visible {
+  border-color: var(--color-primary);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.staff-queue__unfinished-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  width: 100%;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border-subtle, var(--color-border));
+}
+
+.staff-queue__unfinished-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-pill, 9999px);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-warning-text, #b45309);
+  background-color: var(--color-warning-bg, #fffbeb);
+  border: 1px solid var(--color-warning-border, #fde68a);
+  cursor: pointer;
+  transition: transform var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              background-color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.staff-queue__unfinished-pill:hover {
+  background-color: var(--color-warning-border, #fde68a);
+  transform: translateY(-1px);
+}
+
+/* --------------------------------------------------------------------------
+   3. Banners & Notifications
+   -------------------------------------------------------------------------- */
+.staff-queue__banner {
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-lg, 12px);
+  font-size: 0.925rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  animation: staffQueueFadeIn 200ms ease-out forwards;
+}
+
+.staff-queue__banner--success {
+  background-color: var(--color-success-bg, #ecfdf5);
+  color: var(--color-success, #065f46);
+  border: 1px solid var(--color-success-border, #a7f3d0);
+}
+
+.staff-queue__banner--error {
+  background-color: var(--color-error-bg, #fef2f2);
+  color: var(--color-error, #991b1b);
+  border: 1px solid var(--color-error-border, #fecaca);
+}
+
+@keyframes staffQueueFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --------------------------------------------------------------------------
+   4. Active Consultation Console
+   -------------------------------------------------------------------------- */
+.staff-queue__console {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl, 20px);
+  padding: 1.75rem 2rem;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.06));
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.staff-queue__console-title {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.staff-queue__stage-card {
+  border-radius: var(--radius-lg, 16px);
+  padding: 1.75rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.75rem;
+  flex-wrap: wrap;
+  border: 1.5px solid transparent;
+  transition: box-shadow var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.staff-queue__stage-card--in-progress {
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-accent-bg, #f0fdfa) 100%);
+  border-color: var(--color-accent-border, #99f6e4);
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.08);
+}
+
+.staff-queue__stage-card--called {
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-warning-bg, #fffbeb) 100%);
+  border-color: var(--color-warning-border, #fde68a);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.08);
+}
+
+.staff-queue__stage-card--idle {
+  background-color: var(--color-surface-subtle);
+  border-color: var(--color-border);
+}
+
+.staff-queue__stage-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 260px;
+}
+
+.staff-queue__stage-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.staff-queue__stage-serial {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: clamp(2rem, 5vw, 2.75rem);
+  font-weight: 800;
+  color: var(--color-text-main);
+  line-height: 1.1;
+  margin: 0.15rem 0;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.staff-queue__stage-serial--called {
+  color: var(--color-warning, #d97706);
+}
+
+.staff-queue__stage-patient {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0;
+}
+
+.staff-queue__stage-contact {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.staff-queue__stage-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+/* --------------------------------------------------------------------------
+   5. Skipped Customers Shelf
+   -------------------------------------------------------------------------- */
+.staff-queue__recovery-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-warning-border, #fde68a);
+  border-radius: var(--radius-xl, 20px);
+  padding: 1.5rem 1.75rem;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.06));
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.staff-queue__recovery-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.staff-queue__recovery-title {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--color-warning-text, #b45309);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.staff-queue__recovery-desc {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.staff-queue__recovery-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.staff-queue__recovery-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.25rem;
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 12px);
+  flex-wrap: wrap;
+}
+
+.staff-queue__recovery-patient {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  font-size: 0.95rem;
+}
+
+.staff-queue__recovery-serial {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-weight: 800;
+  color: var(--color-warning, #d97706);
+  padding: 0.2rem 0.5rem;
+  background-color: var(--color-warning-bg, #fffbeb);
+  border: 1px solid var(--color-warning-border, #fde68a);
+  border-radius: var(--radius-sm, 6px);
+}
+
+/* --------------------------------------------------------------------------
+   6. Staff-Assisted Booking Drawer / Container
+   -------------------------------------------------------------------------- */
+.staff-queue__booking-wrapper {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl, 20px);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.06));
+  overflow: hidden;
+}
+
+.staff-queue__booking-wrapper details {
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.staff-queue__booking-wrapper summary {
+  padding: 1.25rem 1.75rem !important;
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.staff-queue__booking-wrapper summary:hover {
+  background-color: var(--color-surface-subtle);
+}
+
+.staff-queue__booking-wrapper form {
+  padding: 1.25rem 1.75rem 1.75rem !important;
+  border-top: 1px solid var(--color-border);
+}
+
+/* --------------------------------------------------------------------------
+   7. Waiting Queue Roster Table
+   -------------------------------------------------------------------------- */
+.staff-queue__roster-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl, 20px);
+  padding: 1.75rem 2rem;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.06));
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.staff-queue__roster-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.staff-queue__roster-title {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.staff-queue__table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.staff-queue__table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.925rem;
+  text-align: left;
+}
+
+.staff-queue__table th {
+  padding: 0.85rem 1rem;
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.staff-queue__table th:first-child {
+  border-top-left-radius: var(--radius-md, 8px);
+}
+
+.staff-queue__table th:last-child {
+  border-top-right-radius: var(--radius-md, 8px);
+}
+
+.staff-queue__table td {
+  padding: 1.1rem 1rem;
+  border-bottom: 1px solid var(--color-border-subtle, var(--color-border));
+  color: var(--color-text-main);
+  vertical-align: middle;
+}
+
+.staff-queue__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.staff-queue__table tbody tr:hover {
+  background-color: var(--color-surface-subtle);
+}
+
+.staff-queue__serial-badge {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.staff-queue__patient-name {
+  font-weight: 700;
+  color: var(--color-text-main);
+  font-size: 0.95rem;
+}
+
+.staff-queue__patient-contact {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-top: 0.15rem;
+}
+
+.staff-queue__arrival-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-pill, 9999px);
+  font-size: 0.775rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.staff-queue__arrival-badge--walkin {
+  background-color: var(--color-secondary-bg, rgba(217, 119, 6, 0.12));
+  color: var(--color-secondary-text, #b45309);
+  border-color: var(--color-secondary-border, rgba(217, 119, 6, 0.3));
+}
+
+.staff-queue__arrival-badge--scheduled {
+  background-color: var(--color-info-bg, #eff6ff);
+  color: var(--color-info, #2563eb);
+  border-color: var(--color-info-border, #bfdbfe);
+}
+
+.staff-queue__presence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-pill, 9999px);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.staff-queue__presence-badge--ready {
+  background-color: var(--color-success-bg, #ecfdf5);
+  color: var(--color-success, #059669);
+  border: 1px solid var(--color-success-border, #a7f3d0);
+}
+
+.staff-queue__presence-badge--pending {
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+/* --------------------------------------------------------------------------
+   8. Buttons & Controls
+   -------------------------------------------------------------------------- */
+.staff-queue__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.35rem;
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              transform var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              box-shadow var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              border-color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+  white-space: nowrap;
+}
+
+.staff-queue__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.staff-queue__btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.staff-queue__btn--primary {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.staff-queue__btn--primary:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.12);
+}
+
+.staff-queue__btn--success {
+  background-color: var(--color-success, #059669);
+  color: #ffffff;
+}
+
+.staff-queue__btn--success:hover:not(:disabled) {
+  background-color: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(5, 150, 105, 0.2);
+}
+
+.staff-queue__btn--danger {
+  background-color: var(--color-error-bg, #fef2f2);
+  color: var(--color-error, #dc2626);
+  border: 1px solid var(--color-error-border, #fecaca);
+}
+
+.staff-queue__btn--danger:hover:not(:disabled) {
+  background-color: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+  transform: translateY(-1px);
+}
+
+.staff-queue__btn--secondary {
+  background-color: var(--color-surface);
+  color: var(--color-text-main);
+  border: 1px solid var(--color-border);
+}
+
+.staff-queue__btn--secondary:hover:not(:disabled) {
+  background-color: var(--color-surface-subtle);
+  border-color: var(--color-border-hover, var(--color-border));
+}
+
+.staff-queue__btn--checkin {
+  padding: 0.45rem 0.95rem;
+  font-size: 0.825rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm, 6px);
+  background-color: var(--color-success-bg, #ecfdf5);
+  color: var(--color-success, #059669);
+  border: 1px solid var(--color-success-border, #a7f3d0);
+}
+
+.staff-queue__btn--checkin:hover:not(:disabled) {
+  background-color: #059669;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.staff-queue__btn--restore {
+  padding: 0.45rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm, 6px);
+  background-color: var(--color-warning-bg, #fffbeb);
+  color: var(--color-warning-text, #b45309);
+  border: 1px solid var(--color-warning-border, #fde68a);
+}
+
+.staff-queue__btn--restore:hover:not(:disabled) {
+  background-color: #b45309;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.staff-queue__btn--refresh {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: var(--radius-md, 8px);
+  background-color: var(--color-surface);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.staff-queue__btn--refresh:hover:not(:disabled) {
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-main);
+}
+
+/* --------------------------------------------------------------------------
+   9. Accessible Skip Confirmation Modal
+   -------------------------------------------------------------------------- */
+.staff-queue__modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.staff-queue__modal-dialog {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl, 20px);
+  padding: 2rem 2.25rem;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.staff-queue__modal-title {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+.staff-queue__modal-desc {
+  font-size: 0.925rem;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.staff-queue__modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   10. Responsive Breakpoints
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .staff-queue {
+    padding: 1rem 0.75rem 3rem;
+    gap: 1.25rem;
+  }
+
+  .staff-queue__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .staff-queue__header-actions {
+    justify-content: space-between;
+  }
+
+  .staff-queue__control-bar {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .staff-queue__control-group {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .staff-queue__select,
+  .staff-queue__date-input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .staff-queue__console,
+  .staff-queue__roster-card,
+  .staff-queue__recovery-card {
+    padding: 1.25rem 1rem;
+    border-radius: var(--radius-lg, 16px);
+  }
+
+  .staff-queue__stage-card {
+    padding: 1.25rem 1rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .staff-queue__stage-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .staff-queue__stage-actions > button {
+    width: 100%;
+  }
+
+  .staff-queue__recovery-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .staff-queue__modal-dialog {
+    padding: 1.5rem 1.25rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   11. Reduced Motion
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .staff-queue *,
+  .staff-queue *::before,
+  .staff-queue *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
