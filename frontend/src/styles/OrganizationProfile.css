@@ -1,0 +1,1556 @@
+/* ═════════════════════════════════════════════════════════════════════════════
+   QueueTurn — Organization Profile Storefront Stylesheet (UI-3 Batch 4)
+   Namespace: .organization-profile-page
+   Theme: Warm Ivory / Espresso / Sage (Light) & Deep Navy / Slate / Teal (Dark)
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Page Scaffolding & Container ─────────────────────────────────────────── */
+.organization-profile-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.organization-profile-main {
+  flex: 1 0 auto;
+  padding-top: 80px;
+  padding-bottom: 4rem;
+}
+
+.organization-profile-main--center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.organization-profile-page .org-profile-container {
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .organization-profile-page .org-profile-container {
+    padding: 0 1rem;
+  }
+}
+
+/* ─── Section Dividers & Shared Headings ───────────────────────────────────── */
+.organization-profile-page .org-thin-divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 2.75rem 0;
+  opacity: 0.6;
+}
+
+.organization-profile-page .org-section-title {
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 0.35rem 0;
+  letter-spacing: -0.015em;
+}
+
+.organization-profile-page .org-section-subtitle {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ─── 1. Cover Banner ──────────────────────────────────────────────────────── */
+.organization-profile-page .org-banner-card {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-xl, 20px);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  background: var(--color-surface);
+}
+
+.organization-profile-page .org-banner-img-wrap {
+  position: relative;
+  width: 100%;
+  height: 280px;
+}
+
+@media (max-width: 768px) {
+  .organization-profile-page .org-banner-img-wrap {
+    height: 210px;
+  }
+}
+
+@media (max-width: 480px) {
+  .organization-profile-page .org-banner-img-wrap {
+    height: 160px;
+  }
+}
+
+.organization-profile-page .org-banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.organization-profile-page .org-banner-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(15, 23, 42, 0.78) 0%,
+    rgba(15, 23, 42, 0.25) 55%,
+    transparent 100%
+  );
+}
+
+.organization-profile-page .org-banner-tagline-wrap {
+  position: absolute;
+  bottom: 1.25rem;
+  left: 1.75rem;
+  right: 1.75rem;
+  z-index: 2;
+}
+
+.organization-profile-page .org-banner-tagline {
+  color: #FFFFFF;
+  font-size: 1.1rem;
+  font-weight: 500;
+  font-style: italic;
+  margin: 0;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+  max-width: 720px;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .organization-profile-page .org-banner-tagline {
+    font-size: 0.9rem;
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+  }
+}
+
+/* ─── 2. Organization Identity Bar ─────────────────────────────────────────── */
+.organization-profile-page .org-identity-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 1.75rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.organization-profile-page .org-identity-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.organization-profile-page .org-identity-name {
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 2.15rem;
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.025em;
+  margin: 0;
+  line-height: 1.15;
+}
+
+@media (max-width: 640px) {
+  .organization-profile-page .org-identity-name {
+    font-size: 1.7rem;
+  }
+}
+
+.organization-profile-page .org-identity-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.organization-profile-page .org-category-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-sm, 6px);
+}
+
+.organization-profile-page .org-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: #166534;
+  background: #DCFCE7;
+  border: 1px solid #BBF7D0;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  line-height: 1;
+}
+
+[data-theme="dark"] .organization-profile-page .org-verified-badge {
+  color: #4ADE80;
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.organization-profile-page .org-identity-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.6rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-primary);
+  color: #FFFFFF;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+
+.organization-profile-page .org-identity-cta:hover {
+  background: var(--color-primary-hover, #0f766e);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 640px) {
+  .organization-profile-page .org-identity-right,
+  .organization-profile-page .org-identity-cta {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ─── 3. About & Contact Grid (2-Column Balanced) ──────────────────────────── */
+.organization-profile-page .org-about-contact-section {
+  display: grid;
+  grid-template-columns: 7fr 5fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  align-items: stretch;
+}
+
+@media (max-width: 860px) {
+  .organization-profile-page .org-about-contact-section {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+.organization-profile-page .org-about-col {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.organization-profile-page .org-subheading {
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.organization-profile-page .org-about-text {
+  font-size: 0.975rem;
+  color: var(--color-text-muted);
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* Trust & Credentials Card */
+.organization-profile-page .org-trust-block {
+  flex: 1 1 auto;
+  padding: 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.organization-profile-page .org-trust-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.organization-profile-page .org-trust-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.organization-profile-page .org-trust-icon {
+  font-size: 1.15rem;
+}
+
+.organization-profile-page .org-text-link {
+  background: none;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: opacity 0.15s ease;
+}
+
+.organization-profile-page .org-text-link:hover {
+  text-decoration: underline;
+}
+
+.organization-profile-page .org-arrow {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.organization-profile-page .org-text-link:hover .org-arrow {
+  transform: translateX(3px);
+}
+
+.organization-profile-page .org-trust-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.organization-profile-page .org-trust-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.organization-profile-page .org-trust-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.organization-profile-page .org-trust-badge-icon {
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.organization-profile-page .org-trust-row-content {
+  flex: 1;
+}
+
+.organization-profile-page .org-trust-row-content strong {
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.organization-profile-page .org-trust-row-content p {
+  font-size: 0.825rem;
+  color: var(--color-text-muted);
+  margin: 0.2rem 0 0 0;
+  line-height: 1.45;
+}
+
+.organization-profile-page .org-trust-status-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #166534;
+  background: #DCFCE7;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid #BBF7D0;
+}
+
+[data-theme="dark"] .organization-profile-page .org-trust-status-pill {
+  color: #4ADE80;
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+/* Contact, Hours & Reviews Column */
+.organization-profile-page .org-contact-col {
+  padding: 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.organization-profile-page .org-contact-heading {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 0.5rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.organization-profile-page .org-contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.organization-profile-page .org-contact-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.organization-profile-page .org-contact-icon {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+.organization-profile-page .org-reviews-summary,
+.organization-profile-page .org-hours-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 10px);
+  gap: 0.75rem;
+}
+
+.organization-profile-page .org-reviews-score {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.organization-profile-page .org-reviews-star {
+  color: #EAB308;
+  font-size: 1rem;
+}
+
+.organization-profile-page .org-reviews-num {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.organization-profile-page .org-reviews-count {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.organization-profile-page .org-see-reviews-btn,
+.organization-profile-page .org-hours-link-btn {
+  background: none;
+  border: none;
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.organization-profile-page .org-see-reviews-btn:hover,
+.organization-profile-page .org-hours-link-btn:hover {
+  text-decoration: underline;
+}
+
+.organization-profile-page .org-hours-info {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.875rem;
+}
+
+.organization-profile-page .org-hours-icon {
+  font-size: 1.1rem;
+}
+
+.organization-profile-page .org-hours-text {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+/* ─── 4. Our Services Section ──────────────────────────────────────────────── */
+.organization-profile-page .org-services-header {
+  margin-bottom: 1.75rem;
+}
+
+.organization-profile-page .org-services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 480px) {
+  .organization-profile-page .org-services-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.organization-profile-page .org-service-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 16px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-xs);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.organization-profile-page .org-service-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary);
+}
+
+.organization-profile-page .org-service-card-img-wrap {
+  width: 100%;
+  height: 165px;
+  position: relative;
+  overflow: hidden;
+  background: var(--color-surface-subtle);
+}
+
+.organization-profile-page .org-service-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.organization-profile-page .org-service-card:hover .org-service-card-img {
+  transform: scale(1.03);
+}
+
+.organization-profile-page .org-service-card-body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  gap: 1rem;
+}
+
+.organization-profile-page .org-service-card-title {
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 0.35rem 0;
+  line-height: 1.3;
+}
+
+.organization-profile-page .org-service-card-desc {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.organization-profile-page .org-service-card-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.organization-profile-page .org-service-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.organization-profile-page .org-service-price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.organization-profile-page .org-service-price-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.organization-profile-page .org-service-price-amount {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.organization-profile-page .org-service-action-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.organization-profile-page .org-service-duration {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.organization-profile-page .org-view-details-btn {
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.825rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.organization-profile-page .org-view-details-btn:hover {
+  background: var(--color-primary);
+  color: #FFFFFF;
+  border-color: var(--color-primary);
+}
+
+/* ─── 5. Professional Carousel Tweaks ──────────────────────────────────────── */
+.organization-profile-page .org-prof-section {
+  position: relative;
+}
+
+.organization-profile-page .org-prof-header {
+  margin-bottom: 1.5rem;
+}
+
+.organization-profile-page .org-prof-carousel-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.organization-profile-page .org-prof-carousel-track {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 0.5rem 0.25rem 1rem 0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+  flex: 1;
+}
+
+.organization-profile-page .org-prof-carousel-track::-webkit-scrollbar {
+  height: 6px;
+}
+
+.organization-profile-page .org-prof-carousel-track::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+}
+
+.organization-profile-page .org-prof-card {
+  scroll-snap-align: start;
+  min-width: 260px;
+  max-width: 280px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 16px);
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.organization-profile-page .org-prof-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.organization-profile-page .org-prof-img-wrap {
+  width: 100%;
+  height: 190px;
+  overflow: hidden;
+  background: var(--color-surface-subtle);
+}
+
+.organization-profile-page .org-prof-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.organization-profile-page .org-prof-info {
+  padding: 1rem 1.15rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.organization-profile-page .org-prof-name {
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.organization-profile-page .org-prof-title {
+  font-size: 0.825rem;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.organization-profile-page .org-prof-exp {
+  font-size: 0.775rem;
+  color: var(--color-text-muted);
+}
+
+.organization-profile-page .org-prof-specialties {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-top: 0.4rem;
+}
+
+.organization-profile-page .org-prof-spec-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.organization-profile-page .org-prof-footer {
+  padding: 0.75rem 1.15rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-subtle);
+}
+
+.organization-profile-page .org-prof-link-btn {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.825rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.organization-profile-page .org-prof-link-btn:hover {
+  text-decoration: underline;
+}
+
+.organization-profile-page .org-carousel-arrow-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.organization-profile-page .org-carousel-arrow-btn:hover {
+  background: var(--color-primary);
+  color: #FFFFFF;
+  border-color: var(--color-primary);
+}
+
+/* ─── 6. Schedule an Appointment (Serial Queue Booking Section) ───────────── */
+.organization-profile-page .org-booking-section {
+  margin-top: 2rem;
+}
+
+.organization-profile-page .org-booking-form-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl, 20px);
+  padding: 2.25rem;
+  margin-top: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 640px) {
+  .organization-profile-page .org-booking-form-card {
+    padding: 1.25rem;
+  }
+}
+
+.organization-profile-page .org-booking-error-banner {
+  background: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  color: #991B1B;
+  padding: 0.85rem 1.15rem;
+  border-radius: var(--radius-md, 8px);
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+[data-theme="dark"] .organization-profile-page .org-booking-error-banner {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #F87171;
+}
+
+.organization-profile-page .org-booking-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+@media (max-width: 860px) {
+  .organization-profile-page .org-booking-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.organization-profile-page .org-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.organization-profile-page .org-form-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.organization-profile-page .org-form-select,
+.organization-profile-page .org-form-input,
+.organization-profile-page .org-form-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.925rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.organization-profile-page .org-form-select:focus,
+.organization-profile-page .org-form-input:focus,
+.organization-profile-page .org-form-textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+}
+
+.organization-profile-page .org-form-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.organization-profile-page .org-form-hint-error {
+  font-size: 0.775rem;
+  color: var(--color-danger, #DC2626);
+  margin: 0.25rem 0 0 0;
+}
+
+.organization-profile-page .org-form-error {
+  font-size: 0.85rem;
+  color: var(--color-danger, #DC2626);
+  margin-top: 0.75rem;
+  font-weight: 600;
+}
+
+/* Availability Telemetry Box */
+.organization-profile-page .org-availability-box {
+  margin-top: 1.25rem;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 12px);
+  padding: 1.15rem 1.35rem;
+}
+
+.organization-profile-page .org-availability-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+}
+
+.organization-profile-page .org-availability-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22C55E;
+  display: inline-block;
+}
+
+.organization-profile-page .org-availability-loading {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.organization-profile-page .org-availability-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.875rem;
+}
+
+.organization-profile-page .org-availability-window {
+  color: var(--color-text-muted);
+}
+
+.organization-profile-page .org-avail-badge {
+  display: inline-block;
+  font-size: 0.825rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.organization-profile-page .org-avail-available {
+  background: #DCFCE7;
+  color: #166534;
+  border: 1px solid #BBF7D0;
+}
+
+[data-theme="dark"] .organization-profile-page .org-avail-available {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ADE80;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.organization-profile-page .org-avail-unavailable {
+  background: #FEF2F2;
+  color: #991B1B;
+  border: 1px solid #FCA5A5;
+}
+
+[data-theme="dark"] .organization-profile-page .org-avail-unavailable {
+  background: rgba(239, 68, 68, 0.15);
+  color: #F87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.organization-profile-page .org-form-submit-wrap {
+  margin-top: 1.75rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.organization-profile-page .org-submit-btn {
+  padding: 0.9rem 2rem;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: var(--radius-md, 10px);
+  background: var(--color-primary);
+  color: #FFFFFF;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease;
+}
+
+.organization-profile-page .org-submit-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover, #0f766e);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.organization-profile-page .org-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .organization-profile-page .org-submit-btn {
+    width: 100%;
+  }
+}
+
+/* Booking Success Card */
+.organization-profile-page .org-booking-success-card {
+  background: var(--color-surface);
+  border: 1px solid #BBF7D0;
+  border-radius: var(--radius-xl, 20px);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  max-width: 680px;
+  margin: 1.5rem auto 0 auto;
+}
+
+[data-theme="dark"] .organization-profile-page .org-booking-success-card {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.organization-profile-page .org-booking-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #DCFCE7;
+  color: #166534;
+  font-size: 1.75rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem auto;
+}
+
+[data-theme="dark"] .organization-profile-page .org-booking-success-icon {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ADE80;
+}
+
+.organization-profile-page .org-booking-success-title {
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 0.5rem 0;
+}
+
+.organization-profile-page .org-booking-success-desc {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  margin: 0 0 1.5rem 0;
+}
+
+.organization-profile-page .org-booking-success-details {
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 14px);
+  padding: 1.5rem;
+  text-align: left;
+  margin-bottom: 1.75rem;
+}
+
+.organization-profile-page .org-booking-serial-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.organization-profile-page .org-booking-serial {
+  font-size: 1.25rem;
+  color: var(--color-primary);
+  font-family: Outfit, Inter, sans-serif;
+}
+
+.organization-profile-page .org-booking-status {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: #DCFCE7;
+  color: #166534;
+}
+
+.organization-profile-page .org-booking-serial-note {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-top: 1rem;
+  margin-bottom: 0;
+  font-style: italic;
+}
+
+.organization-profile-page .org-booking-success-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ─── 7. Unified Modal Design System ──────────────────────────────────────── */
+.organization-profile-page .org-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1.25rem;
+  animation: orgModalFadeIn 0.2s ease-out;
+}
+
+.organization-profile-page .org-modal-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl, 20px);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 580px;
+  max-height: 88vh;
+  overflow-y: auto;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.organization-profile-page .org-service-modal-card {
+  max-width: 660px;
+}
+
+.organization-profile-page .org-modal-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.15s ease;
+}
+
+.organization-profile-page .org-modal-close-btn:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.organization-profile-page .org-modal-body {
+  padding: 1.75rem 2rem 2rem 2rem;
+}
+
+.organization-profile-page .org-modal-title {
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 0.5rem 0;
+}
+
+.organization-profile-page .org-service-modal-img-wrap {
+  width: 100%;
+  height: 220px;
+  overflow: hidden;
+  border-top-left-radius: var(--radius-xl, 20px);
+  border-top-right-radius: var(--radius-xl, 20px);
+  background: var(--color-surface-subtle);
+}
+
+.organization-profile-page .org-modal-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.organization-profile-page .org-modal-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.organization-profile-page .org-modal-org-tag {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-transform: uppercase;
+}
+
+.organization-profile-page .org-modal-duration {
+  font-size: 0.825rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.organization-profile-page .org-modal-price {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin-bottom: 1.25rem;
+}
+
+.organization-profile-page .org-modal-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 1.25rem 0 0.5rem 0;
+}
+
+.organization-profile-page .org-modal-desc {
+  font-size: 0.925rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.organization-profile-page .org-modal-scope-list,
+.organization-profile-page .org-modal-notes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.organization-profile-page .org-modal-scope-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.organization-profile-page .org-modal-scope-check {
+  color: #166534;
+  font-weight: bold;
+}
+
+[data-theme="dark"] .organization-profile-page .org-modal-scope-check {
+  color: #4ADE80;
+}
+
+.organization-profile-page .org-modal-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.organization-profile-page .org-modal-step-card {
+  padding: 0.85rem 1rem;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 10px);
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.organization-profile-page .org-modal-step-num {
+  font-weight: 800;
+  color: var(--color-primary);
+  font-size: 1.1rem;
+}
+
+.organization-profile-page .org-modal-serial-notice {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: var(--color-surface-subtle);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-sm, 6px);
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.organization-profile-page .org-modal-serial-notice strong {
+  display: block;
+  color: var(--color-text);
+  margin-bottom: 0.25rem;
+}
+
+.organization-profile-page .org-modal-serial-notice p {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.organization-profile-page .org-modal-prov-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.65rem;
+}
+
+.organization-profile-page .org-modal-prov-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 10px);
+  gap: 0.75rem;
+}
+
+.organization-profile-page .org-modal-prov-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.organization-profile-page .org-modal-prov-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  display: block;
+}
+
+.organization-profile-page .org-modal-prov-exp {
+  font-size: 0.775rem;
+  color: var(--color-text-muted);
+  display: block;
+}
+
+.organization-profile-page .org-modal-prov-link {
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.organization-profile-page .org-modal-prov-link:hover {
+  text-decoration: underline;
+}
+
+/* Operating Hours Table */
+.organization-profile-page .org-hours-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.organization-profile-page .org-hours-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.875rem;
+}
+
+.organization-profile-page .org-hours-row:last-child {
+  border-bottom: none;
+}
+
+.organization-profile-page .org-hours-day {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.organization-profile-page .org-hours-time {
+  color: var(--color-text-muted);
+}
+
+.organization-profile-page .org-hours-closed-badge {
+  color: var(--color-danger, #DC2626);
+  font-weight: 600;
+}
+
+/* Credentials List in Modal */
+.organization-profile-page .org-creds-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 1.25rem 0;
+}
+
+.organization-profile-page .org-cred-card {
+  padding: 1rem 1.25rem;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.organization-profile-page .org-cred-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.organization-profile-page .org-cred-type-tag {
+  font-size: 0.725rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-transform: uppercase;
+}
+
+.organization-profile-page .org-cred-verified-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #166534;
+  background: #DCFCE7;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid #BBF7D0;
+}
+
+[data-theme="dark"] .organization-profile-page .org-cred-verified-pill {
+  color: #4ADE80;
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.organization-profile-page .org-cred-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.organization-profile-page .org-cred-card-meta {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.organization-profile-page .org-cred-privacy-notice {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface-subtle);
+  border-radius: var(--radius-sm, 6px);
+  border-left: 3px solid var(--color-border);
+}
+
+/* Reviews List in Modal */
+.organization-profile-page .org-reviews-modal-score-box {
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 12px);
+  padding: 1.25rem;
+  text-align: center;
+  margin: 1rem 0 1.5rem 0;
+}
+
+.organization-profile-page .org-reviews-big-star {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #EAB308;
+}
+
+.organization-profile-page .org-reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.organization-profile-page .org-review-item {
+  padding: 1rem;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 10px);
+}
+
+.organization-profile-page .org-review-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.organization-profile-page .org-review-item-stars {
+  color: #EAB308;
+  letter-spacing: 0.1em;
+}
+
+.organization-profile-page .org-review-item-text {
+  font-size: 0.875rem;
+  color: var(--color-text);
+  line-height: 1.5;
+  margin: 0 0 0.5rem 0;
+}
+
+.organization-profile-page .org-reviews-empty-state {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--color-text-muted);
+}
+
+/* ─── 8. Modal Animation & Reduced Motion ─────────────────────────────────── */
+@keyframes orgModalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .organization-profile-page,
+  .organization-profile-page *,
+  .organization-profile-page *::before,
+  .organization-profile-page *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

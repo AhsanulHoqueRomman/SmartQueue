@@ -14,6 +14,7 @@ import BookingReviewModal from '../../components/BookingReviewModal';
 import { BookingContactFields, BookingSummary } from '../../components/BookingContact';
 import { useBookingContact } from '../../hooks/useBookingContact';
 import '../../styles/LandingPage.css';
+import '../../styles/OrganizationProfile.css';
 
 // ─── Format Currency Helper ────────────────────────────────────────────────
 export const formatCurrency = (amount) => {
@@ -390,9 +391,9 @@ export function OrganizationProfilePage() {
 
   if (loading) {
     return (
-      <div className="lp-root" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="lp-root organization-profile-page">
         <PublicNavbar activePage="organizations" />
-        <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '64px' }}>
+        <main className="organization-profile-main organization-profile-main--center">
           <LoadingState message="Loading organization profile..." />
         </main>
       </div>
@@ -401,9 +402,9 @@ export function OrganizationProfilePage() {
 
   if (error || !org) {
     return (
-      <div className="lp-root" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="lp-root organization-profile-page">
         <PublicNavbar activePage="organizations" />
-        <main style={{ flex: 1, paddingTop: '100px', paddingBottom: '3rem' }}>
+        <main className="organization-profile-main">
           <div className="org-profile-container">
             <EmptyState title="Organization Not Found" description={error || "The requested organization is not available."} />
           </div>
@@ -419,12 +420,12 @@ export function OrganizationProfilePage() {
   const isSmartQueueVerified = org.verification_status === 'APPROVED' || org.smartqueue_verified;
 
   return (
-    <div className="lp-root" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="lp-root organization-profile-page">
       {/* 0. GLOBAL QUEUETURN PUBLIC NAVBAR */}
       <PublicNavbar activePage="organizations" />
 
-      <main style={{ flex: 1, paddingTop: '84px', paddingBottom: '4rem' }}>
-        {/* CENTERED CONTENT CONTAINER (1150px MAX-WIDTH CONSTRAINED) */}
+      <main className="organization-profile-main">
+        {/* CENTERED CONTENT CONTAINER (1180px MAX-WIDTH CONSTRAINED) */}
         <div className="org-profile-container">
 
           {/* 1. ORGANIZATION COVER BANNER */}
