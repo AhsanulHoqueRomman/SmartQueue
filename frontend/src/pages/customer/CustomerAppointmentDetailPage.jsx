@@ -1,21 +1,22 @@
-import { EmergencyNotice } from '../../components/EmergencyNotice';
-import { formatBookingDate } from '../../utils/homeBookingDisplay.js';
-import { useRequestScope } from '../../hooks/useRequestScope';
-import { confirmCustomerArrival } from '../../utils/customerArrival.js';
-import { useBookingWindow } from '../../hooks/useBookingWindow';
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import { useBookingWindow } from '../../hooks/useBookingWindow';
+import { useRequestScope } from '../../hooks/useRequestScope';
 import appointmentService from '../../services/appointmentService';
 import CancelAppointmentModal from '../../components/CancelAppointmentModal';
 import LeaveReviewModal from '../../components/LeaveReviewModal';
+import ReportIssueModal from '../../components/ReportIssueModal';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
-import ReportIssueModal from '../../components/ReportIssueModal';
+import { EmergencyNotice } from '../../components/EmergencyNotice';
+import { formatBookingDate } from '../../utils/homeBookingDisplay.js';
 import { getNormalizedCustomerQueueState } from '../../utils/queueDisplay';
+import { confirmCustomerArrival } from '../../utils/customerArrival.js';
 import { BookingSummary } from '../../components/BookingContact';
+import '../../styles/CustomerAppointmentDetail.css';
 
 export function CustomerAppointmentDetailPage() {
   const { id } = useParams();
@@ -31,7 +32,7 @@ export function CustomerAppointmentDetailPage() {
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Modals & Action states
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
@@ -50,16 +51,30 @@ export function CustomerAppointmentDetailPage() {
       const detail = await appointmentService.getCustomerAppointmentDetail(id);
       if (!scope.isCurrent(ticket)) return;
       if (!detail?.id) throw new Error('Appointment details unavailable');
-      setAppointment(detail); setLoadedScope(scopeKey); setError(null);
+      setAppointment(detail);
+      setLoadedScope(scopeKey);
+      setError(null);
     } catch (err) {
-      if (scope.isCurrent(ticket)) setError(err.response?.data?.error?.message || err.response?.data?.detail || 'Unable to refresh appointment information.');
-    } finally { if (scope.isCurrent(ticket)) setLoading(false); scope.finish(ticket); }
+      if (scope.isCurrent(ticket)) {
+        setError(err.response?.data?.error?.message || err.response?.data?.detail || 'Unable to refresh appointment information.');
+      }
+    } finally {
+      if (scope.isCurrent(ticket)) setLoading(false);
+      scope.finish(ticket);
+    }
   };
 
   useEffect(() => {
-    mutationBusy.current = false; setCheckingIn(false); setRescheduling(false);
-    setCancelModalOpen(false); setReviewModalOpen(false); setReportModalOpen(false); setRescheduleModalOpen(false);
-    setAppointment(null); setError(null); fetchDetail();
+    mutationBusy.current = false;
+    setCheckingIn(false);
+    setRescheduling(false);
+    setCancelModalOpen(false);
+    setReviewModalOpen(false);
+    setReportModalOpen(false);
+    setRescheduleModalOpen(false);
+    setAppointment(null);
+    setError(null);
+    fetchDetail();
     const timer = setInterval(() => fetchDetail(false), 10000);
     return () => clearInterval(timer);
   }, [id, user?.id]);
@@ -84,7 +99,10 @@ export function CustomerAppointmentDetailPage() {
       const msg = err.response?.data?.error?.message || err.response?.data?.detail || 'Check-in failed. Please verify your appointment status.';
       showError(msg);
     } finally {
-      if (scope.isCurrentScope(ticket)) { mutationBusy.current = false; setCheckingIn(false); }
+      if (scope.isCurrentScope(ticket)) {
+        mutationBusy.current = false;
+        setCheckingIn(false);
+      }
     }
   };
 
@@ -105,7 +123,9 @@ export function CustomerAppointmentDetailPage() {
       const msg = err.response?.data?.error?.message || err.response?.data?.detail || 'Failed to cancel appointment.';
       showError(msg);
       setCancelModalOpen(false);
-    } finally { if (scope.isCurrentScope(ticket)) mutationBusy.current = false; }
+    } finally {
+      if (scope.isCurrentScope(ticket)) mutationBusy.current = false;
+    }
   };
 
   if (loading || (loadedScope !== scopeKey && !error)) {
@@ -114,7 +134,7 @@ export function CustomerAppointmentDetailPage() {
 
   if (!appointment || loadedScope !== scopeKey) {
     return (
-      <div className="animate-fade-in">
+      <div className="animate-fade-in customer-appointment-detail">
         <EmptyState
           title="Appointment Record Not Found"
           message={error || 'Unable to locate the requested appointment record.'}
@@ -135,9 +155,7 @@ export function CustomerAppointmentDetailPage() {
   const canCheckIn = appointment.can_check_in !== undefined
     ? appointment.can_check_in
     : normState.canCheckIn;
-  const canCancel = appointment.can_cancel !== undefined
-    ? appointment.can_cancel
-    : (['CONFIRMED', 'PENDING'].includes(appointment.status) && !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'SKIPPED', 'IN_PROGRESS'].includes(qStatus));
+  const canCancel = appointment.can_cancel === true;
   const selfReschedule = appointment.self_reschedule;
   const canReschedule = selfReschedule?.allowed === true;
   const isLive = normState.can_open_telemetry;
@@ -173,359 +191,291 @@ export function CustomerAppointmentDetailPage() {
       const msg = err.response?.data?.error?.message || err.response?.data?.detail || err.response?.data?.appointment_date?.[0] || 'Reschedule failed. Please select an operational date for this provider.';
       showError(msg);
     } finally {
-      if (scope.isCurrentScope(ticket)) { mutationBusy.current = false; setRescheduling(false); }
+      if (scope.isCurrentScope(ticket)) {
+        mutationBusy.current = false;
+        setRescheduling(false);
+      }
     }
   };
 
   return (
-    <div className="animate-page-entrance" style={{ maxWidth: '850px', margin: '0 auto', padding: '0 0.5rem 2rem 0.5rem' }}>
-      {error && <p className="banner banner-warning" role="alert">{error} Displaying the last successful update.</p>}
-      <EmergencyNotice appointment={appointment} />
-      {/* Top back navigation */}
-      <div style={{ marginBottom: '1.25rem' }}>
-        <Link
-          to="/customer/appointments"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            color: 'var(--lp-accent)',
-            fontWeight: 600,
-            textDecoration: 'none',
-            fontSize: '0.9rem',
-          }}
-        >
+    <div className="customer-appointment-detail animate-page-entrance">
+      {/* Top Navigation */}
+      <div className="customer-appointment-detail__nav">
+        <Link to="/customer/appointments" className="customer-appointment-detail__back-link">
           ← Back to My Appointments
         </Link>
       </div>
 
-      {/* Title & Service Header */}
-      <div style={{ marginBottom: '1.75rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {appointment.organization_category || 'CLINIC'} &bull; {appointment.organization_name || 'Organization'}
+      {error && (
+        <p className="banner banner-warning customer-appointment-detail__error-banner" role="alert">
+          {error} Displaying the last successful update.
+        </p>
+      )}
+
+      <EmergencyNotice appointment={appointment} />
+
+      {/* Hero Header Card */}
+      <div className="customer-appointment-detail__header-card">
+        <div className="customer-appointment-detail__header-main">
+          <div className="customer-appointment-detail__org-meta">
+            <span>{appointment.organization_category || 'CLINIC'}</span>
+            <span className="customer-appointment-detail__org-bullet" aria-hidden="true">•</span>
+            <span>{appointment.organization_name || 'Organization'}</span>
+          </div>
+          <h1 className="customer-appointment-detail__title">
+            {appointment.service_name || 'Appointment Service'}
+          </h1>
+          <div className="customer-appointment-detail__id-pill">
+            <span>Appointment ID:</span>
+            <span className="customer-appointment-detail__id-code">#{appointment.id}</span>
+          </div>
+        </div>
+
+        <div className="customer-appointment-detail__badge-cluster">
+          {(normState.serialNumber || appointment.serial_number) && (
+            <div className="customer-appointment-detail__serial-badge">
+              #{normState.serialNumber || appointment.serial_number}
+            </div>
+          )}
+          <StatusBadge
+            status={normState.rawStatus}
+            customLabel={normState.isUnresolved ? 'Service outcome not recorded' : normState.displayStatus}
+          />
+        </div>
+      </div>
+
+      {/* Historical Reconciliation Box for Needs Follow-up Appointments */}
+      {normState.isUnresolved && (
+        <div className="customer-appointment-detail__reconciliation-card">
+          <span className="customer-appointment-detail__reconciliation-label">Service Outcome</span>
+          <h2 className="customer-appointment-detail__reconciliation-title">Service outcome not recorded</h2>
+          <p className="customer-appointment-detail__reconciliation-text">
+            You checked in for this appointment, but QueueTurn does not have a final service outcome recorded for this consultation.
+          </p>
+
+          <div className="customer-appointment-detail__reconciliation-footer">
+            <span className="customer-appointment-detail__reconciliation-time">
+              Checked in: <strong>{qEntry?.checked_in_at ? new Date(qEntry.checked_in_at).toLocaleString() : 'Verified'}</strong>
             </span>
-            <h1 style={{ fontSize: '1.85rem', fontWeight: 700, color: 'var(--lp-text)', fontFamily: 'Cinzel, serif', margin: '0.2rem 0 0 0' }}>
-              {appointment.service_name || 'Appointment Service'}
-            </h1>
-            <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)', marginTop: '0.25rem' }}>
-              Appointment ID: <span style={{ fontFamily: 'monospace' }}>#{appointment.id}</span>
+
+            {appointment.has_issue_report ? (
+              <span className="customer-appointment-detail__reported-badge">
+                ✓ Issue Reported
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={() => setReportModalOpen(true)}
+              >
+                ⚠️ Report an Issue
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Live Queue Status Section if active */}
+      {isLive && !normState.isUnresolved && (
+        <div className={`customer-appointment-detail__live-queue-card ${normState.is_delayed ? 'is-delayed' : ''}`}>
+          <div className="customer-appointment-detail__live-header">
+            <div>
+              <span className="customer-appointment-detail__live-tag">Live Queue Status</span>
+              <h2 className="customer-appointment-detail__live-headline">{normState.headline}</h2>
+            </div>
+
+            {normState.is_delayed && (
+              <span className="customer-appointment-detail__delay-badge">
+                Running behind schedule
+              </span>
+            )}
+          </div>
+
+          <p className="customer-appointment-detail__live-guidance">{normState.guidance}</p>
+
+          <div className="customer-appointment-detail__queue-grid">
+            <div className="customer-appointment-detail__metric-box">
+              <span className="customer-appointment-detail__metric-label">Your Serial</span>
+              <span className="customer-appointment-detail__metric-value">
+                #{normState.serialNumber || appointment.serial_number || '—'}
+              </span>
+            </div>
+
+            <div className="customer-appointment-detail__metric-box">
+              <span className="customer-appointment-detail__metric-label">Now Serving</span>
+              <span className="customer-appointment-detail__metric-value is-accent">
+                {normState.nowServing ? `#${normState.nowServing}` : 'Not started'}
+              </span>
+            </div>
+
+            <div className="customer-appointment-detail__metric-box">
+              <span className="customer-appointment-detail__metric-label">Scheduled Ahead</span>
+              <span className="customer-appointment-detail__metric-value is-warning">
+                {normState.scheduledAhead}
+              </span>
+            </div>
+
+            <div className="customer-appointment-detail__metric-box">
+              <span className="customer-appointment-detail__metric-label">Checked-In Ahead</span>
+              <span className="customer-appointment-detail__metric-value">
+                {normState.checkedInAhead}
+              </span>
+            </div>
+
+            <div className="customer-appointment-detail__metric-box">
+              <span className="customer-appointment-detail__metric-label">Expected Service</span>
+              <span className="customer-appointment-detail__metric-value is-time">
+                {formatTime(normState.estimatedStartTime) && formatTime(normState.estimatedEndTime)
+                  ? `${formatTime(normState.estimatedStartTime)} – ${formatTime(normState.estimatedEndTime)}`
+                  : (formatTime(normState.estimatedStartTime) || 'Around appointment time')}
+              </span>
             </div>
           </div>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {(normState.serialNumber || appointment.serial_number) && (
-              <div style={{ background: 'var(--lp-accent-light)', border: '1px solid var(--lp-accent-border)', padding: '0.3rem 0.75rem', borderRadius: '8px', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif' }}>
-                #{normState.serialNumber || appointment.serial_number}
-              </div>
-            )}
-            <StatusBadge status={normState.rawStatus} customLabel={normState.isUnresolved ? 'Service outcome not recorded' : normState.displayStatus} />
+
+          {qEntry?.id && (
+            <div className="customer-appointment-detail__telemetry-action">
+              <button
+                type="button"
+                className="btn btn-primary customer-appointment-detail__telemetry-btn"
+                onClick={() => navigate(`/customer/queue/${qEntry.id}`)}
+              >
+                Open Full Live Telemetry →
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Schedule & Consultation Details */}
+      <div className="customer-appointment-detail__details-card">
+        <h3 className="customer-appointment-detail__section-title">
+          📅 Schedule & Consultation Details
+        </h3>
+
+        <div className="customer-appointment-detail__info-grid">
+          <div className="customer-appointment-detail__info-block">
+            <span className="customer-appointment-detail__info-label">Booking Date</span>
+            <span className="customer-appointment-detail__info-val">{formattedScheduleDate}</span>
+            <span className="customer-appointment-detail__info-sub">
+              {startTimeStr && endTimeStr ? `${startTimeStr} – ${endTimeStr}` : (startTimeStr || normState.timingPlaceholder)}
+            </span>
+          </div>
+
+          <div className="customer-appointment-detail__info-block">
+            <span className="customer-appointment-detail__info-label">Assigned Specialist</span>
+            <span className="customer-appointment-detail__info-val">
+              {appointment.provider_name || appointment.provider_title || 'Assigned Specialist'}
+            </span>
+            <span className="customer-appointment-detail__info-sub">
+              Category: {appointment.category_name || 'General Consultation'}
+            </span>
+          </div>
+
+          <div className="customer-appointment-detail__info-block">
+            <span className="customer-appointment-detail__info-label">Location</span>
+            <span className="customer-appointment-detail__info-val">
+              {appointment.organization_name || 'Organization Clinic'}
+            </span>
+            <span className="customer-appointment-detail__info-sub">
+              {appointment.arrival_type || 'SCHEDULED'} • {appointment.booking_channel || 'ONLINE'}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Main Content Area - De-boxed task-first presentation */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-        
-        {/* Historical Reconciliation Box for Needs Follow-up Appointments */}
-        {normState.isUnresolved && (
-          <div
-            style={{
-              background: 'var(--lp-surface)',
-              border: '1px solid var(--lp-border)',
-              borderRadius: '16px',
-              padding: '1.5rem',
-              boxShadow: 'var(--lp-shadow-sm)',
-            }}
-          >
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-warning, #d97706)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.35rem' }}>
-              SERVICE OUTCOME
-            </div>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: 'var(--lp-text)', fontFamily: 'Cinzel, serif' }}>
-              Service outcome not recorded
-            </h2>
-            <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.925rem', margin: '0 0 1.25rem 0', lineHeight: 1.5 }}>
-              You checked in for this appointment, but QueueTurn does not have a final service outcome recorded for this consultation.
-            </p>
+      {/* Booking Snapshots */}
+      <BookingSummary appointment={appointment} organization={{ name: appointment.organization_name }} />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--lp-border)' }}>
-              <div style={{ fontSize: '0.85rem', color: 'var(--lp-text-subtle)' }}>
-                Checked in: <strong style={{ color: 'var(--lp-text)' }}>{qEntry?.checked_in_at ? new Date(qEntry.checked_in_at).toLocaleString() : 'Verified'}</strong>
-              </div>
-
-              {appointment.has_issue_report ? (
-                <span style={{ padding: '0.45rem 0.85rem', background: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', borderRadius: '8px', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--lp-border)' }}>
-                  ✓ Issue Reported
-                </span>
-              ) : (
-                <button
-                  onClick={() => setReportModalOpen(true)}
-                  style={{
-                    padding: '0.55rem 1rem',
-                    background: 'var(--lp-bg-subtle)',
-                    color: 'var(--color-warning)',
-                    border: '1px solid var(--lp-border)',
-                    borderRadius: '8px',
-                    fontWeight: 600,
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  ⚠️ Report an Issue
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Live Queue Status Section if active */}
-        {isLive && !normState.isUnresolved && (
-          <div
-            style={{
-              background: normState.is_delayed ? 'var(--color-warning-light, rgba(217, 119, 6, 0.08))' : 'var(--lp-surface)',
-              border: `1px solid ${normState.is_delayed ? 'var(--color-warning, #d97706)' : 'var(--lp-border)'}`,
-              borderRadius: '16px',
-              padding: '1.5rem',
-              boxShadow: 'var(--lp-shadow-sm)',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: normState.is_delayed ? 'var(--color-warning)' : 'var(--lp-accent)', letterSpacing: '0.04em' }}>
-                  Live Queue Status
-                </span>
-                <h2 style={{ fontSize: '1.35rem', fontWeight: 700, margin: '0.15rem 0 0 0', color: 'var(--lp-text)' }}>
-                  {normState.headline}
-                </h2>
-              </div>
-
-              {normState.is_delayed && (
-                <span style={{ background: 'var(--color-warning)', color: '#FFFFFF', padding: '0.25rem 0.65rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 700 }}>
-                  Running behind schedule
-                </span>
-              )}
-            </div>
-
-            <p style={{ margin: '0 0 1.25rem 0', color: 'var(--lp-text-subtle)', fontSize: '0.925rem', lineHeight: 1.5 }}>
-              {normState.guidance}
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--lp-border)' }}>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Your Serial</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif' }}>
-                  #{normState.serialNumber || appointment.serial_number || '—'}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Now Serving</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--lp-accent)', fontFamily: 'Outfit, sans-serif' }}>
-                  {normState.nowServing ? `#${normState.nowServing}` : 'Not started'}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Scheduled Ahead</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-warning)', fontFamily: 'Outfit, sans-serif' }}>
-                  {normState.scheduledAhead}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Checked-In Ahead</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--lp-text)', fontFamily: 'Outfit, sans-serif' }}>
-                  {normState.checkedInAhead}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>Expected Service</div>
-                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--lp-text)', marginTop: '0.2rem' }}>
-                  {formatTime(normState.estimatedStartTime) && formatTime(normState.estimatedEndTime)
-                    ? `${formatTime(normState.estimatedStartTime)} – ${formatTime(normState.estimatedEndTime)}`
-                    : (formatTime(normState.estimatedStartTime) || 'Around appointment time')}
-                </div>
-              </div>
-            </div>
-
-            {qEntry?.id && (
-              <div style={{ marginTop: '1.25rem', textAlign: 'right' }}>
-                <button
-                  onClick={() => navigate(`/customer/queue/${qEntry.id}`)}
-                  style={{
-                    padding: '0.65rem 1.25rem',
-                    background: 'var(--lp-btn-bg)',
-                    color: 'var(--lp-btn-text)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontWeight: 600,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Open Full Live Telemetry →
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Schedule & Location Details */}
-        <div style={{ borderBottom: '1px solid var(--lp-border)', paddingBottom: '1.5rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 1rem 0' }}>
-            📅 Schedule & Consultation Details
-          </h3>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
-            <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Booking Date</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--lp-text)', marginTop: '0.25rem' }}>
-                {formattedScheduleDate}
-              </div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--lp-text-subtle)', marginTop: '0.15rem' }}>
-                {startTimeStr && endTimeStr ? `${startTimeStr} – ${endTimeStr}` : (startTimeStr || normState.timingPlaceholder)}
-              </div>
-            </div>
-
-            <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Assigned Specialist</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--lp-text)', marginTop: '0.25rem' }}>
-                {appointment.provider_name || appointment.provider_title || 'Assigned Specialist'}
-              </div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--lp-text-subtle)', marginTop: '0.15rem' }}>
-                Category: {appointment.category_name || 'General Consultation'}
-              </div>
-            </div>
-
-            <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', fontWeight: 600, textTransform: 'uppercase' }}>Location</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--lp-text)', marginTop: '0.25rem' }}>
-                {appointment.organization_name || 'Organization Clinic'}
-              </div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--lp-text-subtle)', marginTop: '0.15rem' }}>
-                {appointment.arrival_type || 'SCHEDULED'} &bull; {appointment.booking_channel || 'ONLINE'}
-              </div>
-            </div>
-          </div>
+      {/* Additional Notes */}
+      {appointment.notes && (
+        <div className="customer-appointment-detail__notes-card">
+          <h3 className="customer-appointment-detail__notes-label">📝 Patient Notes / Symptoms</h3>
+          <p className="customer-appointment-detail__notes-content">{appointment.notes}</p>
         </div>
+      )}
 
-        {/* Additional Notes section */}
-        <BookingSummary appointment={appointment} organization={{ name: appointment.organization_name }} />
-        {appointment.notes && (
-          <div style={{ borderBottom: '1px solid var(--lp-border)', paddingBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.5rem 0' }}>
-              📝 Patient Notes / Symptoms
-            </h3>
-            <p style={{ margin: 0, color: 'var(--lp-text-subtle)', fontSize: '0.9rem', lineHeight: 1.5 }}>
-              {appointment.notes}
-            </p>
-          </div>
-        )}
-
-        {/* Cancellation Reason */}
-        {appointment.cancellation_reason && (
-          <div style={{ background: 'var(--color-danger-light)', borderRadius: '12px', padding: '1.25rem', border: '1px solid var(--color-danger)' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-danger)', marginBottom: '0.4rem' }}>
-              ⚠️ Cancellation Reason
-            </div>
-            <p style={{ margin: 0, color: 'var(--color-danger)', fontSize: '0.9rem' }}>
-              {appointment.cancellation_reason}
-            </p>
-          </div>
-        )}
-
-        <div style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)' }}>
-          Booked on: {new Date(appointment.created_at).toLocaleString()}
+      {/* Cancellation Reason */}
+      {appointment.cancellation_reason && (
+        <div className="customer-appointment-detail__cancellation-banner">
+          <h3 className="customer-appointment-detail__cancellation-title">⚠️ Cancellation Reason</h3>
+          <p className="customer-appointment-detail__cancellation-reason">{appointment.cancellation_reason}</p>
         </div>
+      )}
 
-        {/* Action Controls Bar */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1.25rem', borderTop: '1px solid var(--lp-border)' }}>
-          {canCheckIn && !isTerminal && (
-            <button
-              onClick={handleCheckIn}
-              disabled={checkingIn}
-              style={{
-                padding: '0.75rem 1.5rem',
-                background: checkingIn ? 'var(--lp-text-subtle)' : 'var(--color-warning)',
-                color: '#FFFFFF',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: 700,
-                fontSize: '0.95rem',
-                cursor: checkingIn ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {checkingIn ? 'Checking in...' : '✓ Check In Now'}
-            </button>
-          )}
-
-          {canReschedule && (
-            <button
-              onClick={() => {
-                setNewDate(appointment.appointment_date || first);
-                setRescheduleModalOpen(true);
-              }}
-              style={{
-                padding: '0.75rem 1.25rem',
-                background: 'var(--lp-bg-subtle)',
-                color: 'var(--lp-accent)',
-                border: '1px solid var(--lp-border)',
-                borderRadius: '8px',
-                fontWeight: 600,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-              }}
-            >
-              📅 Reschedule Date
-            </button>
-          )}
-
-          {qStatus === 'COMPLETED' && (
-            <button
-              onClick={() => setReviewModalOpen(true)}
-              style={{
-                padding: '0.75rem 1.5rem',
-                background: 'var(--lp-bg-subtle)',
-                color: 'var(--color-warning)',
-                border: '1px solid var(--lp-border)',
-                borderRadius: '8px',
-                fontWeight: 600,
-                fontSize: '0.95rem',
-                cursor: 'pointer',
-              }}
-            >
-              ★ Leave Review
-            </button>
-          )}
-
-          {canCancel && (
-            <button
-              onClick={() => setCancelModalOpen(true)}
-              style={{
-                padding: '0.75rem 1.25rem',
-                background: 'var(--color-danger-light)',
-                color: 'var(--color-danger)',
-                border: '1px solid var(--color-danger)',
-                borderRadius: '8px',
-                fontWeight: 600,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-              }}
-            >
-              Cancel Appointment
-            </button>
-          )}
-        </div>
+      <div className="customer-appointment-detail__timestamp-strip">
+        Booked on: {new Date(appointment.created_at).toLocaleString()}
       </div>
 
-      {!isTerminal && selfReschedule && !selfReschedule.allowed && <p className="banner banner-info" role="status">{selfReschedule.message} <button className="btn btn-sm btn-outline" onClick={fetchDetail}>Refresh eligibility</button></p>}
+      {/* Action Controls Bar */}
+      <div className="customer-appointment-detail__action-bar">
+        {canCheckIn && !isTerminal && (
+          <button
+            type="button"
+            className="btn btn-warning customer-appointment-detail__btn-checkin"
+            onClick={handleCheckIn}
+            disabled={checkingIn}
+          >
+            {checkingIn ? 'Checking in...' : '✓ Check In Now'}
+          </button>
+        )}
+
+        {canReschedule && (
+          <button
+            type="button"
+            className="btn btn-outline customer-appointment-detail__btn-reschedule"
+            onClick={() => {
+              setNewDate(appointment.appointment_date || first);
+              setRescheduleModalOpen(true);
+            }}
+          >
+            📅 Reschedule Date
+          </button>
+        )}
+
+        {appointment.can_review === true && (
+          <button
+            type="button"
+            className="btn btn-outline customer-appointment-detail__btn-review"
+            onClick={() => setReviewModalOpen(true)}
+          >
+            ★ Leave Review
+          </button>
+        )}
+
+        {canCancel && (
+          <button
+            type="button"
+            className="btn customer-appointment-detail__btn-cancel"
+            onClick={() => setCancelModalOpen(true)}
+          >
+            Cancel Appointment
+          </button>
+        )}
+      </div>
+
+      {!isTerminal && selfReschedule && !selfReschedule.allowed && (
+        <div className="customer-appointment-detail__reschedule-banner" role="status">
+          <span>{selfReschedule.message}</span>
+          <button type="button" className="btn btn-sm btn-outline" onClick={fetchDetail}>
+            Refresh eligibility
+          </button>
+        </div>
+      )}
+
       {/* Reschedule Modal */}
       {rescheduleModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div style={{ background: 'var(--lp-surface)', borderRadius: '16px', padding: '1.75rem', maxWidth: '450px', width: '100%', boxShadow: 'var(--lp-shadow-sm)' }}>
-            <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', color: 'var(--lp-text)' }}>Reschedule Queue Appointment</h3>
-            <p style={{ fontSize: '0.875rem', color: 'var(--lp-text-subtle)', marginBottom: '1.25rem' }}>
+        <div
+          className="customer-appointment-detail__modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reschedule-modal-title"
+        >
+          <div className="customer-appointment-detail__modal-dialog">
+            <h3 id="reschedule-modal-title" className="customer-appointment-detail__modal-title">
+              Reschedule Queue Appointment
+            </h3>
+            <p className="customer-appointment-detail__modal-desc">
               Select a new date. The system will atomically allocate your new serial position for that date.
             </p>
             <form onSubmit={handleRescheduleSubmit}>
@@ -542,11 +492,19 @@ export function CustomerAppointmentDetailPage() {
                   required
                 />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setRescheduleModalOpen(false)}>
+              <div className="customer-appointment-detail__modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setRescheduleModalOpen(false)}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={rescheduling}>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={rescheduling}
+                >
                   {rescheduling ? 'Allocating New Serial...' : 'Confirm Reschedule'}
                 </button>
               </div>
@@ -595,4 +553,3 @@ export function CustomerAppointmentDetailPage() {
 }
 
 export default CustomerAppointmentDetailPage;
-
