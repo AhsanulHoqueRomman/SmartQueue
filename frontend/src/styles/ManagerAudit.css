@@ -1,0 +1,293 @@
+/* ==========================================================================
+   Manager Audit Logs — QueueTurn UI Design System
+   Refined Operational UI styling for /manager/audit
+   ========================================================================== */
+
+.manager-audit {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 0.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   Header & Action Bar
+   -------------------------------------------------------------------------- */
+.manager-audit__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.manager-audit__header-info {
+  flex: 1 1 320px;
+}
+
+.manager-audit__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.35rem;
+}
+
+.manager-audit__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.35rem;
+}
+
+.manager-audit__title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.manager-audit__role-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary-border);
+}
+
+.manager-audit__subtitle {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.manager-audit__subtitle-org {
+  color: var(--color-text-main);
+  font-weight: 600;
+}
+
+.manager-audit__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.manager-audit__btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2.375rem;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text-main);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+}
+
+.manager-audit__btn-refresh:hover:not(:disabled) {
+  background-color: var(--color-bg-subtle);
+  border-color: var(--color-border-hover);
+}
+
+.manager-audit__btn-refresh:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.manager-audit__btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------------------
+   Feedback Banners
+   -------------------------------------------------------------------------- */
+.manager-audit__error-banner {
+  padding: 0.875rem 1.25rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1.25rem;
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid var(--color-error-border);
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   Table Content Formatting
+   -------------------------------------------------------------------------- */
+.manager-audit__timestamp {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--color-text-main);
+  white-space: nowrap;
+}
+
+.manager-audit__actor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--color-text-main);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manager-audit__actor--system {
+  color: var(--color-text-muted);
+  font-weight: 500;
+  font-style: italic;
+}
+
+.manager-audit__action-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.manager-audit__action-token {
+  font-size: 0.7rem;
+  font-family: monospace;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+}
+
+/* Action Badges */
+.qt-audit-badge {
+  font-size: 0.725rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.qt-audit-badge--teal {
+  background-color: rgba(42, 157, 143, 0.12);
+  color: var(--color-primary);
+  border: 1px solid rgba(42, 157, 143, 0.25);
+}
+
+.qt-audit-badge--espresso {
+  background-color: rgba(47, 37, 32, 0.08);
+  color: var(--color-text-main);
+  border: 1px solid var(--color-border);
+}
+
+.qt-audit-badge--success {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success-border);
+}
+
+.qt-audit-badge--warning {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning-border);
+}
+
+.qt-audit-badge--danger {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid var(--color-error-border);
+}
+
+.qt-audit-badge--info {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  border: 1px solid var(--color-info-border);
+}
+
+.qt-audit-badge--neutral {
+  background-color: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+/* Target Resource */
+.manager-audit__resource {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.manager-audit__entity-type {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.manager-audit__entity-id {
+  font-size: 0.725rem;
+  font-family: monospace;
+  color: var(--color-text-muted);
+}
+
+/* Details summary */
+.manager-audit__details {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  line-height: 1.35;
+}
+
+.manager-audit__details-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-main);
+}
+
+/* --------------------------------------------------------------------------
+   Responsive & Accessibility
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .manager-audit__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .manager-audit__controls {
+    justify-content: flex-end;
+  }
+
+  .manager-audit__title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manager-audit__btn-refresh {
+    transition: none;
+  }
+}
