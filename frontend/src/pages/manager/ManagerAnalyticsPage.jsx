@@ -1,46 +1,96 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
+import { useToast } from '../../contexts/ToastContext';
 import managerService from '../../services/managerService';
+import apiClient from '../../api/client';
 import { StatusBadge } from '../../components/StatusBadge';
 import { LoadingState } from '../../components/LoadingState';
 import { EmptyState } from '../../components/EmptyState';
-import { StatCard } from '../../components/StatCard';
+import { currentBusinessDate } from '../../utils/bookingDisplay';
+import '../../styles/ManagerAnalytics.css';
+
+/**
+ * Calendar math utility: shifts an ISO YYYY-MM-DD date string by dayDelta days
+ * using UTC date operations to avoid browser-local timezone/daylight saving drift.
+ */
+function shiftDhakaDate(dateStr, dayDelta) {
+  if (!dateStr || typeof dateStr !== 'string') return currentBusinessDate();
+  const parts = dateStr.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return currentBusinessDate();
+  const [year, month, day] = parts;
+  const d = new Date(Date.UTC(year, month - 1, day));
+  d.setUTCDate(d.getUTCDate() + dayDelta);
+  return d.toISOString().split('T')[0];
+}
+
+/**
+ * Generates Asia/Dhaka compliant preset dates relative to currentBusinessDate().
+ */
+function getPresetDates(presetKey) {
+  const today = currentBusinessDate();
+  if (presetKey === '7d') {
+    // Today and 6 preceding calendar dates = 7 days inclusive
+    return { start: shiftDhakaDate(today, -6), end: today };
+  } else if (presetKey === '30d') {
+    // Today and 29 preceding calendar dates = 30 days inclusive
+    return { start: shiftDhakaDate(today, -29), end: today };
+  } else if (presetKey === 'month') {
+    // First calendar day of current month in Asia/Dhaka through today
+    const [year, month] = today.split('-');
+    return { start: `${year}-${month}-01`, end: today };
+  }
+  return { start: '', end: today };
+}
 
 export function ManagerAnalyticsPage() {
   const { currentOrg } = useTenant();
+  const { showSuccess, showError } = useToast();
 
-  // Date range preset options
-  const [preset, setPreset] = useState('30d'); // 7d, 30d, month, custom
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  // Active Date Filter: '7d' | '30d' | 'month' | 'custom'
+  const [preset, setPreset] = useState('30d');
+  const [startDate, setStartDate] = useState(() => getPresetDates('30d').start);
+  const [endDate, setEndDate] = useState(() => getPresetDates('30d').end);
 
+  // Authoritative server data & UI states
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [viewTrendTable, setViewTrendTable] = useState(false);
 
-  // Helper to calculate date range based on preset
-  const calculatePresetDates = (presetKey) => {
-    const today = new Date();
-    const endStr = today.toISOString().split('T')[0];
-    let start = new Date();
+  // Concurrency, Tenant Generation & Stale Response Protection Refs
+  const requestTicketRef = useRef(0);
+  const exportBusyRef = useRef(false);
+  const activeOrgIdRef = useRef(currentOrg?.id);
+  const orgGenRef = useRef(0);
+  const isMountedRef = useRef(true);
 
-    if (presetKey === '7d') {
-      start.setDate(today.getDate() - 7);
-    } else if (presetKey === '30d') {
-      start.setDate(today.getDate() - 30);
-    } else if (presetKey === 'month') {
-      start = new Date(today.getFullYear(), today.getMonth(), 1);
-    } else {
-      return { start: startDate, end: endDate };
+  // Mount/Unmount lifecycle tracker
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Synchronize active organization ID and increment context generation on tenant switch
+  useEffect(() => {
+    if (activeOrgIdRef.current !== currentOrg?.id) {
+      activeOrgIdRef.current = currentOrg?.id;
+      orgGenRef.current += 1;
     }
+  }, [currentOrg?.id]);
 
-    const startStr = start.toISOString().split('T')[0];
-    return { start: startStr, end: endStr };
-  };
-
+  // --------------------------------------------------------------------------
+  // Data Fetching with Generation Ticket Guard
+  // --------------------------------------------------------------------------
   const fetchAnalytics = useCallback(async (startStr, endStr) => {
     if (!currentOrg?.id) return;
+    const ticket = ++requestTicketRef.current;
+    const targetOrgId = currentOrg.id;
+    const targetGen = orgGenRef.current;
+
     setLoading(true);
     setError(null);
 
@@ -49,57 +99,160 @@ export function ManagerAnalyticsPage() {
       if (startStr) params.start_date = startStr;
       if (endStr) params.end_date = endStr;
 
-      const data = await managerService.getAnalyticsSummary(currentOrg.id, params);
+      const data = await managerService.getAnalyticsSummary(targetOrgId, params);
+
+      // Discard stale responses if organization, generation, unmount, or ticket has superseded
+      if (
+        !isMountedRef.current ||
+        ticket !== requestTicketRef.current ||
+        activeOrgIdRef.current !== targetOrgId ||
+        orgGenRef.current !== targetGen
+      ) {
+        return;
+      }
+
       setAnalytics(data);
       setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to load operational analytics.');
+      if (
+        isMountedRef.current &&
+        ticket === requestTicketRef.current &&
+        activeOrgIdRef.current === targetOrgId &&
+        orgGenRef.current === targetGen
+      ) {
+        setError(err.response?.data?.detail || 'Failed to load operational analytics.');
+      }
     } finally {
-      setLoading(false);
+      if (
+        isMountedRef.current &&
+        ticket === requestTicketRef.current &&
+        activeOrgIdRef.current === targetOrgId &&
+        orgGenRef.current === targetGen
+      ) {
+        setLoading(false);
+      }
     }
   }, [currentOrg?.id]);
 
+  // Initial load and context change synchronization
   useEffect(() => {
     if (!currentOrg?.id) {
       setLoading(false);
+      setAnalytics(null);
       return;
     }
-    const { start, end } = calculatePresetDates(preset);
+    const { start, end } = getPresetDates(preset);
     setStartDate(start);
     setEndDate(end);
     fetchAnalytics(start, end);
   }, [currentOrg?.id, preset, fetchAnalytics]);
 
+  // Preset switch handler
+  const handlePresetSelect = (pKey) => {
+    setPreset(pKey);
+    const { start, end } = getPresetDates(pKey);
+    setStartDate(start);
+    setEndDate(end);
+    fetchAnalytics(start, end);
+  };
+
+  // Custom date range submit handler
   const handleApplyCustomFilter = (e) => {
     e.preventDefault();
+    const todayDhaka = currentBusinessDate();
+
     if (!startDate || !endDate) {
-      setError('Both Start Date and End Date are required for custom date range.');
+      setError('Both Start Date and End Date are required for a custom date range.');
       return;
     }
-    if (new Date(startDate) > new Date(endDate)) {
+    if (startDate > endDate) {
       setError('Start Date cannot be after End Date.');
       return;
     }
+    if (endDate > todayDhaka) {
+      setError('End Date cannot be in the future.');
+      return;
+    }
+
     setPreset('custom');
     fetchAnalytics(startDate, endDate);
   };
 
-  const handlePresetSelect = (pKey) => {
-    setPreset(pKey);
-    const { start, end } = calculatePresetDates(pKey);
-    setStartDate(start);
-    setEndDate(end);
+  // --------------------------------------------------------------------------
+  // Owner Decision D1 — Safe Authenticated CSV Export
+  // Finding F1: Protected against in-flight tenant changes and component unmount
+  // --------------------------------------------------------------------------
+  const handleExportCsv = async () => {
+    if (!currentOrg?.id || exportBusyRef.current) return;
+    exportBusyRef.current = true;
+    setExporting(true);
+
+    const targetOrgId = currentOrg.id;
+    const targetGen = orgGenRef.current;
+    const targetSlug = currentOrg.slug || 'organization';
+
+    let blobUrl = null;
+    try {
+      const response = await apiClient.get(`/organizations/${targetOrgId}/analytics/export/`, {
+        responseType: 'blob',
+      });
+
+      // Airtight check:
+      // Component must remain mounted, and active organization and generation must still match
+      // the exact context that initiated the export request.
+      if (
+        !isMountedRef.current ||
+        activeOrgIdRef.current !== targetOrgId ||
+        orgGenRef.current !== targetGen
+      ) {
+        // Discard blob without creating an object URL or triggering anchor download
+        return;
+      }
+
+      blobUrl = URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `${targetSlug}-queue-analytics.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showSuccess('Queue analytics CSV downloaded successfully.');
+    } catch (err) {
+      if (
+        isMountedRef.current &&
+        activeOrgIdRef.current === targetOrgId &&
+        orgGenRef.current === targetGen
+      ) {
+        showError(err.response?.data?.detail || 'Failed to export queue analytics CSV.');
+      }
+    } finally {
+      if (blobUrl) {
+        setTimeout(() => {
+          try {
+            URL.revokeObjectURL(blobUrl);
+          } catch (_) {
+            // Ignore revocation errors
+          }
+        }, 1000);
+      }
+      exportBusyRef.current = false;
+      if (isMountedRef.current) {
+        setExporting(false);
+      }
+    }
   };
 
   if (!currentOrg) {
     return (
       <EmptyState
         title="No Organization Selected"
-        message="Please select an organization from the top selector to view analytics."
+        message="Please select an organization from the header selector to view operational analytics."
       />
     );
   }
 
+  // Authoritative server payload extracts
   const summary = analytics?.summary || {};
   const statusCounts = analytics?.status_counts || {};
   const ratingDist = analytics?.rating_distribution || {};
@@ -108,258 +261,378 @@ export function ManagerAnalyticsPage() {
   const providers = analytics?.providers || [];
   const services = analytics?.services || [];
 
-  // Compute trend max for responsive chart scaling
-  const maxTrendVal = Math.max(...trend.map((t) => t.total || 0), 5);
+  // Scaler for SVG bar chart
+  const maxTrendVal = Math.max(...trend.map((t) => t.total || 0), 1);
+
+  // Finding F2: Duration formatting with truthful zero/null observation semantics
+  // The backend returns 0.0 when no qualifying timestamp observations exist.
+  // Where observation presence cannot be reliably established and an average is zero,
+  // display neutral 'N/A' rather than asserting a measured '0 min'.
+  const formatDurationMinutes = (seconds) => {
+    if (typeof seconds !== 'number' || seconds <= 0 || isNaN(seconds)) {
+      return 'N/A';
+    }
+    const mins = Math.round(seconds / 60);
+    return `${mins > 0 ? mins : '< 1'} min`;
+  };
 
   return (
-    <div className="app-container animate-page-entrance">
-      {/* Header & Date Selector Toolbar */}
-      <div
-        className="card"
-        style={{
-          marginBottom: '1.75rem',
-          backgroundColor: 'var(--color-surface)',
-          borderColor: 'var(--color-border)',
-          boxShadow: 'var(--shadow-sm)',
-        }}
-      >
-        <div className="flex justify-between items-center flex-wrap gap-md">
-          <div>
-            <span className="badge badge-info" style={{ marginBottom: '0.4rem' }}>
-              Operational Analytics & Telemetry
-            </span>
-            <h1 style={{ marginTop: '0.25rem' }}>Reporting Dashboard</h1>
-            <p className="subtitle" style={{ marginTop: '0.25rem' }}>
-              Factual metrics & performance outcomes for <strong>{currentOrg.name}</strong>.
-            </p>
+    <div className="manager-analytics animate-page-entrance">
+      {/* Editorial Header */}
+      <div className="manager-analytics__header">
+        <div className="manager-analytics__header-info">
+          <div className="manager-analytics__eyebrow">
+            <span>📊 Clinical & Operational Telemetry</span>
           </div>
+          <h1 className="manager-analytics__title">Operational Analytics & Reporting</h1>
+          <p className="manager-analytics__subtitle">
+            Observed clinical volumes, patient wait times, and fulfillment telemetry for{' '}
+            <span className="manager-analytics__subtitle-org">{currentOrg.name}</span>.
+          </p>
+        </div>
 
-          <div className="flex items-center gap-sm flex-wrap">
+        <div className="manager-analytics__header-actions">
+          <div className="manager-analytics__action-group">
             {lastUpdated && (
-              <span className="text-xs text-muted">
+              <span className="manager-analytics__timestamp">
                 Last updated: <strong>{lastUpdated}</strong>
               </span>
             )}
             <button
-              className="btn btn-outline btn-sm"
+              type="button"
+              className="manager-analytics__btn-refresh"
               onClick={() => fetchAnalytics(startDate, endDate)}
-              disabled={loading}
+              disabled={loading || exporting}
+              title="Refresh telemetry for selected period"
             >
-              🔄 Refresh
+              <span>🔄</span>
+              <span>{loading ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
+            <button
+              type="button"
+              className="manager-analytics__btn-export"
+              onClick={handleExportCsv}
+              disabled={loading || exporting}
+              title="Export all-time organization queue records to CSV"
+            >
+              <span>📥</span>
+              <span>{exporting ? 'Exporting...' : 'Export Queue CSV'}</span>
             </button>
           </div>
-        </div>
-
-        {/* Date Filter Toolbar */}
-        <div
-          style={{
-            marginTop: '1.25rem',
-            paddingTop: '1rem',
-            borderTop: '1px solid var(--color-border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '1rem',
-          }}
-        >
-          <div className="flex items-center gap-xs flex-wrap">
-            <span className="text-xs text-muted font-semibold" style={{ marginRight: '0.5rem', textTransform: 'uppercase' }}>
-              Timeframe:
-            </span>
-            <button
-              className={`btn btn-sm ${preset === '7d' ? 'btn-primary' : 'btn-outline'}`}
-              onClick={() => handlePresetSelect('7d')}
-            >
-              Last 7 Days
-            </button>
-            <button
-              className={`btn btn-sm ${preset === '30d' ? 'btn-primary' : 'btn-outline'}`}
-              onClick={() => handlePresetSelect('30d')}
-            >
-              Last 30 Days
-            </button>
-            <button
-              className={`btn btn-sm ${preset === 'month' ? 'btn-primary' : 'btn-outline'}`}
-              onClick={() => handlePresetSelect('month')}
-            >
-              This Month
-            </button>
-          </div>
-
-          <form onSubmit={handleApplyCustomFilter} className="flex items-center gap-xs flex-wrap">
-            <span className="text-xs text-muted font-semibold">Custom:</span>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => {
-                setStartDate(e.target.value);
-                setPreset('custom');
-              }}
-              style={{
-                padding: '0.35rem 0.6rem',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--color-border)',
-                background: 'var(--color-bg-subtle)',
-                fontSize: '0.85rem',
-              }}
-            />
-            <span className="text-xs text-muted">to</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => {
-                setEndDate(e.target.value);
-                setPreset('custom');
-              }}
-              style={{
-                padding: '0.35rem 0.6rem',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--color-border)',
-                background: 'var(--color-bg-subtle)',
-                fontSize: '0.85rem',
-              }}
-            />
-            <button type="submit" className="btn btn-secondary btn-sm">
-              Apply Filter
-            </button>
-          </form>
+          <span className="manager-analytics__export-note">
+            ℹ️ CSV export downloads all historical queue records for this organization.
+          </span>
         </div>
       </div>
 
+      {/* Date Filter & Preset Toolbar */}
+      <div className="manager-analytics__toolbar">
+        <div className="manager-analytics__presets">
+          <button
+            type="button"
+            className={`manager-analytics__preset-btn ${preset === '7d' ? 'manager-analytics__preset-btn--active' : ''}`}
+            onClick={() => handlePresetSelect('7d')}
+            disabled={loading}
+          >
+            Last 7 Days
+          </button>
+          <button
+            type="button"
+            className={`manager-analytics__preset-btn ${preset === '30d' ? 'manager-analytics__preset-btn--active' : ''}`}
+            onClick={() => handlePresetSelect('30d')}
+            disabled={loading}
+          >
+            Last 30 Days
+          </button>
+          <button
+            type="button"
+            className={`manager-analytics__preset-btn ${preset === 'month' ? 'manager-analytics__preset-btn--active' : ''}`}
+            onClick={() => handlePresetSelect('month')}
+            disabled={loading}
+          >
+            This Month
+          </button>
+        </div>
+
+        <form onSubmit={handleApplyCustomFilter} className="manager-analytics__custom-form">
+          <label htmlFor="analytics-start-date" className="manager-analytics__date-label">
+            From:
+          </label>
+          <input
+            id="analytics-start-date"
+            type="date"
+            value={startDate}
+            max={currentBusinessDate()}
+            onChange={(e) => {
+              setStartDate(e.target.value);
+              setPreset('custom');
+            }}
+            disabled={loading}
+            className="manager-analytics__date-input"
+          />
+          <label htmlFor="analytics-end-date" className="manager-analytics__date-label">
+            To:
+          </label>
+          <input
+            id="analytics-end-date"
+            type="date"
+            value={endDate}
+            max={currentBusinessDate()}
+            onChange={(e) => {
+              setEndDate(e.target.value);
+              setPreset('custom');
+            }}
+            disabled={loading}
+            className="manager-analytics__date-input"
+          />
+          <button
+            type="submit"
+            disabled={loading || !startDate || !endDate}
+            className="manager-analytics__btn-apply"
+          >
+            Apply Range
+          </button>
+        </form>
+      </div>
+
       {error && (
-        <div
-          className="error-banner"
-          style={{
-            padding: '1rem',
-            background: 'var(--color-error-bg)',
-            color: 'var(--color-error)',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '1.5rem',
-          }}
-        >
-          ⚠️ {error}
+        <div role="alert" className="manager-analytics__alert manager-analytics__alert--error">
+          <span>⚠️</span>
+          <span>{error}</span>
         </div>
       )}
 
       {loading ? (
-        <LoadingState type="skeleton-card" rows={4} />
+        <LoadingState message="Aggregating operational analytics..." />
       ) : !analytics ? (
-        <EmptyState title="No Analytics Available" message="No operational data recorded for the selected timeframe." />
+        <EmptyState
+          title="No Analytics Available"
+          message="No operational data was returned for the selected organization and date range."
+        />
       ) : (
         <>
-          {/* Core KPI Cards Grid */}
-          <div className="grid-responsive grid-cols-3 animate-section stagger-1" style={{ marginBottom: '1.75rem' }}>
-            <StatCard
-              title="Total Appointments"
-              value={summary.total_appointments || 0}
-              icon="📅"
-              subtitle={`In range (${analytics.period?.start_date} to ${analytics.period?.end_date})`}
-              color="primary"
-            />
-            <StatCard
-              title="Completed Services"
-              value={summary.completed || 0}
-              icon="✓"
-              subtitle={`Completion rate: ${summary.completion_rate || 0}%`}
-              color="success"
-            />
-            <StatCard
-              title="Check-In Rate"
-              value={`${summary.check_in_rate || 0}%`}
-              icon="🎫"
-              subtitle="Confirmed bookings checked in"
-              color="info"
-            />
-            <StatCard
-              title="Unfulfilled (Cancelled/No-Show)"
-              value={(summary.cancelled || 0) + (summary.no_show || 0)}
-              icon="✖"
-              subtitle={`Cancelled: ${summary.cancelled || 0} • No-Show: ${summary.no_show || 0}`}
-              color="danger"
-            />
-            <StatCard
-              title="Average Rating"
-              value={summary.average_rating ? `${summary.average_rating} ★` : 'N/A'}
-              icon="★"
-              subtitle={`From ${summary.total_reviews || 0} customer reviews`}
-              color="warning"
-            />
-            <StatCard
-              title="Average Wait Duration"
-              value={queueSummary.average_wait_seconds ? `${Math.round(queueSummary.average_wait_seconds / 60)} min` : 'N/A'}
-              icon="⏳"
-              subtitle={`Avg service duration: ${Math.round((queueSummary.average_service_seconds || 0) / 60)} min`}
-              color="secondary"
-            />
+          {/* Executive Telemetry Strip (Owner Decision D2: Strictly Operational Metrics) */}
+          <div className="manager-analytics__kpi-grid">
+            {/* Card 1: Total Appointments */}
+            <div className="manager-analytics__kpi-card">
+              <div className="manager-analytics__kpi-header">
+                <span className="manager-analytics__kpi-label">Total Bookings</span>
+                <span className="manager-analytics__kpi-icon">📅</span>
+              </div>
+              <div className="manager-analytics__kpi-body">
+                <span className="manager-analytics__kpi-value">{summary.total_appointments ?? 0}</span>
+              </div>
+              <p className="manager-analytics__kpi-subtext">
+                Scheduled across {analytics.period?.start_date} to {analytics.period?.end_date}
+              </p>
+            </div>
+
+            {/* Card 2: Completed Consultations */}
+            <div className="manager-analytics__kpi-card">
+              <div className="manager-analytics__kpi-header">
+                <span className="manager-analytics__kpi-label">Completed Consultations</span>
+                <span className="manager-analytics__kpi-icon">✓</span>
+              </div>
+              <div className="manager-analytics__kpi-body">
+                <span className="manager-analytics__kpi-value">{summary.completed ?? 0}</span>
+                <span className="manager-analytics__kpi-badge manager-analytics__kpi-badge--success">
+                  {summary.completion_rate ?? 0}% fulfilled
+                </span>
+              </div>
+              <p className="manager-analytics__kpi-subtext">
+                Proportion of booked consultations successfully served
+              </p>
+            </div>
+
+            {/* Card 3: Physical Check-In Rate */}
+            <div className="manager-analytics__kpi-card">
+              <div className="manager-analytics__kpi-header">
+                <span className="manager-analytics__kpi-label">Physical Check-In Rate</span>
+                <span className="manager-analytics__kpi-icon">🎫</span>
+              </div>
+              <div className="manager-analytics__kpi-body">
+                <span className="manager-analytics__kpi-value">{summary.check_in_rate ?? 0}%</span>
+                <span className="manager-analytics__kpi-badge manager-analytics__kpi-badge--info">
+                  Attended
+                </span>
+              </div>
+              <p className="manager-analytics__kpi-subtext">
+                Attended appointments verified via front-desk check-in
+              </p>
+            </div>
+
+            {/* Card 4: Unfulfilled Consultations */}
+            <div className="manager-analytics__kpi-card">
+              <div className="manager-analytics__kpi-header">
+                <span className="manager-analytics__kpi-label">Unfulfilled Volume</span>
+                <span className="manager-analytics__kpi-icon">✖</span>
+              </div>
+              <div className="manager-analytics__kpi-body">
+                <span className="manager-analytics__kpi-value">
+                  {(summary.cancelled || 0) + (summary.no_show || 0)}
+                </span>
+                <span className="manager-analytics__kpi-badge manager-analytics__kpi-badge--danger">
+                  Drop-off
+                </span>
+              </div>
+              <p className="manager-analytics__kpi-subtext">
+                Cancelled: {summary.cancelled || 0} · No-Show: {summary.no_show || 0}
+              </p>
+            </div>
+
+            {/* Card 5: Average Observed Queue Wait Duration (Finding F2: Truthful Zero Semantics) */}
+            <div className="manager-analytics__kpi-card">
+              <div className="manager-analytics__kpi-header">
+                <span className="manager-analytics__kpi-label">Observed Queue Wait</span>
+                <span className="manager-analytics__kpi-icon">⏳</span>
+              </div>
+              <div className="manager-analytics__kpi-body">
+                <span className="manager-analytics__kpi-value">
+                  {formatDurationMinutes(queueSummary.average_wait_seconds)}
+                </span>
+                {queueSummary.average_wait_seconds > 0 ? (
+                  <span className="manager-analytics__kpi-badge manager-analytics__kpi-badge--info">
+                    Observed
+                  </span>
+                ) : (
+                  <span
+                    className="manager-analytics__kpi-badge"
+                    style={{ backgroundColor: 'rgba(120, 113, 108, 0.1)', color: 'var(--color-text-muted, #78716C)' }}
+                  >
+                    No observations
+                  </span>
+                )}
+              </div>
+              <p className="manager-analytics__kpi-subtext">
+                {queueSummary.average_service_seconds > 0
+                  ? `Average consultation: ${formatDurationMinutes(queueSummary.average_service_seconds)}`
+                  : 'Consultation duration: N/A (no timestamp observations)'}
+              </p>
+            </div>
+
+            {/* Card 6: Patient Feedback Rating */}
+            <div className="manager-analytics__kpi-card">
+              <div className="manager-analytics__kpi-header">
+                <span className="manager-analytics__kpi-label">Patient Satisfaction</span>
+                <span className="manager-analytics__kpi-icon">★</span>
+              </div>
+              <div className="manager-analytics__kpi-body">
+                <span className="manager-analytics__kpi-value">
+                  {summary.total_reviews > 0 ? `${summary.average_rating} ★` : 'No reviews'}
+                </span>
+                {summary.total_reviews > 0 && (
+                  <span className="manager-analytics__kpi-badge manager-analytics__kpi-badge--warning">
+                    Verified
+                  </span>
+                )}
+              </div>
+              <p className="manager-analytics__kpi-subtext">
+                {summary.total_reviews > 0
+                  ? `Based on ${summary.total_reviews} verified customer review${summary.total_reviews > 1 ? 's' : ''}`
+                  : 'No customer feedback submitted in this date range'}
+              </p>
+            </div>
           </div>
 
-          {/* Daily Appointment Volume Trend Chart */}
-          <div className="card animate-section stagger-2" style={{ marginBottom: '1.75rem' }}>
-            <div className="flex justify-between items-center" style={{ marginBottom: '1rem' }}>
-              <div>
+          {/* Daily Appointment Volume Trend */}
+          <div className="manager-analytics__trend-section">
+            <div className="manager-analytics__trend-header">
+              <div className="manager-analytics__trend-title-group">
                 <h3>Daily Appointment Volume Trend</h3>
-                <p className="text-xs text-muted">Total vs Completed appointment volume per day</p>
+                <p>Observed daily scheduled appointments versus completed consultations</p>
               </div>
-              <div className="flex items-center gap-md text-xs">
-                <span className="flex items-center gap-xs">
-                  <span style={{ display: 'inline-block', width: '12px', height: '12px', background: 'var(--color-primary)', borderRadius: '2px' }}></span> Total
-                </span>
-                <span className="flex items-center gap-xs">
-                  <span style={{ display: 'inline-block', width: '12px', height: '12px', background: 'var(--color-success)', borderRadius: '2px' }}></span> Completed
-                </span>
+
+              <div className="manager-analytics__trend-controls">
+                <div className="manager-analytics__trend-legend">
+                  <span className="manager-analytics__legend-item">
+                    <span className="manager-analytics__legend-dot manager-analytics__legend-dot--total"></span>
+                    <span>Total Booked</span>
+                  </span>
+                  <span className="manager-analytics__legend-item">
+                    <span className="manager-analytics__legend-dot manager-analytics__legend-dot--completed"></span>
+                    <span>Completed</span>
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  className="manager-analytics__view-toggle"
+                  onClick={() => setViewTrendTable((prev) => !prev)}
+                >
+                  {viewTrendTable ? '📊 Show Chart' : '📋 Show Data Table'}
+                </button>
               </div>
             </div>
 
             {trend.length === 0 ? (
-              <EmptyState title="No Trend Data" message="No appointment activity recorded in this timeframe." />
+              <EmptyState title="No Trend Data" message="No appointments recorded during this reporting timeframe." />
+            ) : viewTrendTable ? (
+              /* Accessible Tabular Alternative */
+              <div className="manager-analytics__table-wrap">
+                <table className="manager-analytics__table" aria-label="Daily appointment trend data table">
+                  <thead>
+                    <tr>
+                      <th>Calendar Date</th>
+                      <th style={{ textAlign: 'right' }}>Total Bookings</th>
+                      <th style={{ textAlign: 'right' }}>Completed</th>
+                      <th style={{ textAlign: 'right' }}>Cancelled</th>
+                      <th style={{ textAlign: 'right' }}>No-Show</th>
+                      <th style={{ textAlign: 'right' }}>Completion Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {trend.map((row) => {
+                      const rate = row.total > 0 ? ((row.completed / row.total) * 100).toFixed(1) : '—';
+                      return (
+                        <tr key={row.date}>
+                          <td className="manager-analytics__td-bold">{row.date}</td>
+                          <td className="manager-analytics__td-num">{row.total}</td>
+                          <td className="manager-analytics__td-num" style={{ color: '#10B981' }}>{row.completed}</td>
+                          <td className="manager-analytics__td-num" style={{ color: '#EF4444' }}>{row.cancelled}</td>
+                          <td className="manager-analytics__td-num" style={{ color: '#F59E0B' }}>{row.no_show}</td>
+                          <td className="manager-analytics__td-num">{rate === '—' ? rate : `${rate}%`}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             ) : (
-              <div style={{ overflowX: 'auto', paddingTop: '1rem', paddingBottom: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', minWidth: `${trend.length * 28}px`, height: '180px', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
+              /* Lightweight React/CSS Bar Chart */
+              <div className="manager-analytics__chart-scroll">
+                <div
+                  className="manager-analytics__chart-bars"
+                  role="graphics-document"
+                  aria-label="Daily appointment volume chart showing total versus completed appointments"
+                  style={{ minWidth: `${Math.max(trend.length * 34, 320)}px` }}
+                >
                   {trend.map((t) => {
-                    const totalH = Math.max((t.total / maxTrendVal) * 150, t.total > 0 ? 8 : 2);
-                    const compH = Math.max((t.completed / maxTrendVal) * 150, t.completed > 0 ? 6 : 0);
-                    const dateObj = new Date(t.date);
-                    const dayLabel = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+                    const totalH = Math.max((t.total / maxTrendVal) * 160, t.total > 0 ? 8 : 2);
+                    const compH = Math.max((t.completed / maxTrendVal) * 160, t.completed > 0 ? 6 : 0);
+                    const dateParts = t.date.split('-');
+                    const dateLabel = `${dateParts[1]}/${dateParts[2]}`;
 
                     return (
                       <div
                         key={t.date}
-                        style={{
-                          flex: 1,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'flex-end',
-                          position: 'relative',
-                        }}
-                        title={`${t.date}: ${t.total} Total, ${t.completed} Completed`}
+                        className="manager-analytics__chart-column"
+                        title={`${t.date}: ${t.total} Total Bookings, ${t.completed} Completed`}
+                        tabIndex={0}
+                        aria-label={`${t.date}: ${t.total} total appointments, ${t.completed} completed consultations`}
                       >
-                        <div style={{ display: 'flex', gap: '2px', alignItems: 'flex-end', width: '100%', justifyContent: 'center' }}>
+                        <div className="manager-analytics__bar-pair">
                           <div
-                            style={{
-                              width: '45%',
-                              height: `${totalH}px`,
-                              backgroundColor: 'var(--color-primary)',
-                              borderRadius: '3px 3px 0 0',
-                              transition: 'height 0.3s ease',
-                            }}
+                            className="manager-analytics__bar-total"
+                            style={{ height: `${totalH}px` }}
                           ></div>
                           {t.completed > 0 && (
                             <div
-                              style={{
-                                width: '45%',
-                                height: `${compH}px`,
-                                backgroundColor: 'var(--color-success)',
-                                borderRadius: '3px 3px 0 0',
-                                transition: 'height 0.3s ease',
-                              }}
+                              className="manager-analytics__bar-completed"
+                              style={{ height: `${compH}px` }}
                             ></div>
                           )}
                         </div>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', marginTop: '6px', whiteSpace: 'nowrap' }}>
-                          {dayLabel}
-                        </span>
+                        <span className="manager-analytics__chart-date">{dateLabel}</span>
                       </div>
                     );
                   })}
@@ -368,14 +641,19 @@ export function ManagerAnalyticsPage() {
             )}
           </div>
 
-          {/* Status Breakdown & Customer Ratings Grid */}
-          <div className="grid-responsive grid-cols-2 animate-section stagger-3" style={{ marginBottom: '1.75rem' }}>
-            {/* Status Distribution */}
-            <div className="card">
-              <h3>Appointment Status Distribution</h3>
-              <p className="text-xs text-muted" style={{ marginBottom: '1rem' }}>Operational breakdown by appointment lifecycle state</p>
-              <div className="table-container">
-                <table className="table">
+          {/* Operational Breakdowns (2-Column Grid) */}
+          <div className="manager-analytics__section-grid">
+            {/* Breakdown 1: Appointment Status Distribution */}
+            <div className="manager-analytics__card">
+              <div className="manager-analytics__card-header">
+                <h3 className="manager-analytics__card-title">Appointment Status Distribution</h3>
+                <p className="manager-analytics__card-subtitle">
+                  Volume breakdown across lifecycle states
+                </p>
+              </div>
+
+              <div className="manager-analytics__table-wrap">
+                <table className="manager-analytics__table" aria-label="Appointment status breakdown">
                   <thead>
                     <tr>
                       <th>Status State</th>
@@ -386,14 +664,18 @@ export function ManagerAnalyticsPage() {
                   <tbody>
                     {Object.entries(statusCounts).map(([statusKey, count]) => {
                       if (statusKey === 'TOTAL') return null;
-                      const sharePct = summary.total_appointments > 0 ? ((count / summary.total_appointments) * 100).toFixed(1) : 0;
+                      const sharePct = summary.total_appointments > 0
+                        ? ((count / summary.total_appointments) * 100).toFixed(1)
+                        : 0;
                       return (
                         <tr key={statusKey}>
                           <td>
                             <StatusBadge status={statusKey} type="appointment" />
                           </td>
-                          <td style={{ textAlign: 'right', fontWeight: 700 }}>{count}</td>
-                          <td style={{ textAlign: 'right', color: 'var(--color-text-muted)' }}>{sharePct}%</td>
+                          <td className="manager-analytics__td-num">{count}</td>
+                          <td className="manager-analytics__td-num" style={{ color: 'var(--color-text-muted, #78716C)' }}>
+                            {sharePct}%
+                          </td>
                         </tr>
                       );
                     })}
@@ -402,37 +684,41 @@ export function ManagerAnalyticsPage() {
               </div>
             </div>
 
-            {/* Customer Rating Distribution */}
-            <div className="card">
-              <h3>Customer Rating Distribution</h3>
-              <p className="text-xs text-muted" style={{ marginBottom: '1rem' }}>Review ratings submitted by verified customers</p>
+            {/* Breakdown 2: Customer Rating Distribution */}
+            <div className="manager-analytics__card">
+              <div className="manager-analytics__card-header">
+                <h3 className="manager-analytics__card-title">Customer Rating Distribution</h3>
+                <p className="manager-analytics__card-subtitle">
+                  Verified patient star ratings submitted in range
+                </p>
+              </div>
 
               {summary.total_reviews === 0 ? (
-                <EmptyState title="No Ratings Submitted" message="No customer reviews recorded during this timeframe." />
+                <EmptyState
+                  title="No Ratings Submitted"
+                  message="No customer reviews recorded during this timeframe."
+                />
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <div className="manager-analytics__rating-list" role="list" aria-label="Rating distribution breakdown">
                   {[5, 4, 3, 2, 1].map((star) => {
-                    const starCount = ratingDist[`star_${star}`] || 0;
-                    const starPct = summary.total_reviews > 0 ? (starCount / summary.total_reviews) * 100 : 0;
-
+                    const count = ratingDist[`star_${star}`] || 0;
+                    const pct = summary.total_reviews > 0 ? (count / summary.total_reviews) * 100 : 0;
                     return (
-                      <div key={star} className="flex items-center gap-sm">
-                        <span className="font-semibold text-sm" style={{ width: '40px' }}>
-                          {star} ★
-                        </span>
-                        <div style={{ flex: 1, height: '10px', background: 'var(--color-bg-subtle)', borderRadius: '5px', overflow: 'hidden' }}>
+                      <div key={star} className="manager-analytics__rating-row" role="listitem">
+                        <span className="manager-analytics__rating-label">{star} ★</span>
+                        <div className="manager-analytics__rating-track">
                           <div
-                            style={{
-                              width: `${starPct}%`,
-                              height: '100%',
-                              background: star >= 4 ? 'var(--color-warning)' : star === 3 ? 'var(--color-info)' : 'var(--color-danger)',
-                              borderRadius: '5px',
-                              transition: 'width 0.4s ease',
-                            }}
+                            className={`manager-analytics__rating-fill manager-analytics__rating-fill--${star}`}
+                            style={{ width: `${pct}%` }}
+                            role="progressbar"
+                            aria-valuenow={count}
+                            aria-valuemin={0}
+                            aria-valuemax={summary.total_reviews}
+                            aria-label={`${star} star rating: ${count} reviews`}
                           ></div>
                         </div>
-                        <span className="text-xs text-muted font-semibold" style={{ width: '50px', textAlign: 'right' }}>
-                          {starCount} ({Math.round(starPct)}%)
+                        <span className="manager-analytics__rating-stat">
+                          {count} ({Math.round(pct)}%)
                         </span>
                       </div>
                     );
@@ -442,18 +728,25 @@ export function ManagerAnalyticsPage() {
             </div>
           </div>
 
-          {/* Service Utilization & Provider Performance Grid */}
-          <div className="grid-responsive grid-cols-2 animate-section stagger-4">
-            {/* Service Utilization */}
-            <div className="card">
-              <h3>Service Portfolio Utilization</h3>
-              <p className="text-xs text-muted" style={{ marginBottom: '1rem' }}>Service requests and fulfillment counts</p>
+          {/* Detailed Performance Tables (Service & Provider) */}
+          <div className="manager-analytics__section-grid">
+            {/* Service Utilization Summary */}
+            <div className="manager-analytics__card">
+              <div className="manager-analytics__card-header">
+                <h3 className="manager-analytics__card-title">Service Portfolio Utilization</h3>
+                <p className="manager-analytics__card-subtitle">
+                  Fulfillment volume per catalog service offering
+                </p>
+              </div>
 
               {services.length === 0 ? (
-                <EmptyState title="No Service Activity" message="No services recorded in the selected period." />
+                <EmptyState
+                  title="No Service Activity"
+                  message="No services were requested during the selected timeframe."
+                />
               ) : (
-                <div className="table-container">
-                  <table className="table">
+                <div className="manager-analytics__table-wrap">
+                  <table className="manager-analytics__table" aria-label="Service utilization summary">
                     <thead>
                       <tr>
                         <th>Service Offering</th>
@@ -465,10 +758,14 @@ export function ManagerAnalyticsPage() {
                     <tbody>
                       {services.map((svc) => (
                         <tr key={svc.service_id}>
-                          <td className="font-semibold">{svc.service_name}</td>
-                          <td style={{ textAlign: 'right', fontWeight: 600 }}>{svc.total_appointments}</td>
-                          <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-success)' }}>{svc.completed}</td>
-                          <td style={{ textAlign: 'right', color: 'var(--color-danger)' }}>{svc.cancelled + svc.no_show}</td>
+                          <td className="manager-analytics__td-bold">{svc.service_name}</td>
+                          <td className="manager-analytics__td-num">{svc.total_appointments}</td>
+                          <td className="manager-analytics__td-num" style={{ color: '#10B981' }}>
+                            {svc.completed}
+                          </td>
+                          <td className="manager-analytics__td-num" style={{ color: '#EF4444' }}>
+                            {(svc.cancelled || 0) + (svc.no_show || 0)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -477,19 +774,26 @@ export function ManagerAnalyticsPage() {
               )}
             </div>
 
-            {/* Provider Operational Summary */}
-            <div className="card">
-              <h3>Provider Operational Summary</h3>
-              <p className="text-xs text-muted" style={{ marginBottom: '1rem' }}>Factual volume and rating summary per provider</p>
+            {/* Provider Operational Performance */}
+            <div className="manager-analytics__card">
+              <div className="manager-analytics__card-header">
+                <h3 className="manager-analytics__card-title">Provider Operational Performance</h3>
+                <p className="manager-analytics__card-subtitle">
+                  Consultation volumes and ratings per professional
+                </p>
+              </div>
 
               {providers.length === 0 ? (
-                <EmptyState title="No Provider Activity" message="No provider activity recorded in the selected period." />
+                <EmptyState
+                  title="No Provider Activity"
+                  message="No active providers recorded consultations in this timeframe."
+                />
               ) : (
-                <div className="table-container">
-                  <table className="table">
+                <div className="manager-analytics__table-wrap">
+                  <table className="manager-analytics__table" aria-label="Provider operational performance">
                     <thead>
                       <tr>
-                        <th>Provider Name</th>
+                        <th>Professional</th>
                         <th style={{ textAlign: 'right' }}>Total</th>
                         <th style={{ textAlign: 'right' }}>Completed</th>
                         <th style={{ textAlign: 'right' }}>No-Show</th>
@@ -499,12 +803,22 @@ export function ManagerAnalyticsPage() {
                     <tbody>
                       {providers.map((p) => (
                         <tr key={p.provider_id}>
-                          <td className="font-semibold">🩺 {p.provider_name}</td>
-                          <td style={{ textAlign: 'right', fontWeight: 600 }}>{p.total_appointments}</td>
-                          <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-success)' }}>{p.completed}</td>
-                          <td style={{ textAlign: 'right', color: 'var(--color-danger)' }}>{p.no_show}</td>
-                          <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-warning)' }}>
-                            {p.average_rating ? `${p.average_rating} ★` : '—'}
+                          <td className="manager-analytics__td-bold">🩺 {p.provider_name}</td>
+                          <td className="manager-analytics__td-num">{p.total_appointments}</td>
+                          <td className="manager-analytics__td-num" style={{ color: '#10B981' }}>
+                            {p.completed}
+                          </td>
+                          <td className="manager-analytics__td-num" style={{ color: '#F59E0B' }}>
+                            {p.no_show || 0}
+                          </td>
+                          <td className="manager-analytics__td-num">
+                            {p.average_rating > 0 ? (
+                              <span className="manager-analytics__rating-badge">
+                                {p.average_rating} ★
+                              </span>
+                            ) : (
+                              '—'
+                            )}
                           </td>
                         </tr>
                       ))}
