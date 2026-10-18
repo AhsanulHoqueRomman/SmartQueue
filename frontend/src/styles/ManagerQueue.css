@@ -1,0 +1,787 @@
+/* ==========================================================================
+   Manager Queue Board Stylesheet — UI-4D
+   Design System: QueueTurn Warm Ivory / Deep Navy
+   ========================================================================== */
+
+.manager-queue {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  color: var(--color-text-main, #2F2520);
+  background: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   Header & Controls Command Bar
+   -------------------------------------------------------------------------- */
+.manager-queue__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--color-border, #E6E1D9);
+}
+
+.manager-queue__header-info {
+  flex: 1;
+  min-width: 280px;
+}
+
+.manager-queue__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-brand-accent, #5F7A70);
+  margin-bottom: 0.35rem;
+}
+
+.manager-queue__title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.manager-queue__title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-text-main, #2F2520);
+  letter-spacing: -0.02em;
+}
+
+.manager-queue__role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(95, 122, 112, 0.12);
+  color: var(--color-brand-accent, #5F7A70);
+  border: 1px solid rgba(95, 122, 112, 0.25);
+}
+
+.manager-queue__subtitle {
+  margin: 0;
+  font-size: 0.925rem;
+  color: var(--color-text-muted, #78716C);
+}
+
+.manager-queue__subtitle-org {
+  font-weight: 600;
+  color: var(--color-text-main, #2F2520);
+}
+
+.manager-queue__controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.manager-queue__control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.manager-queue__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #78716C);
+}
+
+.manager-queue__input,
+.manager-queue__select {
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border, #E6E1D9);
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-text-main, #2F2520);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.manager-queue__input:focus,
+.manager-queue__select:focus {
+  outline: none;
+  border-color: var(--color-brand-accent, #5F7A70);
+  box-shadow: 0 0 0 3px rgba(95, 122, 112, 0.15);
+}
+
+.manager-queue__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+}
+
+.manager-queue__btn--primary {
+  background: var(--color-brand-accent, #5F7A70);
+  color: #FFFFFF;
+}
+
+.manager-queue__btn--primary:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.manager-queue__btn--secondary {
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-text-main, #2F2520);
+  border-color: var(--color-border, #E6E1D9);
+}
+
+.manager-queue__btn--secondary:hover:not(:disabled) {
+  background: var(--color-surface-subtle, #FAF8F3);
+}
+
+.manager-queue__btn--call {
+  background: var(--color-text-main, #2F2520);
+  color: #FFFFFF;
+  padding: 0.65rem 1.15rem;
+  font-weight: 700;
+}
+
+.manager-queue__btn--call:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.manager-queue__btn--start {
+  background: var(--color-brand-accent, #5F7A70);
+  color: #FFFFFF;
+}
+
+.manager-queue__btn--complete {
+  background: #059669;
+  color: #FFFFFF;
+}
+
+.manager-queue__btn--skip {
+  background: #DC2626;
+  color: #FFFFFF;
+}
+
+.manager-queue__btn--restore {
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-brand-accent, #5F7A70);
+  border: 1px solid var(--color-brand-accent, #5F7A70);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.manager-queue__btn--checkin {
+  background: #059669;
+  color: #FFFFFF;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.manager-queue__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.manager-queue__toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #78716C);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* --------------------------------------------------------------------------
+   Feedback and Alert Banners
+   -------------------------------------------------------------------------- */
+.manager-queue__feedback {
+  padding: 0.85rem 1.25rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.manager-queue__feedback--success {
+  background: rgba(95, 122, 112, 0.1);
+  color: var(--color-brand-accent, #5F7A70);
+  border: 1px solid var(--color-brand-accent, #5F7A70);
+}
+
+.manager-queue__feedback--error {
+  background: #FEF2F2;
+  color: #991B1B;
+  border: 1px solid #FCA5A5;
+}
+
+[data-theme="dark"] .manager-queue__feedback--error {
+  background: rgba(153, 27, 27, 0.2);
+  color: #F87171;
+  border-color: #B91C1C;
+}
+
+.manager-queue__unfinished-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 10px;
+  background: #FFFBEB;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .manager-queue__unfinished-banner {
+  background: rgba(146, 64, 14, 0.2);
+  color: #FBBF24;
+  border-color: #78350F;
+}
+
+.manager-queue__date-pill {
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  background: #FFFFFF;
+  color: #92400E;
+  border: 1px solid #FCD34D;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.manager-queue__date-pill:hover {
+  background: #FEF3C7;
+}
+
+[data-theme="dark"] .manager-queue__date-pill {
+  background: #1E293B;
+  color: #FBBF24;
+  border-color: #B45309;
+}
+
+/* --------------------------------------------------------------------------
+   Authoritative Overview Metrics Strip
+   -------------------------------------------------------------------------- */
+.manager-queue__overview-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.manager-queue__metric-card {
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E6E1D9);
+  box-shadow: 0 2px 8px rgba(47, 37, 32, 0.03);
+}
+
+.manager-queue__metric-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #78716C);
+  margin-bottom: 0.35rem;
+}
+
+.manager-queue__metric-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-text-main, #2F2520);
+  line-height: 1;
+}
+
+.manager-queue__metric-value--active {
+  color: var(--color-brand-accent, #5F7A70);
+}
+
+.manager-queue__metric-value--ready {
+  color: #059669;
+}
+
+.manager-queue__metric-value--awaiting {
+  color: #D97706;
+}
+
+.manager-queue__metric-value--skipped {
+  color: #DC2626;
+}
+
+/* --------------------------------------------------------------------------
+   Emergency Management Console Section
+   -------------------------------------------------------------------------- */
+.manager-queue__emergency-section {
+  margin-bottom: 1.75rem;
+}
+
+.manager-queue__emergency-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: #FEF2F2;
+  color: #991B1B;
+  border: 1px solid #FCA5A5;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.manager-queue__emergency-toggle-btn:hover {
+  background: #FEE2E2;
+}
+
+[data-theme="dark"] .manager-queue__emergency-toggle-btn {
+  background: rgba(153, 27, 27, 0.25);
+  color: #F87171;
+  border-color: #B91C1C;
+}
+
+.manager-queue__emergency-drawer {
+  margin-top: 1rem;
+  padding: 1.25rem;
+  border-radius: 12px;
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid #FCA5A5;
+}
+
+/* --------------------------------------------------------------------------
+   Provider Queue Roster & Operational Cards
+   -------------------------------------------------------------------------- */
+.manager-queue__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.manager-queue__card {
+  border-radius: 16px;
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E6E1D9);
+  padding: 1.5rem;
+  box-shadow: 0 4px 16px rgba(47, 37, 32, 0.04);
+  transition: border-color 0.15s ease;
+}
+
+.manager-queue__card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--color-surface-subtle, #FAF8F3);
+}
+
+.manager-queue__card-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.manager-queue__card-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.manager-queue__provider-name {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text-main, #2F2520);
+}
+
+.manager-queue__provider-spec {
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #78716C);
+}
+
+.manager-queue__call-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.manager-queue__call-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #78716C);
+}
+
+/* Slots Grid: Called and In Progress */
+.manager-queue__slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.manager-queue__slot {
+  padding: 1.25rem;
+  border-radius: 12px;
+  background: var(--color-surface-subtle, #FAF8F3);
+  border: 1px solid var(--color-border, #E6E1D9);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.manager-queue__slot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.manager-queue__slot-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.manager-queue__slot-label--called {
+  color: var(--color-terracotta, #B06D2E);
+}
+
+.manager-queue__slot-label--inprogress {
+  color: var(--color-brand-accent, #5F7A70);
+}
+
+.manager-queue__slot-serial {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-text-main, #2F2520);
+  line-height: 1.1;
+  margin-bottom: 0.35rem;
+}
+
+.manager-queue__slot-serial--inprogress {
+  color: var(--color-brand-accent, #5F7A70);
+}
+
+.manager-queue__slot-service {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-main, #2F2520);
+  margin-bottom: 0.25rem;
+}
+
+.manager-queue__slot-customer {
+  font-size: 0.825rem;
+  color: var(--color-text-muted, #78716C);
+}
+
+.manager-queue__slot-empty {
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #78716C);
+  font-style: italic;
+  padding: 0.75rem 0;
+}
+
+.manager-queue__slot-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+/* --------------------------------------------------------------------------
+   Waiting Queue Roster
+   -------------------------------------------------------------------------- */
+.manager-queue__section-heading {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #78716C);
+  margin-bottom: 0.65rem;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.manager-queue__roster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.manager-queue__roster-item {
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: var(--color-surface-subtle, #FAF8F3);
+  border: 1px solid var(--color-border, #E6E1D9);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.manager-queue__roster-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.manager-queue__entry-serial {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--color-text-main, #2F2520);
+}
+
+.manager-queue__entry-service {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--color-text-main, #2F2520);
+}
+
+.manager-queue__entry-customer {
+  font-size: 0.775rem;
+  color: var(--color-text-muted, #78716C);
+}
+
+.manager-queue__presence-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.725rem;
+  font-weight: 700;
+}
+
+.manager-queue__presence-pill--checked-in {
+  background: rgba(5, 150, 105, 0.12);
+  color: #059669;
+  border: 1px solid rgba(5, 150, 105, 0.25);
+}
+
+.manager-queue__presence-pill--awaiting {
+  background: rgba(217, 119, 6, 0.12);
+  color: #D97706;
+  border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
+.manager-queue__roster-empty {
+  padding: 1rem;
+  border-radius: 8px;
+  background: var(--color-surface-subtle, #FAF8F3);
+  color: var(--color-text-muted, #78716C);
+  font-size: 0.85rem;
+  font-style: italic;
+  margin-bottom: 1.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   Skipped Customer Recovery Shelf
+   -------------------------------------------------------------------------- */
+.manager-queue__skipped-shelf {
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--color-border, #E6E1D9);
+}
+
+.manager-queue__skipped-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.75rem;
+}
+
+.manager-queue__skipped-item {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: rgba(220, 38, 38, 0.04);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.manager-queue__skipped-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.manager-queue__skipped-serial {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #DC2626;
+}
+
+.manager-queue__skipped-name {
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #78716C);
+}
+
+/* --------------------------------------------------------------------------
+   Accessible Skip Confirmation Modal (D2)
+   -------------------------------------------------------------------------- */
+.manager-queue__modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.manager-queue__modal-dialog {
+  width: 100%;
+  max-width: 480px;
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E6E1D9);
+  border-radius: 16px;
+  padding: 1.75rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  color: var(--color-text-main, #2F2520);
+}
+
+.manager-queue__modal-title {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text-main, #2F2520);
+}
+
+.manager-queue__modal-desc {
+  margin: 0 0 0.85rem 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text-muted, #78716C);
+}
+
+.manager-queue__modal-warning {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #FFFBEB;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+  font-size: 0.825rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+[data-theme="dark"] .manager-queue__modal-warning {
+  background: rgba(146, 64, 14, 0.2);
+  color: #FBBF24;
+  border-color: #78350F;
+}
+
+.manager-queue__modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive & Accessibility Adaptations
+   -------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .manager-queue {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .manager-queue__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .manager-queue__controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .manager-queue__control-group {
+    width: 100%;
+  }
+
+  .manager-queue__input,
+  .manager-queue__select {
+    width: 100%;
+  }
+
+  .manager-queue__card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .manager-queue__call-action {
+    align-items: stretch;
+  }
+
+  .manager-queue__btn--call {
+    width: 100%;
+  }
+
+  .manager-queue__slots-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manager-queue__roster-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manager-queue__skipped-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .manager-queue {
+    padding: 1rem 0.75rem;
+  }
+
+  .manager-queue__card {
+    padding: 1rem;
+  }
+
+  .manager-queue__overview-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manager-queue *,
+  .manager-queue *::before,
+  .manager-queue *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
