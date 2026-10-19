@@ -9,6 +9,9 @@ class ProviderProfileAdmin(admin.ModelAdmin):
     search_fields = ['membership__user__email', 'membership__organization__name', 'title']
     ordering = ['-created_at']
 
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(ProviderService)
 class ProviderServiceAdmin(admin.ModelAdmin):

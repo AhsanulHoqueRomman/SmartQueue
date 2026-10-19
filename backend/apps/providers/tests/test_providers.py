@@ -142,11 +142,13 @@ class TestProviderProfileCRUD:
         assert provider_profile.is_active is False
 
     def test_manager_can_delete_provider_profile(self, manager_client, setup_org, provider_profile):
+        """Hard deletion of provider profile is prohibited; returns 405."""
         org = manager_client.org
         url = _provider_detail_url(org.id, provider_profile.id)
         res = manager_client.delete(url)
-        assert res.status_code == status.HTTP_204_NO_CONTENT
-        assert not ProviderProfile.objects.filter(id=provider_profile.id).exists()
+        assert res.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+        assert res.json()['error']['code'] == 'PROVIDER_DELETION_DISABLED'
+        assert ProviderProfile.objects.filter(id=provider_profile.id).exists()
 
     def test_provider_profile_tenant_isolation(self, api_client, create_user, setup_org, provider_profile):
         """A manager of org B cannot access org A's provider via org B URL."""

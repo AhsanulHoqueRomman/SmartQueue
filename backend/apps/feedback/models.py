@@ -18,7 +18,7 @@ class Review(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reviews'
     )
     provider = models.ForeignKey(
-        'providers.ProviderProfile', on_delete=models.CASCADE, related_name='reviews'
+        'providers.ProviderProfile', on_delete=models.PROTECT, related_name='reviews'
     )
     rating = models.PositiveSmallIntegerField()
     comment = models.TextField(blank=True)

@@ -24,7 +24,7 @@ class ProviderProfile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     membership = models.OneToOneField(
         'organizations.OrganizationMembership',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='provider_profile'
     )
     bio = models.TextField(_('bio'), blank=True)

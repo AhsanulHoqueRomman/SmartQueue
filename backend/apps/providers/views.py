@@ -32,6 +32,7 @@ from .serializers import (
 )
 from .services import ProviderService_ as ProviderBizService
 from config.api import apply_list_query, list_response
+from config.exceptions import ApplicationError
 from apps.organizations.private_documents import provider_document_queryset, manager_or_admin
 from config.private_documents import safe_filename
 
@@ -224,13 +225,19 @@ class ProviderProfileDetailView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
-        responses={204: OpenApiResponse(description="Deleted"), 403: OpenApiResponse(description="Forbidden")},
-        summary="Delete a provider profile (Manager only)"
+        responses={
+            405: OpenApiResponse(description="Provider deletion disabled"),
+            403: OpenApiResponse(description="Forbidden"),
+        },
+        summary="Delete a provider profile (Disabled)"
     )
     def delete(self, request, organization_id, provider_id):
-        profile = _get_provider(organization_id, provider_id)
-        profile.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        self.headers['Allow'] = 'GET, PATCH, HEAD, OPTIONS'
+        raise ApplicationError(
+            message="Provider deletion is disabled. Use the authorized provider deactivation workflow.",
+            code="PROVIDER_DELETION_DISABLED",
+            status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
 
 
 class ProviderPublicProfileView(APIView):

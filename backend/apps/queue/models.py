@@ -50,7 +50,7 @@ class QueueEntry(models.Model):
     )
     provider = models.ForeignKey(
         'providers.ProviderProfile',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='queue_entries',
     )
     queue_date = models.DateField(_('queue date'), db_index=True)

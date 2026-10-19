@@ -61,7 +61,7 @@ class Appointment(models.Model):
     )
     provider = models.ForeignKey(
         'providers.ProviderProfile',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='appointments',
     )
     service = models.ForeignKey(
@@ -159,7 +159,7 @@ class Appointment(models.Model):
 
 class ProviderDateSerial(models.Model):
     """Allocation history survives appointment deletion and date changes."""
-    provider = models.ForeignKey('providers.ProviderProfile', on_delete=models.CASCADE, related_name='serial_counters')
+    provider = models.ForeignKey('providers.ProviderProfile', on_delete=models.PROTECT, related_name='serial_counters')
     booking_date = models.DateField()
     last_serial = models.PositiveIntegerField(default=0)
 
