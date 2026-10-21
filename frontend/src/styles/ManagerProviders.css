@@ -104,9 +104,9 @@
 }
 
 .manager-providers__tab--active {
-  background-color: var(--color-text-main, #2F2520);
-  color: #FAF8F3;
-  border-color: var(--color-text-main, #2F2520);
+  background-color: var(--color-primary, #2F2520);
+  color: var(--color-primary-text, #FFFFFF);
+  border-color: var(--color-primary, #2F2520);
 }
 
 .manager-providers__tab-badge {
@@ -215,7 +215,7 @@
 }
 
 .manager-providers__table tbody tr:hover {
-  background-color: rgba(250, 248, 243, 0.6);
+  background-color: var(--color-surface-hover, rgba(250, 248, 243, 0.6));
 }
 
 .manager-providers__provider-cell {
@@ -249,9 +249,9 @@
   align-items: center;
   gap: 0.45rem;
   padding: 0.65rem 1.25rem;
-  background-color: var(--color-text-main, #2F2520);
-  color: #FAF8F3;
-  border: none;
+  background-color: var(--color-primary, #2F2520);
+  color: var(--color-primary-text, #FFFFFF);
+  border: 1px solid var(--color-primary, #2F2520);
   border-radius: var(--radius-md, 8px);
   font-weight: 600;
   font-size: 0.88rem;
@@ -503,136 +503,27 @@
 }
 
 /* --------------------------------------------------------------------------
-   Dark Mode Customizations
+   Dark Mode Refinements ([data-theme="dark"])
    -------------------------------------------------------------------------- */
-@media (prefers-color-scheme: dark) {
-  .manager-providers__title {
-    color: #F3F4F6;
-  }
+[data-theme="dark"] .manager-providers__tab--active {
+  background-color: var(--color-primary);
+  color: var(--color-primary-text);
+  border-color: var(--color-primary);
+}
 
-  .manager-providers__subtitle {
-    color: #9CA3AF;
-  }
+[data-theme="dark"] .manager-providers__tab--active .manager-providers__tab-badge {
+  background-color: rgba(0, 0, 0, 0.2);
+}
 
-  .manager-providers__subtitle-org {
-    color: #E5E7EB;
-  }
+[data-theme="dark"] .manager-providers__btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-primary-text);
+  border-color: var(--color-primary);
+}
 
-  .manager-providers__tablist {
-    border-bottom-color: #2D3748;
-  }
-
-  .manager-providers__tab {
-    color: #9CA3AF;
-  }
-
-  .manager-providers__tab:hover:not(.manager-providers__tab--active) {
-    background-color: #242B3D;
-    color: #F3F4F6;
-  }
-
-  .manager-providers__tab--active {
-    background-color: #2D3748;
-    color: #F3F4F6;
-    border-color: #4B5563;
-  }
-
-  .manager-providers__tab:not(.manager-providers__tab--active) .manager-providers__tab-badge {
-    background-color: #242B3D;
-    color: #9CA3AF;
-    border-color: #374151;
-  }
-
-  .manager-providers__table-wrapper {
-    background-color: #1A1F2C;
-    border-color: #2D3748;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  }
-
-  .manager-providers__table th {
-    background-color: #131722;
-    border-bottom-color: #2D3748;
-    color: #9CA3AF;
-  }
-
-  .manager-providers__table td {
-    border-bottom-color: #2D3748;
-    color: #F3F4F6;
-  }
-
-  .manager-providers__table tbody tr:hover {
-    background-color: rgba(36, 43, 61, 0.5);
-  }
-
-  .manager-providers__provider-name {
-    color: #F3F4F6;
-  }
-
-  .manager-providers__search-input {
-    background-color: #131722;
-    border-color: #2D3748;
-    color: #F3F4F6;
-  }
-
-  .manager-providers__search-input:focus {
-    background-color: #1A1F2C;
-    border-color: #38BDF8;
-    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
-  }
-
-  .manager-providers__charge-editor,
-  .manager-providers__governance-section {
-    background-color: #131722;
-    border-color: #2D3748;
-  }
-
-  .manager-providers__charge-service-name {
-    color: #F3F4F6;
-  }
-
-  .manager-providers__charge-input {
-    background-color: #1A1F2C;
-    border-color: #2D3748;
-    color: #F3F4F6;
-  }
-
-  .manager-providers__modal-dialog {
-    background-color: #1A1F2C;
-    border-color: #2D3748;
-  }
-
-  .manager-providers__modal-header {
-    border-bottom-color: #2D3748;
-  }
-
-  .manager-providers__modal-title {
-    color: #F3F4F6;
-  }
-
-  .manager-providers__modal-body {
-    color: #F3F4F6;
-  }
-
-  .manager-providers__modal-footer {
-    background-color: #131722;
-    border-top-color: #2D3748;
-  }
-
-  .manager-providers__btn-primary {
-    background-color: #38BDF8;
-    color: #0F172A;
-  }
-
-  .manager-providers__btn-secondary {
-    background-color: #1A1F2C;
-    border-color: #4B5563;
-    color: #F3F4F6;
-  }
-
-  .manager-providers__btn-secondary:hover:not(:disabled) {
-    background-color: #242B3D;
-    border-color: #6B7280;
-  }
+[data-theme="dark"] .manager-providers__search-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light, rgba(42, 157, 143, 0.2));
 }
 
 /* --------------------------------------------------------------------------

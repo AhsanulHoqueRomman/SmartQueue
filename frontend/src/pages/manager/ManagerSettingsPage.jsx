@@ -575,7 +575,7 @@ export function ManagerSettingsPage() {
 
       {/* Verification Lifecycle Status Banner */}
       <div
-        className="manager-settings__banner"
+        className={`manager-settings__banner manager-settings__banner--${vStatus.toLowerCase()}`}
         style={{
           backgroundColor: vConfig.bannerBg,
           borderColor: vConfig.bannerBorder,

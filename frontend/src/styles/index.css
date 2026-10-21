@@ -371,7 +371,7 @@ p {
   margin-bottom: 0.4rem;
 }
 
-.form-control, input[type="text"], input[type="email"], input[type="password"], input[type="date"], input[type="time"], select, textarea {
+.form-control, input[type="text"], input[type="email"], input[type="password"], input[type="date"], input[type="time"], input[type="tel"], input[type="url"], input[type="number"], input[type="search"], select, textarea {
   width: 100%;
   padding: 0.625rem 0.875rem;
   font-family: var(--font-family);
