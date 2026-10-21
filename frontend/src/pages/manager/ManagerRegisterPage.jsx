@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { RegistrationProgress } from '../../components/registration/RegistrationProgress';
 import { PublicNavbar } from '../../components/PublicNavbar';
+import '../../styles/AuthPages.css';
 
 export const ManagerRegisterPage = () => {
   const [step, setStep] = useState(1);
@@ -115,390 +116,356 @@ export const ManagerRegisterPage = () => {
   };
 
   return (
-    <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="auth-page">
       <PublicNavbar activePage="register" />
-      <div
-        className="animate-page-entrance"
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '6rem 1.25rem 3rem 1.25rem',
-        }}
-      >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '640px',
-          backgroundColor: 'var(--lp-surface)',
-          borderRadius: '24px',
-          border: '1px solid var(--lp-border)',
-          padding: '2.5rem',
-          boxShadow: 'var(--card-shadow)',
-        }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <Link
-            to="/"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              textDecoration: 'none',
-              marginBottom: '1rem',
-            }}
-          >
-            <span style={{ fontSize: '1.5rem' }}>⚡</span>
-            <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: 'var(--lp-text)' }}>
-              QueueTurn
-            </span>
-          </Link>
-          <div style={{ display: 'inline-block', backgroundColor: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.5rem' }}>
-            🏢 Manager Registration
-          </div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.35rem 0', fontFamily: 'Cinzel, serif' }}>
-            Create Organization & Account
-          </h2>
-          <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem', margin: 0 }}>
-            Set up your organization and manage team operations.
-          </p>
-        </div>
-
-        <RegistrationProgress steps={steps} currentStep={step} />
-
-        {error && (
-          <div
-            style={{
-              padding: '0.85rem 1rem',
-              backgroundColor: 'var(--color-danger-light)',
-              color: 'var(--color-danger)',
-              border: '1px solid var(--color-danger)',
-              borderRadius: '12px',
-              fontSize: '0.875rem',
-              marginBottom: '1.5rem',
-            }}
-          >
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={step === 3 ? handleSubmit : (e) => { e.preventDefault(); handleNext(); }}>
-          {/* STEP 1 — Personal Information */}
-          {step === 1 && (
-            <div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                    First Name *
-                  </label>
-                  <input
-                    name="first_name"
-                    type="text"
-                    className="form-control"
-                    placeholder="Jane"
-                    value={formData.first_name}
-                    onChange={handleChange}
-                    required
-                  />
-                  {fieldErrors.first_name && (
-                    <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                      {fieldErrors.first_name.join(' ')}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                    Last Name *
-                  </label>
-                  <input
-                    name="last_name"
-                    type="text"
-                    className="form-control"
-                    placeholder="Doe"
-                    value={formData.last_name}
-                    onChange={handleChange}
-                    required
-                  />
-                  {fieldErrors.last_name && (
-                    <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                      {fieldErrors.last_name.join(' ')}
-                    </div>
-                  )}
-                </div>
+      <main className="auth-page__main animate-page-entrance">
+        <div className="auth-page__content-wrap auth-page__content-wrap--wide">
+          <div className="auth-card">
+            <div className="auth-page__header">
+              <Link to="/" className="auth-page__brand" aria-label="QueueTurn Home">
+                <span className="auth-page__brand-mark">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                </span>
+                <span className="auth-page__brand-title">QueueTurn</span>
+              </Link>
+              <div>
+                <span className="auth-page__badge auth-page__badge--espresso">
+                  🏢 Manager Registration
+                </span>
               </div>
+              <h1 className="auth-page__title">Create Organization & Account</h1>
+              <p className="auth-page__subtitle">
+                Set up your facility organization and manage team operations.
+              </p>
+            </div>
 
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                  Work Email Address *
-                </label>
-                <input
-                  name="email"
-                  type="email"
-                  className="form-control"
-                  placeholder="manager@organization.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
-                {fieldErrors.email && (
-                  <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                    {fieldErrors.email.join(' ')}
+            <RegistrationProgress steps={steps} currentStep={step} />
+
+            {error && (
+              <div className="auth-page__banner auth-page__banner--danger" role="alert">
+                <span aria-hidden="true">⚠️</span>
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={step === 3 ? handleSubmit : (e) => { e.preventDefault(); handleNext(); }} className="auth-page__form" noValidate>
+              {/* STEP 1 — Personal Information */}
+              {step === 1 && (
+                <div>
+                  <div className="auth-page__field-row">
+                    <div>
+                      <label className="auth-page__label" htmlFor="mgr-first-name">
+                        First Name <span className="auth-page__label-required" aria-hidden="true">*</span>
+                      </label>
+                      <input
+                        id="mgr-first-name"
+                        name="first_name"
+                        type="text"
+                        className={`auth-page__input ${fieldErrors.first_name ? 'auth-page__input--error' : ''}`}
+                        placeholder="Jane"
+                        value={formData.first_name}
+                        onChange={handleChange}
+                        required
+                        autoComplete="given-name"
+                        aria-invalid={Boolean(fieldErrors.first_name)}
+                      />
+                      {fieldErrors.first_name && (
+                        <div className="auth-page__field-error" role="alert">
+                          {fieldErrors.first_name.join(' ')}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="auth-page__label" htmlFor="mgr-last-name">
+                        Last Name <span className="auth-page__label-required" aria-hidden="true">*</span>
+                      </label>
+                      <input
+                        id="mgr-last-name"
+                        name="last_name"
+                        type="text"
+                        className={`auth-page__input ${fieldErrors.last_name ? 'auth-page__input--error' : ''}`}
+                        placeholder="Doe"
+                        value={formData.last_name}
+                        onChange={handleChange}
+                        required
+                        autoComplete="family-name"
+                        aria-invalid={Boolean(fieldErrors.last_name)}
+                      />
+                      {fieldErrors.last_name && (
+                        <div className="auth-page__field-error" role="alert">
+                          {fieldErrors.last_name.join(' ')}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
 
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                  Phone Number
-                </label>
-                <input
-                  name="phone_number"
-                  type="tel"
-                  className="form-control"
-                  placeholder="+1 555-0192"
-                  value={formData.phone_number}
-                  onChange={handleChange}
-                />
-              </div>
+                  <div className="auth-page__field-group">
+                    <label className="auth-page__label" htmlFor="mgr-email">
+                      Work Email Address <span className="auth-page__label-required" aria-hidden="true">*</span>
+                    </label>
+                    <input
+                      id="mgr-email"
+                      name="email"
+                      type="email"
+                      className={`auth-page__input ${fieldErrors.email ? 'auth-page__input--error' : ''}`}
+                      placeholder="manager@organization.com"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      autoComplete="email"
+                      aria-invalid={Boolean(fieldErrors.email)}
+                    />
+                    {fieldErrors.email && (
+                      <div className="auth-page__field-error" role="alert">
+                        {fieldErrors.email.join(' ')}
+                      </div>
+                    )}
+                  </div>
 
-              <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)' }}>
-                    Password *
-                  </label>
+                  <div className="auth-page__field-group">
+                    <label className="auth-page__label" htmlFor="mgr-phone">
+                      Phone Number
+                    </label>
+                    <input
+                      id="mgr-phone"
+                      name="phone_number"
+                      type="tel"
+                      className="auth-page__input"
+                      placeholder="+1 555-0192"
+                      value={formData.phone_number}
+                      onChange={handleChange}
+                      autoComplete="tel"
+                    />
+                  </div>
+
+                  <div className="auth-page__field-group">
+                    <div className="auth-page__label-wrapper">
+                      <label className="auth-page__label" htmlFor="mgr-password">
+                        Password <span className="auth-page__label-required" aria-hidden="true">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="auth-page__toggle-btn"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                    <input
+                      id="mgr-password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      className={`auth-page__input ${fieldErrors.password ? 'auth-page__input--error' : ''}`}
+                      placeholder="••••••••"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                      autoComplete="new-password"
+                      aria-invalid={Boolean(fieldErrors.password)}
+                    />
+                    {fieldErrors.password && (
+                      <div className="auth-page__field-error" role="alert">
+                        {fieldErrors.password.join(' ')}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="auth-page__field-group" style={{ marginBottom: '1.75rem' }}>
+                    <label className="auth-page__label" htmlFor="mgr-password-confirm">
+                      Confirm Password <span className="auth-page__label-required" aria-hidden="true">*</span>
+                    </label>
+                    <input
+                      id="mgr-password-confirm"
+                      name="password_confirm"
+                      type={showPassword ? 'text' : 'password'}
+                      className={`auth-page__input ${fieldErrors.password_confirm ? 'auth-page__input--error' : ''}`}
+                      placeholder="••••••••"
+                      value={formData.password_confirm}
+                      onChange={handleChange}
+                      required
+                      autoComplete="new-password"
+                      aria-invalid={Boolean(fieldErrors.password_confirm)}
+                    />
+                    {fieldErrors.password_confirm && (
+                      <div className="auth-page__field-error" role="alert">
+                        {fieldErrors.password_confirm.join(' ')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2 — Organization Information */}
+              {step === 2 && (
+                <div>
+                  <div className="auth-page__field-group">
+                    <label className="auth-page__label" htmlFor="org-name">
+                      Organization Name <span className="auth-page__label-required" aria-hidden="true">*</span>
+                    </label>
+                    <input
+                      id="org-name"
+                      name="organization_name"
+                      type="text"
+                      className={`auth-page__input ${fieldErrors.organization_name ? 'auth-page__input--error' : ''}`}
+                      placeholder="e.g. Apex Health & Beauty Clinic"
+                      value={formData.organization_name}
+                      onChange={handleChange}
+                      required
+                      aria-invalid={Boolean(fieldErrors.organization_name)}
+                    />
+                    {fieldErrors.organization_name && (
+                      <div className="auth-page__field-error" role="alert">
+                        {fieldErrors.organization_name.join(' ')}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="auth-page__field-group">
+                    <label className="auth-page__label" htmlFor="org-type">
+                      Organization Category
+                    </label>
+                    <select
+                      id="org-type"
+                      name="organization_type"
+                      className="auth-page__select"
+                      value={formData.organization_type}
+                      onChange={handleChange}
+                    >
+                      <option value="Healthcare">Healthcare & Diagnostics</option>
+                      <option value="Salon & Beauty">Salon & Beauty Spa</option>
+                      <option value="Corporate Consulting">Corporate & Legal Consulting</option>
+                      <option value="Repair & Service">Repair & Auto Service</option>
+                      <option value="Other">Other Service Center</option>
+                    </select>
+                  </div>
+
+                  <div className="auth-page__field-row">
+                    <div>
+                      <label className="auth-page__label" htmlFor="org-phone">
+                        Organization Phone
+                      </label>
+                      <input
+                        id="org-phone"
+                        name="organization_phone"
+                        type="tel"
+                        className="auth-page__input"
+                        placeholder="+1 555-0199"
+                        value={formData.organization_phone}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    <div>
+                      <label className="auth-page__label" htmlFor="org-email">
+                        Organization Email
+                      </label>
+                      <input
+                        id="org-email"
+                        name="organization_email"
+                        type="email"
+                        className="auth-page__input"
+                        placeholder="contact@org.com"
+                        value={formData.organization_email}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="auth-page__field-group">
+                    <label className="auth-page__label" htmlFor="org-address">
+                      Address & City
+                    </label>
+                    <input
+                      id="org-address"
+                      name="address"
+                      type="text"
+                      className="auth-page__input"
+                      placeholder="123 Health Ave, Suite 400, Dhaka"
+                      value={formData.address}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3 — Review & Create */}
+              {step === 3 && (
+                <div>
+                  <div className="auth-page__summary-box">
+                    <div className="auth-page__summary-header">
+                      Personal Information
+                    </div>
+                    <div className="auth-page__summary-grid">
+                      <div><strong>Name:</strong> {formData.first_name} {formData.last_name}</div>
+                      <div><strong>Email:</strong> {formData.email}</div>
+                      <div><strong>Phone:</strong> {formData.phone_number || 'N/A'}</div>
+                    </div>
+
+                    <div className="auth-page__summary-divider" />
+
+                    <div className="auth-page__summary-header">
+                      Organization Details
+                    </div>
+                    <div className="auth-page__summary-grid">
+                      <div><strong>Name:</strong> {formData.organization_name}</div>
+                      <div><strong>Category:</strong> {formData.organization_type}</div>
+                      <div><strong>Org Phone:</strong> {formData.organization_phone || 'N/A'}</div>
+                      <div><strong>Address:</strong> {formData.address || 'N/A'}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Buttons */}
+              <div className="auth-page__actions">
+                {step > 1 ? (
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{ background: 'none', border: 'none', color: 'var(--lp-accent)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+                    onClick={handleBack}
+                    className="auth-page__secondary-btn"
                   >
-                    {showPassword ? 'Hide' : 'Show'} password
+                    ← Back
                   </button>
-                </div>
-                <input
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  className="form-control"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
-                {fieldErrors.password && (
-                  <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                    {fieldErrors.password.join(' ')}
-                  </div>
+                ) : <div />}
+
+                {step < 3 ? (
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="auth-page__submit-btn"
+                    style={{ width: 'auto', padding: '0.85rem 2rem' }}
+                  >
+                    Continue →
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="auth-page__submit-btn"
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Creating Organization...' : 'Create Organization & Account'}
+                  </button>
                 )}
               </div>
+            </form>
 
-              <div style={{ marginBottom: '1.75rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                  Confirm Password *
-                </label>
-                <input
-                  name="password_confirm"
-                  type={showPassword ? 'text' : 'password'}
-                  className="form-control"
-                  placeholder="••••••••"
-                  value={formData.password_confirm}
-                  onChange={handleChange}
-                  required
-                />
-                {fieldErrors.password_confirm && (
-                  <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                    {fieldErrors.password_confirm.join(' ')}
-                  </div>
-                )}
+            <div className="auth-page__footer">
+              Already have an account?{' '}
+              <Link to="/login" className="auth-page__footer-link">
+                Sign In
+              </Link>
+              <div>
+                <Link to="/register" className="auth-page__back-link">
+                  ← Change Account Type
+                </Link>
               </div>
             </div>
-          )}
-
-          {/* STEP 2 — Organization Information */}
-          {step === 2 && (
-            <div>
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                  Organization Name *
-                </label>
-                <input
-                  name="organization_name"
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. Apex Health & Beauty Clinic"
-                  value={formData.organization_name}
-                  onChange={handleChange}
-                  required
-                />
-                {fieldErrors.organization_name && (
-                  <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                    {fieldErrors.organization_name.join(' ')}
-                  </div>
-                )}
-              </div>
-
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                  Organization Category
-                </label>
-                <select
-                  name="organization_type"
-                  className="form-control"
-                  value={formData.organization_type}
-                  onChange={handleChange}
-                >
-                  <option value="Healthcare">Healthcare & Diagnostics</option>
-                  <option value="Salon & Beauty">Salon & Beauty Spa</option>
-                  <option value="Corporate Consulting">Corporate & Legal Consulting</option>
-                  <option value="Repair & Service">Repair & Auto Service</option>
-                  <option value="Other">Other Service Center</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                    Organization Phone
-                  </label>
-                  <input
-                    name="organization_phone"
-                    type="tel"
-                    className="form-control"
-                    placeholder="+1 555-0199"
-                    value={formData.organization_phone}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                    Organization Email
-                  </label>
-                  <input
-                    name="organization_email"
-                    type="email"
-                    className="form-control"
-                    placeholder="contact@org.com"
-                    value={formData.organization_email}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                  Address & City
-                </label>
-                <input
-                  name="address"
-                  type="text"
-                  className="form-control"
-                  placeholder="123 Health Ave, Suite 400, Dhaka"
-                  value={formData.address}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* STEP 3 — Review & Create */}
-          {step === 3 && (
-            <div>
-              <div style={{ backgroundColor: 'var(--lp-bg-subtle)', borderRadius: '16px', border: '1px solid var(--lp-border)', padding: '1.25rem', marginBottom: '1.5rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--lp-accent)', marginBottom: '0.5rem' }}>
-                  Personal Information
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.9rem', color: 'var(--lp-text)', marginBottom: '1.25rem' }}>
-                  <div><strong>Name:</strong> {formData.first_name} {formData.last_name}</div>
-                  <div><strong>Email:</strong> {formData.email}</div>
-                  <div><strong>Phone:</strong> {formData.phone_number || 'N/A'}</div>
-                </div>
-
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--lp-accent)', marginBottom: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)' }}>
-                  Organization Details
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.9rem', color: 'var(--lp-text)' }}>
-                  <div><strong>Name:</strong> {formData.organization_name}</div>
-                  <div><strong>Category:</strong> {formData.organization_type}</div>
-                  <div><strong>Org Phone:</strong> {formData.organization_phone || 'N/A'}</div>
-                  <div><strong>Address:</strong> {formData.address || 'N/A'}</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Buttons */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginTop: '1.75rem' }}>
-            {step > 1 && (
-              <button
-                type="button"
-                onClick={handleBack}
-                style={{
-                  padding: '0.85rem 1.25rem',
-                  backgroundColor: 'var(--lp-bg-subtle)',
-                  color: 'var(--lp-text)',
-                  border: '1px solid var(--lp-border)',
-                  borderRadius: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                ← Back
-              </button>
-            )}
-
-            {step < 3 ? (
-              <button
-                type="button"
-                onClick={handleNext}
-                style={{
-                  marginLeft: 'auto',
-                  padding: '0.85rem 1.75rem',
-                  backgroundColor: 'var(--lp-btn-bg, #2F2520)',
-                  color: 'var(--lp-btn-text, #FAF8F3)',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Continue →
-              </button>
-            ) : (
-              <button
-                type="submit"
-                style={{
-                  width: '100%',
-                  padding: '0.85rem',
-                  backgroundColor: 'var(--lp-btn-bg, #2F2520)',
-                  color: 'var(--lp-btn-text, #FAF8F3)',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontWeight: 600,
-                  fontSize: '1rem',
-                  cursor: submitting ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 4px 12px rgba(47, 37, 32, 0.2)',
-                }}
-                disabled={submitting}
-              >
-                {submitting ? 'Creating Organization...' : 'Create Organization & Account'}
-              </button>
-            )}
-          </div>
-        </form>
-
-        <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.875rem', color: 'var(--lp-text-subtle)', paddingTop: '1.5rem', borderTop: '1px solid var(--lp-border)' }}>
-          Already have an account?{' '}
-          <Link to="/login" style={{ color: 'var(--lp-accent)', fontWeight: 700, textDecoration: 'none' }}>
-            Sign In
-          </Link>
-          <div style={{ marginTop: '0.75rem' }}>
-            <Link to="/register" style={{ color: 'var(--lp-accent)', fontSize: '0.825rem', textDecoration: 'none', fontWeight: 600 }}>
-              ← Change Account Type
-            </Link>
           </div>
         </div>
-        </div>
-      </div>
+      </main>
     </div>
   );
 };

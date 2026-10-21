@@ -1,0 +1,192 @@
+/* ═══════════════════════════════════════════════════════════════
+   QueueTurn — 404 Not Found Page Styles
+   Palette: Warm Sand & Roasted Espresso (Light)
+            Deep Navy & Sage Teal (Dark)
+   ═══════════════════════════════════════════════════════════════ */
+
+.notfound-page {
+  min-height: 100vh;
+  background-color: var(--lp-bg, #FAF8F3);
+  color: var(--lp-text, #211C19);
+  display: flex;
+  flex-direction: column;
+  transition: background-color var(--motion-normal, 220ms) ease, color var(--motion-normal, 220ms) ease;
+}
+
+.notfound-page__main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6.5rem 1.25rem 3.5rem 1.25rem;
+}
+
+.notfound-card {
+  width: 100%;
+  max-width: 540px;
+  background-color: var(--lp-surface, #FFFFFF);
+  border: 1px solid var(--lp-border, #E6E1D9);
+  border-radius: 24px;
+  padding: 3.5rem 2.5rem;
+  box-shadow: 0 10px 30px rgba(47, 37, 32, 0.05);
+  text-align: center;
+  transition: background-color var(--motion-normal, 220ms) ease, border-color var(--motion-normal, 220ms) ease;
+}
+
+:root[data-theme="dark"] .notfound-card {
+  background-color: var(--lp-surface, #151F2D);
+  border-color: var(--lp-border, #2A394B);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+.notfound-card__code {
+  font-family: 'Cinzel', serif;
+  font-size: 4rem;
+  font-weight: 800;
+  color: var(--lp-espresso, #2F2520);
+  line-height: 1;
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.02em;
+}
+
+:root[data-theme="dark"] .notfound-card__code {
+  color: var(--lp-accent, #2A9D8F);
+}
+
+.notfound-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background-color: var(--lp-bg-subtle, #F3F0EA);
+  border: 1px solid var(--lp-border, #E6E1D9);
+  color: var(--lp-sage, #5F7A70);
+  margin-bottom: 1.25rem;
+}
+
+:root[data-theme="dark"] .notfound-card__badge {
+  background-color: rgba(42, 157, 143, 0.12);
+  border-color: rgba(42, 157, 143, 0.28);
+  color: var(--lp-accent, #2A9D8F);
+}
+
+.notfound-card__title {
+  font-family: 'Cinzel', serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--lp-text, #211C19);
+  margin: 0 0 0.75rem 0;
+  line-height: 1.25;
+}
+
+:root[data-theme="dark"] .notfound-card__title {
+  color: var(--lp-text, #F3F6F5);
+}
+
+.notfound-card__message {
+  font-size: 1rem;
+  color: var(--lp-text-sec, #57534E);
+  line-height: 1.6;
+  margin: 0 0 2.25rem 0;
+}
+
+:root[data-theme="dark"] .notfound-card__message {
+  color: var(--lp-muted, #91A09D);
+}
+
+.notfound-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.notfound-card__btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: 12px;
+  text-decoration: none;
+  background-color: var(--lp-btn-bg, #2F2520);
+  color: var(--lp-btn-text, #FFFFFF);
+  box-shadow: 0 4px 14px rgba(47, 37, 32, 0.16);
+  transition: transform var(--motion-fast, 160ms) ease, box-shadow var(--motion-fast, 160ms) ease, opacity var(--motion-fast, 160ms) ease;
+}
+
+:root[data-theme="dark"] .notfound-card__btn-primary {
+  background-color: var(--lp-accent, #2A9D8F);
+  color: #081512;
+  box-shadow: 0 4px 16px rgba(42, 157, 143, 0.3);
+}
+
+.notfound-card__btn-primary:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(47, 37, 32, 0.22);
+}
+
+:root[data-theme="dark"] .notfound-card__btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(42, 157, 143, 0.4);
+}
+
+.notfound-card__btn-primary:focus-visible {
+  outline: 2px solid var(--lp-sage, #5F7A70);
+  outline-offset: 3px;
+}
+
+.notfound-card__btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8125rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: 12px;
+  text-decoration: none;
+  border: 1px solid var(--lp-border, #E6E1D9);
+  background-color: var(--lp-bg-subtle, #F3F0EA);
+  color: var(--lp-text, #211C19);
+  transition: background-color var(--motion-fast, 160ms) ease, border-color var(--motion-fast, 160ms) ease;
+}
+
+:root[data-theme="dark"] .notfound-card__btn-secondary {
+  background-color: var(--lp-bg-subtle, #101927);
+  border-color: var(--lp-border, #2A394B);
+  color: var(--lp-text, #F3F6F5);
+}
+
+.notfound-card__btn-secondary:hover {
+  background-color: var(--lp-bg-deeper, #E6E1D9);
+  border-color: var(--lp-border-med, #D6CFB9);
+}
+
+:root[data-theme="dark"] .notfound-card__btn-secondary:hover {
+  background-color: var(--lp-bg-deeper, #151F2D);
+  border-color: var(--lp-border-med, #35485E);
+}
+
+.notfound-card__btn-secondary:focus-visible {
+  outline: 2px solid var(--lp-sage, #5F7A70);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notfound-page,
+  .notfound-card,
+  .notfound-card__btn-primary,
+  .notfound-card__btn-secondary {
+    transition: none !important;
+    transform: none !important;
+  }
+}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PublicNavbar } from '../components/PublicNavbar';
+import '../styles/AuthPages.css';
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
@@ -11,208 +12,126 @@ export const RegisterPage = () => {
       title: 'Customer',
       icon: '👤',
       badge: 'Public Account',
-      description: 'Find services, book appointments and manage your visits.',
+      description: 'Find organizations and providers, book appointments, and track your place in live queues.',
       cta: 'Continue as Customer',
       path: '/register/customer',
-      badgeColor: 'var(--lp-sage)',
-      btnBg: '#5F7A70',
-      btnText: '#FAF8F3',
+      btnClass: 'auth-page__submit-btn--accent',
+      badgeClass: '',
     },
     {
       id: 'provider',
       title: 'Provider',
       icon: '🩺',
       badge: 'Professional',
-      description: 'Manage your appointments, services, schedule and queue.',
+      description: 'Manage your appointments, working schedule, service catalog, and patient call telemetry.',
       cta: 'Continue as Provider',
       path: '/register/provider',
-      badgeColor: '#B06D2E',
-      btnBg: '#B06D2E',
-      btnText: '#FAF8F3',
+      btnClass: 'auth-page__submit-btn--provider',
+      badgeClass: 'auth-page__badge--warning',
     },
     {
       id: 'manager',
       title: 'Manager',
       icon: '🏢',
       badge: 'Organization Admin',
-      description: 'Create and manage your organization, team and services.',
+      description: 'Register and manage your facility, service staff, provider teams, and operational oversight.',
       cta: 'Continue as Manager',
       path: '/register/manager',
-      badgeColor: 'var(--lp-espresso)',
-      btnBg: 'var(--lp-btn-primary-bg)',
-      btnText: 'var(--lp-btn-primary-text)',
+      btnClass: '',
+      badgeClass: 'auth-page__badge--espresso',
     },
   ];
 
   return (
-    <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="auth-page">
       <PublicNavbar activePage="register" />
-      <div
-        className="animate-page-entrance"
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '6rem 1.5rem 3rem 1.5rem',
-        }}
-      >
-      <div style={{ maxWidth: '960px', width: '100%' }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-          <Link
-            to="/"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.625rem',
-              textDecoration: 'none',
-              marginBottom: '1.25rem',
-            }}
-          >
-            <span className="lp-brand-mark" style={{ width: '36px', height: '36px', borderRadius: '10px' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}>
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-              </svg>
-            </span>
-            <span
-              style={{
-                fontFamily: 'Cinzel, serif',
-                fontSize: '1.75rem',
-                fontWeight: 700,
-                color: 'var(--lp-text)',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              QueueTurn
-            </span>
-          </Link>
+      <main className="auth-page__main animate-page-entrance">
+        <div className="auth-page__content-wrap auth-page__content-wrap--hub">
+          {/* Header */}
+          <div className="auth-page__header">
+            <Link to="/" className="auth-page__brand" aria-label="QueueTurn Home">
+              <span className="auth-page__brand-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+              </span>
+              <span className="auth-page__brand-title">QueueTurn</span>
+            </Link>
 
-          <h1
-            style={{
-              fontSize: '2.25rem',
-              fontWeight: 800,
-              color: 'var(--lp-text)',
-              margin: '0 0 0.5rem 0',
-              fontFamily: 'Cinzel, serif',
-            }}
-          >
-            Create your QueueTurn account
-          </h1>
-          <p style={{ fontSize: '1.1rem', color: 'var(--lp-text-subtle)', margin: 0, fontWeight: 500 }}>
-            Choose how you'll use QueueTurn.
-          </p>
-        </div>
+            <h1 className="auth-page__title" style={{ fontSize: '2.125rem' }}>
+              Create your QueueTurn account
+            </h1>
+            <p className="auth-page__subtitle" style={{ fontSize: '1.0625rem' }}>
+              Choose how you will use QueueTurn to get started.
+            </p>
+          </div>
 
-        {/* 3 Role Cards Grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
-            gap: '1.75rem',
-            marginBottom: '3rem',
-          }}
-        >
-          {roleOptions.map((opt) => (
-            <div
-              key={opt.id}
-              onClick={() => navigate(opt.path)}
-              style={{
-                backgroundColor: 'var(--lp-surface)',
-                borderRadius: '20px',
-                border: '1px solid var(--lp-border)',
-                padding: '2.25rem 1.75rem',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                boxShadow: '0 10px 30px rgba(47, 37, 32, 0.04)',
-                cursor: 'pointer',
-                transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-              className="role-card-hover"
-            >
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                  <div
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '14px',
-                      backgroundColor: 'var(--lp-bg-subtle)',
-                      border: '1px solid var(--lp-border)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '1.4rem',
-                    }}
-                  >
-                    {opt.icon}
+          {/* 3 Role Cards Grid */}
+          <div className="auth-page__role-grid">
+            {roleOptions.map((opt) => (
+              <div
+                key={opt.id}
+                onClick={() => navigate(opt.path)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(opt.path);
+                  }
+                }}
+                className="auth-page__role-card"
+                role="button"
+                tabIndex={0}
+                aria-label={`${opt.title} registration: ${opt.description}`}
+              >
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                    <div className="auth-page__role-icon" aria-hidden="true">
+                      {opt.icon}
+                    </div>
+                    <span className={`auth-page__badge ${opt.badgeClass}`}>
+                      {opt.badge}
+                    </span>
                   </div>
-                  <span
-                    style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      color: opt.badgeColor,
-                      backgroundColor: 'var(--lp-bg-subtle)',
-                      padding: '0.25rem 0.65rem',
-                      borderRadius: '9999px',
-                      border: '1px solid var(--lp-border)',
-                    }}
-                  >
-                    {opt.badge}
-                  </span>
+
+                  <h2 className="auth-page__role-title">
+                    {opt.title}
+                  </h2>
+                  <p className="auth-page__role-desc">
+                    {opt.description}
+                  </p>
                 </div>
 
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.65rem 0' }}>
-                  {opt.title}
-                </h3>
-                <p style={{ fontSize: '0.95rem', color: 'var(--lp-text-subtle)', lineHeight: 1.5, margin: 0 }}>
-                  {opt.description}
-                </p>
+                <div>
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    className={`auth-page__submit-btn auth-page__role-cta ${opt.btnClass}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(opt.path);
+                    }}
+                  >
+                    {opt.cta} →
+                  </button>
+                </div>
               </div>
+            ))}
+          </div>
 
-              <div style={{ marginTop: '2rem' }}>
-                <button
-                  style={{
-                    width: '100%',
-                    padding: '0.85rem 1rem',
-                    backgroundColor: opt.btnBg,
-                    color: opt.btnText,
-                    border: 'none',
-                    borderRadius: '12px',
-                    fontWeight: 600,
-                    fontSize: '0.95rem',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(47, 37, 32, 0.08)',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  {opt.cta} →
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Footer Link */}
-        <div style={{ textAlign: 'center', borderTop: '1px solid var(--lp-border)', paddingTop: '2rem' }}>
-          <p style={{ fontSize: '0.95rem', color: 'var(--lp-text-subtle)', margin: '0 0 0.75rem 0' }}>
-            Already have an account?{' '}
-            <Link to="/login" style={{ color: 'var(--lp-accent)', fontWeight: 700, textDecoration: 'none' }}>
-              Sign in
+          {/* Footer Link */}
+          <div className="auth-page__footer" style={{ width: '100%', maxWidth: '480px' }}>
+            <p style={{ margin: '0 0 0.5rem 0' }}>
+              Already have an account?{' '}
+              <Link to="/login" className="auth-page__footer-link">
+                Sign in
+              </Link>
+            </p>
+            <Link to="/" className="auth-page__back-link">
+              ← Back to Home Page
             </Link>
-          </p>
-          <Link to="/" style={{ color: 'var(--lp-text-subtle)', fontSize: '0.85rem', textDecoration: 'none' }}>
-            ← Back to Home Page
-          </Link>
+          </div>
         </div>
-        </div>
-      </div>
+      </main>
     </div>
   );
 };

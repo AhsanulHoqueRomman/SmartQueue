@@ -1,11 +1,12 @@
-import { ScheduleEditor } from '../../components/ScheduleEditor';
-import { initialSchedule } from '../../utils/scheduleDraft';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import organizationService from '../../services/organizationService';
 import { RegistrationProgress } from '../../components/registration/RegistrationProgress';
+import { ScheduleEditor } from '../../components/ScheduleEditor';
+import { initialSchedule } from '../../utils/scheduleDraft';
 import { PublicNavbar } from '../../components/PublicNavbar';
+import '../../styles/AuthPages.css';
 
 export const ProviderRegisterPage = () => {
   const [step, setStep] = useState(1);
@@ -31,7 +32,6 @@ export const ProviderRegisterPage = () => {
   });
 
   const [publicOrgs, setPublicOrgs] = useState([]);
-  const [loadingOrgs, setLoadingOrgs] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const [showPassword, setShowPassword] = useState(false);
@@ -78,16 +78,19 @@ export const ProviderRegisterPage = () => {
   };
 
   const handleNext = () => {
-    if (step === 1 && validateStep1()) setStep(2);
-    else if (step === 2) {
+    if (step === 1 && validateStep1()) {
+      setStep(2);
+    } else if (step === 2) {
       const average = Number(formData.average_service_minutes);
       if (formData.average_service_minutes !== '' && (!Number.isInteger(average) || average < 1)) {
         setFieldErrors({ average_service_minutes: ['Enter a positive whole number of minutes.'] });
         return;
       }
-      setFieldErrors({}); setStep(3);
+      setFieldErrors({});
+      setStep(3);
+    } else if (step === 3) {
+      setStep(4);
     }
-    else if (step === 3) setStep(4);
   };
 
   const handleBack = () => {
@@ -101,14 +104,18 @@ export const ProviderRegisterPage = () => {
     const average = Number(formData.average_service_minutes);
     if (formData.organization_id && (!Number.isInteger(average) || average < 1)) {
       setFieldErrors({ average_service_minutes: ['Enter a positive whole number of minutes for your organization provider profile.'] });
-      setStep(2); return;
+      setStep(2);
+      return;
     }
     setSubmitting(true);
 
     try {
       const payload = { ...formData };
       payload.average_service_minutes = Number(formData.average_service_minutes);
-      if (!payload.organization_id) { delete payload.initial_schedule; delete payload.average_service_minutes; }
+      if (!payload.organization_id) {
+        delete payload.initial_schedule;
+        delete payload.average_service_minutes;
+      }
       const res = await registerProvider(payload);
       if (res.is_pending_approval) {
         setSubmittedPending(true);
@@ -146,498 +153,456 @@ export const ProviderRegisterPage = () => {
 
   if (submittedPending) {
     return (
-      <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="auth-page">
         <PublicNavbar activePage="register" />
-        <div
-          className="animate-page-entrance"
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '2.5rem 1.25rem',
-          }}
-        >
-          <div
-            style={{
-              width: '100%',
-              maxWidth: '560px',
-              backgroundColor: 'var(--lp-surface)',
-              borderRadius: '24px',
-              border: '1px solid var(--lp-border)',
-              padding: '3rem 2.5rem',
-              boxShadow: 'var(--card-shadow)',
-              textAlign: 'center',
-            }}
-          >
-            <div
-              style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--color-warning-light)',
-                color: 'var(--color-warning)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '2rem',
-                margin: '0 auto 1.5rem auto',
-              }}
-            >
-              ⏳
+        <main className="auth-page__main animate-page-entrance">
+          <div className="auth-page__content-wrap">
+            <div className="auth-card">
+              <div className="auth-page__status-card">
+                <div className="auth-page__status-icon auth-page__status-icon--warning" aria-hidden="true">
+                  ⏳
+                </div>
+                <h1 className="auth-page__status-title">Application Submitted</h1>
+                <p className="auth-page__status-desc">
+                  Your provider profile has been created.<br />
+                  Your organization membership for <strong>{selectedOrgObj?.name || 'the selected organization'}</strong> is waiting for approval.
+                </p>
+                <div className="auth-page__banner auth-page__banner--info" style={{ textAlign: 'left', marginBottom: '1.75rem' }}>
+                  <span aria-hidden="true">ℹ️</span>
+                  <span>You will be able to access organization provider tools once your membership is approved by the facility manager.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/provider/dashboard')}
+                  className="auth-page__submit-btn auth-page__submit-btn--provider"
+                >
+                  Go to Provider Portal →
+                </button>
+              </div>
             </div>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.75rem 0', fontFamily: 'Cinzel, serif' }}>
-              Application Submitted
-            </h2>
-            <p style={{ color: 'var(--lp-text-subtle)', fontSize: '1rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-              Your provider profile has been created.<br />
-              Your organization membership for <strong>{selectedOrgObj?.name || 'the selected organization'}</strong> is waiting for approval.
-            </p>
-            <div style={{ backgroundColor: 'var(--lp-bg-subtle)', borderRadius: '12px', border: '1px solid var(--lp-border)', padding: '1rem', fontSize: '0.875rem', color: 'var(--lp-accent)', marginBottom: '2rem' }}>
-              ℹ️ You'll be able to access provider tools once your membership is approved by the organization manager.
-            </div>
-            <button
-              onClick={() => navigate('/provider/dashboard')}
-              style={{
-                padding: '0.85rem 2rem',
-                backgroundColor: 'var(--lp-btn-bg, #2F2520)',
-                color: 'var(--lp-btn-text, #FAF8F3)',
-                border: 'none',
-                borderRadius: '12px',
-                fontWeight: 600,
-                fontSize: '1rem',
-                cursor: 'pointer',
-              }}
-            >
-              Go to Provider Portal →
-            </button>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="auth-page">
       <PublicNavbar activePage="register" />
-      <div
-        className="animate-page-entrance"
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '6rem 1.25rem 3rem 1.25rem',
-        }}
-      >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '640px',
-          backgroundColor: 'var(--lp-surface)',
-          borderRadius: '24px',
-          border: '1px solid var(--lp-border)',
-          padding: '2.5rem',
-          boxShadow: 'var(--card-shadow)',
-        }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <Link
-            to="/"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              textDecoration: 'none',
-              marginBottom: '1rem',
-            }}
-          >
-            <span style={{ fontSize: '1.5rem' }}>⚡</span>
-            <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: 'var(--lp-text)' }}>
-              QueueTurn
-            </span>
-          </Link>
-          <div style={{ display: 'inline-block', backgroundColor: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-warning)', marginBottom: '0.5rem' }}>
-            🩺 Provider Registration
-          </div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.35rem 0', fontFamily: 'Cinzel, serif' }}>
-            Join as a Service Provider
-          </h2>
-          <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem', margin: 0 }}>
-            Manage appointments, service schedules, and queue telemetry.
-          </p>
-        </div>
-
-        <RegistrationProgress steps={steps} currentStep={step} />
-
-        {error && (
-          <div
-            style={{
-              padding: '0.85rem 1rem',
-              backgroundColor: 'var(--color-danger-light)',
-              color: 'var(--color-danger)',
-              border: '1px solid var(--color-danger)',
-              borderRadius: '12px',
-              fontSize: '0.875rem',
-              marginBottom: '1.5rem',
-            }}
-          >
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={step === 4 ? handleSubmit : (e) => { e.preventDefault(); handleNext(); }}>
-          {/* STEP 1 — Account Details */}
-          {step === 1 && (
-            <div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                    First Name *
-                  </label>
-                  <input
-                    name="first_name"
-                    type="text"
-                    className="form-control"
-                    placeholder="Dr. Sarah"
-                    value={formData.first_name}
-                    onChange={handleChange}
-                    required
-                  />
-                  {fieldErrors.first_name && (
-                    <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                      {fieldErrors.first_name.join(' ')}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                    Last Name *
-                  </label>
-                  <input
-                    name="last_name"
-                    type="text"
-                    className="form-control"
-                    placeholder="Jenkins"
-                    value={formData.last_name}
-                    onChange={handleChange}
-                    required
-                  />
-                  {fieldErrors.last_name && (
-                    <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                      {fieldErrors.last_name.join(' ')}
-                    </div>
-                  )}
-                </div>
+      <main className="auth-page__main animate-page-entrance">
+        <div className="auth-page__content-wrap auth-page__content-wrap--wide">
+          <div className="auth-card">
+            <div className="auth-page__header">
+              <Link to="/" className="auth-page__brand" aria-label="QueueTurn Home">
+                <span className="auth-page__brand-mark">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                </span>
+                <span className="auth-page__brand-title">QueueTurn</span>
+              </Link>
+              <div>
+                <span className="auth-page__badge auth-page__badge--warning">
+                  🩺 Provider Registration
+                </span>
               </div>
+              <h1 className="auth-page__title">Join as a Service Provider</h1>
+              <p className="auth-page__subtitle">
+                Manage appointments, service schedules, and queue telemetry.
+              </p>
+            </div>
 
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                  Email Address *
-                </label>
-                <input
-                  name="email"
-                  type="email"
-                  className="form-control"
-                  placeholder="sarah.jenkins@provider.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
-                {fieldErrors.email && (
-                  <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                    {fieldErrors.email.join(' ')}
+            <RegistrationProgress steps={steps} currentStep={step} />
+
+            {error && (
+              <div className="auth-page__banner auth-page__banner--danger" role="alert">
+                <span aria-hidden="true">⚠️</span>
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={step === 4 ? handleSubmit : (e) => { e.preventDefault(); handleNext(); }} className="auth-page__form" noValidate>
+              {/* STEP 1 — Account Details */}
+              {step === 1 && (
+                <div>
+                  <div className="auth-page__field-row">
+                    <div>
+                      <label className="auth-page__label" htmlFor="prov-first-name">
+                        First Name <span className="auth-page__label-required" aria-hidden="true">*</span>
+                      </label>
+                      <input
+                        id="prov-first-name"
+                        name="first_name"
+                        type="text"
+                        className={`auth-page__input ${fieldErrors.first_name ? 'auth-page__input--error' : ''}`}
+                        placeholder="Dr. Sarah"
+                        value={formData.first_name}
+                        onChange={handleChange}
+                        required
+                        autoComplete="given-name"
+                        aria-invalid={Boolean(fieldErrors.first_name)}
+                      />
+                      {fieldErrors.first_name && (
+                        <div className="auth-page__field-error" role="alert">
+                          {fieldErrors.first_name.join(' ')}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="auth-page__label" htmlFor="prov-last-name">
+                        Last Name <span className="auth-page__label-required" aria-hidden="true">*</span>
+                      </label>
+                      <input
+                        id="prov-last-name"
+                        name="last_name"
+                        type="text"
+                        className={`auth-page__input ${fieldErrors.last_name ? 'auth-page__input--error' : ''}`}
+                        placeholder="Jenkins"
+                        value={formData.last_name}
+                        onChange={handleChange}
+                        required
+                        autoComplete="family-name"
+                        aria-invalid={Boolean(fieldErrors.last_name)}
+                      />
+                      {fieldErrors.last_name && (
+                        <div className="auth-page__field-error" role="alert">
+                          {fieldErrors.last_name.join(' ')}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
 
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                  Phone Number
-                </label>
-                <input
-                  name="phone_number"
-                  type="tel"
-                  className="form-control"
-                  placeholder="+1 555-0188"
-                  value={formData.phone_number}
-                  onChange={handleChange}
-                />
-              </div>
+                  <div className="auth-page__field-group">
+                    <label className="auth-page__label" htmlFor="prov-email">
+                      Email Address <span className="auth-page__label-required" aria-hidden="true">*</span>
+                    </label>
+                    <input
+                      id="prov-email"
+                      name="email"
+                      type="email"
+                      className={`auth-page__input ${fieldErrors.email ? 'auth-page__input--error' : ''}`}
+                      placeholder="sarah.jenkins@provider.com"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      autoComplete="email"
+                      aria-invalid={Boolean(fieldErrors.email)}
+                    />
+                    {fieldErrors.email && (
+                      <div className="auth-page__field-error" role="alert">
+                        {fieldErrors.email.join(' ')}
+                      </div>
+                    )}
+                  </div>
 
-              <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)' }}>
-                    Password *
+                  <div className="auth-page__field-group">
+                    <label className="auth-page__label" htmlFor="prov-phone">
+                      Phone Number
+                    </label>
+                    <input
+                      id="prov-phone"
+                      name="phone_number"
+                      type="tel"
+                      className="auth-page__input"
+                      placeholder="+1 555-0188"
+                      value={formData.phone_number}
+                      onChange={handleChange}
+                      autoComplete="tel"
+                    />
+                  </div>
+
+                  <div className="auth-page__field-group">
+                    <div className="auth-page__label-wrapper">
+                      <label className="auth-page__label" htmlFor="prov-password">
+                        Password <span className="auth-page__label-required" aria-hidden="true">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="auth-page__toggle-btn"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                    <input
+                      id="prov-password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      className={`auth-page__input ${fieldErrors.password ? 'auth-page__input--error' : ''}`}
+                      placeholder="••••••••"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                      autoComplete="new-password"
+                      aria-invalid={Boolean(fieldErrors.password)}
+                    />
+                    {fieldErrors.password && (
+                      <div className="auth-page__field-error" role="alert">
+                        {fieldErrors.password.join(' ')}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="auth-page__field-group" style={{ marginBottom: '1.75rem' }}>
+                    <label className="auth-page__label" htmlFor="prov-password-confirm">
+                      Confirm Password <span className="auth-page__label-required" aria-hidden="true">*</span>
+                    </label>
+                    <input
+                      id="prov-password-confirm"
+                      name="password_confirm"
+                      type={showPassword ? 'text' : 'password'}
+                      className={`auth-page__input ${fieldErrors.password_confirm ? 'auth-page__input--error' : ''}`}
+                      placeholder="••••••••"
+                      value={formData.password_confirm}
+                      onChange={handleChange}
+                      required
+                      autoComplete="new-password"
+                      aria-invalid={Boolean(fieldErrors.password_confirm)}
+                    />
+                    {fieldErrors.password_confirm && (
+                      <div className="auth-page__field-error" role="alert">
+                        {fieldErrors.password_confirm.join(' ')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2 — Professional Profile */}
+              {step === 2 && (
+                <div>
+                  <div className="auth-page__field-group">
+                    <label className="auth-page__label" htmlFor="prov-title">
+                      Professional Title
+                    </label>
+                    <input
+                      id="prov-title"
+                      name="title"
+                      type="text"
+                      className="auth-page__input"
+                      placeholder="e.g. Senior Dermatologist / Lead Consultant"
+                      value={formData.title}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="auth-page__field-group">
+                    <label className="auth-page__label" htmlFor="prov-bio">
+                      Professional Bio / Specialization Summary
+                    </label>
+                    <textarea
+                      id="prov-bio"
+                      name="bio"
+                      rows={4}
+                      className="auth-page__textarea"
+                      placeholder="Describe your qualifications, expertise, or background..."
+                      value={formData.bio}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="auth-page__field-group">
+                    <label className="auth-page__label" htmlFor="prov-avg-time">
+                      Average service time (minutes)
+                    </label>
+                    <input
+                      id="prov-avg-time"
+                      type="number"
+                      min="1"
+                      step="1"
+                      name="average_service_minutes"
+                      className={`auth-page__input ${fieldErrors.average_service_minutes ? 'auth-page__input--error' : ''}`}
+                      placeholder="e.g. 15"
+                      value={formData.average_service_minutes}
+                      onChange={handleChange}
+                      aria-invalid={Boolean(fieldErrors.average_service_minutes)}
+                    />
+                    <p className="auth-page__field-hint">
+                      Required when joining an organization. One planning average for that provider queue, not a fixed consultation timer. If you skip organization selection, configure the average when your provider profile is created.
+                    </p>
+                    {fieldErrors.average_service_minutes && (
+                      <div className="auth-page__field-error" role="alert">
+                        {fieldErrors.average_service_minutes[0]}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3 — Organization Selection */}
+              {step === 3 && (
+                <div>
+                  <label className="auth-page__label" htmlFor="org-search-input" style={{ marginBottom: '0.45rem' }}>
+                    Select Organization to Apply / Join (Optional)
                   </label>
+                  <input
+                    id="org-search-input"
+                    type="text"
+                    className="auth-page__input"
+                    placeholder="Search clinics or facilities..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ marginBottom: '1rem' }}
+                  />
+
+                  <div className="auth-page__org-list">
+                    <div
+                      onClick={() => setFormData((prev) => ({ ...prev, organization_id: '' }))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setFormData((prev) => ({ ...prev, organization_id: '' }));
+                        }
+                      }}
+                      className={`auth-page__org-item ${formData.organization_id === '' ? 'auth-page__org-item--selected' : ''}`}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <span className="auth-page__org-item-name">
+                        🌐 Skip Organization Selection for Now
+                      </span>
+                      <span className="auth-page__org-item-sub">
+                        You can join or be invited to an organization after account creation.
+                      </span>
+                    </div>
+
+                    {filteredOrgs.map((org) => {
+                      const isSelected = String(formData.organization_id) === String(org.id);
+                      return (
+                        <div
+                          key={org.id}
+                          onClick={() => setFormData((prev) => ({ ...prev, organization_id: org.id }))}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setFormData((prev) => ({ ...prev, organization_id: org.id }));
+                            }
+                          }}
+                          className={`auth-page__org-item ${isSelected ? 'auth-page__org-item--selected' : ''}`}
+                          role="button"
+                          tabIndex={0}
+                        >
+                          <span className="auth-page__org-item-name">
+                            🏥 {org.name}
+                          </span>
+                          <span className="auth-page__org-item-sub">
+                            {org.address || 'QueueTurn Registered Facility'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 4 — Schedule Editor (if organization selected) */}
+              {step === 4 && formData.organization_id && (
+                <div className="auth-page__schedule-wrap">
+                  <h3 className="auth-page__title" style={{ fontSize: '1.25rem', marginBottom: '0.35rem' }}>
+                    Initial Working Schedule
+                  </h3>
+                  <p className="auth-page__subtitle" style={{ fontSize: '0.875rem', marginBottom: '1.25rem' }}>
+                    Your organization manager reviews this schedule with your application before it becomes bookable. Working hours must end by 10 PM.
+                  </p>
+                  <ScheduleEditor
+                    days={formData.initial_schedule}
+                    onChange={(days) => setFormData((prev) => ({ ...prev, initial_schedule: days }))}
+                  />
+                </div>
+              )}
+
+              {/* STEP 4 — Review Summary */}
+              {step === 4 && (
+                <div>
+                  <div className="auth-page__summary-box">
+                    <div className="auth-page__summary-header">
+                      Account Information
+                    </div>
+                    <div className="auth-page__summary-grid">
+                      <div><strong>Name:</strong> {formData.first_name} {formData.last_name}</div>
+                      <div><strong>Email:</strong> {formData.email}</div>
+                      <div><strong>Phone:</strong> {formData.phone_number || 'N/A'}</div>
+                    </div>
+
+                    <div className="auth-page__summary-divider" />
+
+                    <div className="auth-page__summary-header">
+                      Professional Profile
+                    </div>
+                    <div style={{ fontSize: '0.9375rem', color: 'var(--lp-text)' }}>
+                      <div><strong>Title:</strong> {formData.title || 'Service Provider'}</div>
+                      <div style={{ marginTop: '0.35rem' }}><strong>Bio:</strong> {formData.bio || 'None provided'}</div>
+                      {formData.organization_id && (
+                        <div style={{ marginTop: '0.35rem' }}>
+                          <strong>Average Service Time:</strong> {formData.average_service_minutes} minutes
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="auth-page__summary-divider" />
+
+                    <div className="auth-page__summary-header">
+                      Selected Organization Application
+                    </div>
+                    <div style={{ fontSize: '0.9375rem', color: 'var(--lp-text)' }}>
+                      <div>
+                        <strong>Organization:</strong>{' '}
+                        {selectedOrgObj ? selectedOrgObj.name : 'None selected (Independent Account)'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Buttons */}
+              <div className="auth-page__actions">
+                {step > 1 ? (
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{ background: 'none', border: 'none', color: 'var(--lp-accent)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+                    onClick={handleBack}
+                    className="auth-page__secondary-btn"
                   >
-                    {showPassword ? 'Hide' : 'Show'} password
+                    ← Back
                   </button>
-                </div>
-                <input
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  className="form-control"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
-                {fieldErrors.password && (
-                  <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                    {fieldErrors.password.join(' ')}
-                  </div>
-                )}
-              </div>
+                ) : <div />}
 
-              <div style={{ marginBottom: '1.75rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                  Confirm Password *
-                </label>
-                <input
-                  name="password_confirm"
-                  type={showPassword ? 'text' : 'password'}
-                  className="form-control"
-                  placeholder="••••••••"
-                  value={formData.password_confirm}
-                  onChange={handleChange}
-                  required
-                />
-                {fieldErrors.password_confirm && (
-                  <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                    {fieldErrors.password_confirm.join(' ')}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2 — Professional Profile */}
-          {step === 2 && (
-            <div>
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                  Professional Title
-                </label>
-                <input
-                  name="title"
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. Senior Dermatologist / Lead Stylist"
-                  value={formData.title}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                  Professional Bio / Specialization Summary
-                </label>
-                <textarea
-                  name="bio"
-                  rows={4}
-                  className="form-control"
-                  placeholder="Describe your qualifications, expertise, or background..."
-                  value={formData.bio}
-                  onChange={handleChange}
-                />
-              </div>
-              <label className="form-label">Average service time (minutes)
-                <input type="number" min="1" step="1" name="average_service_minutes" className="form-control"
-                  value={formData.average_service_minutes} onChange={handleChange} aria-invalid={Boolean(fieldErrors.average_service_minutes)} />
-              </label>
-              <p className="text-sm">Required when joining an organization. One planning average for that provider queue, not a fixed consultation timer. If you skip organization selection, configure the average when your provider profile is created.</p>
-              {fieldErrors.average_service_minutes && <p role="alert">{fieldErrors.average_service_minutes[0]}</p>}
-            </div>
-          )}
-
-          {/* STEP 3 — Organization Selection */}
-          {step === 3 && (
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                Select Organization to Apply / Join (Optional)
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Search clinics or organizations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ marginBottom: '1rem' }}
-              />
-
-              <div
-                style={{
-                  maxHeight: '220px',
-                  overflowY: 'auto',
-                  border: '1px solid var(--lp-border)',
-                  borderRadius: '12px',
-                  padding: '0.5rem',
-                  backgroundColor: 'var(--lp-bg-subtle)',
-                  marginBottom: '1.25rem',
-                }}
-              >
-                <div
-                  onClick={() => setFormData((prev) => ({ ...prev, organization_id: '' }))}
-                  style={{
-                    padding: '0.75rem 1rem',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    backgroundColor: formData.organization_id === '' ? 'var(--lp-surface)' : 'transparent',
-                    border: formData.organization_id === '' ? '1.5px solid var(--color-warning)' : '1px solid transparent',
-                    marginBottom: '0.35rem',
-                  }}
-                >
-                  <strong style={{ display: 'block', color: 'var(--lp-text)', fontSize: '0.9rem' }}>
-                    🌐 Skip Organization Selection for Now
-                  </strong>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)' }}>
-                    You can join or be invited to an organization after account creation.
-                  </span>
-                </div>
-
-                {filteredOrgs.map((org) => (
-                  <div
-                    key={org.id}
-                    onClick={() => setFormData((prev) => ({ ...prev, organization_id: org.id }))}
-                    style={{
-                      padding: '0.75rem 1rem',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      backgroundColor: String(formData.organization_id) === String(org.id) ? 'var(--lp-surface)' : 'transparent',
-                      border: String(formData.organization_id) === String(org.id) ? '1.5px solid var(--color-warning)' : '1px solid transparent',
-                      marginBottom: '0.35rem',
-                    }}
+                {step < 4 ? (
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="auth-page__submit-btn auth-page__submit-btn--provider"
+                    style={{ width: 'auto', padding: '0.85rem 2rem' }}
                   >
-                    <strong style={{ display: 'block', color: 'var(--lp-text)', fontSize: '0.9rem' }}>
-                      🏥 {org.name}
-                    </strong>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)' }}>
-                      {org.address || 'QueueTurn Registered Partner'}
-                    </span>
-                  </div>
-                ))}
+                    Continue →
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="auth-page__submit-btn auth-page__submit-btn--provider"
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Submitting Application...' : 'Submit Provider Registration'}
+                  </button>
+                )}
+              </div>
+            </form>
+
+            <div className="auth-page__footer">
+              Already have an account?{' '}
+              <Link to="/login" className="auth-page__footer-link">
+                Sign In
+              </Link>
+              <div>
+                <Link to="/register" className="auth-page__back-link">
+                  ← Change Account Type
+                </Link>
               </div>
             </div>
-          )}
-
-          {step === 4 && formData.organization_id && <section>
-            <h3>Initial working schedule</h3>
-            <p>Your organization manager reviews this schedule with your application before it becomes bookable. Working hours must end by 10 PM.</p>
-            <ScheduleEditor days={formData.initial_schedule} onChange={days => setFormData(previous => ({ ...previous, initial_schedule: days }))} />
-          </section>}
-          {/* STEP 4 — Review */}
-          {step === 4 && (
-            <div>
-              <div style={{ backgroundColor: 'var(--lp-bg-subtle)', borderRadius: '16px', border: '1px solid var(--lp-border)', padding: '1.25rem', marginBottom: '1.5rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-warning)', marginBottom: '0.5rem' }}>
-                  Account Information
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.9rem', color: 'var(--lp-text)', marginBottom: '1.25rem' }}>
-                  <div><strong>Name:</strong> {formData.first_name} {formData.last_name}</div>
-                  <div><strong>Email:</strong> {formData.email}</div>
-                  <div><strong>Phone:</strong> {formData.phone_number || 'N/A'}</div>
-                </div>
-
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-warning)', marginBottom: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)' }}>
-                  Professional Profile
-                </div>
-                <div style={{ fontSize: '0.9rem', color: 'var(--lp-text)', marginBottom: '1.25rem' }}>
-                  <div><strong>Title:</strong> {formData.title || 'Service Provider'}</div>
-                  <div style={{ marginTop: '0.35rem' }}><strong>Bio:</strong> {formData.bio || 'None provided'}</div>
-                </div>
-
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-warning)', marginBottom: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)' }}>
-                  Selected Organization Application
-                </div>
-                <div style={{ fontSize: '0.9rem', color: 'var(--lp-text)' }}>
-                  <div>
-                    <strong>Organization:</strong>{' '}
-                    {selectedOrgObj ? selectedOrgObj.name : 'None selected (Independent Account)'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Buttons */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginTop: '1.75rem' }}>
-            {step > 1 && (
-              <button
-                type="button"
-                onClick={handleBack}
-                style={{
-                  padding: '0.85rem 1.25rem',
-                  backgroundColor: 'var(--lp-bg-subtle)',
-                  color: 'var(--lp-text)',
-                  border: '1px solid var(--lp-border)',
-                  borderRadius: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                ← Back
-              </button>
-            )}
-
-            {step < 4 ? (
-              <button
-                type="button"
-                onClick={handleNext}
-                style={{
-                  marginLeft: 'auto',
-                  padding: '0.85rem 1.75rem',
-                  backgroundColor: 'var(--color-warning)',
-                  color: '#FAF8F3',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Continue →
-              </button>
-            ) : (
-              <button
-                type="submit"
-                style={{
-                  width: '100%',
-                  padding: '0.85rem',
-                  backgroundColor: 'var(--color-warning)',
-                  color: '#FAF8F3',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontWeight: 600,
-                  fontSize: '1rem',
-                  cursor: submitting ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 4px 12px rgba(176, 109, 46, 0.2)',
-                }}
-                disabled={submitting}
-              >
-                {submitting ? 'Submitting Application...' : 'Submit Provider Registration'}
-              </button>
-            )}
-          </div>
-        </form>
-
-        <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.875rem', color: 'var(--lp-text-subtle)', paddingTop: '1.5rem', borderTop: '1px solid var(--lp-border)' }}>
-          Already have an account?{' '}
-          <Link to="/login" style={{ color: 'var(--lp-accent)', fontWeight: 700, textDecoration: 'none' }}>
-            Sign In
-          </Link>
-          <div style={{ marginTop: '0.75rem' }}>
-            <Link to="/register" style={{ color: 'var(--lp-accent)', fontSize: '0.825rem', textDecoration: 'none', fontWeight: 600 }}>
-              ← Change Account Type
-            </Link>
           </div>
         </div>
-        </div>
-      </div>
+      </main>
     </div>
   );
 };

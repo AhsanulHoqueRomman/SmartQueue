@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { PublicNavbar } from '../components/PublicNavbar';
+import '../styles/AuthPages.css';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -52,107 +53,123 @@ export const LoginPage = () => {
   };
 
   return (
-    <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="auth-page">
       <PublicNavbar activePage="login" />
-      <div
-        className="animate-page-entrance"
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '6.5rem 1rem 3rem 1rem',
-        }}
-      >
-        <div className="card" style={{ width: '100%', maxWidth: '440px', padding: '2.5rem', boxShadow: 'var(--card-shadow)', borderRadius: '24px', border: '1px solid var(--lp-border)', backgroundColor: 'var(--lp-surface)' }}>
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <Link to="/" className="navbar-brand" style={{ justifyContent: 'center', marginBottom: '1.25rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-              <span className="lp-brand-mark" style={{ width: '34px', height: '34px', borderRadius: '9px' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                </svg>
-              </span>
-              <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: 'var(--lp-text)' }}>QueueTurn</span>
-            </Link>
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.35rem', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)', fontWeight: 700 }}>Welcome back</h2>
-            <p className="subtitle" style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem', margin: 0 }}>Sign in to your QueueTurn account</p>
-          </div>
-
-        {error && (
-          <div className="banner banner-danger">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label" htmlFor="login-email">Email Address</label>
-            <input
-              id="login-email"
-              type="email"
-              className="form-control"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={submitting}
-            />
-            {fieldErrors.email && (
-              <div style={{ color: 'var(--color-error)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                {fieldErrors.email[0]}
-              </div>
-            )}
-          </div>
-
-          <div className="form-group">
-            <div className="flex justify-between items-center" style={{ marginBottom: '0.4rem' }}>
-              <label className="form-label" htmlFor="login-password" style={{ marginBottom: 0 }}>Password</label>
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer' }}
-              >
-                {showPassword ? 'Hide' : 'Show'}
-              </button>
-            </div>
-            <input
-              id="login-password"
-              type={showPassword ? 'text' : 'password'}
-              className="form-control"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={submitting}
-            />
-            {fieldErrors.password && (
-              <div style={{ color: 'var(--color-error)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                {fieldErrors.password[0]}
-              </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.4rem' }}>
-              <Link
-                to="/forgot-password"
-                style={{ color: 'var(--lp-accent)', fontSize: '0.8125rem', fontWeight: 600, textDecoration: 'none' }}
-              >
-                Forgot password?
+      <main className="auth-page__main animate-page-entrance">
+        <div className="auth-page__content-wrap">
+          <div className="auth-card">
+            <div className="auth-page__header">
+              <Link to="/" className="auth-page__brand" aria-label="QueueTurn Home">
+                <span className="auth-page__brand-mark">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                </span>
+                <span className="auth-page__brand-title">QueueTurn</span>
               </Link>
+              <h1 className="auth-page__title">Welcome back</h1>
+              <p className="auth-page__subtitle">Sign in to your QueueTurn account</p>
+            </div>
+
+            {error && (
+              <div className="auth-page__banner auth-page__banner--danger" role="alert">
+                <span aria-hidden="true">⚠️</span>
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="auth-page__form" noValidate>
+              <div className="auth-page__field-group">
+                <label className="auth-page__label" htmlFor="login-email">
+                  Email Address <span className="auth-page__label-required" aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="login-email"
+                  type="email"
+                  className={`auth-page__input ${fieldErrors.email ? 'auth-page__input--error' : ''}`}
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={submitting}
+                  autoComplete="email"
+                  aria-invalid={Boolean(fieldErrors.email)}
+                  aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
+                />
+                {fieldErrors.email && (
+                  <div id="login-email-error" className="auth-page__field-error" role="alert">
+                    {Array.isArray(fieldErrors.email) ? fieldErrors.email.join(' ') : fieldErrors.email}
+                  </div>
+                )}
+              </div>
+
+              <div className="auth-page__field-group">
+                <div className="auth-page__label-wrapper">
+                  <label className="auth-page__label" htmlFor="login-password">
+                    Password <span className="auth-page__label-required" aria-hidden="true">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="auth-page__toggle-btn"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                <input
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  className={`auth-page__input ${fieldErrors.password ? 'auth-page__input--error' : ''}`}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={submitting}
+                  autoComplete="current-password"
+                  aria-invalid={Boolean(fieldErrors.password)}
+                  aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
+                />
+                {fieldErrors.password && (
+                  <div id="login-password-error" className="auth-page__field-error" role="alert">
+                    {Array.isArray(fieldErrors.password) ? fieldErrors.password.join(' ') : fieldErrors.password}
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.45rem' }}>
+                  <Link
+                    to="/forgot-password"
+                    className="auth-page__footer-link"
+                    style={{ fontSize: '0.8125rem' }}
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="auth-page__submit-btn"
+                disabled={submitting}
+                style={{ marginTop: '0.5rem' }}
+              >
+                {submitting ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
+
+            <div className="auth-page__footer">
+              Don't have an account?{' '}
+              <Link to="/register" className="auth-page__footer-link">
+                Create Account
+              </Link>
+              <div>
+                <Link to="/" className="auth-page__back-link">
+                  ← Back to Home Page
+                </Link>
+              </div>
             </div>
           </div>
-
-          <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', marginTop: '0.75rem' }} disabled={submitting}>
-            {submitting ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-
-        <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.875rem', color: 'var(--color-text-muted)', paddingTop: '1.5rem', borderTop: '1px solid var(--color-border)' }}>
-          Don't have an account? <Link to="/register" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>Create Account</Link>
-          <div style={{ marginTop: '0.875rem' }}>
-            <Link to="/" style={{ color: 'var(--color-text-tertiary)', fontSize: '0.8125rem', textDecoration: 'none' }}>← Back to Home Page</Link>
-          </div>
         </div>
-        </div>
-      </div>
+      </main>
     </div>
   );
 };

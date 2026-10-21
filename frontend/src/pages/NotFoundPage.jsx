@@ -1,21 +1,48 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import EmptyState from '../components/EmptyState';
+import { Link, useNavigate } from 'react-router-dom';
+import { PublicNavbar } from '../components/PublicNavbar';
+import '../styles/NotFoundPage.css';
 
 export const NotFoundPage = () => {
   const navigate = useNavigate();
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', padding: '2rem' }}>
-      <div className="card" style={{ maxWidth: '480px', width: '100%', textAlign: 'center', padding: '3rem 2rem' }}>
-        <EmptyState
-          title="404 - Page Not Found"
-          message="The page or resource you are trying to access does not exist or has been moved."
-          actionText="Return to Dashboard"
-          onAction={() => navigate('/')}
-        />
-      </div>
+    <div className="notfound-page">
+      <PublicNavbar />
+      <main className="notfound-page__main animate-page-entrance">
+        <div className="notfound-card">
+          <div className="notfound-card__code" aria-hidden="true">
+            404
+          </div>
+          <div className="notfound-card__badge">
+            <span aria-hidden="true">🔍</span> Destination Not Found
+          </div>
+          <h1 className="notfound-card__title">
+            Page Not Found
+          </h1>
+          <p className="notfound-card__message">
+            The page or service address you are looking for does not exist, has been relocated, or is temporarily unavailable.
+          </p>
+
+          <div className="notfound-card__actions">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="notfound-card__btn-primary"
+            >
+              Return to Home
+            </button>
+            <Link
+              to="/login"
+              className="notfound-card__btn-secondary"
+            >
+              Sign In to Account
+            </Link>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };
 
+export default NotFoundPage;

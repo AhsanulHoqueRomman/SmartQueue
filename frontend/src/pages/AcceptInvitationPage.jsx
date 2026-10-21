@@ -4,6 +4,7 @@ import organizationService from '../services/organizationService';
 import { ScheduleEditor } from '../components/ScheduleEditor';
 import { initialSchedule } from '../utils/scheduleDraft';
 import { PublicNavbar } from '../components/PublicNavbar';
+import '../styles/AuthPages.css';
 
 export const AcceptInvitationPage = () => {
   const { token } = useParams();
@@ -93,274 +94,266 @@ export const AcceptInvitationPage = () => {
 
   if (loading) {
     return (
-      <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="auth-page">
         <PublicNavbar activePage="login" />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-          <div style={{ textAlign: 'center', color: 'var(--lp-text-subtle)' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
-            <p style={{ fontSize: '1rem', fontWeight: 600 }}>Validating invitation link...</p>
+        <main className="auth-page__main animate-page-entrance">
+          <div className="auth-page__content-wrap">
+            <div className="auth-card" style={{ textAlign: 'center', padding: '3.5rem 2rem' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }} aria-hidden="true">⏳</div>
+              <h1 className="auth-page__title" style={{ fontSize: '1.35rem' }}>
+                Validating invitation link...
+              </h1>
+              <p className="auth-page__subtitle">
+                Connecting to QueueTurn security services.
+              </p>
+            </div>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
 
   if (invitationError) {
     return (
-      <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="auth-page">
         <PublicNavbar activePage="login" />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6rem 1.25rem 3rem 1.25rem' }}>
-          <div
-            style={{
-              width: '100%',
-              maxWidth: '520px',
-              backgroundColor: 'var(--lp-surface)',
-              borderRadius: '24px',
-              border: '1px solid var(--lp-border)',
-              padding: '3rem 2.5rem',
-              boxShadow: 'var(--card-shadow)',
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--color-danger-light)', color: 'var(--color-danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1.5rem auto' }}>
-              ⚠️
+        <main className="auth-page__main animate-page-entrance">
+          <div className="auth-page__content-wrap">
+            <div className="auth-card">
+              <div className="auth-page__status-card">
+                <div className="auth-page__status-icon auth-page__status-icon--danger" aria-hidden="true">
+                  ⚠️
+                </div>
+                <h1 className="auth-page__status-title">Invitation Link Invalid</h1>
+                <p className="auth-page__status-desc">
+                  {invitationError}
+                </p>
+                <Link
+                  to="/login"
+                  className="auth-page__submit-btn"
+                  style={{ textDecoration: 'none' }}
+                >
+                  Back to Login →
+                </Link>
+              </div>
             </div>
-            <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.75rem', fontFamily: 'Cinzel, serif' }}>
-              Invitation Link Invalid
-            </h2>
-            <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '2rem' }}>
-              {invitationError}
-            </p>
-            <Link
-              to="/login"
-              style={{
-                display: 'inline-block',
-                padding: '0.85rem 2rem',
-                backgroundColor: 'var(--lp-btn-bg, #2F2520)',
-                color: 'var(--lp-btn-text, #FAF8F3)',
-                borderRadius: '12px',
-                fontWeight: 600,
-                textDecoration: 'none',
-              }}
-            >
-              Back to Login →
-            </Link>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
 
   if (success) {
     return (
-      <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="auth-page">
         <PublicNavbar activePage="login" />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6rem 1.25rem 3rem 1.25rem' }}>
-          <div
-            style={{
-              width: '100%',
-              maxWidth: '540px',
-              backgroundColor: 'var(--lp-surface)',
-              borderRadius: '24px',
-              border: '1px solid var(--lp-border)',
-              padding: '3rem 2.5rem',
-              boxShadow: 'var(--card-shadow)',
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--color-success-light)', color: 'var(--color-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1.5rem auto' }}>
-              🎉
+        <main className="auth-page__main animate-page-entrance">
+          <div className="auth-page__content-wrap">
+            <div className="auth-card">
+              <div className="auth-page__status-card">
+                <div className="auth-page__status-icon auth-page__status-icon--success" aria-hidden="true">
+                  🎉
+                </div>
+                <h1 className="auth-page__status-title">
+                  Welcome to {invitation?.organization_name}!
+                </h1>
+                <p className="auth-page__status-desc">
+                  {applicationStatus === 'APPROVED'
+                    ? 'Your provider account is approved.'
+                    : 'Your account and initial schedule have been submitted for organization manager approval. Operational access begins after approval.'}
+                </p>
+                <Link
+                  to="/login"
+                  className="auth-page__submit-btn auth-page__submit-btn--provider"
+                  style={{ textDecoration: 'none' }}
+                >
+                  Sign In to Provider Portal →
+                </Link>
+              </div>
             </div>
-            <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.75rem', fontFamily: 'Cinzel, serif' }}>
-              Welcome to {invitation?.organization_name}!
-            </h2>
-            <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '1.75rem' }}>
-              {applicationStatus === 'APPROVED' ? 'Your provider account is approved.' : 'Your account and initial schedule have been submitted for organization manager approval. Operational access begins after approval.'}
-            </p>
-            <Link
-              to="/login"
-              style={{
-                display: 'inline-block',
-                padding: '0.85rem 2rem',
-                backgroundColor: 'var(--color-warning)',
-                color: '#FAF8F3',
-                borderRadius: '12px',
-                fontWeight: 600,
-                textDecoration: 'none',
-                fontSize: '1rem',
-              }}
-            >
-              Sign In to Provider Portal →
-            </Link>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="auth-page">
       <PublicNavbar activePage="login" />
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6rem 1.25rem 3rem 1.25rem' }}>
-        <div
-          style={{
-            width: '100%',
-            maxWidth: '560px',
-            backgroundColor: 'var(--lp-surface)',
-            borderRadius: '24px',
-            border: '1px solid var(--lp-border)',
-            padding: '2.5rem',
-            boxShadow: 'var(--card-shadow)',
-          }}
-        >
-          <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-            <div style={{ display: 'inline-block', backgroundColor: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '9999px', padding: '0.2rem 0.85rem', fontSize: '0.8rem', fontWeight: 700, color: 'var(--lp-accent)', marginBottom: '0.75rem' }}>
-              📩 Manager Invitation
+      <main className="auth-page__main animate-page-entrance">
+        <div className="auth-page__content-wrap auth-page__content-wrap--wide">
+          <div className="auth-card">
+            <div className="auth-page__header">
+              <Link to="/" className="auth-page__brand" aria-label="QueueTurn Home">
+                <span className="auth-page__brand-mark">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                </span>
+                <span className="auth-page__brand-title">QueueTurn</span>
+              </Link>
+              <div>
+                <span className="auth-page__badge auth-page__badge--warning">
+                  📩 Manager Invitation
+                </span>
+              </div>
+              <h1 className="auth-page__title">Join {invitation?.organization_name}</h1>
+              <p className="auth-page__subtitle">
+                You were invited to join as a Service Provider for <strong>{invitation?.email}</strong>.
+              </p>
             </div>
-            <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.5rem 0', fontFamily: 'Cinzel, serif' }}>
-              Join {invitation?.organization_name}
-            </h2>
-            <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem', margin: 0 }}>
-              You were invited to join as a Service Provider for <strong>{invitation?.email}</strong>.
-            </p>
+
+            {submitError && (
+              <div className="auth-page__banner auth-page__banner--danger" role="alert">
+                <span aria-hidden="true">⚠️</span>
+                <span>{submitError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="auth-page__form" noValidate>
+              <div className="auth-page__field-row">
+                <div>
+                  <label className="auth-page__label" htmlFor="inv-first-name">
+                    First Name <span className="auth-page__label-required" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="inv-first-name"
+                    name="first_name"
+                    type="text"
+                    className={`auth-page__input ${fieldErrors.first_name ? 'auth-page__input--error' : ''}`}
+                    placeholder="Dr. Sarah"
+                    value={formData.first_name}
+                    onChange={handleChange}
+                    required
+                    autoComplete="given-name"
+                    aria-invalid={Boolean(fieldErrors.first_name)}
+                  />
+                  {fieldErrors.first_name && (
+                    <div className="auth-page__field-error" role="alert">
+                      {fieldErrors.first_name.join(' ')}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="auth-page__label" htmlFor="inv-last-name">
+                    Last Name <span className="auth-page__label-required" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="inv-last-name"
+                    name="last_name"
+                    type="text"
+                    className={`auth-page__input ${fieldErrors.last_name ? 'auth-page__input--error' : ''}`}
+                    placeholder="Jenkins"
+                    value={formData.last_name}
+                    onChange={handleChange}
+                    required
+                    autoComplete="family-name"
+                    aria-invalid={Boolean(fieldErrors.last_name)}
+                  />
+                  {fieldErrors.last_name && (
+                    <div className="auth-page__field-error" role="alert">
+                      {fieldErrors.last_name.join(' ')}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="auth-page__field-group">
+                <label className="auth-page__label" htmlFor="inv-email">
+                  Email Address
+                </label>
+                <input
+                  id="inv-email"
+                  type="email"
+                  className="auth-page__input auth-page__input--disabled"
+                  value={invitation?.email || ''}
+                  disabled
+                />
+              </div>
+
+              <div className="auth-page__field-group">
+                <div className="auth-page__label-wrapper">
+                  <label className="auth-page__label" htmlFor="inv-password">
+                    Create Password <span className="auth-page__label-required" aria-hidden="true">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="auth-page__toggle-btn"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                <input
+                  id="inv-password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  className={`auth-page__input ${fieldErrors.password ? 'auth-page__input--error' : ''}`}
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  autoComplete="new-password"
+                  aria-invalid={Boolean(fieldErrors.password)}
+                />
+                {fieldErrors.password && (
+                  <div className="auth-page__field-error" role="alert">
+                    {fieldErrors.password.join(' ')}
+                  </div>
+                )}
+              </div>
+
+              <div className="auth-page__field-group" style={{ marginBottom: '1.75rem' }}>
+                <label className="auth-page__label" htmlFor="inv-password-confirm">
+                  Confirm Password <span className="auth-page__label-required" aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="inv-password-confirm"
+                  name="password_confirm"
+                  type={showPassword ? 'text' : 'password'}
+                  className={`auth-page__input ${fieldErrors.password_confirm ? 'auth-page__input--error' : ''}`}
+                  placeholder="••••••••"
+                  value={formData.password_confirm}
+                  onChange={handleChange}
+                  required
+                  autoComplete="new-password"
+                  aria-invalid={Boolean(fieldErrors.password_confirm)}
+                />
+                {fieldErrors.password_confirm && (
+                  <div className="auth-page__field-error" role="alert">
+                    {fieldErrors.password_confirm.join(' ')}
+                  </div>
+                )}
+              </div>
+
+              <div className="auth-page__schedule-wrap">
+                <h3 className="auth-page__title" style={{ fontSize: '1.25rem', marginBottom: '0.35rem' }}>
+                  Initial Weekly Schedule
+                </h3>
+                <p className="auth-page__subtitle" style={{ fontSize: '0.875rem', marginBottom: '1.25rem' }}>
+                  These working hours require organization manager approval before taking live bookings.
+                </p>
+                <ScheduleEditor days={schedule} onChange={setSchedule} />
+                {fieldErrors.initial_schedule && (
+                  <div className="auth-page__field-error" role="alert">
+                    {JSON.stringify(fieldErrors.initial_schedule)}
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="auth-page__submit-btn auth-page__submit-btn--provider"
+              >
+                {submitting ? 'Accepting Invitation...' : 'Accept Invitation & Complete Registration'}
+              </button>
+            </form>
           </div>
-
-          {submitError && (
-            <div style={{ padding: '0.85rem 1rem', backgroundColor: 'var(--color-danger-light)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', borderRadius: '12px', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-              {submitError}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                  First Name *
-                </label>
-                <input
-                  name="first_name"
-                  type="text"
-                  className="form-control"
-                  placeholder="Dr. Sarah"
-                  value={formData.first_name}
-                  onChange={handleChange}
-                  required
-                />
-                {fieldErrors.first_name && (
-                  <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                    {fieldErrors.first_name.join(' ')}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                  Last Name *
-                </label>
-                <input
-                  name="last_name"
-                  type="text"
-                  className="form-control"
-                  placeholder="Jenkins"
-                  value={formData.last_name}
-                  onChange={handleChange}
-                  required
-                />
-                {fieldErrors.last_name && (
-                  <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                    {fieldErrors.last_name.join(' ')}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                Email Address
-              </label>
-              <input
-                type="email"
-                className="form-control"
-                value={invitation?.email || ''}
-                disabled
-                style={{ backgroundColor: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', cursor: 'not-allowed' }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)' }}>
-                  Create Password *
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{ background: 'none', border: 'none', color: 'var(--lp-accent)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
-                >
-                  {showPassword ? 'Hide' : 'Show'}
-                </button>
-              </div>
-              <input
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                className="form-control"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
-              {fieldErrors.password && (
-                <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                  {fieldErrors.password.join(' ')}
-                </div>
-              )}
-            </div>
-
-            <div style={{ marginBottom: '1.75rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                Confirm Password *
-              </label>
-              <input
-                name="password_confirm"
-                type={showPassword ? 'text' : 'password'}
-                className="form-control"
-                placeholder="••••••••"
-                value={formData.password_confirm}
-                onChange={handleChange}
-                required
-              />
-              {fieldErrors.password_confirm && (
-                <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                  {fieldErrors.password_confirm.join(' ')}
-                </div>
-              )}
-            </div>
-
-            <h3>Initial weekly schedule</h3>
-            <p>These hours require organization manager approval.</p>
-            <ScheduleEditor days={schedule} onChange={setSchedule} />
-            {fieldErrors.initial_schedule && <p role="alert" className="text-danger">{JSON.stringify(fieldErrors.initial_schedule)}</p>}
-            <button
-              type="submit"
-              disabled={submitting}
-              style={{
-                width: '100%',
-                padding: '0.85rem',
-                backgroundColor: 'var(--color-warning)',
-                color: '#FAF8F3',
-                border: 'none',
-                borderRadius: '12px',
-                fontWeight: 600,
-                fontSize: '1rem',
-                cursor: submitting ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 12px rgba(176, 109, 46, 0.2)',
-              }}
-            >
-              {submitting ? 'Accepting Invitation...' : 'Accept Invitation & Complete Registration'}
-            </button>
-          </form>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

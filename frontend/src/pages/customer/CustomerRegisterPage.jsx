@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { PublicNavbar } from '../../components/PublicNavbar';
+import '../../styles/AuthPages.css';
 
 export const CustomerRegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -71,242 +72,216 @@ export const CustomerRegisterPage = () => {
   };
 
   return (
-    <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="auth-page">
       <PublicNavbar activePage="register" />
-      <div
-        className="animate-page-entrance"
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '6rem 1.25rem 3rem 1.25rem',
-        }}
-      >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '520px',
-          backgroundColor: 'var(--lp-surface)',
-          borderRadius: '24px',
-          border: '1px solid var(--lp-border)',
-          padding: '2.5rem',
-          boxShadow: 'var(--card-shadow)',
-        }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <Link
-            to="/"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              textDecoration: 'none',
-              marginBottom: '1rem',
-            }}
-          >
-            <span style={{ fontSize: '1.5rem' }}>⚡</span>
-            <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: 'var(--lp-text)' }}>
-              QueueTurn
-            </span>
-          </Link>
-          <div style={{ display: 'inline-block', backgroundColor: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: 700, color: 'var(--lp-accent)', marginBottom: '0.5rem' }}>
-            👤 Customer Registration
-          </div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.35rem 0', fontFamily: 'Cinzel, serif' }}>
-            Create Customer Account
-          </h2>
-          <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem', margin: 0 }}>
-            Find services, book appointments and manage your visits.
-          </p>
-        </div>
-
-        {error && (
-          <div
-            style={{
-              padding: '0.85rem 1rem',
-              backgroundColor: 'var(--color-danger-light)',
-              color: 'var(--color-danger)',
-              border: '1px solid var(--color-danger)',
-              borderRadius: '12px',
-              fontSize: '0.875rem',
-              marginBottom: '1.5rem',
-            }}
-          >
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                First Name *
-              </label>
-              <input
-                name="first_name"
-                type="text"
-                className="form-control"
-                placeholder="Jane"
-                value={formData.first_name}
-                onChange={handleChange}
-                required
-                disabled={submitting}
-              />
-              {fieldErrors.first_name && (
-                <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                  {fieldErrors.first_name.join(' ')}
-                </div>
-              )}
+      <main className="auth-page__main animate-page-entrance">
+        <div className="auth-page__content-wrap">
+          <div className="auth-card">
+            <div className="auth-page__header">
+              <Link to="/" className="auth-page__brand" aria-label="QueueTurn Home">
+                <span className="auth-page__brand-mark">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                </span>
+                <span className="auth-page__brand-title">QueueTurn</span>
+              </Link>
+              <div>
+                <span className="auth-page__badge">
+                  👤 Customer Registration
+                </span>
+              </div>
+              <h1 className="auth-page__title">Create Customer Account</h1>
+              <p className="auth-page__subtitle">
+                Find services, book appointments, and manage your visits.
+              </p>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-                Last Name *
-              </label>
-              <input
-                name="last_name"
-                type="text"
-                className="form-control"
-                placeholder="Doe"
-                value={formData.last_name}
-                onChange={handleChange}
-                required
-                disabled={submitting}
-              />
-              {fieldErrors.last_name && (
-                <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                  {fieldErrors.last_name.join(' ')}
+            {error && (
+              <div className="auth-page__banner auth-page__banner--danger" role="alert">
+                <span aria-hidden="true">⚠️</span>
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="auth-page__form" noValidate>
+              <div className="auth-page__field-row">
+                <div>
+                  <label className="auth-page__label" htmlFor="customer-first-name">
+                    First Name <span className="auth-page__label-required" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="customer-first-name"
+                    name="first_name"
+                    type="text"
+                    className={`auth-page__input ${fieldErrors.first_name ? 'auth-page__input--error' : ''}`}
+                    placeholder="Jane"
+                    value={formData.first_name}
+                    onChange={handleChange}
+                    required
+                    disabled={submitting}
+                    autoComplete="given-name"
+                    aria-invalid={Boolean(fieldErrors.first_name)}
+                  />
+                  {fieldErrors.first_name && (
+                    <div className="auth-page__field-error" role="alert">
+                      {fieldErrors.first_name.join(' ')}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
 
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-              Email Address *
-            </label>
-            <input
-              name="email"
-              type="email"
-              className="form-control"
-              placeholder="you@example.com"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              disabled={submitting}
-            />
-            {fieldErrors.email && (
-              <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                {fieldErrors.email.join(' ')}
+                <div>
+                  <label className="auth-page__label" htmlFor="customer-last-name">
+                    Last Name <span className="auth-page__label-required" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="customer-last-name"
+                    name="last_name"
+                    type="text"
+                    className={`auth-page__input ${fieldErrors.last_name ? 'auth-page__input--error' : ''}`}
+                    placeholder="Doe"
+                    value={formData.last_name}
+                    onChange={handleChange}
+                    required
+                    disabled={submitting}
+                    autoComplete="family-name"
+                    aria-invalid={Boolean(fieldErrors.last_name)}
+                  />
+                  {fieldErrors.last_name && (
+                    <div className="auth-page__field-error" role="alert">
+                      {fieldErrors.last_name.join(' ')}
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
 
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-              Phone Number
-            </label>
-            <input
-              name="phone_number"
-              type="tel"
-              className="form-control"
-              placeholder="+1 555-0192"
-              value={formData.phone_number}
-              onChange={handleChange}
-              disabled={submitting}
-            />
-            {fieldErrors.phone_number && (
-              <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                {fieldErrors.phone_number.join(' ')}
+              <div className="auth-page__field-group">
+                <label className="auth-page__label" htmlFor="customer-email">
+                  Email Address <span className="auth-page__label-required" aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="customer-email"
+                  name="email"
+                  type="email"
+                  className={`auth-page__input ${fieldErrors.email ? 'auth-page__input--error' : ''}`}
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  disabled={submitting}
+                  autoComplete="email"
+                  aria-invalid={Boolean(fieldErrors.email)}
+                />
+                {fieldErrors.email && (
+                  <div className="auth-page__field-error" role="alert">
+                    {fieldErrors.email.join(' ')}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)' }}>
-                Password *
-              </label>
+              <div className="auth-page__field-group">
+                <label className="auth-page__label" htmlFor="customer-phone">
+                  Phone Number
+                </label>
+                <input
+                  id="customer-phone"
+                  name="phone_number"
+                  type="tel"
+                  className={`auth-page__input ${fieldErrors.phone_number ? 'auth-page__input--error' : ''}`}
+                  placeholder="+1 555-0192"
+                  value={formData.phone_number}
+                  onChange={handleChange}
+                  disabled={submitting}
+                  autoComplete="tel"
+                />
+                {fieldErrors.phone_number && (
+                  <div className="auth-page__field-error" role="alert">
+                    {fieldErrors.phone_number.join(' ')}
+                  </div>
+                )}
+              </div>
+
+              <div className="auth-page__field-group">
+                <div className="auth-page__label-wrapper">
+                  <label className="auth-page__label" htmlFor="customer-password">
+                    Password <span className="auth-page__label-required" aria-hidden="true">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="auth-page__toggle-btn"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                <input
+                  id="customer-password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  className={`auth-page__input ${fieldErrors.password ? 'auth-page__input--error' : ''}`}
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  disabled={submitting}
+                  autoComplete="new-password"
+                  aria-invalid={Boolean(fieldErrors.password)}
+                />
+                {fieldErrors.password && (
+                  <div className="auth-page__field-error" role="alert">
+                    {fieldErrors.password.join(' ')}
+                  </div>
+                )}
+              </div>
+
+              <div className="auth-page__field-group" style={{ marginBottom: '1.75rem' }}>
+                <label className="auth-page__label" htmlFor="customer-password-confirm">
+                  Confirm Password <span className="auth-page__label-required" aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="customer-password-confirm"
+                  name="password_confirm"
+                  type={showPassword ? 'text' : 'password'}
+                  className={`auth-page__input ${fieldErrors.password_confirm ? 'auth-page__input--error' : ''}`}
+                  placeholder="••••••••"
+                  value={formData.password_confirm}
+                  onChange={handleChange}
+                  required
+                  disabled={submitting}
+                  autoComplete="new-password"
+                  aria-invalid={Boolean(fieldErrors.password_confirm)}
+                />
+                {fieldErrors.password_confirm && (
+                  <div className="auth-page__field-error" role="alert">
+                    {fieldErrors.password_confirm.join(' ')}
+                  </div>
+                )}
+              </div>
+
               <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{ background: 'none', border: 'none', color: 'var(--lp-accent)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+                type="submit"
+                className="auth-page__submit-btn auth-page__submit-btn--accent"
+                disabled={submitting}
               >
-                {showPassword ? 'Hide' : 'Show'} password
+                {submitting ? 'Creating Customer Account...' : 'Create Customer Account'}
               </button>
+            </form>
+
+            <div className="auth-page__footer">
+              Already have an account?{' '}
+              <Link to="/login" className="auth-page__footer-link">
+                Sign In
+              </Link>
+              <div>
+                <Link to="/register" className="auth-page__back-link">
+                  ← Change Account Type
+                </Link>
+              </div>
             </div>
-            <input
-              name="password"
-              type={showPassword ? 'text' : 'password'}
-              className="form-control"
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              disabled={submitting}
-            />
-            {fieldErrors.password && (
-              <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                {fieldErrors.password.join(' ')}
-              </div>
-            )}
-          </div>
-
-          <div style={{ marginBottom: '1.75rem' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }}>
-              Confirm Password *
-            </label>
-            <input
-              name="password_confirm"
-              type={showPassword ? 'text' : 'password'}
-              className="form-control"
-              placeholder="••••••••"
-              value={formData.password_confirm}
-              onChange={handleChange}
-              required
-              disabled={submitting}
-            />
-            {fieldErrors.password_confirm && (
-              <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                {fieldErrors.password_confirm.join(' ')}
-              </div>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            style={{
-              width: '100%',
-              padding: '0.85rem',
-              backgroundColor: 'var(--lp-accent)',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '12px',
-              fontWeight: 600,
-              fontSize: '1rem',
-              cursor: submitting ? 'not-allowed' : 'pointer',
-              boxShadow: '0 4px 12px rgba(95, 122, 112, 0.2)',
-            }}
-            disabled={submitting}
-          >
-            {submitting ? 'Creating Customer Account...' : 'Create Customer Account'}
-          </button>
-        </form>
-
-        <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.875rem', color: 'var(--lp-text-subtle)', paddingTop: '1.5rem', borderTop: '1px solid var(--lp-border)' }}>
-          Already have an account?{' '}
-          <Link to="/login" style={{ color: 'var(--lp-accent)', fontWeight: 700, textDecoration: 'none' }}>
-            Sign In
-          </Link>
-          <div style={{ marginTop: '0.75rem' }}>
-            <Link to="/register" style={{ color: 'var(--lp-accent)', fontSize: '0.825rem', textDecoration: 'none', fontWeight: 600 }}>
-              ← Change Account Type
-            </Link>
           </div>
         </div>
-        </div>
-      </div>
+      </main>
     </div>
   );
 };

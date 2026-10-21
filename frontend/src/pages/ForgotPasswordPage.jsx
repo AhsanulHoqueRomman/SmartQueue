@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 import PublicNavbar from '../components/PublicNavbar';
+import '../styles/AuthPages.css';
 
 export const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
@@ -33,144 +34,88 @@ export const ForgotPasswordPage = () => {
   };
 
   return (
-    <div style={{ backgroundColor: 'var(--lp-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="auth-page">
       <PublicNavbar activePage="login" />
-      <div
-        className="animate-page-entrance"
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '6.5rem 1rem 3rem 1rem',
-        }}
-      >
-        <div
-          className="card"
-          style={{
-            width: '100%',
-            maxWidth: '460px',
-            padding: '2.5rem',
-            boxShadow: 'var(--card-shadow)',
-            borderRadius: '24px',
-            border: '1px solid var(--lp-border)',
-            backgroundColor: 'var(--lp-surface)',
-          }}
-        >
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <Link
-              to="/"
-              className="navbar-brand"
-              style={{
-                justifyContent: 'center',
-                marginBottom: '1.25rem',
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.625rem',
-              }}
-            >
-              <span className="lp-brand-mark" style={{ width: '34px', height: '34px', borderRadius: '9px' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                </svg>
-              </span>
-              <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', fontWeight: 700, color: 'var(--lp-text)' }}>
-                QueueTurn
-              </span>
-            </Link>
+      <main className="auth-page__main animate-page-entrance">
+        <div className="auth-page__content-wrap">
+          <div className="auth-card">
+            <div className="auth-page__header">
+              <Link to="/" className="auth-page__brand" aria-label="QueueTurn Home">
+                <span className="auth-page__brand-mark">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                </span>
+                <span className="auth-page__brand-title">QueueTurn</span>
+              </Link>
 
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)', fontWeight: 700 }}>
-              Forgot your password?
-            </h2>
-            <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem', margin: 0, lineHeight: 1.5 }}>
-              Enter the email associated with your QueueTurn account and we'll send you a password reset link.
-            </p>
-          </div>
-
-          {error && (
-            <div className="banner banner-danger" style={{ marginBottom: '1.25rem' }}>
-              {error}
-            </div>
-          )}
-
-          {successMessage ? (
-            <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-              <div
-                style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--color-success-bg, rgba(79, 122, 90, 0.15))',
-                  color: 'var(--color-success)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.75rem',
-                  margin: '0 auto 1.25rem',
-                }}
-              >
-                ✉️
-              </div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.5rem' }}>
-                Check your inbox
-              </h3>
-              <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.75rem' }}>
-                {successMessage}
+              <h1 className="auth-page__title">Forgot your password?</h1>
+              <p className="auth-page__subtitle">
+                Enter the email associated with your QueueTurn account and we'll send you a password reset link.
               </p>
-              <Link
-                to="/login"
-                className="btn btn-primary"
-                style={{ display: 'inline-block', width: '100%', padding: '0.75rem 1.5rem', textDecoration: 'none' }}
-              >
-                Return to Sign In
+            </div>
+
+            {error && (
+              <div className="auth-page__banner auth-page__banner--danger" role="alert">
+                <span aria-hidden="true">⚠️</span>
+                <span>{error}</span>
+              </div>
+            )}
+
+            {successMessage ? (
+              <div className="auth-page__status-card">
+                <div className="auth-page__status-icon auth-page__status-icon--success" aria-hidden="true">
+                  ✉️
+                </div>
+                <h2 className="auth-page__status-title">Check your inbox</h2>
+                <p className="auth-page__status-desc">
+                  {successMessage}
+                </p>
+                <Link
+                  to="/login"
+                  className="auth-page__submit-btn"
+                  style={{ textDecoration: 'none' }}
+                >
+                  Return to Sign In
+                </Link>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="auth-page__form" noValidate>
+                <div className="auth-page__field-group" style={{ marginBottom: '1.5rem' }}>
+                  <label className="auth-page__label" htmlFor="forgot-email">
+                    Email Address <span className="auth-page__label-required" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="forgot-email"
+                    type="email"
+                    className="auth-page__input"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={submitting}
+                    autoComplete="email"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="auth-page__submit-btn"
+                  disabled={submitting || !email.trim()}
+                >
+                  {submitting ? 'Sending Link...' : 'Send Reset Link'}
+                </button>
+              </form>
+            )}
+
+            <div className="auth-page__footer">
+              <Link to="/login" className="auth-page__footer-link">
+                ← Back to Login
               </Link>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit}>
-              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                <label className="form-label" htmlFor="forgot-email">
-                  Email Address
-                </label>
-                <input
-                  id="forgot-email"
-                  type="email"
-                  className="form-control"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={submitting}
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="btn btn-primary btn-lg"
-                style={{ width: '100%' }}
-                disabled={submitting || !email.trim()}
-              >
-                {submitting ? 'Sending Link...' : 'Send Reset Link'}
-              </button>
-            </form>
-          )}
-
-          <div
-            style={{
-              textAlign: 'center',
-              marginTop: '2rem',
-              fontSize: '0.875rem',
-              color: 'var(--color-text-muted)',
-              paddingTop: '1.5rem',
-              borderTop: '1px solid var(--color-border)',
-            }}
-          >
-            <Link to="/login" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
-              ← Back to Login
-            </Link>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
