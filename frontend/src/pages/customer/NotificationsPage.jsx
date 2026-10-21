@@ -1,8 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import notificationService from '../../services/notificationService';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
+import '../../styles/Notifications.css';
+
+/* ─── SVG Bell Icon ──────────────────────────────────────────────────────── */
+const BellIcon = ({ size = 16 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+  </svg>
+);
 
 export function NotificationsPage() {
   const navigate = useNavigate();
@@ -23,7 +42,7 @@ export function NotificationsPage() {
       const list = Array.isArray(data) ? data : data.results || [];
       setNotifications(list);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to load customer notifications.');
+      setError(err.response?.data?.detail || 'Failed to load notifications.');
     } finally {
       setLoading(false);
     }
@@ -35,7 +54,7 @@ export function NotificationsPage() {
 
   const handleMarkRead = async (e, n) => {
     e.stopPropagation();
-    if (n.read_at) return;
+    if (n.read_at || markingId === n.id) return;
 
     setMarkingId(n.id);
     try {
@@ -53,6 +72,7 @@ export function NotificationsPage() {
   };
 
   const handleMarkAllRead = async () => {
+    if (markingAll) return;
     setMarkingAll(true);
     try {
       await notificationService.markAllCustomerNotificationsRead();
@@ -60,7 +80,7 @@ export function NotificationsPage() {
         prev.map((n) => ({ ...n, read_at: n.read_at || new Date().toISOString() }))
       );
     } catch (e) {
-      console.error('Failed to mark all as read:', e);
+      console.error('Failed to mark all notifications as read:', e);
     } finally {
       setMarkingAll(false);
     }
@@ -88,125 +108,96 @@ export function NotificationsPage() {
     }
   };
 
-  const unreadCount = notifications.filter((n) => !n.read_at).length;
-  const readCount = notifications.filter((n) => n.read_at).length;
+  const handleCardKeyDown = (e, n) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleCardClick(n);
+    }
+  };
 
-  const filteredNotifications = notifications.filter((n) => {
-    if (filterTab === 'UNREAD') return !n.read_at;
-    if (filterTab === 'READ') return !!n.read_at;
-    return true;
-  });
+  const unreadCount = useMemo(() => notifications.filter((n) => !n.read_at).length, [notifications]);
+  const readCount = useMemo(() => notifications.filter((n) => !!n.read_at).length, [notifications]);
+
+  const filteredNotifications = useMemo(() => {
+    if (filterTab === 'UNREAD') return notifications.filter((n) => !n.read_at);
+    if (filterTab === 'READ') return notifications.filter((n) => !!n.read_at);
+    return notifications;
+  }, [notifications, filterTab]);
 
   return (
-    <div className="animate-page-entrance" style={{ maxWidth: '850px', margin: '0 auto' }}>
-      {/* Header Banner */}
-      <div
-        style={{
-          display: 'flex',
-          justify: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          marginBottom: '1.75rem',
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontSize: '1.75rem',
-              marginBottom: '0.25rem',
-              fontFamily: 'Cinzel, serif',
-              color: 'var(--lp-text)',
-            }}
-          >
-            Notifications Center
-          </h1>
-          <p style={{ color: 'var(--lp-text-subtle)', margin: 0, fontSize: '0.95rem' }}>
+    <div className="notifications" role="main">
+      {/* Editorial Header */}
+      <header className="notifications__header">
+        <div className="notifications__header-main">
+          <span className="notifications__eyebrow">
+            <BellIcon size={14} /> Activity & Updates
+          </span>
+          <h1 className="notifications__title">Notifications Center</h1>
+          <p className="notifications__subtitle">
             Cross-clinic updates for your appointments, queue calls, and booking status.
           </p>
         </div>
 
-        {unreadCount > 0 && (
-          <button
-            onClick={handleMarkAllRead}
-            disabled={markingAll}
-            style={{
-              padding: '0.55rem 1.15rem',
-              background: 'var(--lp-accent)',
-              color: 'var(--lp-btn-text)',
-              border: 'none',
-              borderRadius: '10px',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(95, 122, 112, 0.25)',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            {markingAll ? 'Marking...' : `Mark All as Read (${unreadCount})`}
-          </button>
-        )}
-      </div>
+        <div className="notifications__header-actions">
+          {unreadCount > 0 && (
+            <button
+              type="button"
+              className="notifications__btn-mark-all"
+              onClick={handleMarkAllRead}
+              disabled={markingAll}
+              aria-label={`Mark all ${unreadCount} unread notifications as read`}
+            >
+              {markingAll ? 'Marking All...' : `Mark All as Read (${unreadCount})`}
+            </button>
+          )}
+        </div>
+      </header>
 
       {/* Filter Tabs */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '0.5rem',
-          marginBottom: '1.5rem',
-          borderBottom: '1px solid var(--lp-border)',
-          paddingBottom: '0.75rem',
-        }}
-      >
+      <nav className="notifications__tabs" aria-label="Notification filters">
         <button
+          type="button"
+          className={`notifications__tab ${filterTab === 'ALL' ? 'notifications__tab--active' : ''}`}
           onClick={() => setFilterTab('ALL')}
-          style={{
-            padding: '0.4rem 1rem',
-            borderRadius: '20px',
-            border: filterTab === 'ALL' ? 'none' : '1px solid var(--lp-border)',
-            background: filterTab === 'ALL' ? 'var(--lp-accent)' : 'var(--lp-surface)',
-            color: filterTab === 'ALL' ? 'var(--lp-btn-text)' : 'var(--lp-text-subtle)',
-            fontWeight: 600,
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-          }}
+          aria-pressed={filterTab === 'ALL'}
         >
-          All ({notifications.length})
+          All <span className="notifications__tab-count">{notifications.length}</span>
         </button>
+
         <button
+          type="button"
+          className={`notifications__tab ${filterTab === 'UNREAD' ? 'notifications__tab--active' : ''}`}
           onClick={() => setFilterTab('UNREAD')}
-          style={{
-            padding: '0.4rem 1rem',
-            borderRadius: '20px',
-            border: filterTab === 'UNREAD' ? 'none' : '1px solid var(--lp-border)',
-            background: filterTab === 'UNREAD' ? 'var(--lp-accent)' : 'var(--lp-surface)',
-            color: filterTab === 'UNREAD' ? 'var(--lp-btn-text)' : 'var(--lp-text-subtle)',
-            fontWeight: 600,
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-          }}
+          aria-pressed={filterTab === 'UNREAD'}
         >
-          Unread ({unreadCount})
+          Unread <span className="notifications__tab-count">{unreadCount}</span>
         </button>
+
         <button
+          type="button"
+          className={`notifications__tab ${filterTab === 'READ' ? 'notifications__tab--active' : ''}`}
           onClick={() => setFilterTab('READ')}
-          style={{
-            padding: '0.4rem 1rem',
-            borderRadius: '20px',
-            border: filterTab === 'READ' ? 'none' : '1px solid var(--lp-border)',
-            background: filterTab === 'READ' ? 'var(--lp-accent)' : 'var(--lp-surface)',
-            color: filterTab === 'READ' ? 'var(--lp-btn-text)' : 'var(--lp-text-subtle)',
-            fontWeight: 600,
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-          }}
+          aria-pressed={filterTab === 'READ'}
         >
-          Read ({readCount})
+          Read <span className="notifications__tab-count">{readCount}</span>
         </button>
-      </div>
+      </nav>
 
-      {error && <div className="banner banner-danger" style={{ marginBottom: '1.5rem' }}>{error}</div>}
+      {/* Error State */}
+      {error && (
+        <div className="notifications__error-banner" role="alert">
+          <span>⚠️ {error}</span>
+          <button
+            type="button"
+            className="notifications__btn-mark-read"
+            onClick={fetchNotifications}
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
+      {/* Content States */}
       {loading ? (
         <LoadingState message="Fetching your notifications across clinics..." />
       ) : filteredNotifications.length === 0 ? (
@@ -216,119 +207,76 @@ export function NotificationsPage() {
               ? 'No Unread Notifications'
               : filterTab === 'READ'
               ? 'No Read Notifications'
-              : 'You haven\'t received any notifications'
+              : 'You have no notifications yet'
           }
           message="Important updates regarding your appointments and queue status will appear here."
         />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+        <div className="notifications__list" role="feed" aria-label="Notifications list">
           {filteredNotifications.map((n) => {
             const isUnread = !n.read_at;
             const kindLabel = n.kind ? n.kind.replace(/_/g, ' ') : 'NOTIFICATION';
 
             return (
-              <div
+              <article
                 key={n.id}
+                tabIndex={0}
+                role="article"
+                className={`notifications__card ${
+                  isUnread ? 'notifications__card--unread' : 'notifications__card--read'
+                }`}
                 onClick={() => handleCardClick(n)}
-                style={{
-                  background: isUnread ? 'var(--lp-surface)' : 'var(--lp-bg-subtle)',
-                  borderRadius: '14px',
-                  border: isUnread ? '1.5px solid var(--lp-accent)' : '1px solid var(--lp-border)',
-                  padding: '1.25rem',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  gap: '1rem',
-                  boxShadow: isUnread ? 'var(--lp-shadow-sm)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
+                onKeyDown={(e) => handleCardKeyDown(e, n)}
+                aria-label={`${isUnread ? 'Unread notification' : 'Notification'}: ${n.title || kindLabel}`}
               >
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                <div className="notifications__card-main">
+                  <div className="notifications__card-meta">
                     {isUnread && (
-                      <span
-                        style={{
-                          width: '8px',
-                          height: '8px',
-                          borderRadius: '50%',
-                          background: 'var(--lp-accent)',
-                          display: 'inline-block',
-                        }}
-                      />
+                      <span className="notifications__unread-dot" title="Unread notification" />
                     )}
-                    <span
-                      style={{
-                        background: 'var(--lp-bg-subtle)',
-                        color: 'var(--lp-accent)',
-                        border: '1px solid var(--lp-border)',
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        padding: '0.15rem 0.5rem',
-                        borderRadius: '4px',
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      {kindLabel}
-                    </span>
+                    <span className="notifications__kind-badge">{kindLabel}</span>
                     {n.organization_name && (
-                      <span
-                        style={{
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          color: 'var(--lp-text)',
-                          background: 'var(--lp-bg-subtle)',
-                          padding: '0.15rem 0.5rem',
-                          borderRadius: '4px',
-                        }}
-                      >
+                      <span className="notifications__org-badge">
                         🏥 {n.organization_name}
                       </span>
                     )}
-                    <span style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)' }}>
+                    <time
+                      className="notifications__timestamp"
+                      dateTime={n.created_at}
+                    >
                       {new Date(n.created_at).toLocaleString([], {
                         month: 'short',
                         day: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
-                    </span>
+                    </time>
                   </div>
 
-                  <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1.05rem', color: 'var(--lp-text)', fontWeight: 700 }}>
+                  <h2 className="notifications__card-title">
                     {n.title || 'Notification Update'}
-                  </h4>
+                  </h2>
 
-                  <p style={{ margin: 0, color: 'var(--lp-text-subtle)', fontSize: '0.9rem', lineHeight: 1.45 }}>
-                    {n.message}
-                  </p>
+                  <p className="notifications__card-message">{n.message}</p>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                <div className="notifications__card-side">
                   {isUnread && (
                     <button
+                      type="button"
+                      className="notifications__btn-mark-read"
                       onClick={(e) => handleMarkRead(e, n)}
                       disabled={markingId === n.id}
-                      style={{
-                        padding: '0.35rem 0.75rem',
-                        background: 'none',
-                        border: '1px solid var(--lp-border)',
-                        borderRadius: '6px',
-                        color: 'var(--lp-accent)',
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                      }}
+                      aria-label="Mark this notification as read"
                     >
                       {markingId === n.id ? 'Marking...' : 'Mark as Read'}
                     </button>
                   )}
-                  <span style={{ fontSize: '0.8rem', color: 'var(--lp-accent)', fontWeight: 700 }}>
+                  <span className="notifications__card-link" aria-hidden="true">
                     View details →
                   </span>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>

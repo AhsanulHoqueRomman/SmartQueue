@@ -1,0 +1,630 @@
+/* ==========================================================================
+   QueueTurn — User Profile Stylesheet (UI-8A)
+   Route: /profile
+   Design System: Warm Sand / Roasted Espresso (Light), Deep Navy / Sage Teal (Dark)
+   ========================================================================== */
+
+.profile-page {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+/* --------------------------------------------------------------------------
+   1. Editorial Account Header
+   -------------------------------------------------------------------------- */
+.profile-header {
+  background-color: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E6E1D9);
+  border-radius: var(--radius-lg, 16px);
+  padding: 2rem 2.25rem;
+  box-shadow: var(--shadow-sm, 0 2px 6px rgba(47, 37, 32, 0.05));
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+  flex-wrap: wrap;
+  transition: border-color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.profile-header:hover {
+  border-color: var(--color-border-hover, #D6CFB9);
+}
+
+.profile-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.profile-avatar-img {
+  width: 88px;
+  height: 88px;
+  border-radius: var(--radius-full, 9999px);
+  object-fit: cover;
+  border: 3px solid var(--color-secondary-accent, #5F7A70);
+  box-shadow: var(--shadow-sm, 0 2px 6px rgba(47, 37, 32, 0.08));
+}
+
+.profile-avatar-initials {
+  width: 88px;
+  height: 88px;
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--color-primary-light, rgba(95, 122, 112, 0.12));
+  color: var(--color-secondary-accent, #5F7A70);
+  border: 2px solid var(--color-primary-border, rgba(95, 122, 112, 0.3));
+  font-family: 'Cinzel', serif, Georgia;
+  font-size: 2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm, 0 2px 6px rgba(47, 37, 32, 0.05));
+}
+
+.profile-header-info {
+  flex: 1 1 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.profile-name {
+  font-family: 'Cinzel', serif, Georgia;
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--color-text-main, #211C19);
+  margin: 0;
+  line-height: 1.25;
+}
+
+.profile-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.75rem;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background-color: var(--color-bg-subtle, #F3F0EA);
+  color: var(--color-secondary-accent, #5F7A70);
+  border: 1px solid var(--color-border, #E6E1D9);
+}
+
+.profile-role-badge--admin {
+  background-color: var(--color-error-bg, rgba(180, 83, 75, 0.1));
+  color: var(--color-error, #B4534B);
+  border-color: var(--color-error-border, rgba(180, 83, 75, 0.25));
+}
+
+.profile-role-badge--manager {
+  background-color: rgba(95, 122, 112, 0.12);
+  color: var(--color-secondary-accent, #5F7A70);
+  border-color: rgba(95, 122, 112, 0.25);
+}
+
+.profile-role-badge--staff {
+  background-color: var(--color-warning-bg, rgba(183, 121, 50, 0.1));
+  color: var(--color-warning, #B77932);
+  border-color: var(--color-warning-border, rgba(183, 121, 50, 0.25));
+}
+
+.profile-role-badge--provider {
+  background-color: var(--color-primary-light, rgba(95, 122, 112, 0.12));
+  color: var(--color-secondary-accent, #5F7A70);
+  border-color: var(--color-border, #E6E1D9);
+}
+
+.profile-email {
+  margin: 0;
+  color: var(--color-text-muted, #78716C);
+  font-size: 0.95rem;
+}
+
+.profile-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.profile-btn-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.875rem;
+  font-weight: 600;
+  background-color: var(--color-surface, #FFFFFF);
+  color: var(--color-text-main, #211C19);
+  border: 1px solid var(--color-border, #E6E1D9);
+  cursor: pointer;
+  transition: background-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              border-color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.profile-btn-edit:hover {
+  background-color: var(--color-bg-subtle, #F3F0EA);
+  border-color: var(--color-border-hover, #D6CFB9);
+}
+
+.profile-btn-edit--active {
+  background-color: var(--color-bg-subtle, #F3F0EA);
+  border-color: var(--color-border-hover, #D6CFB9);
+}
+
+.profile-btn-edit:focus-visible {
+  outline: 2px solid var(--color-focus, #2F2520);
+  outline-offset: 2px;
+}
+
+.profile-btn-password {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.875rem;
+  font-weight: 600;
+  background-color: var(--color-primary, #2F2520);
+  color: var(--color-primary-text, #FFFFFF);
+  border: 1px solid transparent;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(47, 37, 32, 0.15);
+  transition: background-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              transform var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.profile-btn-password:hover {
+  background-color: var(--color-primary-hover, #1C1917);
+  transform: translateY(-1px);
+}
+
+.profile-btn-password:focus-visible {
+  outline: 2px solid var(--color-focus, #2F2520);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   2. Alert Banners
+   -------------------------------------------------------------------------- */
+.profile-alert {
+  padding: 0.85rem 1.25rem;
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.profile-alert--success {
+  background-color: var(--color-success-bg, rgba(79, 122, 90, 0.1));
+  color: var(--color-success, #4F7A5A);
+  border: 1px solid var(--color-success-border, rgba(79, 122, 90, 0.25));
+}
+
+.profile-alert--error {
+  background-color: var(--color-error-bg, rgba(180, 83, 75, 0.1));
+  color: var(--color-error, #B4534B);
+  border: 1px solid var(--color-error-border, rgba(180, 83, 75, 0.25));
+}
+
+/* --------------------------------------------------------------------------
+   3. Edit Profile Form Card
+   -------------------------------------------------------------------------- */
+.profile-form-card {
+  background-color: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E6E1D9);
+  border-radius: var(--radius-lg, 16px);
+  padding: 2rem;
+  box-shadow: var(--shadow-sm, 0 2px 6px rgba(47, 37, 32, 0.05));
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.profile-form-title {
+  font-family: 'Cinzel', serif, Georgia;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-text-main, #211C19);
+  margin: 0;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Avatar Upload Zone */
+.profile-avatar-upload-zone {
+  background-color: var(--color-bg-subtle, #F3F0EA);
+  border: 1px solid var(--color-border, #E6E1D9);
+  border-radius: var(--radius-md, 12px);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.profile-avatar-upload-label {
+  font-size: 0.775rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted, #78716C);
+}
+
+.profile-avatar-upload-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.profile-avatar-preview-img {
+  width: 68px;
+  height: 68px;
+  border-radius: var(--radius-full, 9999px);
+  object-fit: cover;
+  border: 2px solid var(--color-secondary-accent, #5F7A70);
+}
+
+.profile-avatar-placeholder {
+  width: 68px;
+  height: 68px;
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--color-border, #E6E1D9);
+  color: var(--color-text-tertiary, #A8A29E);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.profile-btn-upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 0.85rem;
+  font-weight: 600;
+  background-color: var(--color-surface, #FFFFFF);
+  color: var(--color-text-main, #211C19);
+  border: 1px solid var(--color-border, #E6E1D9);
+  cursor: pointer;
+  transition: all var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.profile-btn-upload:hover {
+  border-color: var(--color-border-hover, #D6CFB9);
+  background-color: var(--color-surface-hover, #F7F5F0);
+}
+
+.profile-btn-remove-avatar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 0.85rem;
+  font-weight: 600;
+  background-color: var(--color-error-bg, rgba(180, 83, 75, 0.1));
+  color: var(--color-error, #B4534B);
+  border: 1px solid var(--color-error-border, rgba(180, 83, 75, 0.25));
+  cursor: pointer;
+  transition: all var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.profile-btn-remove-avatar:hover {
+  background-color: var(--color-error, #B4534B);
+  color: #FFFFFF;
+}
+
+.profile-avatar-hint {
+  font-size: 0.775rem;
+  color: var(--color-text-muted, #78716C);
+}
+
+/* Form Inputs */
+.profile-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.profile-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.profile-label {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--color-text-main, #211C19);
+}
+
+.profile-input {
+  width: 100%;
+  padding: 0.7rem 0.95rem;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--color-border, #E6E1D9);
+  background-color: var(--color-surface, #FFFFFF);
+  color: var(--color-text-main, #211C19);
+  font-size: 0.875rem;
+  box-sizing: border-box;
+  transition: border-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              box-shadow var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.profile-input:focus {
+  outline: none;
+  border-color: var(--color-secondary-accent, #5F7A70);
+  box-shadow: 0 0 0 3px rgba(95, 122, 112, 0.15);
+}
+
+.profile-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.profile-btn-cancel {
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.875rem;
+  font-weight: 600;
+  background-color: var(--color-bg-subtle, #F3F0EA);
+  color: var(--color-text-secondary, #57534E);
+  border: 1px solid var(--color-border, #E6E1D9);
+  cursor: pointer;
+  transition: all var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.profile-btn-cancel:hover {
+  background-color: var(--color-surface, #FFFFFF);
+  color: var(--color-text-main, #211C19);
+}
+
+.profile-btn-save {
+  padding: 0.65rem 1.4rem;
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.875rem;
+  font-weight: 700;
+  background-color: var(--color-secondary-accent, #5F7A70);
+  color: #FFFFFF;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.profile-btn-save:hover:not(:disabled) {
+  background-color: var(--color-secondary-accent-hover, #4A635A);
+}
+
+.profile-btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------------------
+   4. Account Details & Memberships Grid
+   -------------------------------------------------------------------------- */
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.5rem;
+}
+
+.profile-card {
+  background-color: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E6E1D9);
+  border-radius: var(--radius-lg, 16px);
+  padding: 1.75rem 2rem;
+  box-shadow: var(--shadow-sm, 0 2px 6px rgba(47, 37, 32, 0.05));
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  transition: border-color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.profile-card:hover {
+  border-color: var(--color-border-hover, #D6CFB9);
+}
+
+.profile-card-title {
+  font-family: 'Cinzel', serif, Georgia;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-main, #211C19);
+  margin: 0;
+}
+
+.profile-details-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.profile-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--color-border-subtle, #ECE8E1);
+  font-size: 0.875rem;
+  gap: 1rem;
+}
+
+.profile-detail-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.profile-detail-label {
+  color: var(--color-text-muted, #78716C);
+}
+
+.profile-detail-val {
+  font-weight: 600;
+  color: var(--color-text-main, #211C19);
+  text-align: right;
+  word-break: break-all;
+}
+
+.profile-detail-val--accent {
+  color: var(--color-secondary-accent, #5F7A70);
+  font-weight: 700;
+}
+
+/* Membership List */
+.profile-memberships-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.profile-membership-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.95rem 1.15rem;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--color-border, #E6E1D9);
+  background-color: var(--color-bg-subtle, #F3F0EA);
+  gap: 1rem;
+}
+
+.profile-membership-name {
+  font-weight: 700;
+  color: var(--color-text-main, #211C19);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.profile-membership-role {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--color-surface, #FFFFFF);
+  color: var(--color-secondary-accent, #5F7A70);
+  border: 1px solid var(--color-border, #E6E1D9);
+}
+
+/* --------------------------------------------------------------------------
+   5. Password Modal
+   -------------------------------------------------------------------------- */
+.profile-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: var(--color-overlay, rgba(47, 37, 32, 0.4));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(3px);
+  animation: fadeIn var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.profile-modal-card {
+  background-color: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E6E1D9);
+  border-radius: var(--radius-lg, 16px);
+  width: 100%;
+  maxWidth: 460px;
+  padding: 2rem;
+  box-shadow: var(--shadow-lg, 0 8px 24px rgba(47, 37, 32, 0.12));
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.profile-modal-title {
+  font-family: 'Cinzel', serif, Georgia;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-text-main, #211C19);
+  margin: 0;
+}
+
+.profile-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* --------------------------------------------------------------------------
+   6. Responsive Layout
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 1rem 0.75rem 3rem;
+    gap: 1.25rem;
+  }
+
+  .profile-header {
+    padding: 1.5rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.25rem;
+  }
+
+  .profile-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .profile-btn-edit,
+  .profile-btn-password {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-form-card {
+    padding: 1.25rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   7. Reduced Motion
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .profile-header,
+  .profile-btn-edit,
+  .profile-btn-password,
+  .profile-card,
+  .profile-btn-save,
+  .profile-btn-cancel,
+  .profile-modal-backdrop {
+    transition: none !important;
+    transform: none !important;
+    animation: none !important;
+  }
+}

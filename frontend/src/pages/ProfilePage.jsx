@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTenant } from '../contexts/TenantContext';
 import { authService } from '../services/authService';
+import '../styles/ProfilePage.css';
 
 export const ProfilePage = () => {
   const { user, setUser } = useAuth();
@@ -35,6 +36,7 @@ export const ProfilePage = () => {
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Supplementary client-side check (<5MB)
       if (file.size > 5 * 1024 * 1024) {
         setProfileMessage({ type: 'error', text: 'Image file size must not exceed 5MB.' });
         return;
@@ -81,7 +83,11 @@ export const ProfilePage = () => {
       setAvatarPreview(null);
       setRemoveAvatar(false);
     } catch (err) {
-      const errDetail = err.response?.data?.detail || err.response?.data?.avatar?.[0] || err.response?.data?.phone_number?.[0] || 'Failed to update profile.';
+      const errDetail =
+        err.response?.data?.detail ||
+        err.response?.data?.avatar?.[0] ||
+        err.response?.data?.phone_number?.[0] ||
+        'Failed to update profile. Please verify your input.';
       setProfileMessage({ type: 'error', text: errDetail });
     } finally {
       setProfileSaving(false);
@@ -122,98 +128,55 @@ export const ProfilePage = () => {
 
   const currentAvatarUrl = avatarPreview || user?.avatar_url || user?.avatar;
 
-  const getRoleBadgeStyle = () => {
+  const getRoleBadgeClass = () => {
     switch (effectiveRole) {
-      case 'ADMIN': return { bg: 'var(--color-danger-light)', color: 'var(--color-danger)', border: 'var(--color-danger)' };
-      case 'MANAGER': return { bg: 'var(--lp-sage-bg)', color: 'var(--lp-sage)', border: 'var(--lp-sage-border)' };
-      case 'STAFF': return { bg: 'var(--color-warning-light)', color: 'var(--color-warning)', border: 'var(--color-warning)' };
-      case 'PROVIDER': return { bg: 'var(--lp-sage-bg)', color: 'var(--lp-accent)', border: 'var(--lp-border)' };
-      default: return { bg: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', border: 'var(--lp-border)' };
+      case 'ADMIN':
+        return 'profile-role-badge--admin';
+      case 'MANAGER':
+        return 'profile-role-badge--manager';
+      case 'STAFF':
+        return 'profile-role-badge--staff';
+      case 'PROVIDER':
+        return 'profile-role-badge--provider';
+      default:
+        return '';
     }
   };
-  const roleStyle = getRoleBadgeStyle();
 
   return (
-    <div className="animate-page-entrance" style={{ maxWidth: '950px', margin: '0 auto', padding: '0 1rem' }}>
-      {/* Header Banner */}
-      <div
-        style={{
-          padding: '2.25rem',
-          marginBottom: '1.75rem',
-          background: 'var(--lp-surface)',
-          border: '1px solid var(--lp-border)',
-          borderRadius: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1.75rem',
-          flexWrap: 'wrap',
-          boxShadow: 'var(--card-shadow)'
-        }}
-      >
-        <div style={{ position: 'relative' }}>
+    <div className="profile-page" role="main">
+      {/* Editorial Account Header */}
+      <header className="profile-header">
+        <div className="profile-avatar-wrap">
           {currentAvatarUrl && !removeAvatar ? (
             <img
               src={currentAvatarUrl}
               alt="Profile Avatar"
-              style={{
-                width: '84px',
-                height: '84px',
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: '3px solid var(--lp-accent)',
-                boxShadow: 'var(--shadow-sm)'
-              }}
+              className="profile-avatar-img"
             />
           ) : (
-            <div
-              style={{
-                width: '84px',
-                height: '84px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--lp-accent)',
-                color: 'var(--lp-btn-text)',
-                fontSize: '2rem',
-                fontWeight: '700',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: 'var(--shadow-sm)',
-                fontFamily: 'Cinzel, serif',
-              }}
-            >
+            <div className="profile-avatar-initials" aria-hidden="true">
               {getUserInitials()}
             </div>
           )}
         </div>
 
-        <div style={{ flex: 1, minWidth: '240px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.3rem' }}>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: '700', color: 'var(--lp-text)', margin: 0, fontFamily: 'Cinzel, serif' }}>
+        <div className="profile-header-info">
+          <div className="profile-name-row">
+            <h1 className="profile-name">
               {user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : 'User Profile'}
             </h1>
-            <span
-              style={{
-                backgroundColor: roleStyle.bg,
-                color: roleStyle.color,
-                border: `1px solid ${roleStyle.border}`,
-                fontWeight: '700',
-                padding: '0.2rem 0.75rem',
-                borderRadius: '9999px',
-                fontSize: '0.75rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em'
-              }}
-            >
+            <span className={`profile-role-badge ${getRoleBadgeClass()}`}>
               {effectiveRole || 'GLOBAL CUSTOMER'}
             </span>
           </div>
-          <p style={{ margin: 0, color: 'var(--lp-text-subtle)', fontSize: '0.95rem' }}>
-            {user?.email}
-          </p>
+          <p className="profile-email">{user?.email}</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div className="profile-header-actions">
           <button
+            type="button"
+            className={`profile-btn-edit ${isEditing ? 'profile-btn-edit--active' : ''}`}
             onClick={() => {
               setFormData({
                 first_name: user?.first_name || '',
@@ -225,88 +188,52 @@ export const ProfilePage = () => {
               setRemoveAvatar(false);
               setIsEditing(!isEditing);
             }}
-            style={{
-              padding: '0.75rem 1.25rem',
-              background: isEditing ? 'var(--lp-bg-subtle)' : 'var(--lp-surface)',
-              color: 'var(--lp-text)',
-              border: '1px solid var(--lp-border)',
-              borderRadius: '10px',
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-            }}
           >
             {isEditing ? 'Cancel Editing' : '✏️ Edit Profile'}
           </button>
+
           <button
+            type="button"
+            className="profile-btn-password"
             onClick={() => {
               setPasswordMessage(null);
               setShowPasswordModal(true);
-            }}
-            style={{
-              padding: '0.75rem 1.25rem',
-              background: 'var(--lp-accent)',
-              color: 'var(--lp-btn-text)',
-              border: 'none',
-              borderRadius: '10px',
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(95, 122, 112, 0.25)',
             }}
           >
             🔒 Change Password
           </button>
         </div>
-      </div>
+      </header>
 
+      {/* Profile Feedback Alert */}
       {profileMessage && (
         <div
-          style={{
-            padding: '0.85rem 1.25rem',
-            borderRadius: '12px',
-            marginBottom: '1.5rem',
-            backgroundColor: profileMessage.type === 'success' ? 'var(--lp-sage-bg)' : 'var(--color-danger-light)',
-            color: profileMessage.type === 'success' ? 'var(--lp-sage)' : 'var(--color-danger)',
-            border: `1px solid ${profileMessage.type === 'success' ? 'var(--lp-sage-border)' : 'var(--color-danger)'}`,
-            fontSize: '0.9rem',
-            fontWeight: 600,
-          }}
+          className={`profile-alert ${
+            profileMessage.type === 'success' ? 'profile-alert--success' : 'profile-alert--error'
+          }`}
+          role="status"
         >
-          {profileMessage.text}
+          {profileMessage.type === 'success' ? '✓' : '⚠️'} {profileMessage.text}
         </div>
       )}
 
       {/* Edit Form Card */}
       {isEditing && (
-        <div
-          style={{
-            background: 'var(--lp-surface)',
-            border: '1px solid var(--lp-border)',
-            borderRadius: '18px',
-            padding: '1.75rem',
-            marginBottom: '1.75rem',
-            boxShadow: 'var(--card-shadow)'
-          }}
-        >
-          <h2 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '1.25rem', color: 'var(--lp-text)', fontFamily: 'Cinzel, serif' }}>
-            Update Profile Information
-          </h2>
-          <form onSubmit={handleProfileSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {/* Avatar Upload Field */}
-            <div style={{ background: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '12px', padding: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Profile Photo / Avatar
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+        <section className="profile-form-card" aria-label="Edit Profile">
+          <h2 className="profile-form-title">Update Profile Information</h2>
+          <form onSubmit={handleProfileSave} className="profile-form">
+            {/* Avatar Upload Control */}
+            <div className="profile-avatar-upload-zone">
+              <span className="profile-avatar-upload-label">Profile Photo / Avatar</span>
+              <div className="profile-avatar-upload-controls">
                 {currentAvatarUrl && !removeAvatar ? (
                   <img
                     src={currentAvatarUrl}
-                    alt="Preview"
-                    style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--lp-accent)' }}
+                    alt="Avatar preview"
+                    className="profile-avatar-preview-img"
                   />
                 ) : (
-                  <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--lp-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', color: 'var(--lp-text-subtle)' }}>
+                  <div className="profile-avatar-placeholder" aria-hidden="true">
                     👤
                   </div>
                 )}
@@ -320,19 +247,7 @@ export const ProfilePage = () => {
                     style={{ display: 'none' }}
                     id="avatar-file-input"
                   />
-                  <label
-                    htmlFor="avatar-file-input"
-                    style={{
-                      padding: '0.6rem 1rem',
-                      background: 'var(--lp-surface)',
-                      color: 'var(--lp-text)',
-                      border: '1px solid var(--lp-border)',
-                      borderRadius: '8px',
-                      fontWeight: 600,
-                      fontSize: '0.85rem',
-                      cursor: 'pointer',
-                    }}
-                  >
+                  <label htmlFor="avatar-file-input" className="profile-btn-upload">
                     📷 {user?.avatar ? 'Replace Photo' : 'Upload Photo'}
                   </label>
 
@@ -340,375 +255,236 @@ export const ProfilePage = () => {
                     <button
                       type="button"
                       onClick={handleRemoveAvatar}
-                      style={{
-                        padding: '0.6rem 1rem',
-                        background: 'var(--color-danger-light)',
-                        color: 'var(--color-danger)',
-                        border: '1px solid var(--color-danger)',
-                        borderRadius: '8px',
-                        fontWeight: 600,
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                      }}
+                      className="profile-btn-remove-avatar"
                     >
                       🗑️ Remove Photo
                     </button>
                   )}
                 </div>
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', marginTop: '0.5rem' }}>
-                Supported formats: JPG, PNG, WEBP, GIF. Max file size: 5MB.
-              </div>
+              <span className="profile-avatar-hint">
+                Supported formats: JPG, PNG, WEBP, GIF. Maximum file size: 5MB.
+              </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }} htmlFor="profile-first-name">First Name</label>
+            <div className="profile-form-row">
+              <div className="profile-form-group">
+                <label className="profile-label" htmlFor="profile-first-name">
+                  First Name
+                </label>
                 <input
                   id="profile-first-name"
                   type="text"
+                  className="profile-input"
                   value={formData.first_name}
                   onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                   placeholder="e.g. Sadia"
                   required
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '10px',
-                    border: '1px solid var(--lp-border)',
-                    backgroundColor: 'var(--lp-surface)',
-                    color: 'var(--lp-text)',
-                    fontSize: '0.9rem',
-                    boxSizing: 'border-box',
-                  }}
                 />
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }} htmlFor="profile-last-name">Last Name</label>
+
+              <div className="profile-form-group">
+                <label className="profile-label" htmlFor="profile-last-name">
+                  Last Name
+                </label>
                 <input
                   id="profile-last-name"
                   type="text"
+                  className="profile-input"
                   value={formData.last_name}
                   onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                   placeholder="e.g. Rahman"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '10px',
-                    border: '1px solid var(--lp-border)',
-                    backgroundColor: 'var(--lp-surface)',
-                    color: 'var(--lp-text)',
-                    fontSize: '0.9rem',
-                    boxSizing: 'border-box',
-                  }}
                 />
               </div>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }} htmlFor="profile-phone-number">Phone Number</label>
+            <div className="profile-form-group">
+              <label className="profile-label" htmlFor="profile-phone-number">
+                Phone Number
+              </label>
               <input
                 id="profile-phone-number"
                 type="text"
+                className="profile-input"
                 value={formData.phone_number}
                 onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
                 placeholder="e.g. +8801700000000"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  borderRadius: '10px',
-                  border: '1px solid var(--lp-border)',
-                  backgroundColor: 'var(--lp-surface)',
-                  color: 'var(--lp-text)',
-                  fontSize: '0.9rem',
-                  boxSizing: 'border-box',
-                }}
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <div className="profile-form-actions">
               <button
                 type="button"
+                className="profile-btn-cancel"
                 onClick={() => setIsEditing(false)}
-                style={{
-                  padding: '0.7rem 1.25rem',
-                  background: 'var(--lp-bg-subtle)',
-                  color: 'var(--lp-text)',
-                  border: '1px solid var(--lp-border)',
-                  borderRadius: '10px',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                }}
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={profileSaving}
-                style={{
-                  padding: '0.7rem 1.4rem',
-                  background: 'var(--lp-accent)',
-                  color: 'var(--lp-btn-text)',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                }}
+                className="profile-btn-save"
               >
                 {profileSaving ? 'Saving Changes...' : 'Save Profile'}
               </button>
             </div>
           </form>
-        </div>
+        </section>
       )}
 
-      {/* Profile Sections Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+      {/* Details Grid */}
+      <section className="profile-grid" aria-label="Account details and memberships">
         {/* Personal Details Card */}
-        <div
-          style={{
-            background: 'var(--lp-surface)',
-            border: '1px solid var(--lp-border)',
-            borderRadius: '18px',
-            padding: '1.75rem',
-            boxShadow: 'var(--card-shadow)'
-          }}
-        >
-          <h2 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '1.25rem', color: 'var(--lp-text)', fontFamily: 'Cinzel, serif' }}>
-            Personal Account Details
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.9rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.65rem', borderBottom: '1px solid var(--lp-border)' }}>
-              <span style={{ color: 'var(--lp-text-subtle)' }}>Email Address:</span>
-              <span style={{ fontWeight: '700', color: 'var(--lp-text)' }}>{user?.email}</span>
+        <article className="profile-card">
+          <h2 className="profile-card-title">Personal Account Details</h2>
+          <div className="profile-details-list">
+            <div className="profile-detail-row">
+              <span className="profile-detail-label">Email Address:</span>
+              <span className="profile-detail-val">{user?.email}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.65rem', borderBottom: '1px solid var(--lp-border)' }}>
-              <span style={{ color: 'var(--lp-text-subtle)' }}>Full Name:</span>
-              <span style={{ fontWeight: '700', color: 'var(--lp-text)' }}>
-                {user?.first_name} {user?.last_name || ''}
+            <div className="profile-detail-row">
+              <span className="profile-detail-label">Full Name:</span>
+              <span className="profile-detail-val">
+                {user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Not set'}
               </span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.65rem', borderBottom: '1px solid var(--lp-border)' }}>
-              <span style={{ color: 'var(--lp-text-subtle)' }}>Phone Number:</span>
-              <span style={{ fontWeight: '700', color: 'var(--lp-text)' }}>
+            <div className="profile-detail-row">
+              <span className="profile-detail-label">Phone Number:</span>
+              <span className="profile-detail-val">
                 {user?.phone_number || 'Not provided'}
               </span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.65rem', borderBottom: '1px solid var(--lp-border)' }}>
-              <span style={{ color: 'var(--lp-text-subtle)' }}>Account Created:</span>
-              <span style={{ fontWeight: '700', color: 'var(--lp-text)' }}>
-                {user?.date_joined ? new Date(user.date_joined).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
+            <div className="profile-detail-row">
+              <span className="profile-detail-label">Account Created:</span>
+              <span className="profile-detail-val">
+                {user?.date_joined
+                  ? new Date(user.date_joined).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })
+                  : 'N/A'}
               </span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--lp-text-subtle)' }}>System Role:</span>
-              <span style={{ fontWeight: '700', color: 'var(--lp-accent)' }}>
-                {user?.is_superuser ? 'Superuser' : user?.is_staff ? 'Staff Administrator' : 'Global Customer'}
+            <div className="profile-detail-row">
+              <span className="profile-detail-label">System Role:</span>
+              <span className="profile-detail-val profile-detail-val--accent">
+                {user?.is_superuser
+                  ? 'Superuser'
+                  : user?.is_staff
+                  ? 'Staff Administrator'
+                  : 'Global Customer'}
               </span>
             </div>
           </div>
-        </div>
+        </article>
 
         {/* Organization Memberships Card */}
         {user?.memberships && user.memberships.length > 0 && (
-          <div
-            style={{
-              background: 'var(--lp-surface)',
-              border: '1px solid var(--lp-border)',
-              borderRadius: '18px',
-              padding: '1.75rem',
-              boxShadow: 'var(--card-shadow)'
-            }}
-          >
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '1.25rem', color: 'var(--lp-text)', fontFamily: 'Cinzel, serif' }}>
-              Organization Memberships
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          <article className="profile-card">
+            <h2 className="profile-card-title">Organization Memberships</h2>
+            <div className="profile-memberships-list">
               {user.memberships.map((mem) => (
-                <div
-                  key={mem.id}
-                  style={{
-                    padding: '1rem',
-                    borderRadius: '12px',
-                    border: '1px solid var(--lp-border)',
-                    backgroundColor: 'var(--lp-bg-subtle)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                >
-                  <div>
-                    <span style={{ fontWeight: '700', color: 'var(--lp-text)', fontSize: '0.95rem' }}>
-                      🏢 {mem.organization_name}
-                    </span>
-                  </div>
-                  <span
-                    style={{
-                      backgroundColor: 'var(--lp-surface)',
-                      border: '1px solid var(--lp-border)',
-                      color: 'var(--lp-accent)',
-                      fontWeight: '700',
-                      fontSize: '0.75rem',
-                      padding: '0.25rem 0.65rem',
-                      borderRadius: '9999px',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {mem.role}
+                <div key={mem.id} className="profile-membership-item">
+                  <span className="profile-membership-name">
+                    🏥 {mem.organization_name}
                   </span>
+                  <span className="profile-membership-role">{mem.role}</span>
                 </div>
               ))}
             </div>
-          </div>
+          </article>
         )}
-      </div>
+      </section>
 
       {/* Change Password Modal */}
       {showPasswordModal && (
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'var(--color-overlay, rgba(0,0,0,0.5))',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '1rem',
-            backdropFilter: 'blur(3px)',
-          }}
+          className="profile-modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="password-modal-title"
           onClick={() => setShowPasswordModal(false)}
         >
-          <div
-            style={{
-              background: 'var(--lp-surface)',
-              border: '1px solid var(--lp-border)',
-              borderRadius: '20px',
-              width: '100%',
-              maxWidth: '460px',
-              padding: '1.75rem',
-              boxShadow: 'var(--card-shadow)',
-              animation: 'fadeIn 0.2s ease',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '1.25rem', color: 'var(--lp-text)', fontFamily: 'Cinzel, serif' }}>
+          <div className="profile-modal-card" onClick={(e) => e.stopPropagation()}>
+            <h2 id="password-modal-title" className="profile-modal-title">
               Change Password
             </h2>
 
             {passwordMessage && (
               <div
-                style={{
-                  padding: '0.75rem 1rem',
-                  borderRadius: '10px',
-                  marginBottom: '1.25rem',
-                  backgroundColor: passwordMessage.type === 'success' ? 'var(--lp-sage-bg)' : 'var(--color-danger-light)',
-                  color: passwordMessage.type === 'success' ? 'var(--lp-sage)' : 'var(--color-danger)',
-                  border: `1px solid ${passwordMessage.type === 'success' ? 'var(--lp-sage-border)' : 'var(--color-danger)'}`,
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                }}
+                className={`profile-alert ${
+                  passwordMessage.type === 'success'
+                    ? 'profile-alert--success'
+                    : 'profile-alert--error'
+                }`}
+                role="status"
               >
-                {passwordMessage.text}
+                {passwordMessage.type === 'success' ? '✓' : '⚠️'} {passwordMessage.text}
               </div>
             )}
 
-            <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }} htmlFor="old-password-input">Current Password</label>
+            <form onSubmit={handlePasswordChange} className="profile-modal-form">
+              <div className="profile-form-group">
+                <label className="profile-label" htmlFor="old-password-input">
+                  Current Password
+                </label>
                 <input
                   id="old-password-input"
                   type="password"
+                  className="profile-input"
                   value={passwordData.old_password}
-                  onChange={(e) => setPasswordData({ ...passwordData, old_password: e.target.value })}
+                  onChange={(e) =>
+                    setPasswordData({ ...passwordData, old_password: e.target.value })
+                  }
                   required
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '10px',
-                    border: '1px solid var(--lp-border)',
-                    backgroundColor: 'var(--lp-surface)',
-                    color: 'var(--lp-text)',
-                    fontSize: '0.9rem',
-                    boxSizing: 'border-box',
-                  }}
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }} htmlFor="new-password-input">New Password</label>
+              <div className="profile-form-group">
+                <label className="profile-label" htmlFor="new-password-input">
+                  New Password
+                </label>
                 <input
                   id="new-password-input"
                   type="password"
+                  className="profile-input"
                   value={passwordData.new_password}
-                  onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
+                  onChange={(e) =>
+                    setPasswordData({ ...passwordData, new_password: e.target.value })
+                  }
                   required
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '10px',
-                    border: '1px solid var(--lp-border)',
-                    backgroundColor: 'var(--lp-surface)',
-                    color: 'var(--lp-text)',
-                    fontSize: '0.9rem',
-                    boxSizing: 'border-box',
-                  }}
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--lp-text)', marginBottom: '0.35rem' }} htmlFor="confirm-new-password-input">Confirm New Password</label>
+              <div className="profile-form-group">
+                <label className="profile-label" htmlFor="confirm-new-password-input">
+                  Confirm New Password
+                </label>
                 <input
                   id="confirm-new-password-input"
                   type="password"
+                  className="profile-input"
                   value={passwordData.new_password_confirm}
-                  onChange={(e) => setPasswordData({ ...passwordData, new_password_confirm: e.target.value })}
+                  onChange={(e) =>
+                    setPasswordData({ ...passwordData, new_password_confirm: e.target.value })
+                  }
                   required
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '10px',
-                    border: '1px solid var(--lp-border)',
-                    backgroundColor: 'var(--lp-surface)',
-                    color: 'var(--lp-text)',
-                    fontSize: '0.9rem',
-                    boxSizing: 'border-box',
-                  }}
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <div className="profile-form-actions">
                 <button
                   type="button"
+                  className="profile-btn-cancel"
                   onClick={() => setShowPasswordModal(false)}
-                  style={{
-                    padding: '0.7rem 1.25rem',
-                    background: 'var(--lp-bg-subtle)',
-                    color: 'var(--lp-text)',
-                    border: '1px solid var(--lp-border)',
-                    borderRadius: '10px',
-                    fontWeight: 600,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                  }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={passwordSaving}
-                  style={{
-                    padding: '0.7rem 1.4rem',
-                    background: 'var(--lp-accent)',
-                    color: 'var(--lp-btn-text)',
-                    border: 'none',
-                    borderRadius: '10px',
-                    fontWeight: 700,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                  }}
+                  className="profile-btn-save"
                 >
                   {passwordSaving ? 'Updating...' : 'Update Password'}
                 </button>
