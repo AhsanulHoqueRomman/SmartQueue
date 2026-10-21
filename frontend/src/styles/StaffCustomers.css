@@ -1,0 +1,512 @@
+/* ==========================================================================
+   QueueTurn — Staff Customer Directory Stylesheet (UI-7)
+   Route: /staff/customers
+   Design System: Warm Sand / Espresso (Light), Deep Navy / Teal (Dark)
+   ========================================================================== */
+
+.staff-customers {
+  width: 100%;
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+/* --------------------------------------------------------------------------
+   1. Editorial Header
+   -------------------------------------------------------------------------- */
+.staff-customers__header {
+  background-color: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E6E1D9);
+  border-radius: var(--radius-lg, 14px);
+  padding: 1.75rem 2rem;
+  box-shadow: var(--shadow-sm, 0 2px 6px rgba(47, 37, 32, 0.05));
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  transition: border-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              box-shadow var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.staff-customers__header-info {
+  flex: 1 1 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.staff-customers__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-secondary-accent, #5F7A70);
+}
+
+.staff-customers__title {
+  font-family: 'Cinzel', serif, Georgia;
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--color-text-main, #211C19);
+  margin: 0;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.staff-customers__subtitle {
+  color: var(--color-text-muted, #78716C);
+  font-size: 0.95rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.staff-customers__subtitle strong {
+  color: var(--color-text-main, #211C19);
+  font-weight: 600;
+}
+
+.staff-customers__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.staff-customers__btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.85rem;
+  font-weight: 600;
+  background-color: var(--color-bg-subtle, #F3F0EA);
+  color: var(--color-text-main, #211C19);
+  border: 1px solid var(--color-border, #E6E1D9);
+  cursor: pointer;
+  transition: background-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              border-color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.staff-customers__btn-refresh:hover:not(:disabled) {
+  background-color: var(--color-surface-hover, #F7F5F0);
+  border-color: var(--color-border-hover, #D6CFB9);
+}
+
+.staff-customers__btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.staff-customers__btn-refresh:focus-visible {
+  outline: 2px solid var(--color-focus, #2F2520);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   2. Metric Summary Strip
+   -------------------------------------------------------------------------- */
+.staff-customers__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.staff-customers__metric-card {
+  background-color: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E6E1D9);
+  border-radius: var(--radius-md, 10px);
+  padding: 1.15rem 1.35rem;
+  box-shadow: var(--shadow-xs, 0 1px 2px rgba(47, 37, 32, 0.04));
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  transition: border-color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.staff-customers__metric-card:hover {
+  border-color: var(--color-border-hover, #D6CFB9);
+}
+
+.staff-customers__metric-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted, #78716C);
+}
+
+.staff-customers__metric-value {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--color-text-main, #211C19);
+  line-height: 1.2;
+}
+
+.staff-customers__metric-subtext {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary, #57534E);
+}
+
+/* --------------------------------------------------------------------------
+   3. Search and Sort Filter Toolbar
+   -------------------------------------------------------------------------- */
+.staff-customers__toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.staff-customers__search-box {
+  position: relative;
+  flex: 1 1 280px;
+  max-width: 440px;
+}
+
+.staff-customers__search-icon {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-tertiary, #A8A29E);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.staff-customers__search-input {
+  width: 100%;
+  padding: 0.65rem 2.25rem 0.65rem 2.35rem;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--color-border, #E6E1D9);
+  background-color: var(--color-surface, #FFFFFF);
+  color: var(--color-text-main, #211C19);
+  font-size: 0.875rem;
+  transition: border-color var(--duration-fast, 150ms) var(--ease-out, ease-out),
+              box-shadow var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.staff-customers__search-input:focus {
+  outline: none;
+  border-color: var(--color-secondary-accent, #5F7A70);
+  box-shadow: 0 0 0 3px rgba(95, 122, 112, 0.15);
+}
+
+.staff-customers__search-clear {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-text-muted, #78716C);
+  cursor: pointer;
+  padding: 0.2rem;
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  border-radius: 4px;
+}
+
+.staff-customers__search-clear:hover {
+  color: var(--color-text-main, #211C19);
+}
+
+.staff-customers__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.staff-customers__sort-select {
+  padding: 0.62rem 1.85rem 0.62rem 0.85rem;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--color-border, #E6E1D9);
+  background-color: var(--color-surface, #FFFFFF);
+  color: var(--color-text-main, #211C19);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  appearance: auto;
+  transition: border-color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.staff-customers__sort-select:focus {
+  outline: none;
+  border-color: var(--color-secondary-accent, #5F7A70);
+}
+
+/* --------------------------------------------------------------------------
+   4. Customer Directory Table Surface
+   -------------------------------------------------------------------------- */
+.staff-customers__table-card {
+  background-color: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E6E1D9);
+  border-radius: var(--radius-lg, 14px);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm, 0 2px 6px rgba(47, 37, 32, 0.05));
+}
+
+.staff-customers__table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.staff-customers__table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.staff-customers__table th {
+  background-color: var(--color-bg-subtle, #F3F0EA);
+  border-bottom: 1px solid var(--color-border, #E6E1D9);
+  color: var(--color-text-muted, #78716C);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.95rem 1.25rem;
+  white-space: nowrap;
+}
+
+.staff-customers__table td {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-border-subtle, #ECE8E1);
+  color: var(--color-text-secondary, #57534E);
+  vertical-align: middle;
+}
+
+.staff-customers__table tr:last-child td {
+  border-bottom: none;
+}
+
+.staff-customers__table tr:hover td {
+  background-color: var(--color-surface-hover, #F7F5F0);
+}
+
+/* Patient Identity Cell */
+.staff-customers__patient-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.staff-customers__avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--color-primary-light, rgba(95, 122, 112, 0.1));
+  color: var(--color-secondary-accent, #5F7A70);
+  border: 1px solid var(--color-primary-border, rgba(95, 122, 112, 0.25));
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.staff-customers__patient-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.staff-customers__patient-name {
+  font-weight: 700;
+  color: var(--color-text-main, #211C19);
+  line-height: 1.2;
+}
+
+.staff-customers__patient-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-secondary-accent, #5F7A70);
+  background-color: var(--color-secondary-accent-light, rgba(95, 122, 112, 0.12));
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-xs, 4px);
+  width: fit-content;
+}
+
+/* Contact Cell */
+.staff-customers__contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.staff-customers__email {
+  color: var(--color-text-main, #211C19);
+  font-weight: 500;
+}
+
+.staff-customers__phone {
+  color: var(--color-text-muted, #78716C);
+  font-size: 0.8rem;
+}
+
+.staff-customers__no-contact {
+  color: var(--color-text-tertiary, #A8A29E);
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+/* Visit Cell */
+.staff-customers__visit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.staff-customers__visit-date {
+  font-weight: 600;
+  color: var(--color-text-main, #211C19);
+}
+
+.staff-customers__visit-service {
+  font-size: 0.775rem;
+  color: var(--color-secondary-accent, #5F7A70);
+}
+
+.staff-customers__visit-none {
+  font-size: 0.825rem;
+  color: var(--color-text-muted, #78716C);
+  font-weight: 500;
+}
+
+.staff-customers__booking-subtext {
+  font-size: 0.775rem;
+  color: var(--color-text-tertiary, #A8A29E);
+}
+
+/* Bookings Count Cell */
+.staff-customers__count-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-start;
+}
+
+.staff-customers__bookings-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-full, 9999px);
+  font-weight: 700;
+  font-size: 0.8rem;
+  background-color: var(--color-bg-subtle, #F3F0EA);
+  color: var(--color-text-main, #211C19);
+  border: 1px solid var(--color-border, #E6E1D9);
+}
+
+.staff-customers__bookings-badge--repeat {
+  background-color: var(--color-primary-light, rgba(95, 122, 112, 0.1));
+  color: var(--color-secondary-accent, #5F7A70);
+  border-color: var(--color-primary-border, rgba(95, 122, 112, 0.25));
+}
+
+.staff-customers__completed-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.725rem;
+  font-weight: 600;
+  color: var(--color-success, #4F7A5A);
+  background-color: var(--color-success-bg, rgba(79, 122, 90, 0.1));
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-xs, 4px);
+  border: 1px solid var(--color-success-border, rgba(79, 122, 90, 0.25));
+}
+
+.staff-customers__completed-badge--zero {
+  color: var(--color-text-muted, #78716C);
+  background-color: var(--color-bg-subtle, #F3F0EA);
+  border-color: var(--color-border, #E6E1D9);
+}
+
+/* --------------------------------------------------------------------------
+   5. Error Box
+   -------------------------------------------------------------------------- */
+.staff-customers__error-box {
+  background-color: var(--color-error-bg, rgba(180, 83, 75, 0.1));
+  border: 1px solid var(--color-error-border, rgba(180, 83, 75, 0.25));
+  color: var(--color-error, #B4534B);
+  border-radius: var(--radius-md, 10px);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.staff-customers__btn-retry {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--color-error, #B4534B);
+  background-color: transparent;
+  color: var(--color-error, #B4534B);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.staff-customers__btn-retry:hover {
+  background-color: var(--color-error, #B4534B);
+  color: #FFFFFF;
+}
+
+/* --------------------------------------------------------------------------
+   6. Responsive Layout
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .staff-customers {
+    padding: 1rem 0.75rem 3rem;
+    gap: 1.25rem;
+  }
+
+  .staff-customers__header {
+    padding: 1.25rem;
+  }
+
+  .staff-customers__title {
+    font-size: 1.5rem;
+  }
+
+  .staff-customers__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-customers__table th,
+  .staff-customers__table td {
+    padding: 0.75rem 0.85rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   7. Reduced Motion Preferences
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .staff-customers__header,
+  .staff-customers__btn-refresh,
+  .staff-customers__metric-card,
+  .staff-customers__search-input,
+  .staff-customers__table tr:hover td {
+    transition: none !important;
+  }
+}
