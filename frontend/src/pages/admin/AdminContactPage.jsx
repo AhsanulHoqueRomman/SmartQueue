@@ -3,6 +3,7 @@ import adminService from '../../services/adminService';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import { useToast } from '../../contexts/ToastContext';
+import '../../styles/AdminContact.css';
 
 const STATUS_TABS = [
   { key: 'ALL', label: 'All Inquiries' },
@@ -12,11 +13,11 @@ const STATUS_TABS = [
   { key: 'CLOSED', label: 'Closed' },
 ];
 
-const STATUS_BADGE_STYLE = {
-  NEW: { bg: 'var(--color-warning-bg, rgba(245, 158, 11, 0.15))', color: 'var(--color-warning)', label: 'New' },
-  IN_REVIEW: { bg: 'var(--color-info-bg, rgba(14, 165, 233, 0.15))', color: 'var(--color-info, #0284c7)', label: 'In Review' },
-  REPLIED: { bg: 'var(--color-success-bg, rgba(34, 197, 94, 0.15))', color: 'var(--color-success)', label: 'Replied' },
-  CLOSED: { bg: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', label: 'Closed' },
+const STATUS_BADGE_LABELS = {
+  NEW: 'New',
+  IN_REVIEW: 'In Review',
+  REPLIED: 'Replied',
+  CLOSED: 'Closed',
 };
 
 export function AdminContactPage() {
@@ -24,7 +25,7 @@ export function AdminContactPage() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   // Filters & Pagination
   const [activeTab, setActiveTab] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -115,7 +116,7 @@ export function AdminContactPage() {
     try {
       const updated = await adminService.updateContactStatus(selectedMessage.id, newStatus);
       setSelectedMessage(updated);
-      showSuccess(`Inquiry status updated to ${STATUS_BADGE_STYLE[newStatus]?.label || newStatus}.`);
+      showSuccess(`Inquiry status updated to ${STATUS_BADGE_LABELS[newStatus] || newStatus}.`);
       fetchMessages();
     } catch (err) {
       console.error('Failed to update status:', err);
@@ -157,202 +158,138 @@ export function AdminContactPage() {
   };
 
   return (
-    <div className="app-container animate-page-entrance">
-      {/* Header Banner */}
-      <div style={{ marginBottom: '1.75rem' }}>
-        <span className="badge badge-danger" style={{ marginBottom: '0.4rem' }}>
-          ⚡ Platform Support & Governance
-        </span>
-        <h1 style={{ marginTop: '0.25rem' }}>
-          Admin Contact Inbox
-        </h1>
-        <p className="subtitle" style={{ marginTop: '0.25rem' }}>
-          System-wide customer support inquiries and visitor feedback management.
-        </p>
-      </div>
+    <div className="admin-contact animate-page-entrance">
+      {/* Editorial Header */}
+      <header className="admin-contact__header">
+        <div className="admin-contact__header-main">
+          <span className="admin-contact__eyebrow">⚡ Platform Support & Governance</span>
+          <h1 className="admin-contact__title">Admin Contact Inbox</h1>
+          <p className="admin-contact__subtitle">
+            System-wide customer support inquiries and visitor feedback management.
+          </p>
+        </div>
+      </header>
 
-      {/* Main Inbox Container */}
-      <div
-        className="card"
-        style={{
-          backgroundColor: 'var(--color-surface)',
-          borderColor: 'var(--color-border)',
-          overflow: 'hidden',
-          padding: 0,
-        }}
-      >
-        {/* Status Tabs */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '1rem 1.5rem',
-            borderBottom: '1px solid var(--color-border)',
-            backgroundColor: 'var(--color-bg-subtle)',
-            overflowX: 'auto',
-          }}
-        >
+      {/* Controls Card: Tabs, Search & Counter */}
+      <div className="admin-contact__controls-card">
+        <nav className="admin-contact__tabs" role="tablist" aria-label="Inquiry status filters">
           {STATUS_TABS.map((tab) => {
             const isActive = activeTab === tab.key;
             return (
               <button
                 key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                className={`admin-contact__tab ${isActive ? 'admin-contact__tab--active' : ''}`}
                 onClick={() => {
                   setActiveTab(tab.key);
                   setPage(1);
-                }}
-                style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: 'var(--radius-full)',
-                  border: isActive ? '1px solid var(--lp-accent)' : '1px solid var(--color-border)',
-                  background: isActive ? 'var(--lp-accent)' : 'var(--color-surface)',
-                  color: isActive ? '#FFFFFF' : 'var(--lp-text-subtle)',
-                  fontSize: '0.85rem',
-                  fontWeight: isActive ? 700 : 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
                 }}
               >
                 {tab.label}
               </button>
             );
           })}
-        </div>
+        </nav>
 
-        {/* Search & Filter Controls */}
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ position: 'relative', minWidth: '280px', flex: 1 }}>
-            <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--lp-text-subtle)' }}>
-              🔍
-            </span>
+        <div className="admin-contact__search-row">
+          <div className="admin-contact__search-wrap">
+            <span className="admin-contact__search-icon" aria-hidden="true">🔍</span>
             <input
               type="text"
-              placeholder="Search by name, email, subject, or message..."
+              className="admin-contact__search-input"
+              placeholder="Search by name, email, subject, or message text..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setPage(1);
               }}
-              style={{
-                width: '100%',
-                padding: '0.55rem 0.85rem 0.55rem 2.4rem',
-                fontSize: '0.875rem',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--color-bg-subtle)',
-                color: 'var(--lp-text)',
-                outline: 'none',
-              }}
+              aria-label="Search inquiries"
             />
           </div>
 
-          <div className="text-xs text-muted font-semibold">
+          <div className="admin-contact__count-badge">
             Total Inquiries: <strong>{totalCount}</strong>
           </div>
         </div>
+      </div>
 
-        {/* Table Content */}
-        {loading ? (
-          <div style={{ padding: '3rem' }}>
-            <LoadingState message="Loading contact messages..." />
-          </div>
-        ) : error ? (
-          <div className="error-banner" style={{ padding: '2rem', textAlign: 'center' }}>
-            <p>{error}</p>
-            <button className="btn btn-outline btn-sm" onClick={fetchMessages}>
-              Retry Loading
-            </button>
-          </div>
-        ) : messages.length === 0 ? (
-          <div style={{ padding: '3rem' }}>
-            <EmptyState
-              icon="📬"
-              title="No Contact Messages Found"
-              message={
-                searchQuery
-                  ? `No inquiries match "${searchQuery}". Try adjusting your search query or status filter.`
-                  : activeTab !== 'ALL'
-                  ? `There are currently no inquiries with status "${activeTab}".`
-                  : 'No customer or visitor support inquiries have been submitted yet.'
-              }
-              actionLabel={searchQuery || activeTab !== 'ALL' ? 'Reset Filters' : undefined}
-              onAction={() => {
-                setSearchQuery('');
-                setActiveTab('ALL');
-                setPage(1);
-              }}
-            />
-          </div>
-        ) : (
-          <div className="table-container">
-            <table className="table">
+      {/* Table Content Card */}
+      {loading ? (
+        <LoadingState message="Loading contact messages..." />
+      ) : error ? (
+        <div style={{ padding: '1.5rem', backgroundColor: 'var(--color-error-bg, rgba(180, 83, 75, 0.1))', borderRadius: '12px', border: '1px solid var(--color-error-border, rgba(180, 83, 75, 0.25))', color: 'var(--color-error, #B4534B)', textAlign: 'center' }} role="alert">
+          <p style={{ margin: '0 0 1rem 0' }}>{error}</p>
+          <button
+            type="button"
+            className="admin-contact__btn-handle"
+            onClick={fetchMessages}
+          >
+            Retry Loading
+          </button>
+        </div>
+      ) : messages.length === 0 ? (
+        <EmptyState
+          icon="📬"
+          title="No Contact Messages Found"
+          message={
+            searchQuery
+              ? `No inquiries match "${searchQuery}". Try adjusting your search query or status filter.`
+              : activeTab !== 'ALL'
+              ? `There are currently no inquiries with status "${activeTab}".`
+              : 'No customer or visitor support inquiries have been submitted yet.'
+          }
+          actionLabel={searchQuery || activeTab !== 'ALL' ? 'Reset Filters' : undefined}
+          onAction={() => {
+            setSearchQuery('');
+            setActiveTab('ALL');
+            setPage(1);
+          }}
+        />
+      ) : (
+        <div className="admin-contact__table-card">
+          <div className="admin-contact__table-wrap">
+            <table className="admin-contact__table">
               <thead>
                 <tr>
-                  <th>Sender</th>
-                  <th>Subject & Message</th>
-                  <th>Status</th>
-                  <th>Date</th>
-                  <th style={{ textAlign: 'right' }}>Action</th>
+                  <th className="admin-contact__th">Sender</th>
+                  <th className="admin-contact__th">Subject & Message</th>
+                  <th className="admin-contact__th">Status</th>
+                  <th className="admin-contact__th">Date</th>
+                  <th className="admin-contact__th admin-contact__th--right">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {messages.map((msg) => {
-                  const badge = STATUS_BADGE_STYLE[msg.status] || { bg: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', label: msg.status };
+                  const statusKey = msg.status || 'NEW';
+                  const statusLabel = STATUS_BADGE_LABELS[statusKey] || statusKey;
+
                   return (
-                    <tr key={msg.id}>
-                      <td style={{ verticalAlign: 'top' }}>
-                        <div className="font-semibold">{msg.name}</div>
-                        <div className="text-xs font-semibold" style={{ color: 'var(--lp-accent)' }}>{msg.email}</div>
+                    <tr key={msg.id} className="admin-contact__tr">
+                      <td className="admin-contact__td">
+                        <div className="admin-contact__sender-name">{msg.name}</div>
+                        <div className="admin-contact__sender-email">{msg.email}</div>
                         {msg.phone && (
-                          <div className="text-xs text-muted" style={{ marginTop: '0.1rem' }}>
-                            📞 {msg.phone}
-                          </div>
+                          <div className="admin-contact__sender-phone">📞 {msg.phone}</div>
                         )}
                       </td>
-                      <td style={{ verticalAlign: 'top', maxWidth: '380px' }}>
-                        <div className="font-semibold" style={{ marginBottom: '0.2rem' }}>
-                          {msg.subject}
-                        </div>
-                        <div
-                          className="text-xs text-muted"
-                          style={{
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {msg.message}
-                        </div>
+                      <td className="admin-contact__td">
+                        <div className="admin-contact__subject">{msg.subject}</div>
+                        <div className="admin-contact__snippet">{msg.message}</div>
                       </td>
-                      <td style={{ verticalAlign: 'top' }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '0.25rem 0.65rem',
-                            borderRadius: '9999px',
-                            backgroundColor: badge.bg,
-                            color: badge.color,
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            letterSpacing: '0.02em',
-                          }}
-                        >
-                          {badge.label}
+                      <td className="admin-contact__td">
+                        <span className={`admin-contact__status-badge admin-contact__status-badge--${statusKey}`}>
+                          {statusLabel}
                         </span>
                       </td>
-                      <td className="text-xs text-muted" style={{ verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                      <td className="admin-contact__td" style={{ color: 'var(--color-text-muted, #78716C)', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
                         {formatDate(msg.created_at)}
                       </td>
-                      <td style={{ verticalAlign: 'top', textAlign: 'right' }}>
+                      <td className="admin-contact__td admin-contact__td--right">
                         <button
-                          className="btn btn-outline btn-sm"
+                          type="button"
+                          className="admin-contact__btn-handle"
                           onClick={() => handleOpenDetail(msg)}
                         >
                           View & Handle
@@ -364,298 +301,206 @@ export function AdminContactPage() {
               </tbody>
             </table>
           </div>
-        )}
 
-        {/* Pagination Footer */}
-        {(hasNextPage || hasPrevPage || page > 1) && (
-          <div
-            style={{
-              padding: '1rem 1.5rem',
-              borderTop: '1px solid var(--color-border)',
-              background: 'var(--color-bg-subtle)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <span className="text-xs text-muted font-semibold">Page {page}</span>
-            <div className="flex gap-xs">
-              <button
-                className="btn btn-outline btn-sm"
-                disabled={!hasPrevPage && page === 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Previous
-              </button>
-              <button
-                className="btn btn-outline btn-sm"
-                disabled={!hasNextPage}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Next
-              </button>
+          {/* Pagination Footer */}
+          {(hasNextPage || hasPrevPage || page > 1) && (
+            <div className="admin-contact__pagination">
+              <span className="admin-contact__pagination-page">Page {page}</span>
+              <div className="admin-contact__pagination-actions">
+                <button
+                  type="button"
+                  className="admin-contact__btn-handle"
+                  disabled={!hasPrevPage && page === 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  className="admin-contact__btn-handle"
+                  disabled={!hasNextPage}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Detail & Reply Modal */}
       {selectedMessage && (
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            backdropFilter: 'blur(3px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '1.5rem',
-          }}
+          className="admin-contact__modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="contact-modal-title"
           onClick={() => setSelectedMessage(null)}
         >
-          <div
-            className="card"
-            style={{
-              backgroundColor: 'var(--color-surface)',
-              borderRadius: 'var(--radius-lg)',
-              maxWidth: '650px',
-              width: '100%',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              boxShadow: 'var(--shadow-lg)',
-              border: '1px solid var(--color-border)',
-              padding: 0,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="admin-contact__modal-card" onClick={(e) => e.stopPropagation()}>
             {/* Modal Header */}
-            <div
-              style={{
-                padding: '1.25rem 1.75rem',
-                borderBottom: '1px solid var(--color-border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: 'var(--color-bg-subtle)',
-              }}
-            >
+            <div className="admin-contact__modal-header">
               <div>
-                <span className="badge badge-info" style={{ marginBottom: '0.2rem' }}>
-                  Support Inquiry Detail
-                </span>
-                <h3 style={{ margin: '0.1rem 0 0 0', fontSize: '1.2rem' }}>
+                <span className="admin-contact__eyebrow">Support Inquiry Detail</span>
+                <h2 id="contact-modal-title" className="admin-contact__modal-title">
                   {selectedMessage.subject}
-                </h3>
+                </h2>
               </div>
               <button
+                type="button"
+                className="admin-contact__modal-close"
                 onClick={() => setSelectedMessage(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '1.5rem',
-                  color: 'var(--lp-text-subtle)',
-                  cursor: 'pointer',
-                  padding: '0.2rem',
-                }}
+                aria-label="Close modal"
               >
-                ×
+                ✕
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div style={{ padding: '1.75rem' }}>
-              {detailLoading ? (
-                <LoadingState message="Fetching message details..." />
-              ) : (
-                <>
-                  {/* Sender Metadata Box */}
-                  <div
-                    style={{
-                      background: 'var(--color-bg-subtle)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: 'var(--radius-md)',
-                      padding: '1.25rem',
-                      marginBottom: '1.5rem',
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                      gap: '1rem',
-                    }}
-                  >
-                    <div>
-                      <div className="text-xs text-muted font-semibold uppercase">Sender Name</div>
-                      <div className="font-semibold" style={{ marginTop: '0.1rem' }}>{selectedMessage.name}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted font-semibold uppercase">Email Address</div>
-                      <div className="font-semibold" style={{ marginTop: '0.1rem', color: 'var(--lp-accent)' }}>
-                        <a href={`mailto:${selectedMessage.email}`} style={{ color: 'var(--lp-accent)', textDecoration: 'none' }}>
-                          {selectedMessage.email}
-                        </a>
-                      </div>
-                    </div>
-                    {selectedMessage.phone && (
-                      <div>
-                        <div className="text-xs text-muted font-semibold uppercase">Phone Number</div>
-                        <div className="font-semibold" style={{ marginTop: '0.1rem' }}>{selectedMessage.phone}</div>
-                      </div>
-                    )}
-                    <div>
-                      <div className="text-xs text-muted font-semibold uppercase">Submitted At</div>
-                      <div className="text-xs text-muted" style={{ marginTop: '0.1rem' }}>{formatDate(selectedMessage.created_at)}</div>
-                    </div>
+            {/* Modal Content */}
+            {detailLoading ? (
+              <LoadingState message="Fetching message details..." />
+            ) : (
+              <>
+                {/* Sender Metadata Box */}
+                <div className="admin-contact__sender-grid">
+                  <div className="admin-contact__sender-item">
+                    <span className="admin-contact__sender-label">Sender Name</span>
+                    <span className="admin-contact__sender-val">{selectedMessage.name}</span>
                   </div>
-
-                  {/* Status & Quick Transition Controls */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: '1.5rem',
-                      flexWrap: 'wrap',
-                      gap: '0.75rem',
-                      paddingBottom: '1rem',
-                      borderBottom: '1px solid var(--color-border)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span className="text-xs text-muted font-semibold">Current Status:</span>
-                      <span
-                        style={{
-                          padding: '0.25rem 0.75rem',
-                          borderRadius: '9999px',
-                          backgroundColor: (STATUS_BADGE_STYLE[selectedMessage.status] || {}).bg,
-                          color: (STATUS_BADGE_STYLE[selectedMessage.status] || {}).color,
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                        }}
+                  <div className="admin-contact__sender-item">
+                    <span className="admin-contact__sender-label">Email Address</span>
+                    <span className="admin-contact__sender-val">
+                      <a
+                        href={`mailto:${selectedMessage.email}`}
+                        style={{ color: 'var(--color-secondary-accent, #5F7A70)', textDecoration: 'none' }}
                       >
-                        {(STATUS_BADGE_STYLE[selectedMessage.status] || {}).label || selectedMessage.status}
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '0.4rem' }}>
-                      {selectedMessage.status === 'NEW' && (
-                        <button
-                          className="btn btn-outline btn-sm"
-                          disabled={statusUpdating}
-                          onClick={() => handleStatusChange('IN_REVIEW')}
-                        >
-                          Mark In Review
-                        </button>
-                      )}
-                      {selectedMessage.status !== 'CLOSED' ? (
-                        <button
-                          className="btn btn-outline btn-sm"
-                          disabled={statusUpdating}
-                          onClick={() => handleStatusChange('CLOSED')}
-                        >
-                          Mark Closed
-                        </button>
-                      ) : (
-                        <button
-                          className="btn btn-outline btn-sm"
-                          disabled={statusUpdating}
-                          onClick={() => handleStatusChange('IN_REVIEW')}
-                        >
-                          Reopen Inquiry
-                        </button>
-                      )}
-                    </div>
+                        {selectedMessage.email}
+                      </a>
+                    </span>
                   </div>
-
-                  {/* Message Body Box */}
-                  <div style={{ marginBottom: '1.75rem' }}>
-                    <h4 className="text-xs text-muted font-semibold uppercase" style={{ marginBottom: '0.5rem' }}>
-                      Inquiry Message Body
-                    </h4>
-                    <div
-                      style={{
-                        background: 'var(--color-bg-subtle)',
-                        border: '1px solid var(--color-border)',
-                        borderRadius: 'var(--radius-md)',
-                        padding: '1.25rem',
-                        fontSize: '0.925rem',
-                        lineHeight: 1.6,
-                        whiteSpace: 'pre-wrap',
-                      }}
-                    >
-                      {selectedMessage.message}
-                    </div>
-                  </div>
-
-                  {/* Previous Reply Information */}
-                  {selectedMessage.status === 'REPLIED' && selectedMessage.replied_at && (
-                    <div
-                      style={{
-                        background: 'var(--color-success-bg, rgba(34, 197, 94, 0.12))',
-                        border: '1px solid var(--color-success-border, rgba(34, 197, 94, 0.3))',
-                        borderRadius: 'var(--radius-md)',
-                        padding: '1rem',
-                        marginBottom: '1.5rem',
-                      }}
-                    >
-                      <div className="text-xs font-semibold uppercase" style={{ color: 'var(--color-success)', marginBottom: '0.2rem' }}>
-                        ✓ Admin Reply Recorded
-                      </div>
-                      <div className="text-xs" style={{ color: 'var(--lp-text)' }}>
-                        Replied by <strong>{selectedMessage.replied_by_detail?.name || selectedMessage.replied_by_detail?.email || 'Admin'}</strong> on {formatDate(selectedMessage.replied_at)}.
-                      </div>
+                  {selectedMessage.phone && (
+                    <div className="admin-contact__sender-item">
+                      <span className="admin-contact__sender-label">Phone Number</span>
+                      <span className="admin-contact__sender-val">{selectedMessage.phone}</span>
                     </div>
                   )}
+                  <div className="admin-contact__sender-item">
+                    <span className="admin-contact__sender-label">Submitted At</span>
+                    <span className="admin-contact__sender-val">{formatDate(selectedMessage.created_at)}</span>
+                  </div>
+                </div>
 
-                  {/* Reply Form */}
-                  <form onSubmit={handleSendReply}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                      <label className="form-label font-semibold" style={{ marginBottom: 0 }}>
-                        Submit Admin Reply
-                      </label>
-                      <span className="text-xs text-muted">
-                        {replyText.length} / 5000 chars
-                      </span>
-                    </div>
+                {/* Status & Quick Transition Controls */}
+                <div className="admin-contact__status-control-row">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted, #78716C)', fontWeight: 600 }}>
+                      Current Status:
+                    </span>
+                    <span className={`admin-contact__status-badge admin-contact__status-badge--${selectedMessage.status || 'NEW'}`}>
+                      {STATUS_BADGE_LABELS[selectedMessage.status] || selectedMessage.status}
+                    </span>
+                  </div>
 
-                    <textarea
-                      rows={4}
-                      placeholder="Type your response to the visitor here..."
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      maxLength={5000}
-                      required
-                      style={{
-                        width: '100%',
-                        padding: '0.85rem',
-                        fontSize: '0.875rem',
-                        border: '1px solid var(--color-border)',
-                        borderRadius: 'var(--radius-md)',
-                        background: 'var(--color-bg-subtle)',
-                        outline: 'none',
-                        resize: 'vertical',
-                        color: 'var(--lp-text)',
-                        marginBottom: '0.75rem',
-                      }}
-                    />
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-                      <span className="text-xs text-muted" style={{ fontStyle: 'italic' }}>
-                        Note: Reply will update inquiry status to REPLIED. Email delivery is handled via Resend.
-                      </span>
-
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {selectedMessage.status === 'NEW' && (
                       <button
-                        type="submit"
-                        className="btn btn-primary"
-                        disabled={replySubmitting || !replyText.trim()}
-                        style={{ padding: '0.55rem 1.25rem', whiteSpace: 'nowrap' }}
+                        type="button"
+                        className="admin-contact__btn-handle"
+                        disabled={statusUpdating}
+                        onClick={() => handleStatusChange('IN_REVIEW')}
                       >
-                        {replySubmitting ? 'Saving Reply...' : 'Send Reply'}
+                        {statusUpdating ? 'Updating...' : 'Mark In Review'}
                       </button>
-                    </div>
-                  </form>
-                </>
-              )}
-            </div>
+                    )}
+                    {selectedMessage.status !== 'CLOSED' ? (
+                      <button
+                        type="button"
+                        className="admin-contact__btn-handle"
+                        disabled={statusUpdating}
+                        onClick={() => handleStatusChange('CLOSED')}
+                      >
+                        {statusUpdating ? 'Updating...' : 'Mark Closed'}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="admin-contact__btn-handle"
+                        disabled={statusUpdating}
+                        onClick={() => handleStatusChange('IN_REVIEW')}
+                      >
+                        {statusUpdating ? 'Updating...' : 'Reopen Inquiry'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Message Body Box */}
+                <div>
+                  <h3 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted, #78716C)', margin: '0 0 0.5rem 0' }}>
+                    Inquiry Message Body
+                  </h3>
+                  <div className="admin-contact__message-box">
+                    {selectedMessage.message}
+                  </div>
+                </div>
+
+                {/* Previous Reply Information */}
+                {selectedMessage.status === 'REPLIED' && selectedMessage.replied_at && (
+                  <div className="admin-contact__reply-banner">
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-success, #4F7A5A)' }}>
+                      ✓ Admin Reply Recorded
+                    </span>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-main, #211C19)' }}>
+                      Replied by{' '}
+                      <strong>
+                        {selectedMessage.replied_by_detail?.name ||
+                          selectedMessage.replied_by_detail?.email ||
+                          'System Admin'}
+                      </strong>{' '}
+                      on {formatDate(selectedMessage.replied_at)}.
+                    </span>
+                  </div>
+                )}
+
+                {/* Reply Form */}
+                <form onSubmit={handleSendReply} className="admin-contact__reply-form">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label htmlFor="admin-reply-textarea" style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--color-text-main, #211C19)' }}>
+                      Submit Admin Reply
+                    </label>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #78716C)' }}>
+                      {replyText.length} / 5000 chars
+                    </span>
+                  </div>
+
+                  <textarea
+                    id="admin-reply-textarea"
+                    rows={4}
+                    className="admin-contact__textarea"
+                    placeholder="Type your response to the visitor here..."
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    maxLength={5000}
+                    required
+                  />
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #78716C)', fontStyle: 'italic' }}>
+                      Note: Saving a reply will set status to REPLIED. Email delivery is handled via Resend.
+                    </span>
+
+                    <button
+                      type="submit"
+                      className="admin-contact__btn-send"
+                      disabled={replySubmitting || !replyText.trim()}
+                    >
+                      {replySubmitting ? 'Saving Reply...' : 'Send Reply'}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}

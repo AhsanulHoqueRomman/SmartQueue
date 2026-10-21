@@ -1,10 +1,11 @@
+import React, { useState, useEffect, useMemo } from 'react';
 import PrivateDocumentButton from '../../components/PrivateDocumentButton';
-import React, { useState, useEffect } from 'react';
 import organizationService from '../../services/organizationService';
 import adminService from '../../services/adminService';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import { useToast } from '../../contexts/ToastContext';
+import '../../styles/AdminOrganizations.css';
 
 const STATUS_TABS = [
   { key: 'ALL', label: 'All Organizations' },
@@ -16,13 +17,13 @@ const STATUS_TABS = [
   { key: 'SETUP_INCOMPLETE', label: 'Incomplete' },
 ];
 
-const STATUS_BADGE_STYLE = {
-  SETUP_INCOMPLETE: { bg: 'var(--lp-bg-subtle)', color: 'var(--lp-text-subtle)', label: 'Incomplete Setup' },
-  SUBMITTED: { bg: 'var(--color-warning-bg, rgba(245, 158, 11, 0.15))', color: 'var(--color-warning)', label: 'Submitted' },
-  UNDER_REVIEW: { bg: 'var(--color-info-bg, rgba(14, 165, 233, 0.15))', color: 'var(--color-info, #0284c7)', label: 'Under Review' },
-  APPROVED: { bg: 'var(--color-success-bg, rgba(34, 197, 94, 0.15))', color: 'var(--color-success)', label: 'Approved' },
-  REJECTED: { bg: 'var(--color-danger-bg, rgba(239, 68, 68, 0.15))', color: 'var(--color-danger)', label: 'Rejected' },
-  SUSPENDED: { bg: 'var(--color-danger-bg, rgba(239, 68, 68, 0.25))', color: 'var(--color-danger)', label: 'Suspended' },
+const STATUS_BADGE_LABELS = {
+  SETUP_INCOMPLETE: 'Incomplete Setup',
+  SUBMITTED: 'Submitted',
+  UNDER_REVIEW: 'Under Review',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected',
+  SUSPENDED: 'Suspended',
 };
 
 const DOC_TYPE_LABELS = {
@@ -38,6 +39,7 @@ export function AdminOrganizationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Create Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -76,7 +78,7 @@ export function AdminOrganizationsPage() {
     try {
       const statusFilter = activeTab === 'ALL' ? '' : activeTab;
       const data = await adminService.getVerificationQueue(statusFilter);
-      const list = Array.isArray(data) ? data : data.results || [];
+      const list = Array.isArray(data) ? data : data?.results || [];
       setOrganizations(list);
     } catch (err) {
       setError('Failed to fetch system organizations roster.');
@@ -88,6 +90,18 @@ export function AdminOrganizationsPage() {
   useEffect(() => {
     fetchOrgs();
   }, [activeTab]);
+
+  const filteredOrganizations = useMemo(() => {
+    if (!searchQuery.trim()) return organizations;
+    const q = searchQuery.toLowerCase().trim();
+    return organizations.filter(
+      (org) =>
+        org.name?.toLowerCase().includes(q) ||
+        org.slug?.toLowerCase().includes(q) ||
+        (org.email && org.email.toLowerCase().includes(q)) ||
+        (org.contact_email && org.contact_email.toLowerCase().includes(q))
+    );
+  }, [organizations, searchQuery]);
 
   const handleCreateOrg = async (e) => {
     e.preventDefault();
@@ -222,7 +236,7 @@ export function AdminOrganizationsPage() {
 
     try {
       const docs = await organizationService.getDocuments(org.id);
-      const docsList = Array.isArray(docs) ? docs : docs.results || [];
+      const docsList = Array.isArray(docs) ? docs : docs?.results || [];
       setReviewOrg((prev) => (prev && prev.id === org.id ? { ...prev, documents: docsList } : prev));
     } catch (err) {
       // Keep existing documents if fetch fails
@@ -230,143 +244,143 @@ export function AdminOrganizationsPage() {
   };
 
   return (
-    <div className="animate-page-entrance" style={{ maxWidth: '1150px', margin: '0 auto', paddingBottom: '3rem' }}>
-      <div style={{ marginBottom: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-            ⚡ System Admin Console
-          </div>
-          <h1 style={{ fontSize: '1.75rem', color: '#211C19', margin: '0 0 0.4rem 0', fontFamily: 'Cinzel, serif' }}>
-            Organization Verification Queue & Roster
-          </h1>
-          <p style={{ color: '#78716C', margin: 0, fontSize: '0.95rem' }}>
+    <div className="admin-orgs animate-page-entrance">
+      {/* Editorial Header */}
+      <header className="admin-orgs__header">
+        <div className="admin-orgs__header-main">
+          <span className="admin-orgs__eyebrow">⚡ System Admin Console</span>
+          <h1 className="admin-orgs__title">Organization Verification Queue & Roster</h1>
+          <p className="admin-orgs__subtitle">
             Review verification applications, inspect legal documents, and govern platform tenants.
           </p>
         </div>
 
         <button
+          type="button"
+          className="admin-orgs__btn-register"
           onClick={() => setShowCreateModal(true)}
-          style={{
-            padding: '0.75rem 1.25rem',
-            background: '#2F2520',
-            color: '#FAF8F3',
-            border: 'none',
-            borderRadius: '8px',
-            fontWeight: 600,
-            fontSize: '0.9rem',
-            cursor: 'pointer',
-          }}
         >
-          ➕ Register New Organization
+          <span>➕</span> Register New Organization
         </button>
+      </header>
+
+      {/* Controls Card: Tabs & Search */}
+      <div className="admin-orgs__controls-card">
+        <nav className="admin-orgs__tabs" role="tablist" aria-label="Organization status filters">
+          {STATUS_TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                className={`admin-orgs__tab ${isActive ? 'admin-orgs__tab--active' : ''}`}
+                onClick={() => setActiveTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="admin-orgs__search-row">
+          <div className="admin-orgs__search-wrap">
+            <span className="admin-orgs__search-icon" aria-hidden="true">🔍</span>
+            <input
+              type="text"
+              className="admin-orgs__search-input"
+              placeholder="Search by facility name, slug, or email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search organizations"
+            />
+          </div>
+
+          <div className="admin-orgs__count-badge">
+            Showing <strong>{filteredOrganizations.length}</strong> organization{filteredOrganizations.length === 1 ? '' : 's'}
+          </div>
+        </div>
       </div>
 
-      {/* Verification Status Filter Tabs */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '0.5rem',
-          marginBottom: '1.5rem',
-          overflowX: 'auto',
-          paddingBottom: '0.5rem',
-          borderBottom: '1px solid #E6E1D9',
-        }}
-      >
-        {STATUS_TABS.map((tab) => {
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '20px',
-                border: isActive ? '1.5px solid #2F2520' : '1px solid #E6E1D9',
-                background: isActive ? '#2F2520' : '#FFFFFF',
-                color: isActive ? '#FAF8F3' : '#78716C',
-                fontWeight: isActive ? 700 : 500,
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
+      {/* Roster Table Content */}
       {loading ? (
         <LoadingState message="Fetching organization verification queue..." />
       ) : error ? (
-        <div style={{ padding: '1rem', background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#991B1B', borderRadius: '10px' }}>
-          ⚠️ {error}
+        <div className="admin-orgs__reason-alert admin-orgs__reason-alert--rejection" role="alert">
+          <span>⚠️ {error}</span>
+          <button
+            type="button"
+            className="admin-orgs__btn-review"
+            onClick={fetchOrgs}
+            style={{ alignSelf: 'flex-start', marginTop: '0.5rem' }}
+          >
+            Retry Loading
+          </button>
         </div>
-      ) : organizations.length === 0 ? (
-        <EmptyState title="No Organizations Found" message={`No organizations match the filter criteria "${activeTab}".`} />
+      ) : filteredOrganizations.length === 0 ? (
+        <EmptyState
+          title="No Organizations Found"
+          message={
+            searchQuery
+              ? `No organizations match "${searchQuery}".`
+              : `No organizations match the filter criteria "${activeTab}".`
+          }
+        />
       ) : (
-        <div style={{ background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 16px rgba(47, 37, 32, 0.04)' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+        <div className="admin-orgs__table-card">
+          <div className="admin-orgs__table-wrap">
+            <table className="admin-orgs__table">
               <thead>
-                <tr style={{ background: '#FAF8F3', borderBottom: '1px solid #E6E1D9', color: '#78716C', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Facility Name</th>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Contact Info</th>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Verification Status</th>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Docs Count</th>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Submitted Date</th>
-                  <th style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>Actions</th>
+                <tr>
+                  <th className="admin-orgs__th">Facility Name</th>
+                  <th className="admin-orgs__th">Contact Info</th>
+                  <th className="admin-orgs__th">Verification Status</th>
+                  <th className="admin-orgs__th">Docs Count</th>
+                  <th className="admin-orgs__th">Submitted Date</th>
+                  <th className="admin-orgs__th admin-orgs__th--right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {organizations.map((org) => {
-                  const badge = STATUS_BADGE_STYLE[org.verification_status] || STATUS_BADGE_STYLE.SETUP_INCOMPLETE;
+                {filteredOrganizations.map((org) => {
+                  const statusKey = org.verification_status || 'SETUP_INCOMPLETE';
+                  const statusLabel = STATUS_BADGE_LABELS[statusKey] || statusKey;
                   const docsCount = org.documents ? org.documents.length : (org.documents_count ?? 0);
+
                   return (
-                    <tr key={org.id} style={{ borderBottom: '1px solid #FAF8F3' }}>
-                      <td style={{ padding: '0.85rem 1.25rem', fontWeight: 700, color: '#211C19' }}>
-                        <div>🏢 {org.name}</div>
-                        <div style={{ fontSize: '0.78rem', color: '#5F7A70', fontFamily: 'monospace', fontWeight: 400 }}>{org.slug}</div>
+                    <tr key={org.id} className="admin-orgs__tr">
+                      <td className="admin-orgs__td">
+                        <div className="admin-orgs__facility-title">
+                          <span>🏢</span> {org.name}
+                        </div>
+                        <div className="admin-orgs__facility-slug">{org.slug}</div>
                       </td>
-                      <td style={{ padding: '0.85rem 1.25rem', color: '#78716C', fontSize: '0.85rem' }}>
-                        <div>{org.email || org.contact_email || 'No email'}</div>
-                        <div>{org.phone_number || 'No phone'}</div>
+                      <td className="admin-orgs__td">
+                        <div className="admin-orgs__contact-meta">
+                          <div>{org.email || org.contact_email || 'No email'}</div>
+                          <div>{org.phone_number || 'No phone'}</div>
+                        </div>
                       </td>
-                      <td style={{ padding: '0.85rem 1.25rem' }}>
-                        <span
-                          style={{
-                            padding: '0.3rem 0.65rem',
-                            borderRadius: '12px',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            background: badge.bg,
-                            color: badge.color,
-                            textTransform: 'uppercase',
-                          }}
-                        >
-                          {badge.label}
+                      <td className="admin-orgs__td">
+                        <span className={`admin-orgs__status-badge admin-orgs__status-badge--${statusKey}`}>
+                          {statusLabel}
                         </span>
                       </td>
-                      <td style={{ padding: '0.85rem 1.25rem', fontWeight: 600, color: '#211C19' }}>
-                        📄 {docsCount} File{docsCount === 1 ? '' : 's'}
+                      <td className="admin-orgs__td">
+                        <span style={{ fontWeight: 600 }}>
+                          📄 {docsCount} File{docsCount === 1 ? '' : 's'}
+                        </span>
                       </td>
-                      <td style={{ padding: '0.85rem 1.25rem', color: '#78716C', fontSize: '0.82rem' }}>
-                        {org.verification_submitted_at ? new Date(org.verification_submitted_at).toLocaleDateString() : '—'}
+                      <td className="admin-orgs__td" style={{ color: 'var(--color-text-muted, #78716C)' }}>
+                        {org.verification_submitted_at
+                          ? new Date(org.verification_submitted_at).toLocaleDateString()
+                          : '—'}
                       </td>
-                      <td style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>
+                      <td className="admin-orgs__td admin-orgs__td--right">
                         <button
+                          type="button"
+                          className="admin-orgs__btn-review"
                           onClick={() => openReviewModal(org)}
-                          style={{
-                            padding: '0.45rem 0.85rem',
-                            background: '#FAF8F3',
-                            border: '1px solid #E6E1D9',
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.82rem',
-                            color: '#211C19',
-                            cursor: 'pointer',
-                          }}
                         >
                           {org.verification_status === 'SUBMITTED'
                             ? '🔍 Review Submission'
@@ -385,139 +399,122 @@ export function AdminOrganizationsPage() {
       {/* Review Verification & Inspection Modal */}
       {reviewOrg && (
         <div
+          className="admin-orgs__modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="review-modal-title"
           onClick={() => setReviewOrg(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(33, 28, 25, 0.55)',
-            display: 'flex',
-            alignItems: 'center',
-            justify: 'center',
-            padding: '1.5rem',
-            zIndex: 1000,
-            backdropFilter: 'blur(4px)',
-          }}
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: '#FFFFFF',
-              borderRadius: '16px',
-              border: '1px solid #E6E1D9',
-              padding: '1.75rem',
-              width: '100%',
-              maxWidth: '750px',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', paddingBottom: '0.75rem', borderBottom: '1px solid #E6E1D9' }}>
+          <div className="admin-orgs__modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-orgs__modal-header">
               <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#78716C', textTransform: 'uppercase' }}>
-                  Verification Review Inspection
-                </div>
-                <h2 style={{ margin: '0.2rem 0 0 0', fontSize: '1.4rem', color: '#211C19', fontFamily: 'Cinzel, serif' }}>
+                <span className="admin-orgs__eyebrow">Verification Review Inspection</span>
+                <h2 id="review-modal-title" className="admin-orgs__modal-title">
                   🏢 {reviewOrg.name}
                 </h2>
               </div>
-              <button onClick={() => setReviewOrg(null)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
+              <button
+                type="button"
+                className="admin-orgs__modal-close"
+                onClick={() => setReviewOrg(null)}
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
             </div>
 
             {actionError && (
-              <div style={{ padding: '0.75rem 1rem', background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#991B1B', borderRadius: '8px', marginBottom: '1.25rem', fontSize: '0.88rem' }}>
-                ⚠️ {actionError}
+              <div className="admin-orgs__reason-alert admin-orgs__reason-alert--rejection" role="alert">
+                <span>⚠️ {actionError}</span>
               </div>
             )}
 
-            {/* Verification Status Badge & Meta */}
-            <div style={{ background: '#FAF8F3', padding: '1rem', borderRadius: '12px', border: '1px solid #E6E1D9', marginBottom: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 600 }}>Current Status</div>
-                <span
-                  style={{
-                    display: 'inline-block',
-                    marginTop: '0.2rem',
-                    padding: '0.25rem 0.65rem',
-                    borderRadius: '12px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    background: (STATUS_BADGE_STYLE[reviewOrg.verification_status] || STATUS_BADGE_STYLE.SETUP_INCOMPLETE).bg,
-                    color: (STATUS_BADGE_STYLE[reviewOrg.verification_status] || STATUS_BADGE_STYLE.SETUP_INCOMPLETE).color,
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  {(STATUS_BADGE_STYLE[reviewOrg.verification_status] || STATUS_BADGE_STYLE.SETUP_INCOMPLETE).label}
+            {/* Status & Dates Metadata Grid */}
+            <div className="admin-orgs__meta-grid">
+              <div className="admin-orgs__meta-item">
+                <span className="admin-orgs__meta-label">Current Status</span>
+                <div>
+                  <span className={`admin-orgs__status-badge admin-orgs__status-badge--${reviewOrg.verification_status || 'SETUP_INCOMPLETE'}`}>
+                    {STATUS_BADGE_LABELS[reviewOrg.verification_status] || reviewOrg.verification_status || 'Incomplete Setup'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="admin-orgs__meta-item">
+                <span className="admin-orgs__meta-label">Submitted At</span>
+                <span className="admin-orgs__meta-val">
+                  {reviewOrg.verification_submitted_at
+                    ? new Date(reviewOrg.verification_submitted_at).toLocaleString()
+                    : 'Not submitted yet'}
                 </span>
               </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 600 }}>Submitted At</div>
-                <div style={{ fontWeight: 600, color: '#211C19', fontSize: '0.88rem', marginTop: '0.2rem' }}>
-                  {reviewOrg.verification_submitted_at ? new Date(reviewOrg.verification_submitted_at).toLocaleString() : 'Not submitted yet'}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: '#78716C', textTransform: 'uppercase', fontWeight: 600 }}>Reviewed At / By</div>
-                <div style={{ fontWeight: 600, color: '#211C19', fontSize: '0.88rem', marginTop: '0.2rem' }}>
-                  {reviewOrg.verification_reviewed_at ? new Date(reviewOrg.verification_reviewed_at).toLocaleDateString() : 'Pending review'}
-                </div>
+
+              <div className="admin-orgs__meta-item">
+                <span className="admin-orgs__meta-label">Reviewed At / By</span>
+                <span className="admin-orgs__meta-val">
+                  {reviewOrg.verification_reviewed_at
+                    ? new Date(reviewOrg.verification_reviewed_at).toLocaleDateString()
+                    : 'Pending review'}
+                </span>
               </div>
             </div>
 
-            {/* Rejection / Suspension details if present */}
+            {/* Rejection / Suspension Notice */}
             {reviewOrg.verification_rejection_reason && (
-              <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', padding: '0.85rem 1rem', borderRadius: '10px', marginBottom: '1.25rem', color: '#991B1B' }}>
-                <div style={{ fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase' }}>Rejection Reason:</div>
-                <div style={{ fontSize: '0.9rem', marginTop: '0.25rem' }}>"{reviewOrg.verification_rejection_reason}"</div>
+              <div className="admin-orgs__reason-alert admin-orgs__reason-alert--rejection">
+                <strong style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>Rejection Reason:</strong>
+                <div>"{reviewOrg.verification_rejection_reason}"</div>
               </div>
             )}
             {reviewOrg.verification_suspension_reason && (
-              <div style={{ background: '#FEF2F2', border: '1px solid #991B1B', padding: '0.85rem 1rem', borderRadius: '10px', marginBottom: '1.25rem', color: '#7F1D1D' }}>
-                <div style={{ fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase' }}>Suspension Reason:</div>
-                <div style={{ fontSize: '0.9rem', marginTop: '0.25rem' }}>"{reviewOrg.verification_suspension_reason}"</div>
+              <div className="admin-orgs__reason-alert admin-orgs__reason-alert--suspension">
+                <strong style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>Suspension Reason:</strong>
+                <div>"{reviewOrg.verification_suspension_reason}"</div>
               </div>
             )}
 
             {/* Facility Details */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '1rem', color: '#211C19', fontWeight: 700 }}>
-                Facility Details & Contact Information
-              </h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', fontSize: '0.9rem' }}>
-                <div><strong style={{ color: '#78716C' }}>Email:</strong> {reviewOrg.email || reviewOrg.contact_email || '—'}</div>
-                <div><strong style={{ color: '#78716C' }}>Phone:</strong> {reviewOrg.phone_number || '—'}</div>
-                <div><strong style={{ color: '#78716C' }}>URL Slug:</strong> {reviewOrg.slug}</div>
-                <div style={{ gridColumn: '1 / -1' }}><strong style={{ color: '#78716C' }}>Address:</strong> {reviewOrg.address || '—'}</div>
+            <div>
+              <h3 className="admin-orgs__section-title">Facility Details & Contact Information</h3>
+              <div className="admin-orgs__meta-grid">
+                <div><strong style={{ color: 'var(--color-text-muted, #78716C)' }}>Email:</strong> {reviewOrg.email || reviewOrg.contact_email || '—'}</div>
+                <div><strong style={{ color: 'var(--color-text-muted, #78716C)' }}>Phone:</strong> {reviewOrg.phone_number || '—'}</div>
+                <div><strong style={{ color: 'var(--color-text-muted, #78716C)' }}>URL Slug:</strong> {reviewOrg.slug}</div>
+                <div style={{ gridColumn: '1 / -1' }}><strong style={{ color: 'var(--color-text-muted, #78716C)' }}>Address:</strong> {reviewOrg.address || '—'}</div>
               </div>
             </div>
 
-            {/* Document Viewer Section */}
-            <div style={{ marginBottom: '1.75rem' }}>
-              <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '1rem', color: '#211C19', fontWeight: 700 }}>
+            {/* Uploaded Documents */}
+            <div>
+              <h3 className="admin-orgs__section-title">
                 Uploaded Verification Documents ({reviewOrg.documents ? reviewOrg.documents.length : 0})
-              </h4>
+              </h3>
               {!reviewOrg.documents || reviewOrg.documents.length === 0 ? (
-                <div style={{ padding: '1rem', background: '#FAF8F3', borderRadius: '8px', color: '#78716C', fontSize: '0.85rem' }}>
+                <div style={{ padding: '1rem', backgroundColor: 'var(--color-bg-subtle, #F3F0EA)', borderRadius: '10px', color: 'var(--color-text-muted, #78716C)', fontSize: '0.85rem' }}>
                   ⚠️ No verification documents uploaded for this organization.
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto', border: '1px solid #E6E1D9', borderRadius: '10px' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <div className="admin-orgs__docs-table-wrap">
+                  <table className="admin-orgs__table">
                     <thead>
-                      <tr style={{ background: '#FAF8F3', borderBottom: '1px solid #E6E1D9', color: '#78716C', textAlign: 'left' }}>
-                        <th style={{ padding: '0.65rem 0.85rem' }}>Type</th>
-                        <th style={{ padding: '0.65rem 0.85rem' }}>Title</th>
-                        <th style={{ padding: '0.65rem 0.85rem' }}>Uploaded Date</th>
-                        <th style={{ padding: '0.65rem 0.85rem' }}>File Link</th>
+                      <tr>
+                        <th className="admin-orgs__th">Type</th>
+                        <th className="admin-orgs__th">Title</th>
+                        <th className="admin-orgs__th">Uploaded Date</th>
+                        <th className="admin-orgs__th admin-orgs__th--right">File Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {reviewOrg.documents.map((doc) => (
-                        <tr key={doc.id} style={{ borderBottom: '1px solid #FAF8F3' }}>
-                          <td style={{ padding: '0.65rem 0.85rem', fontWeight: 600 }}>{DOC_TYPE_LABELS[doc.document_type] || doc.document_type}</td>
-                          <td style={{ padding: '0.65rem 0.85rem' }}>{doc.title || '—'}</td>
-                          <td style={{ padding: '0.65rem 0.85rem', color: '#78716C' }}>{doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : '—'}</td>
-                          <td style={{ padding: '0.65rem 0.85rem' }}>
+                        <tr key={doc.id} className="admin-orgs__tr">
+                          <td className="admin-orgs__td" style={{ fontWeight: 600 }}>
+                            {DOC_TYPE_LABELS[doc.document_type] || doc.document_type}
+                          </td>
+                          <td className="admin-orgs__td">{doc.title || '—'}</td>
+                          <td className="admin-orgs__td" style={{ color: 'var(--color-text-muted, #78716C)' }}>
+                            {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : '—'}
+                          </td>
+                          <td className="admin-orgs__td admin-orgs__td--right">
                             {doc.file ? (
                               <PrivateDocumentButton url={doc.file} filename={doc.original_filename} />
                             ) : (
@@ -532,95 +529,69 @@ export function AdminOrganizationsPage() {
               )}
             </div>
 
-            {/* Action Bar based on state */}
-            <div style={{ paddingTop: '1.25rem', borderTop: '1px solid #E6E1D9' }}>
-              {/* If SUBMITTED: Start Review */}
+            {/* Action Bar Based on State */}
+            <div className="admin-orgs__action-bar">
+              {/* SUBMITTED: Start Review */}
               {reviewOrg.verification_status === 'SUBMITTED' && (
-                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => handleStartReview(reviewOrg.id)}
-                    disabled={actionLoading}
-                    style={{
-                      padding: '0.65rem 1.5rem',
-                      background: '#1E40AF',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: 600,
-                      fontSize: '0.9rem',
-                      cursor: actionLoading ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {actionLoading ? 'Starting...' : '🔍 Start Active Review'}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="admin-orgs__btn-action-start"
+                  onClick={() => handleStartReview(reviewOrg.id)}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? 'Starting...' : '🔍 Start Active Review'}
+                </button>
               )}
 
-              {/* If UNDER_REVIEW: Approve or Reject */}
+              {/* UNDER_REVIEW: Approve or Reject */}
               {reviewOrg.verification_status === 'UNDER_REVIEW' && !showRejectForm && (
-                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <>
                   <button
+                    type="button"
+                    className="admin-orgs__btn-action-reject"
                     onClick={() => setShowRejectForm(true)}
                     disabled={actionLoading}
-                    style={{
-                      padding: '0.65rem 1.25rem',
-                      background: '#FEF2F2',
-                      border: '1px solid #FCA5A5',
-                      color: '#991B1B',
-                      borderRadius: '8px',
-                      fontWeight: 600,
-                      fontSize: '0.9rem',
-                      cursor: actionLoading ? 'not-allowed' : 'pointer',
-                    }}
                   >
                     ❌ Reject Verification
                   </button>
                   <button
+                    type="button"
+                    className="admin-orgs__btn-action-approve"
                     onClick={() => handleApprove(reviewOrg.id)}
                     disabled={actionLoading}
-                    style={{
-                      padding: '0.65rem 1.5rem',
-                      background: '#5F7A70',
-                      color: '#FAF8F3',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: 600,
-                      fontSize: '0.9rem',
-                      cursor: actionLoading ? 'not-allowed' : 'pointer',
-                    }}
                   >
                     {actionLoading ? 'Approving...' : '✅ Approve Verification'}
                   </button>
-                </div>
+                </>
               )}
 
               {/* Reject Reason Form */}
               {showRejectForm && (
-                <div style={{ background: '#FEF2F2', padding: '1.25rem', borderRadius: '12px', border: '1px solid #FCA5A5' }}>
-                  <h4 style={{ margin: '0 0 0.5rem 0', color: '#991B1B', fontSize: '0.95rem' }}>
+                <div className="admin-orgs__reason-form" style={{ width: '100%' }}>
+                  <h4 style={{ margin: 0, color: 'var(--color-error, #B4534B)', fontSize: '0.95rem' }}>
                     Specify Rejection Reason (Required)
                   </h4>
                   <textarea
                     rows={3}
                     required
+                    className="admin-orgs__textarea"
                     value={actionReason}
                     onChange={(e) => setActionReason(e.target.value)}
                     placeholder="Enter explicit rejection details for manager feedback..."
-                    style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #FCA5A5', fontSize: '0.9rem', marginBottom: '0.85rem' }}
                   />
                   <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                     <button
                       type="button"
+                      className="admin-orgs__btn-review"
                       onClick={() => setShowRejectForm(false)}
-                      style={{ padding: '0.5rem 1rem', background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer' }}
                     >
                       Cancel
                     </button>
                     <button
                       type="button"
+                      className="admin-orgs__btn-action-reject"
                       onClick={() => handleReject(reviewOrg.id)}
                       disabled={actionLoading || !actionReason.trim()}
-                      style={{ padding: '0.5rem 1.25rem', background: '#991B1B', color: '#FFFFFF', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
                     >
                       {actionLoading ? 'Rejecting...' : 'Confirm Rejection'}
                     </button>
@@ -628,55 +599,45 @@ export function AdminOrganizationsPage() {
                 </div>
               )}
 
-              {/* If APPROVED: Option to Suspend */}
+              {/* APPROVED: Suspend */}
               {reviewOrg.verification_status === 'APPROVED' && !showSuspendForm && (
-                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => setShowSuspendForm(true)}
-                    disabled={actionLoading}
-                    style={{
-                      padding: '0.65rem 1.25rem',
-                      background: '#7F1D1D',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: 600,
-                      fontSize: '0.9rem',
-                      cursor: actionLoading ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    ⛔ Suspend Organization
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="admin-orgs__btn-action-suspend"
+                  onClick={() => setShowSuspendForm(true)}
+                  disabled={actionLoading}
+                >
+                  ⛔ Suspend Organization
+                </button>
               )}
 
               {/* Suspend Reason Form */}
               {showSuspendForm && (
-                <div style={{ background: '#FEF2F2', padding: '1.25rem', borderRadius: '12px', border: '1px solid #991B1B' }}>
-                  <h4 style={{ margin: '0 0 0.5rem 0', color: '#7F1D1D', fontSize: '0.95rem' }}>
+                <div className="admin-orgs__reason-form" style={{ width: '100%' }}>
+                  <h4 style={{ margin: 0, color: '#7F1D1D', fontSize: '0.95rem' }}>
                     Specify Suspension Reason (Required)
                   </h4>
                   <textarea
                     rows={3}
                     required
+                    className="admin-orgs__textarea"
                     value={actionReason}
                     onChange={(e) => setActionReason(e.target.value)}
                     placeholder="Enter compliance or policy violation reason for suspension..."
-                    style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #991B1B', fontSize: '0.9rem', marginBottom: '0.85rem' }}
                   />
                   <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                     <button
                       type="button"
+                      className="admin-orgs__btn-review"
                       onClick={() => setShowSuspendForm(false)}
-                      style={{ padding: '0.5rem 1rem', background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer' }}
                     >
                       Cancel
                     </button>
                     <button
                       type="button"
+                      className="admin-orgs__btn-action-suspend"
                       onClick={() => handleSuspend(reviewOrg.id)}
                       disabled={actionLoading || !actionReason.trim()}
-                      style={{ padding: '0.5rem 1.25rem', background: '#7F1D1D', color: '#FFFFFF', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
                     >
                       {actionLoading ? 'Suspending...' : 'Confirm Suspension'}
                     </button>
@@ -684,26 +645,16 @@ export function AdminOrganizationsPage() {
                 </div>
               )}
 
-              {/* If SUSPENDED: Option to Unsuspend */}
+              {/* SUSPENDED: Unsuspend */}
               {reviewOrg.verification_status === 'SUSPENDED' && (
-                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => handleUnsuspend(reviewOrg.id)}
-                    disabled={actionLoading}
-                    style={{
-                      padding: '0.65rem 1.5rem',
-                      background: '#5F7A70',
-                      color: '#FAF8F3',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: 600,
-                      fontSize: '0.9rem',
-                      cursor: actionLoading ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {actionLoading ? 'Restoring...' : '🔄 Unsuspend & Restore Approval'}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="admin-orgs__btn-action-unsuspend"
+                  onClick={() => handleUnsuspend(reviewOrg.id)}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? 'Restoring...' : '🔄 Unsuspend & Restore Approval'}
+                </button>
               )}
             </div>
           </div>
@@ -712,78 +663,111 @@ export function AdminOrganizationsPage() {
 
       {/* Create Organization Modal */}
       {showCreateModal && (
-        <div onClick={() => setShowCreateModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(33, 28, 25, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 1000, backdropFilter: 'blur(3px)' }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E6E1D9', padding: '1.75rem', width: '100%', maxWidth: '500px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#211C19' }}>Register New Organization Tenant</h3>
-              <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
+        <div
+          className="admin-orgs__modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-org-modal-title"
+          onClick={() => setShowCreateModal(false)}
+        >
+          <div className="admin-orgs__modal-card admin-orgs__modal-card--narrow" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-orgs__modal-header">
+              <h3 id="create-org-modal-title" className="admin-orgs__modal-title">
+                Register New Organization
+              </h3>
+              <button
+                type="button"
+                className="admin-orgs__modal-close"
+                onClick={() => setShowCreateModal(false)}
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
             </div>
 
             {modalError && (
-              <div style={{ padding: '0.75rem', background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#991B1B', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.85rem' }}>
-                ⚠️ {modalError}
+              <div className="admin-orgs__reason-alert admin-orgs__reason-alert--rejection" role="alert">
+                <span>⚠️ {modalError}</span>
               </div>
             )}
 
-            <form onSubmit={handleCreateOrg}>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Facility Name *</label>
+            <form onSubmit={handleCreateOrg} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--color-text-main, #211C19)' }}>
+                  Facility Name *
+                </label>
                 <input
                   type="text"
                   required
+                  className="admin-orgs__search-input"
+                  style={{ paddingLeft: '0.85rem' }}
                   value={newOrgForm.name}
-                  onChange={(e) => setNewOrgForm({ ...newOrgForm, name: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-') })}
+                  onChange={(e) =>
+                    setNewOrgForm({
+                      ...newOrgForm,
+                      name: e.target.value,
+                      slug: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+                    })
+                  }
                   placeholder="Metro Care Hospital"
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid #E6E1D9', background: '#FAF8F3' }}
                 />
               </div>
 
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>URL Slug *</label>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--color-text-main, #211C19)' }}>
+                  URL Slug *
+                </label>
                 <input
                   type="text"
                   required
+                  className="admin-orgs__search-input"
+                  style={{ paddingLeft: '0.85rem' }}
                   value={newOrgForm.slug}
                   onChange={(e) => setNewOrgForm({ ...newOrgForm, slug: e.target.value })}
                   placeholder="metro-care"
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid #E6E1D9', background: '#FAF8F3' }}
                 />
               </div>
 
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Contact Email</label>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--color-text-main, #211C19)' }}>
+                  Contact Email
+                </label>
                 <input
                   type="email"
+                  className="admin-orgs__search-input"
+                  style={{ paddingLeft: '0.85rem' }}
                   value={newOrgForm.contact_email}
                   onChange={(e) => setNewOrgForm({ ...newOrgForm, contact_email: e.target.value })}
                   placeholder="admin@metrocare.com"
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid #E6E1D9', background: '#FAF8F3' }}
                 />
               </div>
 
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Phone Number</label>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--color-text-main, #211C19)' }}>
+                  Phone Number
+                </label>
                 <input
                   type="text"
+                  className="admin-orgs__search-input"
+                  style={{ paddingLeft: '0.85rem' }}
                   value={newOrgForm.phone_number}
                   onChange={(e) => setNewOrgForm({ ...newOrgForm, phone_number: e.target.value })}
                   placeholder="+1 555-0192"
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid #E6E1D9', background: '#FAF8F3' }}
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '0.5rem' }}>
                 <button
                   type="button"
+                  className="admin-orgs__btn-review"
                   onClick={() => setShowCreateModal(false)}
-                  style={{ padding: '0.65rem 1.25rem', background: '#FFFFFF', border: '1px solid #E6E1D9', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
-                  style={{ padding: '0.65rem 1.25rem', background: '#2F2520', color: '#FAF8F3', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
+                  className="admin-orgs__btn-register"
                 >
                   {creating ? 'Creating...' : 'Create Organization'}
                 </button>
@@ -797,4 +781,3 @@ export function AdminOrganizationsPage() {
 }
 
 export default AdminOrganizationsPage;
-
