@@ -82,38 +82,149 @@ class OrganizationService:
         Updates membership role or active status.
         Protects against deactivating or demoting the last active MANAGER of an organization
         using PostgreSQL select_for_update row-locking.
+        Enforces immutable provider membership roles (D-BESAFE-9) and provider deactivation guards.
         """
         with transaction.atomic():
-            # Lock the parent organization row to serialize concurrent manager updates
+            from apps.providers.models import ProviderProfile
+            from apps.providers.services import ProviderBizService
+
+            # Probe ProviderProfile first by membership_id under exclusive row lock.
+            # Preserves canonical order: ProviderProfile -> OrganizationMembership.
+            provider_profile = ProviderProfile.objects.select_for_update().filter(
+                membership_id=membership.id
+            ).first()
+
+            if provider_profile is not None:
+                # BRANCH 1: PROVIDER OPERATIONAL DOMAIN
+                # D-BESAFE-9: Provider-linked role is immutable.
+                if new_role is not None and new_role != OrganizationMembership.Role.PROVIDER:
+                    raise ApplicationError(
+                        message="Cannot change the role of a provider membership. Use provider deactivation.",
+                        code="CANNOT_CHANGE_PROVIDER_ROLE",
+                        status_code=400,
+                    )
+
+                # Lock the membership row directly
+                locked_membership = OrganizationMembership.objects.select_for_update().get(id=membership.id)
+
+                # Obligation check if deactivating membership
+                is_deactivating = (new_is_active is False and locked_membership.is_active is True)
+                if is_deactivating:
+                    obligations = ProviderBizService.get_provider_unresolved_obligations(
+                        provider_id=provider_profile.id,
+                        organization_id=locked_membership.organization_id,
+                    )
+                    if any(count > 0 for count in obligations.values()):
+                        raise ApplicationError(
+                            message="Provider cannot be deactivated while unresolved appointments, active queue entries, or emergency obligations exist.",
+                            code="PROVIDER_HAS_UNRESOLVED_OBLIGATIONS",
+                            status_code=400,
+                            details=obligations,
+                        )
+
+                role_changed = (new_role is not None and new_role != locked_membership.role)
+                active_changed = (new_is_active is not None and new_is_active != locked_membership.is_active)
+                if not role_changed and not active_changed:
+                    return locked_membership
+
+                was_op = provider_profile.is_operationally_active
+
+                if new_role is not None:
+                    locked_membership.role = new_role
+                if new_is_active is not None:
+                    locked_membership.is_active = new_is_active
+                locked_membership.save()
+
+                AuditService.record(
+                    action='MEMBERSHIP_UPDATED',
+                    entity_type='OrganizationMembership',
+                    entity_id=locked_membership.id,
+                    organization_id=locked_membership.organization_id,
+                    actor=actor,
+                    metadata={'role': locked_membership.role, 'is_active': locked_membership.is_active},
+                )
+
+                provider_profile.refresh_from_db()
+                now_op = provider_profile.is_operationally_active
+                if was_op and not now_op:
+                    AuditService.record(
+                        action='PROVIDER_DEACTIVATED',
+                        entity_type='ProviderProfile',
+                        entity_id=provider_profile.id,
+                        organization_id=locked_membership.organization_id,
+                        actor=actor,
+                        metadata={
+                            'trigger': 'membership_deactivation',
+                            'previous_operational_state': True,
+                            'new_operational_state': False,
+                            'changed_flag': 'membership.is_active',
+                        },
+                    )
+                elif not was_op and now_op:
+                    AuditService.record(
+                        action='PROVIDER_ACTIVATED',
+                        entity_type='ProviderProfile',
+                        entity_id=provider_profile.id,
+                        organization_id=locked_membership.organization_id,
+                        actor=actor,
+                        metadata={
+                            'trigger': 'membership_activation',
+                            'previous_operational_state': False,
+                            'new_operational_state': True,
+                            'changed_flag': 'membership.is_active',
+                        },
+                    )
+
+                return locked_membership
+
+            # BRANCH 2: GOVERNANCE DOMAIN (Managers & Staff without ProviderProfile)
+            # Lock parent organization to serialize concurrent manager updates
             Organization.objects.select_for_update().get(id=membership.organization_id)
+            locked_membership = OrganizationMembership.objects.select_for_update().get(id=membership.id)
+
+            # Re-probe: Did concurrent onboarding create a ProviderProfile?
+            if ProviderProfile.objects.filter(membership_id=locked_membership.id).exists():
+                raise ApplicationError(
+                    message="A provider profile was created concurrently for this membership. Please retry the request.",
+                    code="CONCURRENT_PROVIDER_CREATION_CONFLICT",
+                    status_code=409,
+                )
 
             # Evaluate last manager protection rule if altering a MANAGER membership
-            if membership.role == OrganizationMembership.Role.MANAGER:
-                is_deactivating = (new_is_active is False)
+            if locked_membership.role == OrganizationMembership.Role.MANAGER:
+                is_deactivating = (new_is_active is False and locked_membership.is_active is True)
                 is_demoting = (new_role is not None and new_role != OrganizationMembership.Role.MANAGER)
 
                 if is_deactivating or is_demoting:
                     other_active_managers_count = OrganizationMembership.objects.filter(
-                        organization_id=membership.organization_id,
+                        organization_id=locked_membership.organization_id,
                         role=OrganizationMembership.Role.MANAGER,
                         is_active=True
-                    ).exclude(id=membership.id).count()
+                    ).exclude(id=locked_membership.id).count()
 
                     if other_active_managers_count == 0:
                         raise LastManagerProtectionException()
 
-            if new_role is not None:
-                membership.role = new_role
-            if new_is_active is not None:
-                membership.is_active = new_is_active
+            role_changed = (new_role is not None and new_role != locked_membership.role)
+            active_changed = (new_is_active is not None and new_is_active != locked_membership.is_active)
+            if not role_changed and not active_changed:
+                return locked_membership
 
-            membership.save()
+            if new_role is not None:
+                locked_membership.role = new_role
+            if new_is_active is not None:
+                locked_membership.is_active = new_is_active
+
+            locked_membership.save()
             AuditService.record(
-                action='MEMBERSHIP_UPDATED', entity_type='OrganizationMembership', entity_id=membership.id,
-                organization_id=membership.organization_id, actor=actor,
-                metadata={'role': membership.role, 'is_active': membership.is_active},
+                action='MEMBERSHIP_UPDATED',
+                entity_type='OrganizationMembership',
+                entity_id=locked_membership.id,
+                organization_id=locked_membership.organization_id,
+                actor=actor,
+                metadata={'role': locked_membership.role, 'is_active': locked_membership.is_active},
             )
-            return membership
+            return locked_membership
 
     @staticmethod
     def submit_verification(*, organization, actor):

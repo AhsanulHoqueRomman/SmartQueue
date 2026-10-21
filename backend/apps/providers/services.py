@@ -74,32 +74,90 @@ class ProviderService_:
           - membership.role == PROVIDER
           - no existing ProviderProfile for that membership
         """
-        try:
-            membership = OrganizationMembership.objects.get(
-                id=membership_id,
-                organization=organization,
+        with transaction.atomic():
+            try:
+                membership = OrganizationMembership.objects.select_for_update().get(
+                    id=membership_id,
+                    organization=organization,
+                    is_active=True,
+                )
+            except OrganizationMembership.DoesNotExist:
+                raise ApplicationError(
+                    message="Membership not found within this organization.",
+                    code="MEMBERSHIP_NOT_FOUND",
+                    status_code=404
+                )
+
+            if membership.role != OrganizationMembership.Role.PROVIDER:
+                raise ProviderNotProviderRoleException()
+
+            if hasattr(membership, 'provider_profile'):
+                raise ProviderAlreadyExistsException()
+
+            return ProviderProfile.objects.create(
+                membership=membership,
+                bio=bio,
+                title=title,
+                average_service_minutes=average_service_minutes,
                 is_active=True,
             )
-        except OrganizationMembership.DoesNotExist:
-            raise ApplicationError(
-                message="Membership not found within this organization.",
-                code="MEMBERSHIP_NOT_FOUND",
-                status_code=404
-            )
 
-        if membership.role != OrganizationMembership.Role.PROVIDER:
-            raise ProviderNotProviderRoleException()
+    @staticmethod
+    def get_provider_unresolved_obligations(*, provider_id, organization_id) -> dict[str, int]:
+        """
+        Calculates itemized unresolved obligations blocking provider deactivation.
+        Scoped strictly by provider_id and organization_id across 4 distinct categories.
+        """
+        from apps.appointments.models import Appointment
+        from apps.queue.models import QueueEntry
+        from .emergency_models import ProviderEmergency, EmergencyRecovery
 
-        if hasattr(membership, 'provider_profile'):
-            raise ProviderAlreadyExistsException()
+        non_terminal_appointment_statuses = [
+            Appointment.Status.PENDING,
+            Appointment.Status.CONFIRMED,
+            Appointment.Status.CHECKED_IN,
+            Appointment.Status.IN_PROGRESS,
+        ]
+        appointments_count = Appointment.objects.filter(
+            provider_id=provider_id,
+            organization_id=organization_id,
+            status__in=non_terminal_appointment_statuses,
+        ).count()
 
-        return ProviderProfile.objects.create(
-            membership=membership,
-            bio=bio,
-            title=title,
-            average_service_minutes=average_service_minutes,
-            is_active=True,
-        )
+        unresolved_queue_statuses = [
+            QueueEntry.Status.WAITING,
+            QueueEntry.Status.CALLED,
+            QueueEntry.Status.IN_PROGRESS,
+            QueueEntry.Status.SKIPPED,
+        ]
+        queue_entries_count = QueueEntry.objects.filter(
+            provider_id=provider_id,
+            organization_id=organization_id,
+            status__in=unresolved_queue_statuses,
+        ).count()
+
+        emergency_recoveries_count = EmergencyRecovery.objects.filter(
+            incident__provider_id=provider_id,
+            appointment__organization_id=organization_id,
+            resolution=EmergencyRecovery.Resolution.UNRESOLVED,
+        ).count()
+
+        active_emergency_states = [
+            ProviderEmergency.State.TEMPORARY,
+            ProviderEmergency.State.UNAVAILABLE,
+        ]
+        active_emergencies_count = ProviderEmergency.objects.filter(
+            provider_id=provider_id,
+            provider__membership__organization_id=organization_id,
+            state__in=active_emergency_states,
+        ).count()
+
+        return {
+            'appointments': appointments_count,
+            'queue_entries': queue_entries_count,
+            'emergency_recoveries': emergency_recoveries_count,
+            'active_emergencies': active_emergencies_count,
+        }
 
     @staticmethod
     @transaction.atomic
@@ -121,6 +179,24 @@ class ProviderService_:
                 if result['daily_capacity'] < result['allocated_count']:
                     raise ApplicationError(message='This average service time would reduce capacity below protected bookings.',
                                            code='DURATION_BOOKING_CONFLICT', status_code=409)
+
+        # Obligation check if deactivating provider profile
+        was_op = profile.is_operationally_active
+        was_active = profile.is_active
+        new_is_active = kwargs.get('is_active')
+        if new_is_active is False and was_active is True:
+            obligations = ProviderBizService.get_provider_unresolved_obligations(
+                provider_id=profile.id,
+                organization_id=profile.membership.organization_id,
+            )
+            if any(count > 0 for count in obligations.values()):
+                raise ApplicationError(
+                    message='Provider cannot be deactivated while unresolved appointments, active queue entries, or emergency obligations exist.',
+                    code='PROVIDER_HAS_UNRESOLVED_OBLIGATIONS',
+                    status_code=400,
+                    details=obligations,
+                )
+
         allowed_fields = {
             'bio', 'title', 'profile_photo', 'experience_years',
             'education', 'experience_history', 'certifications',
@@ -130,6 +206,39 @@ class ProviderService_:
             if field in allowed_fields:
                 setattr(profile, field, value)
         profile.save()
+
+        # Emit audit logs if effective operational state transitioned
+        profile.refresh_from_db()
+        now_op = profile.is_operationally_active
+        if was_op and not now_op:
+            AuditService.record(
+                action='PROVIDER_DEACTIVATED',
+                entity_type='ProviderProfile',
+                entity_id=profile.id,
+                organization_id=profile.membership.organization_id,
+                actor=actor,
+                metadata={
+                    'trigger': 'profile_deactivation',
+                    'previous_operational_state': True,
+                    'new_operational_state': False,
+                    'changed_flag': 'profile.is_active',
+                },
+            )
+        elif not was_op and now_op:
+            AuditService.record(
+                action='PROVIDER_ACTIVATED',
+                entity_type='ProviderProfile',
+                entity_id=profile.id,
+                organization_id=profile.membership.organization_id,
+                actor=actor,
+                metadata={
+                    'trigger': 'profile_activation',
+                    'previous_operational_state': False,
+                    'new_operational_state': True,
+                    'changed_flag': 'profile.is_active',
+                },
+            )
+
         return profile
 
     @staticmethod
@@ -168,6 +277,7 @@ class ProviderService_:
         """
         with transaction.atomic():
             provider_profile = ProviderProfile.objects.select_for_update().get(pk=provider_profile.pk)
+            was_op = provider_profile.is_operationally_active
             ProviderService_._require_initial_schedule_manager(provider_profile, manager_user)
             from .schedule_changes import validate_schedule
             schedules = list(provider_profile.weekly_schedules.prefetch_related('breaks'))
@@ -193,6 +303,23 @@ class ProviderService_:
                 organization_id=provider_profile.organization.id,
                 actor=manager_user,
             )
+
+            provider_profile.refresh_from_db()
+            now_op = provider_profile.is_operationally_active
+            if not was_op and now_op:
+                AuditService.record(
+                    action='PROVIDER_ACTIVATED',
+                    entity_type='ProviderProfile',
+                    entity_id=provider_profile.id,
+                    organization_id=provider_profile.organization.id,
+                    actor=manager_user,
+                    metadata={
+                        'trigger': 'application_approved',
+                        'previous_operational_state': False,
+                        'new_operational_state': True,
+                    },
+                )
+
             return provider_profile
 
     @staticmethod
@@ -207,6 +334,12 @@ class ProviderService_:
 
         with transaction.atomic():
             provider_profile = ProviderProfile.objects.select_for_update().get(pk=provider_profile.pk)
+            if provider_profile.application_status == ProviderProfile.ApplicationStatus.APPROVED:
+                raise ApplicationError(
+                    message="Approved provider applications cannot be rejected. Use provider deactivation.",
+                    code="CANNOT_REJECT_APPROVED_PROVIDER",
+                    status_code=400,
+                )
             ProviderService_._require_initial_schedule_manager(provider_profile, manager_user)
             provider_profile.application_status = ProviderProfile.ApplicationStatus.REJECTED
             provider_profile.application_rejection_reason = reason_clean
@@ -405,3 +538,6 @@ class ProviderService_:
         from .leave_requests import LeaveRequestService
         return LeaveRequestService.submit(provider=provider, actor=actor,
             start_datetime=start_datetime, end_datetime=end_datetime, reason=reason)
+
+
+ProviderBizService = ProviderService_

@@ -126,6 +126,8 @@ class EmergencyService:
     def declare(*, provider, actor, service_date, private_reason=''):
         from apps.queue.services import current_business_date
         provider = locked_provider(provider.pk); require(actor, provider, ['PROVIDER', 'MANAGER'])
+        if not provider.is_operationally_active:
+            raise ApplicationError(message='Cannot declare an emergency for an inactive provider.', code='PROVIDER_INACTIVE', status_code=400)
         if service_date > current_business_date():
             raise ApplicationError(message='Future unavailability uses planned leave or schedule review.')
         existing = ProviderEmergency.objects.select_for_update().filter(

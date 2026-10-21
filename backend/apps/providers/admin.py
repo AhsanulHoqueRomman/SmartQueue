@@ -8,6 +8,7 @@ class ProviderProfileAdmin(admin.ModelAdmin):
     list_filter = ['is_active']
     search_fields = ['membership__user__email', 'membership__organization__name', 'title']
     ordering = ['-created_at']
+    readonly_fields = ['is_active', 'application_status']
 
     def has_delete_permission(self, request, obj=None):
         return False

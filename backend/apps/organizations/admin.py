@@ -16,3 +16,4 @@ class OrganizationMembershipAdmin(admin.ModelAdmin):
     list_filter = ('role', 'is_active', 'created_at')
     search_fields = ('user__email', 'organization__name', 'role')
     raw_id_fields = ('user', 'organization')
+    readonly_fields = ['is_active']
