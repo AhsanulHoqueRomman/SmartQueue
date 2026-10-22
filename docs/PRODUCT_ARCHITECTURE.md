@@ -7,7 +7,7 @@
 - **Identity:** QueueTurn — Multi-Tenant Appointment & Queue Management Platform. Tagline: Book a serial. Arrive smarter. Wait less.
 - **Phase/date:** Project Brain Phase 3, 2026-10-09.
 - **Source baseline:** `main`, HEAD `4a9920c3a648c2925dc30956005a1c28a015918f`; existing Phase 2 documentation was untracked at inspection. No application changes accompany this document.
-- **Inputs:** [Historical handoff](references/ORIGINAL_BUSINESS_RULES_HANDOFF.md), [prior baseline assessment](references/BUSINESS_RULE_BASELINE_ASSESSMENT.md), completed Phase 1 evidence mapping, all three Phase 2 canonical documents and current source. Historical/prior-audit claims are evidence, not automatically current behavior.
+- **Inputs:** Historical product handoff and baseline assessment registers, completed Phase 1 evidence mapping, canonical documents, and current source.
 - **Evidence precedence:** executable source; model constraints/migration declarations; inspected test assertions; canonical terminology; historical intent; prior audit; explicit owner decisions for pending policy.
 - **Evidence legend:** S = SOURCE VERIFIED; T = TEST ASSERTION INSPECTED, NOT EXECUTED; H = HISTORICAL INTENT; D = DOCUMENTED, NOT VERIFIED; I = INFERRED; U = UNKNOWN. R = RUNTIME VERIFIED is reserved and unused here.
 - **Limits:** No application imports/execution, database inspection, migration execution, tests, build, browser, servers, external requests or email sends. Configuration is not evidence of running infrastructure. Approximate source locations must be rechecked after source changes.
@@ -91,7 +91,7 @@ S: model declarations below; migration files declare historical changes. Neither
 
 Paths in this table are under `backend/apps/`. Invitations also belong to Organization, with token, creator and optional accepting User links; they are token-scoped onboarding, not a new operational role. Schema examples: `appointments/migrations/0003_appointment_unique_provider_date_serial.py`, `0004_booking_snapshots.py`; `queue/migrations/0004_queueentry_unique_provider_queue_date_serial.py`; `providers/migrations/0003_milestone3_constraints.py`; `organizations/migrations/0009_organizationcredential_organizationoperatinghours.py`. All relative migration examples are within their app's directory.
 
-Snapshot declarations: `booked_service_charge` Decimal(10,2), `contact_name` CharField(300), `contact_phone` CharField(30), all nullable/blank for legacy. Migration 0004 adds only these fields, without fabricating historical values. No immutable booked-duration field exists. BR-025–BR-029. (A future proposal for service-aware ETA and duration snapshots is documented in [SERVICE_AWARE_ETA_FUTURE_PROPOSAL.md](SERVICE_AWARE_ETA_FUTURE_PROPOSAL.md)).
+Snapshot declarations: `booked_service_charge` Decimal(10,2), `contact_name` CharField(300), `contact_phone` CharField(30), all nullable/blank for legacy. Migration 0004 adds only these fields, without fabricating historical values. No immutable booked-duration field exists. BR-025–BR-029. (Service-aware ETA and dedicated duration snapshots are a pending future architectural proposal; current engine uses snapshot pricing and uniform average duration).
 
 ## E. Authentication and tenant context
 
@@ -363,4 +363,4 @@ Additive migrations: `notifications.0003_alter_notification_kind`, `providers.00
 
 `EmailSendResult.outcome_uncertain` adds transport classification without altering legacy success/error callers. The real adapter boundary is tested with mocked SDK timeouts and known rejection/server responses. The emergency ledger maps uncertain outcomes to UNKNOWN and manager retry excludes them. Stable SDK idempotency keys remain. Older pending RESUMED sends are suppressed while another relevant active/final hold exists.
 
-`appointments.capacity.booking_date_filter` centralizes the existing Dhaka-date fallback; allocations and provider-locked booking/self-rescheduling/restoration duplicate checks reuse it. It writes no historical fields. Correction source/tests and exact results are recorded in M2_REGRESSION_RECONCILIATION.md. Development rollout still requires backup, writer shutdown and explicit owner migration approval.
+`appointments.capacity.booking_date_filter` centralizes the existing Dhaka-date fallback; allocations and provider-locked booking/self-rescheduling/restoration duplicate checks reuse it. It writes no historical fields. Correction source and behavior are verified in the backend test suite. Development rollout still requires backup, writer shutdown and explicit owner migration approval.

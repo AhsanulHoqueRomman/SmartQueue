@@ -9,7 +9,7 @@
 - **Phase/date:** Project Brain Phase 2; 2026-10-09.
 - **Scope:** Canonical product behavior, preserved BR-001–BR-062 registry, historical evolution, known deviations and pending owner decisions. This document does not implement fixes.
 - **Source baseline:** `main`, commit `4a9920c`; application source unchanged from Phase 1 at inspection. Locations are approximate and symbols are the durable lookup keys.
-- **Inputs:** [Original handoff](references/ORIGINAL_BUSINESS_RULES_HANDOFF.md), read completely; [baseline assessment](references/BUSINESS_RULE_BASELINE_ASSESSMENT.md), read completely; completed Phase 1 conversation report; targeted current source inspection.
+- **Inputs:** Historical product handoff and baseline assessment registers, completed Phase 1 mapping, and current executable source.
 - **Verification:** Static source and inspected assertions only. No runtime/API/browser/database execution, tests, migrations or builds. No PostgreSQL concurrency or email-delivery certification.
 - **Maintenance:** Preserve IDs. Update source behavior and policy classification together when an authorized change lands. Owner approval must be explicit before changing pending policy. Never convert a finding into an approved rule because code currently behaves that way.
 
@@ -955,7 +955,7 @@ This amendment supersedes the earlier emergency-policy gap in the M2/Batch B his
 - A declaration alone never releases the provider-wide actual active-consultation guard. Provider/manager/staff may explicitly record CALLED/IN_PROGRESS work as interrupted/unfinished (`interrupted_at`) without changing original statuses/timestamps. It remains unresolved, consumes its original fixed allocation and requires assistance; it is excluded from actual running work. Ordinary Start/Skip/Restore cannot restart or reclassify it. Genuine IN_PROGRESS completion may still be recorded through the existing authorized endpoint, once only. Real active work still excludes another consultation across dates.
 - Customer-safe short notifications and full appointment/dashboard details expose no personal/medical reason. In-app creation is durable; email attempts occur after commit using the existing transport. ACCEPTED is not delivered. Retries keep the same dispatch key, never duplicate in-app events, and skip superseded/resolved or uncertain sends. Manager review is required for uncertain delivery. No guaranteed old ETA is restored; current authoritative guidance applies when reliable.
 
-Implementation and isolated test evidence are recorded in `M2_REGRESSION_RECONCILIATION.md`. Development migrations and browser/live delivery acceptance remain pending; no existing development records were migrated or reconciled.
+Implementation and isolated test evidence are verified in the backend test suite. Development migrations and browser/live delivery acceptance remain pending; no existing development records were migrated or reconciled.
 
 ### Targeted emergency corrections — 2026-10-13
 

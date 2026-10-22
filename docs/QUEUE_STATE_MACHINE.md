@@ -6,7 +6,7 @@
 
 - **Phase/date:** Project Brain Phase 2, 2026-10-09; source baseline `main` / `4a9920c`.
 - **Scope:** Linked lifecycle, declared versus implemented transitions, per-operation locking and exact source-level ETA behavior.
-- **Inputs:** [Handoff](references/ORIGINAL_BUSINESS_RULES_HANDOFF.md), [baseline](references/BUSINESS_RULE_BASELINE_ASSESSMENT.md), Phase 1 report and unchanged current executable source. Both references were read completely.
+- **Inputs:** Canonical business rules, product architecture, and current executable source.
 - **Evidence:** S = SOURCE VERIFIED; T = TEST ASSERTION INSPECTED, NOT EXECUTED; H = HISTORICAL PRODUCT INTENT; D = DOCUMENTED BUT NOT VERIFIED; I = INFERRED, REQUIRES VERIFICATION; U = UNKNOWN. R = RUNTIME VERIFIED is unused.
 - **Policy:** APPROVED / ESTABLISHED is explicit intent; CURRENT IMPLEMENTATION can also be a KNOWN DEFECT. POLICY PENDING is not an approved behavior. DEPRECATED / LEGACY and NOT VERIFIED qualify old paths/claims.
 - **Limits:** No runtime, API, database, browser, tests or concurrency execution. Paths are repository-relative; line locations approximate. Source behavior is not a safety certification.
@@ -126,7 +126,7 @@ No statement here certifies deadlock freedom, universal atomic lifecycle safety 
 
 ## ETA and readiness
 
-Authoritative current implementation: `backend/apps/queue/services.py::QueueService.calculate_readiness_and_eta` (approximately 425–692), invoked by queue serialization. All formulas below are **S / CURRENT IMPLEMENTATION**, with policy choices still pending. It is read computation, not a lifecycle transition or readiness-notification writer. (A future non-executable architecture proposal for service-aware workload summation is documented in [SERVICE_AWARE_ETA_FUTURE_PROPOSAL.md](SERVICE_AWARE_ETA_FUTURE_PROPOSAL.md)).
+Authoritative current implementation: `backend/apps/queue/services.py::QueueService.calculate_readiness_and_eta` (approximately 425–692), invoked by queue serialization. All formulas below are **S / CURRENT IMPLEMENTATION**, with policy choices still pending. It is read computation, not a lifecycle transition or readiness-notification writer. (Service-aware workload summation is a pending future architectural proposal; current engine uses uniform provider average duration).
 
 ### Inputs and branch order
 

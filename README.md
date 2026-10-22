@@ -13,7 +13,7 @@ Traditional appointment scheduling forces patients into fixed time slots (e.g., 
 
 ### The QueueTurn Solution
 - **Serial Token Queue Model**: Customers book a serial position for a given date rather than a fixed minute slot.
-- **Fair Effective Ordering**: Queue sequence is strictly ordered by `-is_urgent, serial_number` (urgent cases prioritized, then ordered by serial number).
+- **Fair Effective Ordering**: Calling order is strictly presence-gated and ordered by ascending serial number among checked-in eligible entries. No priority overrides, urgent flags, or booking-channel bypasses exist.
 - **Live Telemetry & ETA Windows**: Dynamic computation of *Your Serial*, *Now Serving*, *People Ahead*, *Estimated Service Time Range*, and *Recommended Arrival Time*.
 - **Readiness States**: Guidance states (`Turn Now`, `Be Ready`, `Get Ready`, `Not Yet`) inform customers when to head to the facility.
 - **Cross-Clinic Customer Dashboard**: Customers manage bookings across multiple independent clinics in a unified interface.
@@ -22,17 +22,34 @@ Traditional appointment scheduling forces patients into fixed time slots (e.g., 
 
 ---
 
+## 📚 Canonical Documentation Index
+
+All authoritative specifications and operational guidelines live in `docs/`:
+
+| Document | Responsibility |
+|---|---|
+| [Business Rules](docs/BUSINESS_RULES.md) | Canonical business rules (BR-001–BR-062), policy decisions (D01–D20), contradiction index |
+| [Product Architecture](docs/PRODUCT_ARCHITECTURE.md) | Subsystem boundaries, models, services, serializers, locks & API contracts |
+| [Queue State Machine](docs/QUEUE_STATE_MACHINE.md) | Queue entry lifecycle, presence gating, status transitions, wait-time formulas |
+| [Role Permission Matrix](docs/ROLE_PERMISSION_MATRIX.md) | Multi-tenant role scopes (Customer, Provider, Staff, Manager, Admin) across endpoints |
+| [Development & Testing](docs/DEVELOPMENT_AND_TESTING.md) | Local environment setup, architecture conventions, test commands & DB safety |
+| [UI Design System](docs/UI_DESIGN_SYSTEM.md) | Design tokens, Warm Sand / Navy themes, density standards, accessible SVG components |
+| [Known Issues](docs/KNOWN_ISSUES.md) | Open defect register (F-001–F-025), severity ratings, acceptance evidence |
+| [Deployment Guide](docs/DEPLOYMENT.md) | Production release prerequisites, environment variables, security checklist |
+
+---
+
 ## 🏗 Architecture & Technology Stack
 
 ### Backend
-- **Framework**: Python 3.12+ / Django 5+ / Django REST Framework (DRF)
-- **Database**: PostgreSQL (Development fallback to SQLite)
+- **Framework**: Python 3.12+ / Django 6.1.1 / Django REST Framework 3.18.1
+- **Database**: PostgreSQL (Development fallback to SQLite via `USE_SQLITE=true`)
 - **Authentication**: JWT (JSON Web Tokens) via `djangorestframework-simplejwt`
 - **API Documentation**: OpenAPI 3.0 via `drf-spectacular` (Swagger UI & ReDoc)
 
 ### Frontend
-- **Framework**: React 18 / Vite
-- **Routing**: React Router v6
+- **Framework**: React 19.2 / Vite 8
+- **Routing**: React Router DOM v7
 - **HTTP Client**: Axios with centralized error handling & auth interceptors
 - **Styling**: Vanilla CSS with custom CSS variables (Warm Sand & Espresso visual system)
 

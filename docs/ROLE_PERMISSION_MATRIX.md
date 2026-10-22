@@ -6,7 +6,7 @@
 
 - **Phase/date:** Project Brain Phase 2, 2026-10-09; inspected `main` / `4a9920c` source.
 - **Scope:** Backend permission gates, method-specific resource lookups, ownership/queryset restrictions and current public-data exceptions. Not a promise that every endpoint ran successfully.
-- **Inputs:** [Original handoff](references/ORIGINAL_BUSINESS_RULES_HANDOFF.md), [baseline assessment](references/BUSINESS_RULE_BASELINE_ASSESSMENT.md), completed Phase 1 report, targeted current source. Both references read completely.
+- **Inputs:** Canonical business rules, product architecture, and current executable source.
 - **Evidence:** S = SOURCE VERIFIED; T = TEST ASSERTION INSPECTED, NOT EXECUTED; H = HISTORICAL PRODUCT INTENT; D = DOCUMENTED BUT NOT VERIFIED; I = INFERRED, REQUIRES VERIFICATION; U = UNKNOWN. R is reserved for runtime evidence and unused.
 - **Policy:** APPROVED / ESTABLISHED intent, CURRENT IMPLEMENTATION, KNOWN DEFECT, POLICY PENDING, DEPRECATED / LEGACY, NOT VERIFIED are separate from evidence. Current exposure is not approved disclosure policy.
 - **Maintenance:** Recheck permission class, HTTP method, resource lookup, queryset/object checks and serializer projection together. Do not infer authorization from comments, React guards or class names alone.

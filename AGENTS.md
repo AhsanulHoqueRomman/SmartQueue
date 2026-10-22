@@ -25,15 +25,10 @@ Preserve existing owner work. This guide does not authorize a new phase, unrelat
 | [Queue State Machine](docs/QUEUE_STATE_MACHINE.md) | Lifecycle, presence, ordering and forecast distinctions | Queue, check-in, ETA or transitions |
 | [Role Permission Matrix](docs/ROLE_PERMISSION_MATRIX.md) | Identity, memberships, method/ownership/tenant authority | Auth, roles, APIs or data exposure |
 | [Product Architecture](docs/PRODUCT_ARCHITECTURE.md) | Source map, contracts, models, locks and configuration | Architecture or affected subsystem work |
+| [Development & Testing](docs/DEVELOPMENT_AND_TESTING.md) | Setup, architecture conventions, test commands & DB safety | Local development, testing, refactoring or DB work |
+| [UI Design System](docs/UI_DESIGN_SYSTEM.md) | Current visual foundation, tokens, layout & density rules | UI/component/style work |
 | [Known Issues](docs/KNOWN_ISSUES.md) | Finding owner, severity, evidence and acceptance criteria | Every potentially affected known defect |
-| [UI Design System](docs/UI_DESIGN_SYSTEM.md) | Current visual foundation, tokens and protected behavior | UI/component/style work |
-| [UI Redesign Playbook](docs/UI_REDESIGN_PLAYBOOK.md) | Safe UI change process and design boundaries | UI implementation or redesign |
-| [UI Audit Plan](docs/UI_AUDIT_PLAN.md) | Route coverage, audit priorities and verification plan | UI audits and affected page validation |
-
-Supporting references: [Original Business Rules Handoff](docs/references/ORIGINAL_BUSINESS_RULES_HANDOFF.md)
-and [Business Rule Baseline Assessment](docs/references/BUSINESS_RULE_BASELINE_ASSESSMENT.md).
-Treat these as historical intent/prior audit evidence, not proof of current implementation or runtime behavior.
-Do not rewrite, rename or reformat historical references to make them match a new implementation.
+| [Deployment Guide](docs/DEPLOYMENT.md) | Production release, env vars, security and ASGI/WSGI | Deployment, settings or environment configuration |
 
 ## C. Mandatory startup procedure
 
@@ -61,12 +56,14 @@ Names below refer to the linked canonical documents in section B.
 | Queue, check-in, ETA, lifecycle | Business Rules, Queue State Machine, Product Architecture, Known Issues |
 | Roles, authentication, tenant access | Role Permission Matrix, Product Architecture, Known Issues |
 | Django model/API/service changes | Product Architecture, relevant Business Rules, Role Permission Matrix, Known Issues |
-| React page/component changes | UI Design System, UI Redesign Playbook, UI Audit Plan, relevant Product Architecture |
-| Booking/queue UI changes | All three UI documents, Business Rules, Queue State Machine, Known Issues and relevant architecture/permissions |
-| Landing-page changes | UI Design System, UI Redesign Playbook, UI Audit Plan |
+| Development, testing, refactoring | Development & Testing, Product Architecture |
+| React page/component changes | UI Design System, relevant Product Architecture |
+| Booking/queue UI changes | UI Design System, Business Rules, Queue State Machine, Known Issues |
+| Landing-page changes | UI Design System |
 | Security/privacy changes | Role Permission Matrix, Product Architecture, Known Issues, relevant Business Rules |
-| Documentation updates | Affected canonical owner documents and related references |
-| Cross-system refactor | All eight canonical documents |
+| Deployment & settings changes | Deployment Guide, Development & Testing |
+| Documentation updates | Affected canonical owner documents |
+| Cross-system refactor | All canonical documents |
 
 ## E. Evidence hierarchy and conflicts
 
@@ -212,10 +209,10 @@ These verification instructions apply to future separately authorized work, not 
 - Preserve historical references and unrelated canonical documents.
 - Report stale phase-specific wording rather than opportunistically rewriting it.
 
-Post-Phase-5 cleanup corrected the UI Audit Plan's F-004 attribution to provider registration and updated stale navigation.
-The provider-view naming concern was rechecked against source and the unsupported architecture claim corrected in Phase 5.
-PublicNavbar is composed by public/auth pages; AppRoutes directly composes AppShell for protected routes.
-These are documentation corrections only: no finding was fixed or policy resolved; recheck current source before implementation.
+Documentation cleanup consolidated ephemeral phase reports, outdated master plans, and pre-M2 references into canonical documents:
+- Operational UI layout, density, and trend graph specifications merged into `UI_DESIGN_SYSTEM.md`.
+- Development setup, architecture conventions, and test safety rules consolidated in `DEVELOPMENT_AND_TESTING.md`.
+- Contradictory urgent-ordering references were removed, preserving pure ascending serial ordering among checked-in entries.
 
 ## M. Completion report
 

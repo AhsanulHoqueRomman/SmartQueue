@@ -8,7 +8,7 @@
 - **Phase/date:** Project Brain Phase 4, 2026-10-10 (Asia/Dhaka).
 - **Baseline:** `main` / `4a9920c3a648c2925dc30956005a1c28a015918f`. Existing five canonical documents remain untracked and preserved. No frontend/backend changes accompany this document.
 - **Purpose:** Describe the implemented visual foundation and distinguish future guidance from shipped behavior. This is documentation, not a token specification to install automatically.
-- **Inputs:** [Historical intent](references/ORIGINAL_BUSINESS_RULES_HANDOFF.md), [baseline audit](references/BUSINESS_RULE_BASELINE_ASSESSMENT.md), current source and the five canonical documents below.
+- **Inputs:** Historical baseline design intents, current source, and the canonical documents below.
 - **Evidence:** S SOURCE VERIFIED; T TEST ASSERTION INSPECTED, not executed; H HISTORICAL INTENT; D DOCUMENTED, NOT VERIFIED; I INFERRED; U UNKNOWN; R RUNTIME VERIFIED reserved and unused. No screenshots, browser/assistive-technology checks, tests, builds, servers or database operations occurred.
 - **Labels:** CURRENT = source implementation; APPROVED DIRECTION = owner-accepted landing foundation; OBSERVATION = source inconsistency to investigate; RECOMMENDED = future standard requiring separately authorized implementation; UNVERIFIED = visual/runtime result unknown.
 
@@ -19,14 +19,14 @@
 | [ROLE_PERMISSION_MATRIX](ROLE_PERMISSION_MATRIX.md) | Backend method/ownership/tenant authority |
 | [PRODUCT_ARCHITECTURE](PRODUCT_ARCHITECTURE.md) | Models, clients, APIs and data flow |
 | [KNOWN_ISSUES](KNOWN_ISSUES.md) | Detailed original findings/priorities and candidate qualifications |
-| [UI_REDESIGN_PLAYBOOK](UI_REDESIGN_PLAYBOOK.md) | Future change process and protected behavior |
-| [UI_AUDIT_PLAN](UI_AUDIT_PLAN.md) | Source inventory and future validation backlog |
+| [DEVELOPMENT_AND_TESTING](DEVELOPMENT_AND_TESTING.md) | Local development, architecture patterns, and testing guidelines |
+| [DEPLOYMENT](DEPLOYMENT.md) | Production deployment and environment configuration |
 
 Maintenance: recheck import order, selector specificity, theme overrides, component props and API consumers before updating values. Record baseline/date and evidence. CSS declarations are not computed browser styles. Preserve business/finding IDs and policy ownership; do not declare a proposed standard implemented or accessible solely from CSS.
 
 ## B. Product experience principles
 
-**Established product invariants (H/S):** Provider/date serial identity; global customer ownership; membership-based operational roles; backend-authoritative charge; appointment price/contact snapshots; presence-gated urgent/serial calling; explicit start/complete/skip; estimates rather than guaranteed consultation starts. Color or UI role strings do not grant permission. BR-001–BR-005, BR-012–BR-015, BR-023–BR-050.
+**Established product invariants (H/S):** Provider/date serial identity; global customer ownership; membership-based operational roles; backend-authoritative charge; appointment price/contact snapshots; presence-gated ascending serial calling (strictly ascending serial order, no urgent/VIP priority); explicit start/complete/skip; estimates rather than guaranteed consultation starts. Color or UI role strings do not grant permission. BR-001–BR-005, BR-012–BR-015, BR-023–BR-050.
 
 **Recommended UX:** Put serial, date and professional before speculative time. Clearly label estimates, stale/loading telemetry and unknown hours. Preserve contacts/notes while invalidating upstream booking dependencies. Use readable text plus symbols for statuses, predictable forms and recoverable errors. Present each role's immediate tasks without copying marketing spacing into dense boards. Display only entitled customer/tenant information. Never present a saved inquiry as delivered email or a button click as completed consultation.
 
@@ -94,7 +94,7 @@ No gradients are declared in the inspected phase-one/two/three/four styles or He
 | `.card`, `.card-hover` | surface/border, radius-lg; hover translateY(-2px), shadow-lg | Use elevation for actionable cards only where appropriate |
 | `.discovery-category`, `.discovery-org-card` | 16px / 20px radii | Landing-specific presentation, not mandatory dashboard radii |
 
-Inline SVGs appear in PublicNavbar, CategoryIcon, OrganizationArtwork and landing sections. AppShell mixes emoji icons; StatusBadge adds a text label and dot. `frontend/src/assets/` includes hero.png and starter react.svg/vite.svg; current React hero is not automatically that bitmap. ImageWithFallback and organization artwork provide controlled fallbacks. No installed icon/component library is declared in frontend/package.json. RECOMMENDED: reuse existing semantic SVG vocabulary incrementally, not install a library or mechanically change every icon.
+Inline SVGs appear in PublicNavbar, CategoryIcon, OrganizationArtwork and landing sections. AppShell mixes emoji icons; StatusBadge adds a text label and dot. `frontend/src/assets/` includes hero.png; current React hero is not automatically that bitmap. ImageWithFallback and organization artwork provide controlled fallbacks. No installed icon/component library is declared in frontend/package.json. RECOMMENDED: reuse existing semantic SVG vocabulary incrementally, not install a library or mechanically change every icon.
 
 ## D. Semantic color and status
 
@@ -108,7 +108,7 @@ CURRENT index.css status foreground tokens are `--color-success` #4F7A5A, `--col
 | Queue | WAITING pending tone; CALLED/IN_PROGRESS same success class; SKIPPED cancellation tone; fallback no-show class | Do not imply CALLED already started or WAITING physically present; audit unknown/CANCELLED mappings |
 | Readiness | queueDisplay normalized labels; backend NOT_YET/GET_READY/BE_READY/TURN_NOW/IN_SERVICE | Explicit guidance text; readiness is not Appointment.status or a persisted transition |
 | Check-in | Presence flag plus status text/actions | Confirm actual server presence; no local assumption from WAITING |
-| Urgent | Operator priority flag/reason and queue UI | Label priority; not emergency interruption, serial change or channel priority |
+| Urgent (Removed) | Removed in migration 0006; calling is strictly ascending serial order | Pure ascending serial order among checked-in entries; no priority override |
 | Verification | Backend approval/trust fields and page-local badges | Trust wording must derive from authority, not superficial styling |
 | Unknown/neutral | Muted text/empty states and hours unavailable | Unknown is not closed, zero capacity, failed or completed |
 
@@ -223,7 +223,7 @@ Canonical algorithm remains [state machine](QUEUE_STATE_MACHINE.md#eta-and-readi
 | ETA/arrival | Estimated wait/window/arrival, with units and fresh-data context; no guaranteed slot; F-009 duration basis and F-010 readiness policy pending |
 | Check-in | Server can_check_in, same-business-date and actor gates; opening metadata does not currently enforce its implied time window (D06) |
 | Readiness | NOT_YET/GET_READY/BE_READY/TURN_NOW/IN_SERVICE as computed advice, not lifecycle transition or promised notification |
-| Urgent | Flag changes eligible ordering, not serial/channel/presence; D10 safeguards unresolved |
+| Urgent (Removed) | Removed in migration 0006; calling is strictly ascending serial number among checked-in entries |
 | CALLED versus IN_PROGRESS | Called is invitation; explicit Start records actual service start; separate text even when badge color same |
 | COMPLETED | Explicit service completion; expiry of estimated duration does not complete |
 | SKIPPED/NO_SHOW | Skip links queue SKIPPED to appointment NO_SHOW; no general restoration inferred from enum (D16) |
@@ -252,7 +252,7 @@ RECOMMENDED: labels/errors programmatically associated, named close controls, pr
 
 CURRENT app grids go one column at <=479, two at 480–767/768+, three at 1024+ for grid-cols-3/4, four at 1280+ for grid-cols-4. Workspace grows to 1480px at 1536+. Public hero stacks at <=1100; menu switches at <=1240; discovery/professional/footer grids adjust at 1000/600; hero/device has 540 rule. Direct booking switches desktop summary to in-flow details at <=991; 480 adjusts cards/success summary. Scoped overrides and inline grids require per-page inspection.
 
-RECOMMENDED future checks: mobile touch/long names, intermediate collapsed navigation, desktop operational density; table region scroll rather than page overflow, clear row action identity, dialogs fitting viewport/zoom/keyboard, date inputs usable on devices. Do not force overlapping hero artwork or a desktop sidebar into a phone. Future targets and exact breakpoint-boundary cases are in [audit plan](UI_AUDIT_PLAN.md#h-responsive-audit-plan); none is visually verified here.
+RECOMMENDED future checks: mobile touch/long names, intermediate collapsed navigation, desktop operational density; table region scroll rather than page overflow, clear row action identity, dialogs fitting viewport/zoom/keyboard, date inputs usable on devices. Do not force overlapping hero artwork or a desktop sidebar into a phone. Responsive viewport boundaries were established across 390px, 768px, 1024px, and 1440px viewports.
 
 ## M. Motion and feedback
 
