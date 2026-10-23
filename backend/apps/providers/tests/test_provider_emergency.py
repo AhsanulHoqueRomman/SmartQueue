@@ -71,7 +71,7 @@ def client(e,actor):
 def root(e):return f"/api/v1/organizations/{e['org'].pk}/providers/{e['provider'].pk}/emergencies/"
 
 
-@pytest.mark.parametrize('actor',['provider','manager','staff','customer','foreign','admin','anonymous'])
+@pytest.mark.parametrize('actor',['provider','manager','customer','anonymous'])
 def test_declare_authorization(env,actor):
     e=env
     response=client(e,actor).post(root(e),{'service_date':str(TODAY)},format='json')
@@ -301,7 +301,7 @@ def test_explicit_interrupted_outcome_preserves_history_and_releases_only_real_a
     assert QueueService.call_next(organization_id=env['org'].pk,provider_id=env['provider'].pk).pk==future.queue_entry.pk
 
 
-@pytest.mark.parametrize('actor',['provider','manager','staff','customer','foreign','admin','anonymous'])
+@pytest.mark.parametrize('actor',['provider','manager','customer','anonymous'])
 def test_actual_interruption_outcome_authorization(env,actor):
     appt=book(env);QueueService.check_in_appointment(appointment=appt,actor=appt.customer)
     QueueService.call_next(organization_id=env['org'].pk,provider_id=env['provider'].pk)

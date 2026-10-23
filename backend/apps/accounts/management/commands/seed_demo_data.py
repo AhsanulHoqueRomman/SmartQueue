@@ -17,7 +17,8 @@ from apps.providers.models import (
     WeeklySchedule,
     ScheduleBreak,
 )
-from apps.appointments.models import Appointment
+from apps.appointments.models import Appointment, ProviderDateSerial
+from apps.providers.emergency_models import ProviderEmergency
 from apps.queue.models import QueueEntry
 from apps.feedback.models import Review
 from apps.notifications.models import Notification
@@ -89,6 +90,13 @@ class Command(BaseCommand):
             try:
                 collector.collect(queryset)
             except ProtectedError as error:
+                if queryset.model is ProviderProfile:
+                    has_non_demo = any(
+                        getattr(obj, 'organization_id', None) and getattr(obj, 'organization_id') not in org_ids
+                        for obj in error.protected_objects
+                    )
+                    if has_non_demo:
+                        raise CommandError('Demo reset blocked: cascade would remove non-demo organization data.') from error
                 raise CommandError('Demo reset blocked by protected cross-dataset references.') from error
             collected = [(model, model.objects.filter(pk__in=[obj.pk for obj in objects]))
                          for model, objects in collector.data.items()]
@@ -102,10 +110,20 @@ class Command(BaseCommand):
             queryset.delete()
 
         self.stdout.write('Cleaning recognized QueueTurn demo roots...')
-        # PROTECT requires appointments before services, and services before
-        # categories. Remaining organization-owned records cascade from roots.
+        # PROTECT requires dependent records to be cleaned in strict dependency order:
+        # 1. Reviews and Queue entries for demo orgs
+        delete_owned(Review.objects.filter(organization_id__in=org_ids))
+        delete_owned(QueueEntry.objects.filter(organization_id__in=org_ids))
+        # 2. Appointments for demo orgs
         delete_owned(Appointment.objects.filter(organization_id__in=org_ids))
+        # 3. ProviderDateSerial and ProviderEmergency (protects ProviderProfile)
+        delete_owned(ProviderDateSerial.objects.filter(provider__membership__organization_id__in=org_ids))
+        delete_owned(ProviderEmergency.objects.filter(provider__membership__organization_id__in=org_ids))
+        # 4. ProviderProfile (protects OrganizationMembership)
+        delete_owned(ProviderProfile.objects.filter(membership__organization_id__in=org_ids))
+        # 5. Services for demo orgs (protects Category)
         delete_owned(Service.objects.filter(organization_id__in=org_ids))
+        # 6. Organizations (cascades memberships, categories, operating hours)
         delete_owned(Organization.objects.filter(pk__in=org_ids))
         retained = 0
         for user in User.objects.filter(email__in=emails):

@@ -1,11 +1,26 @@
+from datetime import datetime, timedelta, time
+from zoneinfo import ZoneInfo
 import uuid
+import pytest
+from django.conf import settings
+from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, APIClient
 
 from apps.accounts.models import User
-from apps.organizations.models import Organization, OrganizationMembership
+from apps.appointments.models import Appointment
+from apps.appointments.services import AppointmentService
+from apps.audit.models import AuditLog
 from apps.notifications.models import Notification
 from apps.notifications.services import NotificationService
+from apps.organizations.models import Organization, OrganizationMembership
+from apps.providers.models import ProviderProfile
+from apps.queue.models import QueueEntry
+from apps.queue.services import QueueService, current_business_date
+from apps.services.models import Service
+
+TZ = ZoneInfo(settings.TIME_ZONE)
 
 
 class NotificationServiceAndApiTests(APITestCase):
@@ -184,5 +199,140 @@ class NotificationServiceAndApiTests(APITestCase):
         self.assertEqual(post_poll_count, initial_count)
 
 
+@pytest.fixture
+def m6_notif_setup(db):
+    manager = User.objects.create_user(email='m6-notif-mgr@example.com', password='Password123!')
+    provider_user = User.objects.create_user(email='m6-notif-prov@example.com', password='Password123!')
+    customer = User.objects.create_user(email='m6-notif-cust@example.com', password='Password123!')
+    other_customer = User.objects.create_user(email='m6-notif-other@example.com', password='Password123!')
+    org = Organization.objects.create(
+        name='M6 Notif Clinic',
+        slug='m6-notif-clinic',
+        verification_status=Organization.VerificationStatus.APPROVED
+    )
+    OrganizationMembership.objects.create(user=manager, organization=org, role='MANAGER')
+    provider_membership = OrganizationMembership.objects.create(user=provider_user, organization=org, role='PROVIDER')
+    provider = ProviderProfile.objects.create(
+        membership=provider_membership,
+        application_status=ProviderProfile.ApplicationStatus.APPROVED
+    )
+    service = Service.objects.create(organization=org, name='M6 Notif Consult', duration_minutes=30, price='20.00')
+    return locals()
 
+
+def _make_appointment(s, *, customer=None, status=Appointment.Status.COMPLETED, hour=10):
+    today = current_business_date()
+    start = timezone.make_aware(datetime.combine(today, time(hour, 0)), timezone=TZ)
+    return Appointment.objects.create(
+        organization=s['org'], customer=customer or s['customer'], provider=s['provider'],
+        service=s['service'], start_datetime=start, end_datetime=start + timedelta(minutes=30),
+        appointment_date=today, serial_number=1, status=status,
+    )
+
+
+@pytest.mark.django_db
+class TestNotificationsAndAudit:
+    def test_core_events_create_notifications_and_audit(self, m6_notif_setup):
+        s = m6_notif_setup
+        appointment = _make_appointment(s, status=Appointment.Status.CONFIRMED)
+        Notification.objects.all().delete()
+        AuditLog.objects.all().delete()
+        AppointmentService.cancel_appointment(
+            appointment=appointment,
+            reason='test',
+            actor=s['manager'],
+        )
+        assert Notification.objects.filter(recipient=s['customer'], kind='APPOINTMENT_CANCELLED').exists()
+        assert AuditLog.objects.filter(
+            action='APPOINTMENT_CANCELLED',
+            organization=s['org'],
+            actor=s['manager'],
+        ).exists()
+
+    def test_customer_sees_only_own_notifications_and_manager_sees_audit(self, m6_notif_setup):
+        s = m6_notif_setup
+        Notification.objects.create(
+            recipient=s['customer'], organization=s['org'], kind='APPOINTMENT_BOOKED',
+            title='Mine', message='Mine',
+        )
+        Notification.objects.create(
+            recipient=s['other_customer'], organization=s['org'], kind='APPOINTMENT_BOOKED',
+            title='Other', message='Other',
+        )
+        client = APIClient()
+        client.force_authenticate(user=s['customer'])
+        notification_url = reverse('notifications:notification_list', kwargs={'organization_id': s['org'].id})
+        response = client.get(notification_url)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        audit_url = reverse('audit:audit_list', kwargs={'organization_id': s['org'].id})
+        assert client.get(audit_url).status_code == 403
+        manager_client = APIClient()
+        manager_client.force_authenticate(user=s['manager'])
+        assert manager_client.get(audit_url).status_code == 200
+
+    def test_notification_read_is_owner_scoped(self, m6_notif_setup):
+        s = m6_notif_setup
+        notification = Notification.objects.create(
+            recipient=s['customer'], organization=s['org'],
+            kind='APPOINTMENT_BOOKED', title='Mine', message='Mine',
+        )
+        url = reverse('notifications:notification_read', kwargs={
+            'organization_id': s['org'].id, 'notification_id': notification.id,
+        })
+        other_client = APIClient()
+        other_client.force_authenticate(user=s['other_customer'])
+        assert other_client.post(url).status_code == 404
+        owner_client = APIClient()
+        owner_client.force_authenticate(user=s['customer'])
+        response = owner_client.post(url)
+        assert response.status_code == 200
+        assert response.data['read_at'] is not None
+
+    def test_queue_events_create_notifications_and_audits(self, m6_notif_setup):
+        s = m6_notif_setup
+        appointment = _make_appointment(s, status=Appointment.Status.CONFIRMED)
+        entry = QueueService.check_in_appointment(
+            appointment=appointment,
+            actor=s['provider_user'],
+        )
+        assert Notification.objects.filter(kind='APPOINTMENT_CHECKED_IN', queue_entry=entry).exists()
+        assert AuditLog.objects.filter(
+            action='APPOINTMENT_CHECKED_IN',
+            entity_id=str(entry.id),
+            actor=s['provider_user'],
+        ).exists()
+
+        QueueService.call_next(
+            organization_id=s['org'].id,
+            provider_id=s['provider'].id,
+            on_date=entry.queue_date,
+        )
+        assert Notification.objects.filter(kind='QUEUE_CALLED', queue_entry=entry).exists()
+        assert AuditLog.objects.filter(action='QUEUE_CALLED', entity_id=str(entry.id)).exists()
+
+        QueueService.start_queue_entry(
+            organization_id=s['org'].id, queue_entry_id=entry.id
+        )
+        assert AuditLog.objects.filter(action='QUEUE_STARTED', entity_id=str(entry.id)).exists()
+
+        QueueService.complete_queue_entry(
+            organization_id=s['org'].id, queue_entry_id=entry.id
+        )
+        assert Notification.objects.filter(kind='SERVICE_COMPLETED', queue_entry=entry).exists()
+        assert AuditLog.objects.filter(action='QUEUE_COMPLETED', entity_id=str(entry.id)).exists()
+
+    def test_audit_logs_are_organization_scoped(self, m6_notif_setup):
+        s = m6_notif_setup
+        other_org = Organization.objects.create(name='Other M6 Clinic', slug='other-m6-clinic')
+        AuditLog.objects.create(
+            organization=other_org, actor=s['manager'], action='OTHER',
+            entity_type='Organization', entity_id=str(other_org.id),
+        )
+        client = APIClient()
+        client.force_authenticate(user=s['manager'])
+        url = reverse('audit:audit_list', kwargs={'organization_id': s['org'].id})
+        response = client.get(url)
+        assert response.status_code == 200
+        assert all(item['organization'] == str(s['org'].id) for item in response.data)
 

@@ -217,6 +217,34 @@ def test_invalid_zero_and_negative_average_minutes_rejected(availability_env, in
 
 
 @pytest.mark.django_db
+def test_non_manager_cannot_patch_average_service_minutes(availability_env):
+    """
+    Only organization managers have authority to update provider planning duration.
+    Providers, customers and unauthenticated requests are rejected.
+    """
+    env = availability_env
+    client = APIClient()
+    patch_url = reverse(
+        "providers:provider_detail",
+        kwargs={"organization_id": env["org"].id, "provider_id": env["provider"].id},
+    )
+    # Provider cannot patch their own average_service_minutes
+    client.force_authenticate(env["provider_user"])
+    res = client.patch(patch_url, {"average_service_minutes": 25}, format="json")
+    assert res.status_code == status.HTTP_403_FORBIDDEN
+
+    # Customer cannot patch average_service_minutes
+    client.force_authenticate(env["customer"])
+    res = client.patch(patch_url, {"average_service_minutes": 25}, format="json")
+    assert res.status_code == status.HTTP_403_FORBIDDEN
+
+    # Anonymous cannot patch average_service_minutes
+    client.logout()
+    res = client.patch(patch_url, {"average_service_minutes": 25}, format="json")
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
 def test_cross_organization_and_cross_provider_access_enforces_tenant_isolation(availability_env):
     """
     Availability endpoint returns 404 or 400 when querying a provider under a different organization's URL.

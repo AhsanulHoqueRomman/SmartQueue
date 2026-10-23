@@ -53,24 +53,20 @@ def book(env, on_date=TODAY, customer=None, **kwargs):
 
 def test_full_day_leave_reschedule_blocks_with_leave_conflict(env):
     destination = TODAY + timedelta(days=1)
-    # Approved full-day leave matching working hours (10:00 - 17:00)
     ProviderLeave.objects.create(
         provider=env['provider'],
         start_datetime=at(destination, 10),
         end_datetime=at(destination, 17),
         status='APPROVED'
     )
-    # Initial booking rejects with LEAVE_CONFLICT
     other_customer = User.objects.create_user(email='other@f005.test')
     with pytest.raises(AppointmentValidationException) as book_err:
         book(env, on_date=destination, customer=other_customer)
     assert book_err.value.default_code == 'LEAVE_CONFLICT'
 
-    # Customer books on TODAY
     appt = book(env, on_date=TODAY)
     assert appt.serial_number == 1 and appt.appointment_date == TODAY
 
-    # Rescheduling to full-day leave must also reject with LEAVE_CONFLICT (not CAPACITY_EXCEEDED)
     with pytest.raises(AppointmentValidationException) as resch_err:
         AppointmentService.reschedule_appointment(
             appointment=appt, appointment_date=destination, actor=appt.customer
@@ -82,7 +78,6 @@ def test_full_day_leave_reschedule_blocks_with_leave_conflict(env):
 
 def test_partial_day_leave_capacity_preserved_during_reschedule(env):
     destination = TODAY + timedelta(days=1)
-    # Partial leave: 14:00 - 16:00 (2 hours blocked out of 7 hours -> 5 hours = 300 mins -> capacity 10)
     ProviderLeave.objects.create(
         provider=env['provider'],
         start_datetime=at(destination, 14),
@@ -90,13 +85,11 @@ def test_partial_day_leave_capacity_preserved_during_reschedule(env):
         status='APPROVED'
     )
     appt = book(env, on_date=TODAY)
-    # Rescheduling succeeds because partial leave reduces available minutes rather than blocking whole date
     moved = AppointmentService.reschedule_appointment(
         appointment=appt, appointment_date=destination, actor=appt.customer
     )
     assert moved.appointment_date == destination
     assert moved.serial_number == 1
-    # Check that capacity correctly reflects partial leave deduction
     cap = date_capacity(env['provider'], destination)
     assert cap['daily_capacity'] == 10
     assert cap['allocated_count'] == 1
@@ -146,14 +139,10 @@ def test_postgresql_reschedule_vs_manager_unassignment_concurrency(env):
         f1.result()
         f2.result()
 
-    # Both workers must terminate cleanly without deadlock
     assert 'reschedule' in results and 'unassign' in results
     resch_status = results['reschedule'][0]
     unassign_status = results['unassign'][0]
 
-    # Because both acquire provider lock first:
-    # If reschedule won the provider lock first: reschedule is 'ok', unassign is 'ok' (service removed after reschedule committed)
-    # If unassign won the provider lock first: unassign is 'ok', reschedule gets 'PROVIDER_SERVICE_NOT_ASSIGNED'
     if resch_status == 'ok':
         assert unassign_status == 'ok'
         appt.refresh_from_db()

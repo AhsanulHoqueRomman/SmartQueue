@@ -26,13 +26,16 @@ from config.exceptions import ApplicationError
 
 def _set_thread_lock_timeout():
     """Ensure every test thread has a bounded 5s lock timeout to fail fast on unexpected deadlocks."""
-    with connections['default'].cursor() as cursor:
-        cursor.execute("SET lock_timeout = '5s';")
+    if connections['default'].vendor == 'postgresql':
+        with connections['default'].cursor() as cursor:
+            cursor.execute("SET lock_timeout = '5s';")
 
 
 @pytest.fixture
 def pg_concurrency_setup(db):
     """Provisions base test entities on the isolated PostgreSQL test database."""
+    if connections['default'].vendor != 'postgresql':
+        pytest.skip("PostgreSQL required for lock timeout and real concurrency tests")
     org = Organization.objects.create(
         name="Concurrency Org",
         slug="concurrency-org",
