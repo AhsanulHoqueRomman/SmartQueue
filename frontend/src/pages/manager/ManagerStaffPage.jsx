@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
 import { useToast } from '../../contexts/ToastContext';
 import organizationService from '../../services/organizationService';
@@ -13,6 +13,7 @@ import {
   clampPage,
   getPageItemRange,
   DEFAULT_PAGE_SIZE,
+  isStaleResponse,
 } from '../../utils/paginationUtils';
 import '../../styles/OperationalPrimitives.css';
 import '../../styles/ManagerStaff.css';
@@ -35,6 +36,42 @@ const INVITATION_COLUMNS = [
   { key: 'expires_at', label: 'Expires', width: '18%' },
   { key: 'actions', label: 'Actions', width: '16%', align: 'right' },
 ];
+
+const TABS = [
+  { id: 'active', label: 'Active Staff' },
+  { id: 'inactive', label: 'Inactive Staff' },
+  { id: 'invitations', label: 'Pending Invitations' },
+];
+
+const TAB_CONFIG = {
+  active: {
+    placeholder: 'Search staff by name or email...',
+    label: 'Search active staff members',
+    emptyIcon: '👥',
+    emptyTitle: 'No Active Staff Members',
+    emptyMsg: "You haven't added any active staff members yet. Send an email invitation to authorize a team member.",
+    noMatchTitle: 'No Matching Active Staff',
+    noMatchMsg: (q) => `No active staff members match "${q}". Clear your search query to see all records.`,
+  },
+  inactive: {
+    placeholder: 'Search inactive staff by name or email...',
+    label: 'Search inactive staff members',
+    emptyIcon: '🔒',
+    emptyTitle: 'No Inactive Staff Members',
+    emptyMsg: 'All registered staff members in this organization are currently active.',
+    noMatchTitle: 'No Matching Inactive Staff',
+    noMatchMsg: (q) => `No inactive staff members match "${q}". Clear your search query to see all records.`,
+  },
+  invitations: {
+    placeholder: 'Search invitations by email...',
+    label: 'Search pending staff invitations',
+    emptyIcon: '📨',
+    emptyTitle: 'No Pending Staff Invitations',
+    emptyMsg: 'There are currently no active staff invitation links waiting for acceptance.',
+    noMatchTitle: 'No Matching Invitations',
+    noMatchMsg: (q) => `No pending invitations match "${q}". Clear your search query to see all records.`,
+  },
+};
 
 /**
  * Formats ISO date string in Asia/Dhaka time zone.
@@ -87,15 +124,9 @@ export function ManagerStaffPage() {
   const [createdInviteToken, setCreatedInviteToken] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  // Mutation Confirmation Dialog States
-  const [deactivateTarget, setDeactivateTarget] = useState(null);
-  const [isDeactivating, setIsDeactivating] = useState(false);
-
-  const [activateTarget, setActivateTarget] = useState(null);
-  const [isActivating, setIsActivating] = useState(false);
-
-  const [cancelInviteTarget, setCancelInviteTarget] = useState(null);
-  const [isCancelling, setIsCancelling] = useState(false);
+  // Consolidated Confirmation Dialog State: { type: 'deactivate' | 'activate' | 'cancel_invite', target }
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
 
   // Request & Mutation Safety Refs
   const activeRequestIdRef = useRef(0);
@@ -106,33 +137,18 @@ export function ManagerStaffPage() {
   // Input refs for dialog focus management
   const inviteEmailInputRef = useRef(null);
   const inviteCloseBtnRef = useRef(null);
-  const deactivateCancelBtnRef = useRef(null);
-  const activateCancelBtnRef = useRef(null);
-  const cancelInviteCancelBtnRef = useRef(null);
+  const confirmCancelBtnRef = useRef(null);
 
   // Render-time tenant ownership checks
-  const rawStaff = useMemo(
-    () => (staffData.orgId === currentOrg?.id ? staffData.items : []),
-    [staffData, currentOrg?.id]
-  );
-  const rawInvitations = useMemo(
-    () => (invitationsData.orgId === currentOrg?.id ? invitationsData.items : []),
-    [invitationsData, currentOrg?.id]
-  );
+  const isCurrentOrg = staffData.orgId === currentOrg?.id;
+  const isInvitationsCurrentOrg = invitationsData.orgId === currentOrg?.id;
+  const rawStaff = isCurrentOrg ? staffData.items : [];
+  const rawInvitations = isInvitationsCurrentOrg ? invitationsData.items : [];
 
   // Categorized records
-  const activeStaff = useMemo(
-    () => rawStaff.filter((m) => Boolean(m.is_active)),
-    [rawStaff]
-  );
-  const inactiveStaff = useMemo(
-    () => rawStaff.filter((m) => !m.is_active),
-    [rawStaff]
-  );
-  const pendingInvitations = useMemo(
-    () => rawInvitations.filter((inv) => Boolean(inv.is_valid)),
-    [rawInvitations]
-  );
+  const activeStaff = rawStaff.filter((m) => Boolean(m.is_active));
+  const inactiveStaff = rawStaff.filter((m) => !m.is_active);
+  const pendingInvitations = rawInvitations.filter((inv) => Boolean(inv.is_valid));
 
   /**
    * Primary asynchronous fetch function with request-ticket isolation.
@@ -153,7 +169,7 @@ export function ManagerStaffPage() {
         ]);
 
         // Discard response if organization switched or newer query started
-        if (requestId !== activeRequestIdRef.current || orgIdToFetch !== currentOrg?.id) {
+        if (isStaleResponse(requestId, activeRequestIdRef.current, orgIdToFetch, currentOrg?.id)) {
           return;
         }
 
@@ -196,12 +212,12 @@ export function ManagerStaffPage() {
           setInvitationsData({ orgId: orgIdToFetch, items: invs });
         }
       } catch (err) {
-        if (requestId !== activeRequestIdRef.current || orgIdToFetch !== currentOrg?.id) {
+        if (isStaleResponse(requestId, activeRequestIdRef.current, orgIdToFetch, currentOrg?.id)) {
           return;
         }
         setError(err.response?.data?.detail || 'Failed to load staff management records.');
       } finally {
-        if (requestId === activeRequestIdRef.current && orgIdToFetch === currentOrg?.id) {
+        if (!isStaleResponse(requestId, activeRequestIdRef.current, orgIdToFetch, currentOrg?.id)) {
           setLoading(false);
         }
       }
@@ -213,12 +229,11 @@ export function ManagerStaffPage() {
   useEffect(() => {
     if (prevOrgIdRef.current !== currentOrg?.id) {
       prevOrgIdRef.current = currentOrg?.id;
+      activeRequestIdRef.current++;
 
       // Close all active modals and dialogs
       setInviteModalOpen(false);
-      setDeactivateTarget(null);
-      setActivateTarget(null);
-      setCancelInviteTarget(null);
+      setConfirmDialog(null);
       setCreatedInviteToken(null);
       setInviteEmail('');
       setCopied(false);
@@ -247,66 +262,62 @@ export function ManagerStaffPage() {
 
   // Accessible keyboard navigation for tabs
   const handleTabKeyDown = (e, currentTabKey) => {
-    const tabs = ['active', 'inactive', 'invitations'];
-    const currentIndex = tabs.indexOf(currentTabKey);
+    const tabKeys = ['active', 'inactive', 'invitations'];
+    const currentIndex = tabKeys.indexOf(currentTabKey);
     let nextIndex = null;
 
     if (e.key === 'ArrowRight') {
       e.preventDefault();
-      nextIndex = (currentIndex + 1) % tabs.length;
+      nextIndex = (currentIndex + 1) % tabKeys.length;
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+      nextIndex = (currentIndex - 1 + tabKeys.length) % tabKeys.length;
     } else if (e.key === 'Home') {
       e.preventDefault();
       nextIndex = 0;
     } else if (e.key === 'End') {
       e.preventDefault();
-      nextIndex = tabs.length - 1;
+      nextIndex = tabKeys.length - 1;
     }
 
     if (nextIndex !== null) {
-      const nextTab = tabs[nextIndex];
+      const nextTab = tabKeys[nextIndex];
       handleTabChange(nextTab);
       const nextBtn = document.getElementById(`tab-${nextTab}`);
       if (nextBtn) nextBtn.focus();
     }
   };
 
+  // Current tab items
+  const currentTabItems =
+    activeTab === 'active'
+      ? activeStaff
+      : activeTab === 'inactive'
+      ? inactiveStaff
+      : pendingInvitations;
+
   // Filter items by applied search
-  const currentTabItems = useMemo(() => {
-    if (activeTab === 'active') return activeStaff;
-    if (activeTab === 'inactive') return inactiveStaff;
-    return pendingInvitations;
-  }, [activeTab, activeStaff, inactiveStaff, pendingInvitations]);
-
-  const filteredItems = useMemo(() => {
-    if (!appliedSearch) return currentTabItems;
-    const query = appliedSearch.toLowerCase();
-
-    if (activeTab === 'invitations') {
-      return currentTabItems.filter((inv) => {
-        const email = (inv.email || '').toLowerCase();
-        const creator = (inv.created_by_email || '').toLowerCase();
-        return email.includes(query) || creator.includes(query);
-      });
-    }
-
-    return currentTabItems.filter((member) => {
-      const fullName = `${member.user_first_name || ''} ${member.user_last_name || ''}`.toLowerCase();
-      const email = (member.user_email || '').toLowerCase();
-      return fullName.includes(query) || email.includes(query);
-    });
-  }, [currentTabItems, appliedSearch, activeTab]);
+  const query = appliedSearch.trim().toLowerCase();
+  const filteredItems = query
+    ? activeTab === 'invitations'
+      ? currentTabItems.filter((inv) => {
+          const email = (inv.email || '').toLowerCase();
+          const creator = (inv.created_by_email || '').toLowerCase();
+          return email.includes(query) || creator.includes(query);
+        })
+      : currentTabItems.filter((member) => {
+          const fullName = `${member.user_first_name || ''} ${member.user_last_name || ''}`.toLowerCase();
+          const email = (member.user_email || '').toLowerCase();
+          return fullName.includes(query) || email.includes(query);
+        })
+    : currentTabItems;
 
   // Client-side pagination calculations
   const totalFilteredCount = filteredItems.length;
   const totalPages = calculateTotalPages(totalFilteredCount, DEFAULT_PAGE_SIZE);
   const safePage = clampPage(page, totalPages);
-  const paginatedItems = useMemo(() => {
-    const start = (safePage - 1) * DEFAULT_PAGE_SIZE;
-    return filteredItems.slice(start, start + DEFAULT_PAGE_SIZE);
-  }, [filteredItems, safePage]);
+  const start = (safePage - 1) * DEFAULT_PAGE_SIZE;
+  const paginatedItems = filteredItems.slice(start, start + DEFAULT_PAGE_SIZE);
   const itemRange = getPageItemRange(safePage, DEFAULT_PAGE_SIZE, totalFilteredCount);
 
   // Search submit & clear
@@ -323,15 +334,19 @@ export function ManagerStaffPage() {
 
   // Global escape and focus trap for active modal/dialogs
   useEffect(() => {
-    const isAnyModalOpen = Boolean(
-      inviteModalOpen || deactivateTarget || activateTarget || cancelInviteTarget
-    );
-
+    const isAnyModalOpen = Boolean(inviteModalOpen || confirmDialog);
     if (!isAnyModalOpen) return;
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         if (mutationInProgressRef.current) return;
+        if (confirmDialog) {
+          setConfirmDialog(null);
+          if (lastFocusedElementRef.current?.focus) {
+            lastFocusedElementRef.current.focus();
+          }
+          return;
+        }
         if (inviteModalOpen) {
           setInviteModalOpen(false);
           setCreatedInviteToken(null);
@@ -340,26 +355,8 @@ export function ManagerStaffPage() {
           if (lastFocusedElementRef.current?.focus) {
             lastFocusedElementRef.current.focus();
           }
+          return;
         }
-        if (deactivateTarget) {
-          setDeactivateTarget(null);
-          if (lastFocusedElementRef.current?.focus) {
-            lastFocusedElementRef.current.focus();
-          }
-        }
-        if (activateTarget) {
-          setActivateTarget(null);
-          if (lastFocusedElementRef.current?.focus) {
-            lastFocusedElementRef.current.focus();
-          }
-        }
-        if (cancelInviteTarget) {
-          setCancelInviteTarget(null);
-          if (lastFocusedElementRef.current?.focus) {
-            lastFocusedElementRef.current.focus();
-          }
-        }
-        return;
       }
 
       if (e.key === 'Tab') {
@@ -392,36 +389,20 @@ export function ManagerStaffPage() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [inviteModalOpen, deactivateTarget, activateTarget, cancelInviteTarget]);
+  }, [inviteModalOpen, confirmDialog]);
 
   // Focus management on dialog opening
   useEffect(() => {
-    if (inviteModalOpen) {
+    if (confirmDialog) {
+      confirmCancelBtnRef.current?.focus();
+    } else if (inviteModalOpen) {
       if (createdInviteToken) {
         inviteCloseBtnRef.current?.focus();
       } else {
         inviteEmailInputRef.current?.focus();
       }
     }
-  }, [inviteModalOpen, createdInviteToken]);
-
-  useEffect(() => {
-    if (deactivateTarget) {
-      deactivateCancelBtnRef.current?.focus();
-    }
-  }, [deactivateTarget]);
-
-  useEffect(() => {
-    if (activateTarget) {
-      activateCancelBtnRef.current?.focus();
-    }
-  }, [activateTarget]);
-
-  useEffect(() => {
-    if (cancelInviteTarget) {
-      cancelInviteCancelBtnRef.current?.focus();
-    }
-  }, [cancelInviteTarget]);
+  }, [confirmDialog, inviteModalOpen, createdInviteToken]);
 
   // ==========================================
   // MUTATION WORKFLOWS
@@ -449,7 +430,7 @@ export function ManagerStaffPage() {
 
   const handleSendInvite = async (e) => {
     e.preventDefault();
-    if (!inviteEmail.trim() || !currentOrg?.id) return;
+    if (!inviteEmail.trim() || !currentOrg?.id || currentOrg.id !== staffData.orgId) return;
     if (mutationInProgressRef.current) return;
 
     mutationInProgressRef.current = true;
@@ -493,123 +474,86 @@ export function ManagerStaffPage() {
     }
   };
 
-  // 2. Deactivate Staff Member
-  const handleOpenDeactivateDialog = (member) => {
+  // 2. Open Consolidated Confirmation Dialogs
+  const handleOpenConfirmDialog = (type, target) => {
     lastFocusedElementRef.current = document.activeElement;
-    setDeactivateTarget(member);
+    setConfirmDialog({ type, target });
   };
 
-  const handleConfirmDeactivate = async () => {
-    if (!deactivateTarget || !currentOrg?.id) return;
-    if (mutationInProgressRef.current) return;
-
-    mutationInProgressRef.current = true;
-    setIsDeactivating(true);
-    const orgIdAtMutation = currentOrg.id;
-    const membershipId = deactivateTarget.id;
-    const targetEmail = deactivateTarget.user_email;
-
-    try {
-      await organizationService.deactivateStaffMember(orgIdAtMutation, membershipId);
-
-      if (currentOrg?.id !== orgIdAtMutation) return;
-
-      setDeactivateTarget(null);
-      showSuccess(`Deactivated staff member ${targetEmail}.`);
-      fetchData(orgIdAtMutation);
-    } catch (err) {
-      if (currentOrg?.id !== orgIdAtMutation) return;
-      const msg = err.response?.data?.detail || 'Failed to deactivate staff member.';
-      showError(msg);
-    } finally {
-      mutationInProgressRef.current = false;
-      setIsDeactivating(false);
-      if (lastFocusedElementRef.current?.focus) {
-        lastFocusedElementRef.current.focus();
-      }
+  const handleCloseConfirmDialog = () => {
+    if (confirmBusy) return;
+    setConfirmDialog(null);
+    if (lastFocusedElementRef.current?.focus) {
+      lastFocusedElementRef.current.focus();
     }
   };
 
-  // 3. Re-Activate Staff Member
-  const handleOpenActivateDialog = (member) => {
-    lastFocusedElementRef.current = document.activeElement;
-    setActivateTarget(member);
-  };
-
-  const handleConfirmActivate = async () => {
-    if (!activateTarget || !currentOrg?.id) return;
-    if (mutationInProgressRef.current) return;
-
-    mutationInProgressRef.current = true;
-    setIsActivating(true);
-    const orgIdAtMutation = currentOrg.id;
-    const membershipId = activateTarget.id;
-    const targetEmail = activateTarget.user_email;
-
-    try {
-      await organizationService.activateStaffMember(orgIdAtMutation, membershipId);
-
-      if (currentOrg?.id !== orgIdAtMutation) return;
-
-      setActivateTarget(null);
-      showSuccess(`Activated staff member ${targetEmail}.`);
-      fetchData(orgIdAtMutation);
-    } catch (err) {
-      if (currentOrg?.id !== orgIdAtMutation) return;
-      const msg = err.response?.data?.detail || 'Failed to activate staff member.';
-      showError(msg);
-    } finally {
-      mutationInProgressRef.current = false;
-      setIsActivating(false);
-      if (lastFocusedElementRef.current?.focus) {
-        lastFocusedElementRef.current.focus();
-      }
+  const handleConfirmAction = async () => {
+    if (
+      !confirmDialog ||
+      !confirmDialog.target?.id ||
+      !['deactivate', 'activate', 'cancel_invite'].includes(confirmDialog.type) ||
+      !currentOrg?.id ||
+      currentOrg.id !== staffData.orgId
+    ) {
+      return;
     }
-  };
-
-  // 4. Cancel Staff Invitation
-  const handleOpenCancelInviteDialog = (invitation) => {
-    lastFocusedElementRef.current = document.activeElement;
-    setCancelInviteTarget(invitation);
-  };
-
-  const handleConfirmCancelInvite = async () => {
-    if (!cancelInviteTarget || !currentOrg?.id) return;
     if (mutationInProgressRef.current) return;
 
     mutationInProgressRef.current = true;
-    setIsCancelling(true);
+    setConfirmBusy(true);
     const orgIdAtMutation = currentOrg.id;
-    const invitationId = cancelInviteTarget.id;
-    const targetEmail = cancelInviteTarget.email;
+    const { type, target } = confirmDialog;
 
     try {
-      await organizationService.cancelStaffInvitation(orgIdAtMutation, invitationId);
+      if (type === 'deactivate') {
+        await organizationService.deactivateStaffMember(orgIdAtMutation, target.id);
+        if (currentOrg?.id === orgIdAtMutation) {
+          showSuccess(`Deactivated staff member ${target.user_email}.`);
+        }
+      } else if (type === 'activate') {
+        await organizationService.activateStaffMember(orgIdAtMutation, target.id);
+        if (currentOrg?.id === orgIdAtMutation) {
+          showSuccess(`Activated staff member ${target.user_email}.`);
+        }
+      } else if (type === 'cancel_invite') {
+        await organizationService.cancelStaffInvitation(orgIdAtMutation, target.id);
+        if (currentOrg?.id === orgIdAtMutation) {
+          showSuccess(`Staff invitation cancelled for ${target.email}.`);
+        }
+      }
 
-      if (currentOrg?.id !== orgIdAtMutation) return;
-
-      setCancelInviteTarget(null);
-      showSuccess(`Staff invitation cancelled for ${targetEmail}.`);
-      fetchData(orgIdAtMutation);
+      if (currentOrg?.id === orgIdAtMutation) {
+        setConfirmDialog(null);
+        if (lastFocusedElementRef.current?.focus) {
+          lastFocusedElementRef.current.focus();
+        }
+        fetchData(orgIdAtMutation);
+      }
     } catch (err) {
-      if (currentOrg?.id !== orgIdAtMutation) return;
-      const msg = err.response?.data?.detail || 'Failed to cancel staff invitation.';
-      showError(msg);
+      if (currentOrg?.id === orgIdAtMutation) {
+        const fallback =
+          type === 'deactivate'
+            ? 'Failed to deactivate staff member.'
+            : type === 'activate'
+            ? 'Failed to activate staff member.'
+            : 'Failed to cancel staff invitation.';
+        showError(err.response?.data?.detail || fallback);
+      }
     } finally {
       mutationInProgressRef.current = false;
-      setIsCancelling(false);
-      if (lastFocusedElementRef.current?.focus) {
-        lastFocusedElementRef.current.focus();
-      }
+      setConfirmBusy(false);
     }
   };
 
   // Loading presentation for fresh organization fetch
-  if (loading && rawStaff.length === 0 && rawInvitations.length === 0 && !error) {
+  const isDataLoading = loading || !isCurrentOrg;
+  if (isDataLoading && rawStaff.length === 0 && rawInvitations.length === 0 && !error) {
     return <LoadingState message="Loading staff and team management..." />;
   }
 
-  const isMutatingAny = isDeactivating || isActivating || isCancelling;
+  const isMutatingAny = Boolean(inviting || confirmBusy);
+  const activeTabConfig = TAB_CONFIG[activeTab];
 
   return (
     <div className="manager-staff app-container animate-page-entrance">
@@ -673,326 +617,87 @@ export function ManagerStaffPage() {
         aria-label="Staff management navigation tabs"
         className="manager-staff__tablist"
       >
-        <button
-          type="button"
-          role="tab"
-          id="tab-active"
-          aria-selected={activeTab === 'active'}
-          aria-controls="panel-active"
-          tabIndex={activeTab === 'active' ? 0 : -1}
-          className="manager-staff__tab"
-          onClick={() => handleTabChange('active')}
-          onKeyDown={(e) => handleTabKeyDown(e, 'active')}
-        >
-          <span>Active Staff</span>
-          <span className="manager-staff__tab-badge">{activeStaff.length}</span>
-        </button>
+        {TABS.map((tab) => {
+          const isSelected = activeTab === tab.id;
+          const count =
+            tab.id === 'active'
+              ? activeStaff.length
+              : tab.id === 'inactive'
+              ? inactiveStaff.length
+              : pendingInvitations.length;
 
-        <button
-          type="button"
-          role="tab"
-          id="tab-inactive"
-          aria-selected={activeTab === 'inactive'}
-          aria-controls="panel-inactive"
-          tabIndex={activeTab === 'inactive' ? 0 : -1}
-          className="manager-staff__tab"
-          onClick={() => handleTabChange('inactive')}
-          onKeyDown={(e) => handleTabKeyDown(e, 'inactive')}
-        >
-          <span>Inactive Staff</span>
-          <span className="manager-staff__tab-badge">{inactiveStaff.length}</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          id="tab-invitations"
-          aria-selected={activeTab === 'invitations'}
-          aria-controls="panel-invitations"
-          tabIndex={activeTab === 'invitations' ? 0 : -1}
-          className="manager-staff__tab"
-          onClick={() => handleTabChange('invitations')}
-          onKeyDown={(e) => handleTabKeyDown(e, 'invitations')}
-        >
-          <span>Pending Invitations</span>
-          <span className="manager-staff__tab-badge">{pendingInvitations.length}</span>
-        </button>
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              id={`tab-${tab.id}`}
+              aria-selected={isSelected}
+              aria-controls={`panel-${tab.id}`}
+              tabIndex={isSelected ? 0 : -1}
+              className="manager-staff__tab"
+              onClick={() => handleTabChange(tab.id)}
+              onKeyDown={(e) => handleTabKeyDown(e, tab.id)}
+            >
+              <span>{tab.label}</span>
+              <span className="manager-staff__tab-badge">{count}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Tab Panel: Active Staff */}
-      {activeTab === 'active' && (
-        <div
-          role="tabpanel"
-          id="panel-active"
-          aria-labelledby="tab-active"
-          className="manager-staff__tabpanel"
-        >
-          {activeStaff.length > 0 && (
-            <div className="manager-staff__toolbar">
-              <SearchFilterBar
-                searchValue={searchInput}
-                onSearchChange={(val) => setSearchInput(val)}
-                onSearchSubmit={handleSearchSubmit}
-                searchPlaceholder="Search staff by name or email..."
-                searchLabel="Search active staff members"
-                isFiltered={Boolean(appliedSearch)}
-                onClear={handleClearSearch}
-                isLoading={loading}
-              />
-              {appliedSearch && (
-                <div className="manager-staff__search-feedback">
-                  <span>
-                    Showing results for <strong>&ldquo;{appliedSearch}&rdquo;</strong> ({totalFilteredCount} found)
-                  </span>
-                  <button
-                    type="button"
-                    className="manager-staff__clear-search-link"
-                    onClick={handleClearSearch}
-                  >
-                    Clear search
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeStaff.length === 0 ? (
-            <EmptyState
-              icon="👥"
-              title="No Active Staff Members"
-              message="You haven't added any active staff members yet. Send an email invitation to authorize a team member."
+      {/* Unified Tab Panel Content */}
+      <div
+        role="tabpanel"
+        id={`panel-${activeTab}`}
+        aria-labelledby={`tab-${activeTab}`}
+        className="manager-staff__tabpanel"
+      >
+        {currentTabItems.length > 0 && (
+          <div className="manager-staff__toolbar">
+            <SearchFilterBar
+              searchValue={searchInput}
+              onSearchChange={(val) => setSearchInput(val)}
+              onSearchSubmit={handleSearchSubmit}
+              searchPlaceholder={activeTabConfig.placeholder}
+              searchLabel={activeTabConfig.label}
+              isFiltered={Boolean(appliedSearch)}
+              onClear={handleClearSearch}
+              isLoading={loading}
             />
-          ) : filteredItems.length === 0 ? (
-            <EmptyState
-              icon="🔍"
-              title="No Matching Active Staff"
-              message={`No active staff members match "${appliedSearch}". Clear your search query to see all records.`}
-            />
-          ) : (
-            <>
-              <div className="manager-staff__table-card">
-                <ResponsiveTable
-                  caption="Active staff members in the current organization"
-                  columns={STAFF_COLUMNS}
+            {appliedSearch && (
+              <div className="manager-staff__search-feedback">
+                <span>
+                  Showing results for <strong>&ldquo;{appliedSearch}&rdquo;</strong> ({totalFilteredCount} found)
+                </span>
+                <button
+                  type="button"
+                  className="manager-staff__clear-search-link"
+                  onClick={handleClearSearch}
                 >
-                  {paginatedItems.map((member) => {
-                    const fullName = `${member.user_first_name || ''} ${member.user_last_name || ''}`.trim();
-                    const displayName = fullName || 'Staff Member';
-
-                    return (
-                      <tr key={member.id}>
-                        <td>
-                          <div className="manager-staff__member-name">{displayName}</div>
-                        </td>
-                        <td>
-                          <div className="manager-staff__member-email">{member.user_email}</div>
-                        </td>
-                        <td>
-                          <span className="manager-staff__role-tag">STAFF</span>
-                        </td>
-                        <td>
-                          <StatusBadge status="ACTIVE" />
-                        </td>
-                        <td>
-                          <div className="manager-staff__actions">
-                            <button
-                              type="button"
-                              className="btn btn-outline-danger btn-sm manager-staff__action-btn"
-                              onClick={() => handleOpenDeactivateDialog(member)}
-                              disabled={isMutatingAny}
-                              aria-label={`Deactivate operational access for ${displayName}`}
-                            >
-                              Deactivate
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </ResponsiveTable>
+                  Clear search
+                </button>
               </div>
+            )}
+          </div>
+        )}
 
-              {totalPages > 1 && (
-                <div className="manager-staff__pagination">
-                  <Pagination
-                    currentPage={safePage}
-                    totalPages={totalPages}
-                    totalCount={totalFilteredCount}
-                    itemRange={itemRange}
-                    onPageChange={(p) => setPage(p)}
-                    ariaLabel="Active staff pagination"
-                  />
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Tab Panel: Inactive Staff */}
-      {activeTab === 'inactive' && (
-        <div
-          role="tabpanel"
-          id="panel-inactive"
-          aria-labelledby="tab-inactive"
-          className="manager-staff__tabpanel"
-        >
-          {inactiveStaff.length > 0 && (
-            <div className="manager-staff__toolbar">
-              <SearchFilterBar
-                searchValue={searchInput}
-                onSearchChange={(val) => setSearchInput(val)}
-                onSearchSubmit={handleSearchSubmit}
-                searchPlaceholder="Search inactive staff by name or email..."
-                searchLabel="Search inactive staff members"
-                isFiltered={Boolean(appliedSearch)}
-                onClear={handleClearSearch}
-                isLoading={loading}
-              />
-              {appliedSearch && (
-                <div className="manager-staff__search-feedback">
-                  <span>
-                    Showing results for <strong>&ldquo;{appliedSearch}&rdquo;</strong> ({totalFilteredCount} found)
-                  </span>
-                  <button
-                    type="button"
-                    className="manager-staff__clear-search-link"
-                    onClick={handleClearSearch}
-                  >
-                    Clear search
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {inactiveStaff.length === 0 ? (
-            <EmptyState
-              icon="🔒"
-              title="No Inactive Staff Members"
-              message="All registered staff members in this organization are currently active."
-            />
-          ) : filteredItems.length === 0 ? (
-            <EmptyState
-              icon="🔍"
-              title="No Matching Inactive Staff"
-              message={`No inactive staff members match "${appliedSearch}". Clear your search query to see all records.`}
-            />
-          ) : (
-            <>
-              <div className="manager-staff__table-card">
-                <ResponsiveTable
-                  caption="Inactive staff members in the current organization"
-                  columns={STAFF_COLUMNS}
-                >
-                  {paginatedItems.map((member) => {
-                    const fullName = `${member.user_first_name || ''} ${member.user_last_name || ''}`.trim();
-                    const displayName = fullName || 'Staff Member';
-
-                    return (
-                      <tr key={member.id}>
-                        <td>
-                          <div className="manager-staff__member-name manager-staff__member-name--inactive">
-                            {displayName}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="manager-staff__member-email">{member.user_email}</div>
-                        </td>
-                        <td>
-                          <span className="manager-staff__role-tag manager-staff__role-tag--inactive">STAFF</span>
-                        </td>
-                        <td>
-                          <StatusBadge status="INACTIVE" />
-                        </td>
-                        <td>
-                          <div className="manager-staff__actions">
-                            <button
-                              type="button"
-                              className="btn btn-outline-primary btn-sm manager-staff__action-btn"
-                              onClick={() => handleOpenActivateDialog(member)}
-                              disabled={isMutatingAny}
-                              aria-label={`Re-activate operational access for ${displayName}`}
-                            >
-                              Re-Activate
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </ResponsiveTable>
-              </div>
-
-              {totalPages > 1 && (
-                <div className="manager-staff__pagination">
-                  <Pagination
-                    currentPage={safePage}
-                    totalPages={totalPages}
-                    totalCount={totalFilteredCount}
-                    itemRange={itemRange}
-                    onPageChange={(p) => setPage(p)}
-                    ariaLabel="Inactive staff pagination"
-                  />
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Tab Panel: Pending Invitations */}
-      {activeTab === 'invitations' && (
-        <div
-          role="tabpanel"
-          id="panel-invitations"
-          aria-labelledby="tab-invitations"
-          className="manager-staff__tabpanel"
-        >
-          {pendingInvitations.length > 0 && (
-            <div className="manager-staff__toolbar">
-              <SearchFilterBar
-                searchValue={searchInput}
-                onSearchChange={(val) => setSearchInput(val)}
-                onSearchSubmit={handleSearchSubmit}
-                searchPlaceholder="Search invitations by email..."
-                searchLabel="Search pending staff invitations"
-                isFiltered={Boolean(appliedSearch)}
-                onClear={handleClearSearch}
-                isLoading={loading}
-              />
-              {appliedSearch && (
-                <div className="manager-staff__search-feedback">
-                  <span>
-                    Showing results for <strong>&ldquo;{appliedSearch}&rdquo;</strong> ({totalFilteredCount} found)
-                  </span>
-                  <button
-                    type="button"
-                    className="manager-staff__clear-search-link"
-                    onClick={handleClearSearch}
-                  >
-                    Clear search
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {pendingInvitations.length === 0 ? (
-            <EmptyState
-              icon="📨"
-              title="No Pending Staff Invitations"
-              message="There are currently no active staff invitation links waiting for acceptance."
-            />
-          ) : filteredItems.length === 0 ? (
-            <EmptyState
-              icon="🔍"
-              title="No Matching Invitations"
-              message={`No pending invitations match "${appliedSearch}". Clear your search query to see all records.`}
-            />
-          ) : (
-            <>
-              <div className="manager-staff__table-card">
+        {currentTabItems.length === 0 ? (
+          <EmptyState
+            icon={activeTabConfig.emptyIcon}
+            title={activeTabConfig.emptyTitle}
+            message={activeTabConfig.emptyMsg}
+          />
+        ) : filteredItems.length === 0 ? (
+          <EmptyState
+            icon="🔍"
+            title={activeTabConfig.noMatchTitle}
+            message={activeTabConfig.noMatchMsg(appliedSearch)}
+          />
+        ) : (
+          <>
+            <div className="manager-staff__table-card">
+              {activeTab === 'invitations' ? (
                 <ResponsiveTable
                   caption="Pending staff invitations for the current organization"
                   columns={INVITATION_COLUMNS}
@@ -1020,7 +725,7 @@ export function ManagerStaffPage() {
                           <button
                             type="button"
                             className="btn btn-outline-danger btn-sm manager-staff__action-btn"
-                            onClick={() => handleOpenCancelInviteDialog(inv)}
+                            onClick={() => handleOpenConfirmDialog('cancel_invite', inv)}
                             disabled={isMutatingAny}
                             aria-label={`Cancel invitation for ${inv.email}`}
                           >
@@ -1031,24 +736,89 @@ export function ManagerStaffPage() {
                     </tr>
                   ))}
                 </ResponsiveTable>
-              </div>
+              ) : (
+                <ResponsiveTable
+                  caption={`${activeTab === 'active' ? 'Active' : 'Inactive'} staff members in the current organization`}
+                  columns={STAFF_COLUMNS}
+                >
+                  {paginatedItems.map((member) => {
+                    const fullName = `${member.user_first_name || ''} ${member.user_last_name || ''}`.trim();
+                    const displayName = fullName || 'Staff Member';
+                    const isMemberActive = activeTab === 'active';
 
-              {totalPages > 1 && (
-                <div className="manager-staff__pagination">
-                  <Pagination
-                    currentPage={safePage}
-                    totalPages={totalPages}
-                    totalCount={totalFilteredCount}
-                    itemRange={itemRange}
-                    onPageChange={(p) => setPage(p)}
-                    ariaLabel="Pending invitations pagination"
-                  />
-                </div>
+                    return (
+                      <tr key={member.id}>
+                        <td>
+                          <div
+                            className={`manager-staff__member-name${
+                              isMemberActive ? '' : ' manager-staff__member-name--inactive'
+                            }`}
+                          >
+                            {displayName}
+                          </div>
+                        </td>
+                        <td>
+                          <div className="manager-staff__member-email">{member.user_email}</div>
+                        </td>
+                        <td>
+                          <span
+                            className={`manager-staff__role-tag${
+                              isMemberActive ? '' : ' manager-staff__role-tag--inactive'
+                            }`}
+                          >
+                            STAFF
+                          </span>
+                        </td>
+                        <td>
+                          <StatusBadge status={isMemberActive ? 'ACTIVE' : 'INACTIVE'} />
+                        </td>
+                        <td>
+                          <div className="manager-staff__actions">
+                            {isMemberActive ? (
+                              <button
+                                type="button"
+                                className="btn btn-outline-danger btn-sm manager-staff__action-btn"
+                                onClick={() => handleOpenConfirmDialog('deactivate', member)}
+                                disabled={isMutatingAny}
+                                aria-label={`Deactivate operational access for ${displayName}`}
+                              >
+                                Deactivate
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="btn btn-outline-primary btn-sm manager-staff__action-btn"
+                                onClick={() => handleOpenConfirmDialog('activate', member)}
+                                disabled={isMutatingAny}
+                                aria-label={`Re-activate operational access for ${displayName}`}
+                              >
+                                Re-Activate
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </ResponsiveTable>
               )}
-            </>
-          )}
-        </div>
-      )}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="manager-staff__pagination">
+                <Pagination
+                  currentPage={safePage}
+                  totalPages={totalPages}
+                  totalCount={totalFilteredCount}
+                  itemRange={itemRange}
+                  onPageChange={(p) => setPage(p)}
+                  ariaLabel={`${activeTabConfig.label} pagination`}
+                />
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {/* ======================================================================
           Invite Staff Modal
@@ -1181,15 +951,15 @@ export function ManagerStaffPage() {
       )}
 
       {/* ======================================================================
-          Deactivate Staff Confirmation Dialog
+          Consolidated Confirmation Dialog (Deactivate / Activate / Cancel Invite)
           ====================================================================== */}
-      {deactivateTarget && (
+      {confirmDialog && (
         <div
           className="manager-staff__dialog-overlay"
           role="presentation"
           onClick={(e) => {
-            if (e.target === e.currentTarget && !isDeactivating) {
-              setDeactivateTarget(null);
+            if (e.target === e.currentTarget && !confirmBusy) {
+              handleCloseConfirmDialog();
             }
           }}
         >
@@ -1197,203 +967,112 @@ export function ManagerStaffPage() {
             className="manager-staff__dialog"
             role="alertdialog"
             aria-modal="true"
-            aria-labelledby="deactivate-dialog-title"
-            aria-describedby="deactivate-dialog-desc"
+            aria-labelledby="confirm-dialog-title"
+            aria-describedby="confirm-dialog-desc"
           >
             <div className="manager-staff__dialog-header">
               <div>
-                <h2 id="deactivate-dialog-title" className="manager-staff__dialog-title">
-                  Deactivate Staff Access
+                <h2 id="confirm-dialog-title" className="manager-staff__dialog-title">
+                  {confirmDialog.type === 'deactivate'
+                    ? 'Deactivate Staff Access'
+                    : confirmDialog.type === 'activate'
+                    ? 'Re-Activate Staff Access'
+                    : 'Cancel Staff Invitation'}
                 </h2>
-                <p id="deactivate-dialog-desc" className="manager-staff__dialog-desc">
-                  Are you sure you want to deactivate operational access for this team member?
+                <p id="confirm-dialog-desc" className="manager-staff__dialog-desc">
+                  {confirmDialog.type === 'deactivate'
+                    ? 'Are you sure you want to deactivate operational access for this team member?'
+                    : confirmDialog.type === 'activate'
+                    ? (
+                      <>
+                        Restore operational queue privileges for this staff member in{' '}
+                        <strong>{currentOrg?.name || 'this organization'}</strong>.
+                      </>
+                    )
+                    : 'Are you sure you want to revoke this pending staff invitation? The invitation link will immediately become invalid.'}
                 </p>
               </div>
             </div>
 
             <div className="manager-staff__dialog-highlight">
-              <div className="manager-staff__dialog-highlight-row">
-                <span className="manager-staff__dialog-highlight-label">Staff Member:</span>
-                <span className="manager-staff__dialog-highlight-value">
-                  {`${deactivateTarget.user_first_name || ''} ${deactivateTarget.user_last_name || ''}`.trim() || 'Staff Member'}
-                </span>
-              </div>
-              <div className="manager-staff__dialog-highlight-row">
-                <span className="manager-staff__dialog-highlight-label">Email:</span>
-                <span className="manager-staff__dialog-highlight-value">
-                  {deactivateTarget.user_email}
-                </span>
-              </div>
-              <div className="manager-staff__dialog-highlight-row">
-                <span className="manager-staff__dialog-highlight-label">Impact:</span>
-                <span className="manager-staff__dialog-highlight-value">
-                  Immediate loss of operational queue access
-                </span>
-              </div>
+              {confirmDialog.type === 'cancel_invite' ? (
+                <>
+                  <div className="manager-staff__dialog-highlight-row">
+                    <span className="manager-staff__dialog-highlight-label">Recipient:</span>
+                    <span className="manager-staff__dialog-highlight-value">
+                      {confirmDialog.target.email}
+                    </span>
+                  </div>
+                  <div className="manager-staff__dialog-highlight-row">
+                    <span className="manager-staff__dialog-highlight-label">Role:</span>
+                    <span className="manager-staff__dialog-highlight-value">
+                      {confirmDialog.target.role || 'STAFF'}
+                    </span>
+                  </div>
+                  <div className="manager-staff__dialog-highlight-row">
+                    <span className="manager-staff__dialog-highlight-label">Sent Date:</span>
+                    <span className="manager-staff__dialog-highlight-value">
+                      {formatDhakaDateTime(confirmDialog.target.created_at)}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="manager-staff__dialog-highlight-row">
+                    <span className="manager-staff__dialog-highlight-label">Staff Member:</span>
+                    <span className="manager-staff__dialog-highlight-value">
+                      {`${confirmDialog.target.user_first_name || ''} ${confirmDialog.target.user_last_name || ''}`.trim() || 'Staff Member'}
+                    </span>
+                  </div>
+                  <div className="manager-staff__dialog-highlight-row">
+                    <span className="manager-staff__dialog-highlight-label">Email:</span>
+                    <span className="manager-staff__dialog-highlight-value">
+                      {confirmDialog.target.user_email}
+                    </span>
+                  </div>
+                  {confirmDialog.type === 'deactivate' && (
+                    <div className="manager-staff__dialog-highlight-row">
+                      <span className="manager-staff__dialog-highlight-label">Impact:</span>
+                      <span className="manager-staff__dialog-highlight-value">
+                        Immediate loss of operational queue access
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             <div className="manager-staff__dialog-actions">
               <button
-                ref={deactivateCancelBtnRef}
+                ref={confirmCancelBtnRef}
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => setDeactivateTarget(null)}
-                disabled={isDeactivating}
+                onClick={handleCloseConfirmDialog}
+                disabled={confirmBusy}
               >
-                Keep Active
+                {confirmDialog.type === 'deactivate'
+                  ? 'Keep Active'
+                  : confirmDialog.type === 'activate'
+                  ? 'Cancel'
+                  : 'Keep Invitation'}
               </button>
               <button
                 type="button"
-                className="btn btn-danger"
-                onClick={handleConfirmDeactivate}
-                disabled={isDeactivating}
+                className={`btn ${confirmDialog.type === 'activate' ? 'btn-primary' : 'btn-danger'}`}
+                onClick={handleConfirmAction}
+                disabled={confirmBusy}
               >
-                {isDeactivating ? 'Deactivating...' : 'Confirm Deactivation'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================================
-          Re-Activate Staff Confirmation Dialog
-          ====================================================================== */}
-      {activateTarget && (
-        <div
-          className="manager-staff__dialog-overlay"
-          role="presentation"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !isActivating) {
-              setActivateTarget(null);
-            }
-          }}
-        >
-          <div
-            className="manager-staff__dialog"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="activate-dialog-title"
-            aria-describedby="activate-dialog-desc"
-          >
-            <div className="manager-staff__dialog-header">
-              <div>
-                <h2 id="activate-dialog-title" className="manager-staff__dialog-title">
-                  Re-Activate Staff Access
-                </h2>
-                <p id="activate-dialog-desc" className="manager-staff__dialog-desc">
-                  Restore operational queue privileges for this staff member in{' '}
-                  <strong>{currentOrg?.name || 'this organization'}</strong>.
-                </p>
-              </div>
-            </div>
-
-            <div className="manager-staff__dialog-highlight">
-              <div className="manager-staff__dialog-highlight-row">
-                <span className="manager-staff__dialog-highlight-label">Staff Member:</span>
-                <span className="manager-staff__dialog-highlight-value">
-                  {`${activateTarget.user_first_name || ''} ${activateTarget.user_last_name || ''}`.trim() || 'Staff Member'}
-                </span>
-              </div>
-              <div className="manager-staff__dialog-highlight-row">
-                <span className="manager-staff__dialog-highlight-label">Email:</span>
-                <span className="manager-staff__dialog-highlight-value">
-                  {activateTarget.user_email}
-                </span>
-              </div>
-            </div>
-
-            <div className="manager-staff__dialog-actions">
-              <button
-                ref={activateCancelBtnRef}
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setActivateTarget(null)}
-                disabled={isActivating}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleConfirmActivate}
-                disabled={isActivating}
-              >
-                {isActivating ? 'Activating...' : 'Restore Access'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================================
-          Cancel Staff Invitation Confirmation Dialog
-          ====================================================================== */}
-      {cancelInviteTarget && (
-        <div
-          className="manager-staff__dialog-overlay"
-          role="presentation"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !isCancelling) {
-              setCancelInviteTarget(null);
-            }
-          }}
-        >
-          <div
-            className="manager-staff__dialog"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="cancel-invite-dialog-title"
-            aria-describedby="cancel-invite-dialog-desc"
-          >
-            <div className="manager-staff__dialog-header">
-              <div>
-                <h2 id="cancel-invite-dialog-title" className="manager-staff__dialog-title">
-                  Cancel Staff Invitation
-                </h2>
-                <p id="cancel-invite-dialog-desc" className="manager-staff__dialog-desc">
-                  Are you sure you want to revoke this pending staff invitation? The invitation link will immediately become invalid.
-                </p>
-              </div>
-            </div>
-
-            <div className="manager-staff__dialog-highlight">
-              <div className="manager-staff__dialog-highlight-row">
-                <span className="manager-staff__dialog-highlight-label">Recipient:</span>
-                <span className="manager-staff__dialog-highlight-value">
-                  {cancelInviteTarget.email}
-                </span>
-              </div>
-              <div className="manager-staff__dialog-highlight-row">
-                <span className="manager-staff__dialog-highlight-label">Role:</span>
-                <span className="manager-staff__dialog-highlight-value">
-                  {cancelInviteTarget.role || 'STAFF'}
-                </span>
-              </div>
-              <div className="manager-staff__dialog-highlight-row">
-                <span className="manager-staff__dialog-highlight-label">Sent Date:</span>
-                <span className="manager-staff__dialog-highlight-value">
-                  {formatDhakaDateTime(cancelInviteTarget.created_at)}
-                </span>
-              </div>
-            </div>
-
-            <div className="manager-staff__dialog-actions">
-              <button
-                ref={cancelInviteCancelBtnRef}
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setCancelInviteTarget(null)}
-                disabled={isCancelling}
-              >
-                Keep Invitation
-              </button>
-              <button
-                type="button"
-                className="btn btn-danger"
-                onClick={handleConfirmCancelInvite}
-                disabled={isCancelling}
-              >
-                {isCancelling ? 'Revoking...' : 'Revoke Invitation'}
+                {confirmBusy
+                  ? confirmDialog.type === 'deactivate'
+                    ? 'Deactivating...'
+                    : confirmDialog.type === 'activate'
+                    ? 'Activating...'
+                    : 'Revoking...'
+                  : confirmDialog.type === 'deactivate'
+                  ? 'Confirm Deactivation'
+                  : confirmDialog.type === 'activate'
+                  ? 'Restore Access'
+                  : 'Revoke Invitation'}
               </button>
             </div>
           </div>

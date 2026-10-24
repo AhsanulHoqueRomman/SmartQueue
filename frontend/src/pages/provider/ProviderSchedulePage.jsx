@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTenant } from '../../contexts/TenantContext';
 import organizationService from '../../services/organizationService';
@@ -64,12 +64,11 @@ function formatDhakaDate(dateStr) {
 }
 
 /**
- * Compute earliest valid date string (YYYY-MM-DD) for schedule requests in Asia/Dhaka.
+ * Compute ISO date string offset from the Dhaka booking window start.
  */
-function getEarliestScheduleDate(kind) {
+function addDhakaDays(daysToAdd) {
   const { first } = bookingWindow();
   const d = new Date(`${first}T00:00:00+06:00`);
-  const daysToAdd = kind === 'SPECIFIC_DATE' ? 4 : 10;
   d.setDate(d.getDate() + daysToAdd);
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -77,17 +76,68 @@ function getEarliestScheduleDate(kind) {
   return `${y}-${m}-${day}`;
 }
 
-/**
- * Compute earliest valid datetime string (YYYY-MM-DDTHH:mm) for leave requests in Asia/Dhaka.
- */
+function getEarliestScheduleDate(kind) {
+  return addDhakaDays(kind === 'SPECIFIC_DATE' ? 4 : 10);
+}
+
 function getEarliestLeaveDatetime() {
-  const { first } = bookingWindow();
-  const d = new Date(`${first}T00:00:00+06:00`);
-  d.setDate(d.getDate() + 4);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}T09:00`;
+  return `${addDhakaDays(4)}T09:00`;
+}
+
+/**
+ * Extract data items from settled API results.
+ */
+function extractResultItems(result, accessor = (v) => v) {
+  if (result.status !== 'fulfilled') return [];
+  const raw = accessor(result.value);
+  return Array.isArray(raw) ? raw : raw?.results || [];
+}
+
+/**
+ * Compute weekly summary statistics across active schedules, requests, and leaves.
+ */
+function computeScheduleStats(schedules, requests, leaves) {
+  const totalWeeklyHours = schedules
+    .filter((s) => s.is_working_day)
+    .reduce((sum, s) => {
+      try {
+        const [sh, sm] = (s.start_time || '09:00:00').split(':').map(Number);
+        const [eh, em] = (s.end_time || '17:00:00').split(':').map(Number);
+        const duration = eh + em / 60 - (sh + sm / 60);
+        return sum + (duration > 0 ? duration : 0);
+      } catch {
+        return sum;
+      }
+    }, 0);
+
+  return {
+    totalWeeklyHours: Math.round(totalWeeklyHours * 10) / 10,
+    workingDaysCount: schedules.filter((s) => s.is_working_day).length,
+    totalBreaks: schedules.reduce((sum, s) => sum + (s.breaks?.length || 0), 0),
+    pendingRequestsCount: requests.filter((r) => r.status === 'PENDING').length,
+    upcomingLeavesCount: leaves.filter((l) => l.status === 'APPROVED' || l.status === 'PENDING' || l.status === null).length,
+  };
+}
+
+/**
+ * Sub-component for rendering weekly schedule day comparison rows.
+ */
+function ScheduleDayComparisonList({ scheduleDays }) {
+  return (
+    <ul className="provider-schedule__comparison-days">
+      {(scheduleDays || []).map((day) => (
+        <li key={day.day_of_week} className="provider-schedule__comparison-day-item">
+          <strong>{DAYS_OF_WEEK.find((d) => d.day === day.day_of_week)?.short}:</strong>
+          <span>
+            {day.is_working_day
+              ? `${day.start_time?.slice(0, 5)}–${day.end_time?.slice(0, 5)}`
+              : 'Off'}
+            {day.breaks?.length > 0 && ` (${day.breaks.length} break)`}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function ProviderSchedulePage() {
@@ -144,19 +194,11 @@ export function ProviderSchedulePage() {
   const mutationBusyRef = useRef(false);
   const prepareRevisionRef = useRef(0);
 
-  // Render-time tenant guards
-  const schedules = useMemo(
-    () => (schedulesData.orgId === currentOrg?.id ? schedulesData.items : []),
-    [schedulesData, currentOrg?.id]
-  );
-  const requests = useMemo(
-    () => (requestsData.orgId === currentOrg?.id ? requestsData.items : []),
-    [requestsData, currentOrg?.id]
-  );
-  const leaves = useMemo(
-    () => (leavesData.orgId === currentOrg?.id ? leavesData.items : []),
-    [leavesData, currentOrg?.id]
-  );
+  // Render-time tenant guards (inline resolution)
+  const schedules = schedulesData.orgId === currentOrg?.id ? schedulesData.items : [];
+  const requests = requestsData.orgId === currentOrg?.id ? requestsData.items : [];
+  const leaves = leavesData.orgId === currentOrg?.id ? leavesData.items : [];
+  const stats = computeScheduleStats(schedules, requests, leaves);
 
   /**
    * Primary asynchronous fetch with request ticket & generation tracking.
@@ -212,32 +254,9 @@ export function ProviderSchedulePage() {
           return;
         }
 
-        // Handle Schedules
-        if (schedResult.status === 'fulfilled') {
-          const rawSched = schedResult.value;
-          const items = Array.isArray(rawSched) ? rawSched : rawSched?.results || [];
-          setSchedulesData({ orgId: orgIdToFetch, items });
-        } else {
-          setSchedulesData({ orgId: orgIdToFetch, items: [] });
-        }
-
-        // Handle Schedule Requests
-        if (requestsResult.status === 'fulfilled') {
-          const rawReqs = requestsResult.value.data;
-          const items = Array.isArray(rawReqs) ? rawReqs : rawReqs?.results || [];
-          setRequestsData({ orgId: orgIdToFetch, items });
-        } else {
-          setRequestsData({ orgId: orgIdToFetch, items: [] });
-        }
-
-        // Handle Planned Leaves
-        if (leavesResult.status === 'fulfilled') {
-          const rawLeaves = leavesResult.value;
-          const items = Array.isArray(rawLeaves) ? rawLeaves : rawLeaves?.results || [];
-          setLeavesData({ orgId: orgIdToFetch, items });
-        } else {
-          setLeavesData({ orgId: orgIdToFetch, items: [] });
-        }
+        setSchedulesData({ orgId: orgIdToFetch, items: extractResultItems(schedResult) });
+        setRequestsData({ orgId: orgIdToFetch, items: extractResultItems(requestsResult, (v) => v.data) });
+        setLeavesData({ orgId: orgIdToFetch, items: extractResultItems(leavesResult) });
       } catch (err) {
         if (
           requestId !== activeRequestIdRef.current ||
@@ -288,34 +307,7 @@ export function ProviderSchedulePage() {
     }
   }, [currentOrg?.id, user?.id, fetchAllScheduleData]);
 
-  // Derived Statistics
-  const stats = useMemo(() => {
-    const totalWeeklyHours = schedules
-      .filter((s) => s.is_working_day)
-      .reduce((sum, s) => {
-        try {
-          const [sh, sm] = (s.start_time || '09:00:00').split(':').map(Number);
-          const [eh, em] = (s.end_time || '17:00:00').split(':').map(Number);
-          const duration = eh + em / 60 - (sh + sm / 60);
-          return sum + (duration > 0 ? duration : 0);
-        } catch {
-          return sum;
-        }
-      }, 0);
 
-    const workingDaysCount = schedules.filter((s) => s.is_working_day).length;
-    const totalBreaks = schedules.reduce((sum, s) => sum + (s.breaks?.length || 0), 0);
-    const pendingRequestsCount = requests.filter((r) => r.status === 'PENDING').length;
-    const upcomingLeavesCount = leaves.filter((l) => l.status === 'APPROVED' || l.status === 'PENDING' || l.status === null).length;
-
-    return {
-      totalWeeklyHours: Math.round(totalWeeklyHours * 10) / 10,
-      workingDaysCount,
-      totalBreaks,
-      pendingRequestsCount,
-      upcomingLeavesCount,
-    };
-  }, [schedules, requests, leaves]);
 
   // --------------------------------------------------------------------------
   // Schedule Change Request Logic
@@ -338,10 +330,10 @@ export function ProviderSchedulePage() {
     setRequestReason('');
     setRequestAttachment(null);
     setRequestModalOpen(true);
-    prepareScheduleForDate(minDate, defaultKind);
+    prepareScheduleForDate(minDate);
   };
 
-  const prepareScheduleForDate = async (targetDate, currentKind) => {
+  const prepareScheduleForDate = async (targetDate) => {
     if (!currentOrg?.id || !providerProfile?.id || !targetDate) return;
     const revision = ++prepareRevisionRef.current;
     setRequestPreparing(true);
@@ -378,62 +370,50 @@ export function ProviderSchedulePage() {
     const minDate = getEarliestScheduleDate(newKind);
     if (!requestDate || requestDate < minDate) {
       setRequestDate(minDate);
-      prepareScheduleForDate(minDate, newKind);
+      prepareScheduleForDate(minDate);
     }
   };
 
   const handleDateChange = (e) => {
     const newDate = e.target.value;
     setRequestDate(newDate);
-    prepareScheduleForDate(newDate, requestKind);
+    prepareScheduleForDate(newDate);
+  };
+
+  const updateDay = (dayIndex, updater) => {
+    setRequestDays((prevDays) =>
+      prevDays.map((day, idx) => (idx === dayIndex ? updater(day) : day))
+    );
   };
 
   const handleDayChange = (dayIndex, field, value) => {
-    setRequestDays((prevDays) =>
-      prevDays.map((day, idx) => (idx === dayIndex ? { ...day, [field]: value } : day))
-    );
+    updateDay(dayIndex, (day) => ({ ...day, [field]: value }));
   };
 
   const handleAddBreakToDay = (dayIndex) => {
-    setRequestDays((prevDays) =>
-      prevDays.map((day, idx) => {
-        if (idx !== dayIndex) return day;
-        const currentBreaks = Array.isArray(day.breaks) ? day.breaks : [];
-        return {
-          ...day,
-          breaks: [
-            ...currentBreaks,
-            { title: 'Rest Break', start_time: '13:00:00', end_time: '14:00:00' },
-          ],
-        };
-      })
-    );
+    updateDay(dayIndex, (day) => ({
+      ...day,
+      breaks: [
+        ...(Array.isArray(day.breaks) ? day.breaks : []),
+        { title: 'Rest Break', start_time: '13:00:00', end_time: '14:00:00' },
+      ],
+    }));
   };
 
   const handleRemoveBreakFromDay = (dayIndex, breakIndex) => {
-    setRequestDays((prevDays) =>
-      prevDays.map((day, idx) => {
-        if (idx !== dayIndex) return day;
-        const currentBreaks = Array.isArray(day.breaks) ? day.breaks : [];
-        return {
-          ...day,
-          breaks: currentBreaks.filter((_, bIdx) => bIdx !== breakIndex),
-        };
-      })
-    );
+    updateDay(dayIndex, (day) => ({
+      ...day,
+      breaks: (Array.isArray(day.breaks) ? day.breaks : []).filter((_, bIdx) => bIdx !== breakIndex),
+    }));
   };
 
   const handleBreakChange = (dayIndex, breakIndex, field, value) => {
-    setRequestDays((prevDays) =>
-      prevDays.map((day, idx) => {
-        if (idx !== dayIndex) return day;
-        const currentBreaks = Array.isArray(day.breaks) ? day.breaks : [];
-        return {
-          ...day,
-          breaks: currentBreaks.map((b, bIdx) => (bIdx === breakIndex ? { ...b, [field]: value } : b)),
-        };
-      })
-    );
+    updateDay(dayIndex, (day) => ({
+      ...day,
+      breaks: (Array.isArray(day.breaks) ? day.breaks : []).map((b, bIdx) =>
+        bIdx === breakIndex ? { ...b, [field]: value } : b
+      ),
+    }));
   };
 
   const handleSubmitScheduleRequest = async (e) => {
@@ -707,22 +687,14 @@ export function ProviderSchedulePage() {
 
   // Initial focus management when dialogs open
   useEffect(() => {
-    if (requestModalOpen) {
-      requestKindSelectRef.current?.focus();
-    }
-  }, [requestModalOpen]);
-
-  useEffect(() => {
-    if (leaveModalOpen) {
-      leaveStartInputRef.current?.focus();
-    }
-  }, [leaveModalOpen]);
-
-  useEffect(() => {
     if (withdrawConfirmLeave) {
       withdrawCancelBtnRef.current?.focus();
+    } else if (leaveModalOpen) {
+      leaveStartInputRef.current?.focus();
+    } else if (requestModalOpen) {
+      requestKindSelectRef.current?.focus();
     }
-  }, [withdrawConfirmLeave]);
+  }, [withdrawConfirmLeave, leaveModalOpen, requestModalOpen]);
 
   // Global Escape dismissal and Tab focus trapping for active dialogs
   useEffect(() => {
@@ -853,26 +825,21 @@ export function ProviderSchedulePage() {
 
       {/* Stats Summary Strip */}
       <div className="provider-schedule__stats-strip">
-        <div className="provider-schedule__stat-chip provider-schedule__stat-chip--primary">
-          <span>Weekly Hours:</span>
-          <strong>{stats.totalWeeklyHours}h</strong>
-        </div>
-        <div className="provider-schedule__stat-chip">
-          <span>Working Days:</span>
-          <strong>{stats.workingDaysCount}/7</strong>
-        </div>
-        <div className="provider-schedule__stat-chip">
-          <span>Configured Breaks:</span>
-          <strong>{stats.totalBreaks}</strong>
-        </div>
-        <div className="provider-schedule__stat-chip">
-          <span>Pending Requests:</span>
-          <strong>{stats.pendingRequestsCount}</strong>
-        </div>
-        <div className="provider-schedule__stat-chip">
-          <span>Planned Leaves:</span>
-          <strong>{stats.upcomingLeavesCount}</strong>
-        </div>
+        {[
+          { label: 'Weekly Hours:', value: `${stats.totalWeeklyHours}h`, primary: true },
+          { label: 'Working Days:', value: `${stats.workingDaysCount}/7` },
+          { label: 'Configured Breaks:', value: stats.totalBreaks },
+          { label: 'Pending Requests:', value: stats.pendingRequestsCount },
+          { label: 'Planned Leaves:', value: stats.upcomingLeavesCount },
+        ].map((item, idx) => (
+          <div
+            key={idx}
+            className={`provider-schedule__stat-chip ${item.primary ? 'provider-schedule__stat-chip--primary' : ''}`}
+          >
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+          </div>
+        ))}
       </div>
 
       {/* Governance Advisory Policy Banner */}
@@ -915,43 +882,25 @@ export function ProviderSchedulePage() {
 
       {/* Navigation Tabs */}
       <div className="provider-schedule__tabs-nav" role="tablist" aria-label="Schedule management tabs">
-        <button
-          type="button"
-          role="tab"
-          id="tab-schedules"
-          aria-selected={activeTab === 'schedules'}
-          aria-controls="panel-schedules"
-          className={`provider-schedule__tab-btn ${activeTab === 'schedules' ? 'provider-schedule__tab-btn--active' : ''}`}
-          onClick={() => setActiveTab('schedules')}
-        >
-          <span>📆 Weekly Shift Hours</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          id="tab-requests"
-          aria-selected={activeTab === 'requests'}
-          aria-controls="panel-requests"
-          className={`provider-schedule__tab-btn ${activeTab === 'requests' ? 'provider-schedule__tab-btn--active' : ''}`}
-          onClick={() => setActiveTab('requests')}
-        >
-          <span>📋 Change Requests</span>
-          <span className="provider-schedule__tab-count">{requests.length}</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          id="tab-leaves"
-          aria-selected={activeTab === 'leaves'}
-          aria-controls="panel-leaves"
-          className={`provider-schedule__tab-btn ${activeTab === 'leaves' ? 'provider-schedule__tab-btn--active' : ''}`}
-          onClick={() => setActiveTab('leaves')}
-        >
-          <span>✈️ Planned Leave</span>
-          <span className="provider-schedule__tab-count">{leaves.length}</span>
-        </button>
+        {[
+          { key: 'schedules', label: '📆 Weekly Shift Hours' },
+          { key: 'requests', label: '📋 Change Requests', count: requests.length },
+          { key: 'leaves', label: '✈️ Planned Leave', count: leaves.length },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            id={`tab-${tab.key}`}
+            aria-selected={activeTab === tab.key}
+            aria-controls={`panel-${tab.key}`}
+            className={`provider-schedule__tab-btn ${activeTab === tab.key ? 'provider-schedule__tab-btn--active' : ''}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            <span>{tab.label}</span>
+            {tab.count !== undefined && <span className="provider-schedule__tab-count">{tab.count}</span>}
+          </button>
+        ))}
       </div>
 
       {/* =========================================================================
@@ -1130,36 +1079,12 @@ export function ProviderSchedulePage() {
                   <div className="provider-schedule__comparison-grid">
                     <div className="provider-schedule__comparison-col">
                       <h5>Current Approved Schedule</h5>
-                      <ul className="provider-schedule__comparison-days">
-                        {(req.current_schedule || []).map((day) => (
-                          <li key={day.day_of_week} className="provider-schedule__comparison-day-item">
-                            <strong>{DAYS_OF_WEEK.find((d) => d.day === day.day_of_week)?.short}:</strong>
-                            <span>
-                              {day.is_working_day
-                                ? `${day.start_time?.slice(0, 5)}–${day.end_time?.slice(0, 5)}`
-                                : 'Off'}
-                              {day.breaks?.length > 0 && ` (${day.breaks.length} break)`}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
+                      <ScheduleDayComparisonList scheduleDays={req.current_schedule} />
                     </div>
 
                     <div className="provider-schedule__comparison-col">
                       <h5>Proposed Schedule Change</h5>
-                      <ul className="provider-schedule__comparison-days">
-                        {(req.proposed_schedule || []).map((day) => (
-                          <li key={day.day_of_week} className="provider-schedule__comparison-day-item">
-                            <strong>{DAYS_OF_WEEK.find((d) => d.day === day.day_of_week)?.short}:</strong>
-                            <span>
-                              {day.is_working_day
-                                ? `${day.start_time?.slice(0, 5)}–${day.end_time?.slice(0, 5)}`
-                                : 'Off'}
-                              {day.breaks?.length > 0 && ` (${day.breaks.length} break)`}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
+                      <ScheduleDayComparisonList scheduleDays={req.proposed_schedule} />
                     </div>
                   </div>
 

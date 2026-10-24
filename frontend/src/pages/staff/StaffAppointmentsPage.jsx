@@ -7,7 +7,12 @@ import { EmptyState } from '../../components/EmptyState';
 import { SearchFilterBar } from '../../components/common/SearchFilterBar';
 import { ResponsiveTable } from '../../components/common/ResponsiveTable';
 import { Pagination } from '../../components/common/Pagination';
-import { normalizePaginatedResponse, DEFAULT_PAGE_SIZE } from '../../utils/paginationUtils';
+import {
+  normalizePaginatedResponse,
+  DEFAULT_PAGE_SIZE,
+  INITIAL_PAGINATION,
+  isStaleResponse,
+} from '../../utils/paginationUtils';
 
 const TABLE_COLUMNS = [
   { key: 'customer', label: 'Customer Email' },
@@ -20,7 +25,11 @@ const TABLE_COLUMNS = [
 export function StaffAppointmentsPage() {
   const { currentOrg } = useTenant();
 
-  const [appointments, setAppointments] = useState([]);
+  // Data state with tenant ownership tag for render-time isolation
+  const [appointmentsData, setAppointmentsData] = useState({
+    orgId: null,
+    items: [],
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [feedback, setFeedback] = useState(null);
@@ -32,20 +41,19 @@ export function StaffAppointmentsPage() {
 
   // Pagination state
   const [page, setPage] = useState(1);
-  const [paginationInfo, setPaginationInfo] = useState({
-    totalCount: 0,
-    totalPages: 1,
-    currentPage: 1,
-    hasNext: false,
-    hasPrevious: false,
-    itemRange: { start: 0, end: 0, total: 0 },
-  });
+  const [paginationInfo, setPaginationInfo] = useState(INITIAL_PAGINATION);
 
   const [checkingInId, setCheckingInId] = useState(null);
 
   // Stale-response tracking
   const activeRequestIdRef = useRef(0);
   const prevOrgIdRef = useRef(currentOrg?.id);
+
+  // Render-time tenant ownership guard
+  const isCurrentOrgAppointments = appointmentsData.orgId === currentOrg?.id;
+  const activeAppointments = isCurrentOrgAppointments ? appointmentsData.items : [];
+  const activePagination = isCurrentOrgAppointments ? paginationInfo : INITIAL_PAGINATION;
+  const isDataLoading = loading || !isCurrentOrgAppointments;
 
   const fetchAppointments = useCallback(async (targetPage, searchToApply, statusToApply) => {
     if (!currentOrg?.id) return;
@@ -66,15 +74,18 @@ export function StaffAppointmentsPage() {
       const data = await appointmentService.getAppointments(orgIdAtRequest, params);
 
       // Discard response if organization switched or newer query started
-      if (requestId !== activeRequestIdRef.current || orgIdAtRequest !== currentOrg?.id) {
+      if (isStaleResponse(requestId, activeRequestIdRef.current, orgIdAtRequest, currentOrg?.id)) {
         return;
       }
 
       const normalized = normalizePaginatedResponse(data, targetPage, DEFAULT_PAGE_SIZE);
-      setAppointments(normalized.items);
+      setAppointmentsData({
+        orgId: orgIdAtRequest,
+        items: normalized.items,
+      });
       setPaginationInfo(normalized);
     } catch (err) {
-      if (requestId !== activeRequestIdRef.current || orgIdAtRequest !== currentOrg?.id) {
+      if (isStaleResponse(requestId, activeRequestIdRef.current, orgIdAtRequest, currentOrg?.id)) {
         return;
       }
 
@@ -86,7 +97,7 @@ export function StaffAppointmentsPage() {
 
       setError(err.response?.data?.detail || 'Failed to load organization appointments.');
     } finally {
-      if (requestId === activeRequestIdRef.current && orgIdAtRequest === currentOrg?.id) {
+      if (!isStaleResponse(requestId, activeRequestIdRef.current, orgIdAtRequest, currentOrg?.id)) {
         setLoading(false);
       }
     }
@@ -100,6 +111,11 @@ export function StaffAppointmentsPage() {
       setSearchInput('');
       setAppliedSearch('');
       setStatusFilter('');
+      setAppointmentsData({
+        orgId: currentOrg?.id || null,
+        items: [],
+      });
+      setPaginationInfo(INITIAL_PAGINATION);
       setFeedback(null);
       setError(null);
     }
@@ -129,7 +145,9 @@ export function StaffAppointmentsPage() {
   };
 
   const handlePageChange = (newPage) => {
-    setPage(newPage);
+    if (!loading && newPage !== page) {
+      setPage(newPage);
+    }
   };
 
   const handleCheckIn = async (appointmentId) => {
@@ -249,9 +267,9 @@ export function StaffAppointmentsPage() {
 
       {/* Table & Pagination Content Surface */}
       <div>
-        {loading ? (
+        {isDataLoading ? (
           <LoadingState type="skeleton-table" rows={4} cols={5} />
-        ) : appointments.length === 0 ? (
+        ) : activeAppointments.length === 0 ? (
           <EmptyState
             title={appliedSearch || statusFilter ? 'No Matching Appointments' : 'No Appointments Found'}
             message={
@@ -265,10 +283,11 @@ export function StaffAppointmentsPage() {
         ) : (
           <div className="qt-table-surface">
             <ResponsiveTable
+              id="staff-appointments-table"
               caption={`Customer Appointments Roster for ${currentOrg.name}`}
               columns={TABLE_COLUMNS}
             >
-              {appointments.map((appt) => (
+              {activeAppointments.map((appt) => (
                 <tr key={appt.id}>
                   <td className="font-semibold">
                     {appt.customer_email || `Customer #${appt.customer}`}
@@ -300,12 +319,12 @@ export function StaffAppointmentsPage() {
             </ResponsiveTable>
 
             <Pagination
-              currentPage={paginationInfo.currentPage}
-              totalPages={paginationInfo.totalPages}
-              totalCount={paginationInfo.totalCount}
-              itemRange={paginationInfo.itemRange}
+              currentPage={activePagination.currentPage}
+              totalPages={activePagination.totalPages}
+              totalCount={activePagination.totalCount}
+              itemRange={activePagination.itemRange}
               onPageChange={handlePageChange}
-              disabled={loading}
+              disabled={isDataLoading}
               ariaLabel="Appointments pagination"
             />
           </div>

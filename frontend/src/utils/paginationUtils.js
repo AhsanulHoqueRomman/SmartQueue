@@ -6,6 +6,15 @@
 
 export const DEFAULT_PAGE_SIZE = 20;
 
+export const INITIAL_PAGINATION = Object.freeze({
+  totalCount: 0,
+  totalPages: 1,
+  currentPage: 1,
+  hasNext: false,
+  hasPrevious: false,
+  itemRange: { start: 0, end: 0, total: 0 },
+});
+
 /**
  * Calculates total pages given total items count and page size.
  * Returns at least 1 page.
@@ -113,4 +122,20 @@ export function normalizePaginatedResponse(responseData, requestedPage = 1, page
     hasPrevious: hasPrevious || currentPage > 1,
     itemRange: getPageItemRange(currentPage, pageSize, totalCount),
   };
+}
+
+/**
+ * Evaluates whether an asynchronous response should be discarded because
+ * a newer request has started or the active organization tenant has changed.
+ *
+ * @param {number} requestId - Ticket of the completed request
+ * @param {number} activeRequestId - Current active ticket
+ * @param {string|number|null} orgIdAtRequest - Organization ID when request started
+ * @param {string|number|null} currentOrgId - Currently active organization ID
+ * @returns {boolean} True if response is stale or cross-tenant and must be discarded
+ */
+export function isStaleResponse(requestId, activeRequestId, orgIdAtRequest, currentOrgId) {
+  if (requestId !== activeRequestId) return true;
+  if (!orgIdAtRequest || !currentOrgId) return true;
+  return String(orgIdAtRequest) !== String(currentOrgId);
 }

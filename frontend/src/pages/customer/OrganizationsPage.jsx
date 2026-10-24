@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import organizationService from '../../services/organizationService';
 import { toggleFavoriteOrg, isFavoriteOrg, addRecentlyViewedOrg } from '../../utils/recentAndFavorites';
 import LoadingState from '../../components/LoadingState';
@@ -37,7 +36,6 @@ const INDUSTRY_OPTIONS = [
 
 export function OrganizationsPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const industryParam = searchParams.get('industry') || 'ALL';
 

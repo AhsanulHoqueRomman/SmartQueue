@@ -2,7 +2,7 @@ import React from 'react';
 import { useTenant } from '../contexts/TenantContext';
 
 export const OrgSelector = () => {
-  const { memberships, selectedOrgId, setSelectedOrgId, effectiveRole, currentOrg } = useTenant();
+  const { memberships, selectedOrgId, setSelectedOrgId, effectiveRole } = useTenant();
 
   if (effectiveRole === 'ADMIN') {
     return (

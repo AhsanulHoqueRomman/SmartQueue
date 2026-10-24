@@ -75,7 +75,6 @@ export const StaffDashboard = () => {
 
   const confirmedAppts = todayAppointments.filter((a) => a.status === 'CONFIRMED');
   const checkedInAppts = todayAppointments.filter((a) => a.status === 'CHECKED_IN');
-  const inProgressAppts = todayAppointments.filter((a) => a.status === 'IN_PROGRESS');
   const completedAppts = todayAppointments.filter((a) => a.status === 'COMPLETED');
 
   const filteredAppts = todayAppointments.filter((a) => {

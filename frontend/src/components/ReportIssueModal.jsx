@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 
 export function ReportIssueModal({ isOpen, appointment, onSuccess, onClose }) {
-  const { user } = useAuth();
   const { showSuccess, showError } = useToast();
 
   const [reason, setReason] = useState('CHECKED_IN_NOT_SERVED');

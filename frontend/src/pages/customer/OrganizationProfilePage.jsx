@@ -145,7 +145,6 @@ export function OrganizationProfilePage() {
   const aboutRef = useRef(null);
   const servicesRef = useRef(null);
   const profRef = useRef(null);
-  const bookingRef = useRef(null);
 
   // Keyboard escape listener for all modals
   useEffect(() => {

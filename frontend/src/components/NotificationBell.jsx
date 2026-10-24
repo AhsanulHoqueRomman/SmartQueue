@@ -17,7 +17,6 @@ export const NotificationBell = ({ onNewNotification }) => {
   const notifications = loadedScope === scopeKey ? notificationRows : [];
   const mutationBusy = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
   const prevIdsRef = useRef(new Set());
 

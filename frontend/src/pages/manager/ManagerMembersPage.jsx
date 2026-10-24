@@ -230,12 +230,6 @@ export function ManagerMembersPage() {
     setPage(1);
   };
 
-  const handleClearSearch = () => {
-    setSearchInput('');
-    setAppliedSearch('');
-    setPage(1);
-  };
-
   const handleRoleFilterChange = (val) => {
     setRoleFilter(val);
     setPage(1);

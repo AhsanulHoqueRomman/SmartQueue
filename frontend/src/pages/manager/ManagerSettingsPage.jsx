@@ -5,6 +5,7 @@ import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import PrivateDocumentButton from '../../components/PrivateDocumentButton';
 import { formatApiError } from '../../utils/errorUtils';
+import { isStaleResponse } from '../../utils/paginationUtils';
 import '../../styles/ManagerSettings.css';
 
 const DOC_TYPE_LABELS = {
@@ -24,6 +25,20 @@ const FALLBACK_CATEGORIES = [
 ];
 
 const BUFFER_CHOICES = [15, 20, 25, 30];
+
+const INITIAL_FORM_DATA = {
+  name: '',
+  slug: '',
+  industry_type: 'OTHER',
+  email: '',
+  phone_number: '',
+  address: '',
+  tagline: '',
+  description: '',
+  logo: '',
+  cover_image: '',
+  arrival_buffer_minutes: 15,
+};
 
 const VERIFICATION_STATUS_CONFIG = {
   SETUP_INCOMPLETE: {
@@ -88,13 +103,19 @@ const VERIFICATION_STATUS_CONFIG = {
   },
 };
 
+const TABS = [
+  { id: 'profile', label: 'General Profile' },
+  { id: 'operational', label: 'Operational Rules' },
+  { id: 'compliance', label: 'Verification & Compliance' },
+];
+
 export function ManagerSettingsPage() {
   const { currentOrg, refreshOrganizations } = useTenant();
 
-  // Active Tab: 'profile' | 'operational' | 'compliance'
+  // Navigation tab: 'profile' | 'operational' | 'compliance'
   const [activeTab, setActiveTab] = useState('profile');
 
-  // Loading and feedback state
+  // Loading & mutation states
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingOperational, setSavingOperational] = useState(false);
@@ -110,103 +131,112 @@ export function ManagerSettingsPage() {
   const [documents, setDocuments] = useState([]);
   const [categories, setCategories] = useState(FALLBACK_CATEGORIES);
 
-  // General profile and operational form state (Note: is_active is deliberately omitted)
-  const [formData, setFormData] = useState({
-    name: '',
-    slug: '',
-    industry_type: 'OTHER',
-    email: '',
-    phone_number: '',
-    address: '',
-    tagline: '',
-    description: '',
-    logo: '',
-    cover_image: '',
-    arrival_buffer_minutes: 15,
-  });
+  // Profile and operational form state (is_active is deliberately omitted)
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
 
   // Document Upload Form State
   const [docType, setDocType] = useState('BUSINESS_LICENSE');
   const [docTitle, setDocTitle] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
 
-  // Confirmation Modals State
-  const [deleteModalDoc, setDeleteModalDoc] = useState(null);
-  const [submitModalOpen, setSubmitModalOpen] = useState(false);
+  // Consolidated Confirmation Modal: { type: 'delete_doc', doc } | { type: 'submit_verification' } | null
+  const [confirmModal, setConfirmModal] = useState(null);
 
   // Concurrency, Ticket, and Focus Management Refs
   const requestTicketRef = useRef(0);
+  const prevOrgIdRef = useRef(currentOrg?.id);
   const mutationLockRef = useRef(false);
-  const deleteTriggerRef = useRef(null);
-  const submitTriggerRef = useRef(null);
-  const deleteDialogRef = useRef(null);
-  const submitDialogRef = useRef(null);
+  const modalCancelBtnRef = useRef(null);
+  const lastFocusedElementRef = useRef(null);
+
+  const updateFormField = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   // --------------------------------------------------------------------------
   // Data Loading with Generation Ticket Guard
   // --------------------------------------------------------------------------
-  const loadDetails = useCallback(async () => {
-    if (!currentOrg?.id) return;
-    const ticket = ++requestTicketRef.current;
-    const targetOrgId = currentOrg.id;
+  const loadDetails = useCallback(
+    async (targetOrgId) => {
+      const orgIdToFetch = targetOrgId || currentOrg?.id;
+      if (!orgIdToFetch) return;
 
-    setLoading(true);
-    setError('');
-    setDocError('');
+      const ticket = ++requestTicketRef.current;
+      setLoading(true);
+      setError('');
+      setDocError('');
 
-    try {
-      const [detailsData, docsData, categoriesData] = await Promise.all([
-        organizationService.getOrganizationDetail(targetOrgId),
-        organizationService.getDocuments(targetOrgId),
-        organizationService.getGlobalCategories().catch(() => FALLBACK_CATEGORIES),
-      ]);
+      try {
+        const [detailsData, docsData, categoriesData] = await Promise.all([
+          organizationService.getOrganizationDetail(orgIdToFetch),
+          organizationService.getDocuments(orgIdToFetch),
+          organizationService.getGlobalCategories().catch(() => FALLBACK_CATEGORIES),
+        ]);
 
-      // Stale response discard: verify ticket and current selected organization
-      if (ticket !== requestTicketRef.current || currentOrg?.id !== targetOrgId) {
-        return;
+        if (isStaleResponse(ticket, requestTicketRef.current, orgIdToFetch, currentOrg?.id)) {
+          return;
+        }
+
+        setOrgDetails(detailsData);
+        setDocuments(Array.isArray(docsData) ? docsData : docsData?.results || []);
+        if (Array.isArray(categoriesData) && categoriesData.length > 0) {
+          setCategories(categoriesData);
+        }
+
+        setFormData({
+          name: detailsData.name || '',
+          slug: detailsData.slug || '',
+          industry_type: detailsData.industry_type || 'OTHER',
+          email: detailsData.email || detailsData.contact_email || '',
+          phone_number: detailsData.phone_number || '',
+          address: detailsData.address || '',
+          tagline: detailsData.tagline || '',
+          description: detailsData.description || '',
+          logo: detailsData.logo || '',
+          cover_image: detailsData.cover_image || '',
+          arrival_buffer_minutes: BUFFER_CHOICES.includes(detailsData.arrival_buffer_minutes)
+            ? detailsData.arrival_buffer_minutes
+            : 15,
+        });
+      } catch (err) {
+        if (!isStaleResponse(ticket, requestTicketRef.current, orgIdToFetch, currentOrg?.id)) {
+          setError(formatApiError(err, 'Failed to load organization settings or verification data.'));
+        }
+      } finally {
+        if (!isStaleResponse(ticket, requestTicketRef.current, orgIdToFetch, currentOrg?.id)) {
+          setLoading(false);
+        }
       }
+    },
+    [currentOrg?.id]
+  );
 
-      setOrgDetails(detailsData);
-      setDocuments(Array.isArray(docsData) ? docsData : docsData.results || []);
-      if (Array.isArray(categoriesData) && categoriesData.length > 0) {
-        setCategories(categoriesData);
-      }
-
-      setFormData({
-        name: detailsData.name || '',
-        slug: detailsData.slug || '',
-        industry_type: detailsData.industry_type || 'OTHER',
-        email: detailsData.email || detailsData.contact_email || '',
-        phone_number: detailsData.phone_number || '',
-        address: detailsData.address || '',
-        tagline: detailsData.tagline || '',
-        description: detailsData.description || '',
-        logo: detailsData.logo || '',
-        cover_image: detailsData.cover_image || '',
-        arrival_buffer_minutes: BUFFER_CHOICES.includes(detailsData.arrival_buffer_minutes)
-          ? detailsData.arrival_buffer_minutes
-          : 15,
-      });
-    } catch (err) {
-      if (ticket === requestTicketRef.current) {
-        setError(formatApiError(err, 'Failed to load organization settings or verification data.'));
-      }
-    } finally {
-      if (ticket === requestTicketRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [currentOrg?.id]);
-
+  // Tenant switch watcher: resets state, dismisses modals, clears stale data
   useEffect(() => {
-    loadDetails();
-  }, [loadDetails]);
+    if (prevOrgIdRef.current !== currentOrg?.id) {
+      prevOrgIdRef.current = currentOrg?.id;
+      requestTicketRef.current++;
 
-  // --------------------------------------------------------------------------
-  // Tab Navigation & Keyboard Handling
-  // --------------------------------------------------------------------------
-  const tabsList = ['profile', 'operational', 'compliance'];
+      setConfirmModal(null);
+      setSuccessMsg('');
+      setError('');
+      setDocError('');
+      setDocTitle('');
+      setSelectedFile(null);
+      const fileInput = document.getElementById('org_doc_file_input');
+      if (fileInput) fileInput.value = '';
+      setOrgDetails(null);
+      setDocuments([]);
+      setFormData(INITIAL_FORM_DATA);
+      setActiveTab('profile');
+    }
 
+    if (currentOrg?.id) {
+      loadDetails(currentOrg.id);
+    }
+  }, [currentOrg?.id, loadDetails]);
+
+  // Tab change & keyboard navigation
   const handleTabChange = (newTab) => {
     setActiveTab(newTab);
     setSuccessMsg('');
@@ -215,25 +245,26 @@ export function ManagerSettingsPage() {
   };
 
   const handleTabKeyDown = (e, currentTab) => {
-    const currentIndex = tabsList.indexOf(currentTab);
+    const tabKeys = ['profile', 'operational', 'compliance'];
+    const currentIndex = tabKeys.indexOf(currentTab);
     let nextIndex = null;
 
     if (e.key === 'ArrowRight') {
       e.preventDefault();
-      nextIndex = (currentIndex + 1) % tabsList.length;
+      nextIndex = (currentIndex + 1) % tabKeys.length;
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      nextIndex = (currentIndex - 1 + tabsList.length) % tabsList.length;
+      nextIndex = (currentIndex - 1 + tabKeys.length) % tabKeys.length;
     } else if (e.key === 'Home') {
       e.preventDefault();
       nextIndex = 0;
     } else if (e.key === 'End') {
       e.preventDefault();
-      nextIndex = tabsList.length - 1;
+      nextIndex = tabKeys.length - 1;
     }
 
     if (nextIndex !== null) {
-      const nextTab = tabsList[nextIndex];
+      const nextTab = tabKeys[nextIndex];
       handleTabChange(nextTab);
       const nextBtn = document.getElementById(`tab-${nextTab}`);
       if (nextBtn) nextBtn.focus();
@@ -245,7 +276,7 @@ export function ManagerSettingsPage() {
   // --------------------------------------------------------------------------
   const handleSaveProfile = async (e) => {
     e.preventDefault();
-    if (!currentOrg?.id || mutationLockRef.current) return;
+    if (!currentOrg?.id || currentOrg.id !== orgDetails?.id || mutationLockRef.current) return;
 
     mutationLockRef.current = true;
     setSavingProfile(true);
@@ -303,7 +334,7 @@ export function ManagerSettingsPage() {
   // --------------------------------------------------------------------------
   const handleSaveOperational = async (e) => {
     e.preventDefault();
-    if (!currentOrg?.id || mutationLockRef.current) return;
+    if (!currentOrg?.id || currentOrg.id !== orgDetails?.id || mutationLockRef.current) return;
 
     mutationLockRef.current = true;
     setSavingOperational(true);
@@ -343,9 +374,8 @@ export function ManagerSettingsPage() {
   // --------------------------------------------------------------------------
   const handleUploadDocument = async (e) => {
     e.preventDefault();
-    if (!selectedFile || !currentOrg?.id || mutationLockRef.current) return;
+    if (!selectedFile || !currentOrg?.id || currentOrg.id !== orgDetails?.id || mutationLockRef.current) return;
 
-    // Strict client-side validation for bounded file sizes and formats
     if (!selectedFile.size || selectedFile.size > 5 * 1024 * 1024) {
       setDocError('Upload a nonempty file no larger than 5 MB.');
       return;
@@ -379,7 +409,6 @@ export function ManagerSettingsPage() {
         const fileInput = document.getElementById('org_doc_file_input');
         if (fileInput) fileInput.value = '';
 
-        // Authoritative document list refresh
         const docs = await organizationService.getDocuments(targetOrgId);
         setDocuments(Array.isArray(docs) ? docs : docs.results || []);
       }
@@ -394,26 +423,40 @@ export function ManagerSettingsPage() {
   };
 
   // --------------------------------------------------------------------------
-  // Tab 3: Delete Document Confirmation & Handler
+  // Modals Open / Close Helpers
   // --------------------------------------------------------------------------
   const openDeleteModal = (doc, e) => {
-    deleteTriggerRef.current = e.currentTarget;
-    setDeleteModalDoc(doc);
+    lastFocusedElementRef.current = e?.currentTarget;
+    setConfirmModal({ type: 'delete_doc', doc });
     setDocError('');
   };
 
-  const closeDeleteModal = () => {
-    if (deletingDocId) return; // Prevent dismissing while mutation in flight
-    setDeleteModalDoc(null);
-    if (deleteTriggerRef.current) {
-      deleteTriggerRef.current.focus();
+  const openSubmitModal = (e) => {
+    lastFocusedElementRef.current = e?.currentTarget;
+    setConfirmModal({ type: 'submit_verification' });
+    setError('');
+  };
+
+  const closeModal = () => {
+    if (deletingDocId || submittingVerification) return;
+    setConfirmModal(null);
+    if (lastFocusedElementRef.current?.focus) {
+      lastFocusedElementRef.current.focus();
     }
   };
 
   const handleConfirmDeleteDocument = async () => {
-    if (!deleteModalDoc || !currentOrg?.id || mutationLockRef.current) return;
+    if (
+      confirmModal?.type !== 'delete_doc' ||
+      !confirmModal?.doc?.id ||
+      !currentOrg?.id ||
+      currentOrg.id !== orgDetails?.id ||
+      mutationLockRef.current
+    ) {
+      return;
+    }
 
-    const docId = deleteModalDoc.id;
+    const docId = confirmModal.doc.id;
     const targetOrgId = currentOrg.id;
 
     mutationLockRef.current = true;
@@ -425,7 +468,7 @@ export function ManagerSettingsPage() {
       if (currentOrg?.id === targetOrgId) {
         setSuccessMsg('Verification document deleted successfully.');
         setDocuments((prev) => prev.filter((d) => d.id !== docId));
-        closeDeleteModal();
+        closeModal();
       }
     } catch (err) {
       if (currentOrg?.id === targetOrgId) {
@@ -437,25 +480,15 @@ export function ManagerSettingsPage() {
     }
   };
 
-  // --------------------------------------------------------------------------
-  // Tab 3: Submit Verification Confirmation & Handler
-  // --------------------------------------------------------------------------
-  const openSubmitModal = (e) => {
-    submitTriggerRef.current = e.currentTarget;
-    setSubmitModalOpen(true);
-    setError('');
-  };
-
-  const closeSubmitModal = () => {
-    if (submittingVerification) return; // Prevent dismissing while mutation in flight
-    setSubmitModalOpen(false);
-    if (submitTriggerRef.current) {
-      submitTriggerRef.current.focus();
-    }
-  };
-
   const handleConfirmSubmitVerification = async () => {
-    if (!currentOrg?.id || mutationLockRef.current) return;
+    if (
+      confirmModal?.type !== 'submit_verification' ||
+      !currentOrg?.id ||
+      currentOrg.id !== orgDetails?.id ||
+      mutationLockRef.current
+    ) {
+      return;
+    }
 
     const targetOrgId = currentOrg.id;
 
@@ -468,7 +501,7 @@ export function ManagerSettingsPage() {
       if (currentOrg?.id === targetOrgId) {
         setOrgDetails(updated);
         setSuccessMsg('Organization verification submitted successfully for review.');
-        closeSubmitModal();
+        closeModal();
         if (refreshOrganizations) refreshOrganizations();
       }
     } catch (err) {
@@ -481,42 +514,49 @@ export function ManagerSettingsPage() {
     }
   };
 
-  // --------------------------------------------------------------------------
-  // Keyboard Escape & Focus Trapping for Modals
-  // --------------------------------------------------------------------------
+  // Keyboard Escape & Focus Trapping for Modal
   useEffect(() => {
+    if (!confirmModal) return;
+
+    modalCancelBtnRef.current?.focus();
+
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        if (deleteModalDoc && !deletingDocId) {
-          e.preventDefault();
-          closeDeleteModal();
-        } else if (submitModalOpen && !submittingVerification) {
-          e.preventDefault();
-          closeSubmitModal();
+        if (mutationLockRef.current || deletingDocId || submittingVerification) return;
+        e.preventDefault();
+        setConfirmModal(null);
+        if (lastFocusedElementRef.current?.focus) {
+          lastFocusedElementRef.current.focus();
+        }
+      } else if (e.key === 'Tab') {
+        const activeModal = document.querySelector('.manager-settings__modal-dialog');
+        if (!activeModal) return;
+        const focusable = activeModal.querySelectorAll(
+          'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
         }
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [deleteModalDoc, deletingDocId, submitModalOpen, submittingVerification]);
-
-  // Initial focus placement on modal open
-  useEffect(() => {
-    if (deleteModalDoc && deleteDialogRef.current) {
-      const cancelBtn = deleteDialogRef.current.querySelector('button.manager-settings__btn-secondary');
-      if (cancelBtn) cancelBtn.focus();
-    }
-  }, [deleteModalDoc]);
-
-  useEffect(() => {
-    if (submitModalOpen && submitDialogRef.current) {
-      const cancelBtn = submitDialogRef.current.querySelector('button.manager-settings__btn-secondary');
-      if (cancelBtn) cancelBtn.focus();
-    }
-  }, [submitModalOpen]);
+  }, [confirmModal, deletingDocId, submittingVerification]);
 
   // --------------------------------------------------------------------------
-  // Status & Validation Rules
+  // Status & Validation Rules with Render-Time Ownership Protection
   // --------------------------------------------------------------------------
   if (!currentOrg) {
     return (
@@ -527,11 +567,42 @@ export function ManagerSettingsPage() {
     );
   }
 
-  if (loading) {
+  const isCurrentOrg = orgDetails?.id === currentOrg.id;
+  if (loading || !isCurrentOrg) {
+    if (error) {
+      return (
+        <div className="manager-settings animate-page-entrance">
+          <div className="manager-settings__header">
+            <div className="manager-settings__eyebrow">
+              <span>🏢 Facility Administration</span>
+            </div>
+            <h1 className="manager-settings__title">Organization Settings & Rules</h1>
+            <p className="manager-settings__subtitle">
+              Manage identity parameters, operational booking buffers, and compliance verification for{' '}
+              <span className="manager-settings__subtitle-org">{currentOrg.name}</span>.
+            </p>
+          </div>
+          <div role="alert" className="manager-settings__alert manager-settings__alert--error">
+            <span>⚠️</span>
+            <span>{error}</span>
+          </div>
+          <EmptyState
+            title="Failed to Load Settings"
+            message="Could not retrieve organization configuration or verification records. Check your connection and retry."
+            actionLabel="Retry Loading"
+            onAction={() => loadDetails(currentOrg.id)}
+          />
+        </div>
+      );
+    }
     return <LoadingState message="Loading organization settings & verification data..." />;
   }
 
-  const vStatus = orgDetails?.verification_status || 'SETUP_INCOMPLETE';
+  // Authoritative render-time projections
+  const displayOrgDetails = isCurrentOrg ? orgDetails : null;
+  const displayDocuments = isCurrentOrg ? documents : [];
+
+  const vStatus = displayOrgDetails?.verification_status || 'SETUP_INCOMPLETE';
   const vConfig = VERIFICATION_STATUS_CONFIG[vStatus] || VERIFICATION_STATUS_CONFIG.SETUP_INCOMPLETE;
   const isDocEditable = vStatus === 'SETUP_INCOMPLETE' || vStatus === 'REJECTED';
 
@@ -541,7 +612,7 @@ export function ManagerSettingsPage() {
     formData.phone_number.trim() &&
     formData.address.trim()
   );
-  const hasDocuments = documents.length > 0;
+  const hasDocuments = displayDocuments.length > 0;
   const canSubmitVerification = isDocEditable && isProfileComplete && hasDocuments;
 
   return (
@@ -554,7 +625,7 @@ export function ManagerSettingsPage() {
         <h1 className="manager-settings__title">Organization Settings & Rules</h1>
         <p className="manager-settings__subtitle">
           Manage identity parameters, operational booking buffers, and compliance verification for{' '}
-          <span className="manager-settings__subtitle-org">{orgDetails?.name || currentOrg.name}</span>.
+          <span className="manager-settings__subtitle-org">{displayOrgDetails?.name || currentOrg.name}</span>.
         </p>
       </div>
 
@@ -606,24 +677,24 @@ export function ManagerSettingsPage() {
         </div>
 
         {/* Rejection / Suspension Feedback */}
-        {vStatus === 'REJECTED' && orgDetails?.verification_rejection_reason && (
+        {vStatus === 'REJECTED' && displayOrgDetails?.verification_rejection_reason && (
           <div className="manager-settings__banner-reason">
             <div className="manager-settings__banner-reason-title">
               Auditor Rejection Feedback:
             </div>
             <div className="manager-settings__banner-reason-text">
-              &ldquo;{orgDetails.verification_rejection_reason}&rdquo;
+              &ldquo;{displayOrgDetails.verification_rejection_reason}&rdquo;
             </div>
           </div>
         )}
 
-        {vStatus === 'SUSPENDED' && orgDetails?.verification_suspension_reason && (
+        {vStatus === 'SUSPENDED' && displayOrgDetails?.verification_suspension_reason && (
           <div className="manager-settings__banner-reason">
             <div className="manager-settings__banner-reason-title">
               Administrative Suspension Notice:
             </div>
             <div className="manager-settings__banner-reason-text">
-              &ldquo;{orgDetails.verification_suspension_reason}&rdquo;
+              &ldquo;{displayOrgDetails.verification_suspension_reason}&rdquo;
             </div>
           </div>
         )}
@@ -635,48 +706,28 @@ export function ManagerSettingsPage() {
         aria-label="Organization settings tabs"
         className="manager-settings__tablist"
       >
-        <button
-          type="button"
-          role="tab"
-          id="tab-profile"
-          aria-selected={activeTab === 'profile'}
-          aria-controls="panel-profile"
-          tabIndex={activeTab === 'profile' ? 0 : -1}
-          className={`manager-settings__tab ${activeTab === 'profile' ? 'manager-settings__tab--active' : ''}`}
-          onClick={() => handleTabChange('profile')}
-          onKeyDown={(e) => handleTabKeyDown(e, 'profile')}
-        >
-          <span>General Profile</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          id="tab-operational"
-          aria-selected={activeTab === 'operational'}
-          aria-controls="panel-operational"
-          tabIndex={activeTab === 'operational' ? 0 : -1}
-          className={`manager-settings__tab ${activeTab === 'operational' ? 'manager-settings__tab--active' : ''}`}
-          onClick={() => handleTabChange('operational')}
-          onKeyDown={(e) => handleTabKeyDown(e, 'operational')}
-        >
-          <span>Operational Rules</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          id="tab-compliance"
-          aria-selected={activeTab === 'compliance'}
-          aria-controls="panel-compliance"
-          tabIndex={activeTab === 'compliance' ? 0 : -1}
-          className={`manager-settings__tab ${activeTab === 'compliance' ? 'manager-settings__tab--active' : ''}`}
-          onClick={() => handleTabChange('compliance')}
-          onKeyDown={(e) => handleTabKeyDown(e, 'compliance')}
-        >
-          <span>Verification & Compliance</span>
-          <span className="manager-settings__tab-badge">{documents.length}</span>
-        </button>
+        {TABS.map((tab) => {
+          const isSelected = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              id={`tab-${tab.id}`}
+              aria-selected={isSelected}
+              aria-controls={`panel-${tab.id}`}
+              tabIndex={isSelected ? 0 : -1}
+              className={`manager-settings__tab ${isSelected ? 'manager-settings__tab--active' : ''}`}
+              onClick={() => handleTabChange(tab.id)}
+              onKeyDown={(e) => handleTabKeyDown(e, tab.id)}
+            >
+              <span>{tab.label}</span>
+              {tab.id === 'compliance' && (
+                <span className="manager-settings__tab-badge">{displayDocuments.length}</span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* ====================================================================
@@ -710,7 +761,7 @@ export function ManagerSettingsPage() {
                     required
                     disabled={savingProfile}
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => updateFormField('name', e.target.value)}
                     className="manager-settings__input"
                     placeholder="e.g. Apex Health Center"
                   />
@@ -727,7 +778,7 @@ export function ManagerSettingsPage() {
                     required
                     disabled={savingProfile}
                     value={formData.slug}
-                    onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase() })}
+                    onChange={(e) => updateFormField('slug', e.target.value.toLowerCase())}
                     className="manager-settings__input"
                     placeholder="e.g. apex-health"
                   />
@@ -745,7 +796,7 @@ export function ManagerSettingsPage() {
                     id="settings-industry"
                     disabled={savingProfile}
                     value={formData.industry_type}
-                    onChange={(e) => setFormData({ ...formData, industry_type: e.target.value })}
+                    onChange={(e) => updateFormField('industry_type', e.target.value)}
                     className="manager-settings__select"
                   >
                     {categories.map((cat) => (
@@ -767,7 +818,7 @@ export function ManagerSettingsPage() {
                     required
                     disabled={savingProfile}
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) => updateFormField('email', e.target.value)}
                     className="manager-settings__input"
                     placeholder="contact@facility.com"
                   />
@@ -784,7 +835,7 @@ export function ManagerSettingsPage() {
                     required
                     disabled={savingProfile}
                     value={formData.phone_number}
-                    onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                    onChange={(e) => updateFormField('phone_number', e.target.value)}
                     className="manager-settings__input"
                     placeholder="+880 1700-000000"
                   />
@@ -800,7 +851,7 @@ export function ManagerSettingsPage() {
                     type="text"
                     disabled={savingProfile}
                     value={formData.tagline}
-                    onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
+                    onChange={(e) => updateFormField('tagline', e.target.value)}
                     className="manager-settings__input"
                     placeholder="e.g. Caring for your family every step of the way"
                   />
@@ -817,7 +868,7 @@ export function ManagerSettingsPage() {
                     required
                     disabled={savingProfile}
                     value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    onChange={(e) => updateFormField('address', e.target.value)}
                     className="manager-settings__textarea"
                     placeholder="Full street address, suite, floor, city..."
                   />
@@ -833,7 +884,7 @@ export function ManagerSettingsPage() {
                     rows={4}
                     disabled={savingProfile}
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    onChange={(e) => updateFormField('description', e.target.value)}
                     className="manager-settings__textarea"
                     placeholder="Describe your organization, available specializations, and patient guidance..."
                   />
@@ -849,7 +900,7 @@ export function ManagerSettingsPage() {
                     type="url"
                     disabled={savingProfile}
                     value={formData.logo}
-                    onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
+                    onChange={(e) => updateFormField('logo', e.target.value)}
                     className="manager-settings__input"
                     placeholder="https://example.com/logo.png"
                   />
@@ -865,7 +916,7 @@ export function ManagerSettingsPage() {
                     type="url"
                     disabled={savingProfile}
                     value={formData.cover_image}
-                    onChange={(e) => setFormData({ ...formData, cover_image: e.target.value })}
+                    onChange={(e) => updateFormField('cover_image', e.target.value)}
                     className="manager-settings__input"
                     placeholder="https://example.com/cover.jpg"
                   />
@@ -909,12 +960,12 @@ export function ManagerSettingsPage() {
               <div className="manager-settings__status-badge-container">
                 <span
                   className={`manager-settings__status-badge ${
-                    orgDetails?.is_active
+                    displayOrgDetails?.is_active
                       ? 'manager-settings__status-badge--active'
                       : 'manager-settings__status-badge--inactive'
                   }`}
                 >
-                  {orgDetails?.is_active ? '● Facility Operational' : '○ Facility Inactive / Suspended'}
+                  {displayOrgDetails?.is_active ? '● Facility Operational' : '○ Facility Inactive / Suspended'}
                 </span>
               </div>
               <div className="manager-settings__status-details">
@@ -938,9 +989,7 @@ export function ManagerSettingsPage() {
                     id="settings-buffer"
                     disabled={savingOperational}
                     value={formData.arrival_buffer_minutes}
-                    onChange={(e) =>
-                      setFormData({ ...formData, arrival_buffer_minutes: Number(e.target.value) })
-                    }
+                    onChange={(e) => updateFormField('arrival_buffer_minutes', Number(e.target.value))}
                     className="manager-settings__select"
                   >
                     {BUFFER_CHOICES.map((mins) => (
@@ -1013,10 +1062,9 @@ export function ManagerSettingsPage() {
                         onChange={(e) => setDocType(e.target.value)}
                         className="manager-settings__select"
                       >
-                        <option value="BUSINESS_LICENSE">Business License</option>
-                        <option value="TAX_CERTIFICATE">Tax Certificate</option>
-                        <option value="FACILITY_PERMIT">Facility Permit</option>
-                        <option value="OTHER">Other Document</option>
+                        {Object.entries(DOC_TYPE_LABELS).map(([val, lbl]) => (
+                          <option key={val} value={val}>{lbl}</option>
+                        ))}
                       </select>
                     </div>
 
@@ -1075,10 +1123,10 @@ export function ManagerSettingsPage() {
 
             {/* Uploaded Documents Table */}
             <h3 className="manager-settings__card-title" style={{ fontSize: '1.05rem', marginBottom: '0.85rem' }}>
-              Uploaded Verification Documents ({documents.length})
+              Uploaded Verification Documents ({displayDocuments.length})
             </h3>
 
-            {documents.length === 0 ? (
+            {displayDocuments.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--color-text-muted)' }}>
                 📄 No verification documents uploaded yet. Upload at least one document to submit for review.
               </div>
@@ -1095,7 +1143,7 @@ export function ManagerSettingsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {documents.map((doc) => (
+                    {displayDocuments.map((doc) => (
                       <tr key={doc.id}>
                         <td style={{ fontWeight: 600 }}>
                           {DOC_TYPE_LABELS[doc.document_type] || doc.document_type}
@@ -1180,139 +1228,109 @@ export function ManagerSettingsPage() {
       )}
 
       {/* ====================================================================
-          CONFIRMATION MODAL: Delete Document
+          CONSOLIDATED CONFIRMATION MODAL: Delete Document | Submit Verification
           ==================================================================== */}
-      {deleteModalDoc && (
+      {confirmModal && (
         <div
           className="manager-settings__modal-backdrop"
-          onClick={closeDeleteModal}
+          onClick={closeModal}
           role="presentation"
         >
           <div
-            ref={deleteDialogRef}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="delete-dialog-title"
+            aria-labelledby={confirmModal.type === 'delete_doc' ? 'delete-dialog-title' : 'submit-dialog-title'}
             className="manager-settings__modal-dialog"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="manager-settings__modal-header">
-              <h3 id="delete-dialog-title" className="manager-settings__modal-title">
-                Confirm Document Deletion
+              <h3
+                id={confirmModal.type === 'delete_doc' ? 'delete-dialog-title' : 'submit-dialog-title'}
+                className="manager-settings__modal-title"
+              >
+                {confirmModal.type === 'delete_doc'
+                  ? 'Confirm Document Deletion'
+                  : 'Submit for Official Verification'}
               </h3>
               <button
                 type="button"
                 className="manager-settings__modal-close"
-                onClick={closeDeleteModal}
-                disabled={Boolean(deletingDocId)}
+                onClick={closeModal}
+                disabled={Boolean(deletingDocId) || submittingVerification}
                 aria-label="Close dialog"
               >
                 &times;
               </button>
             </div>
-            <div className="manager-settings__modal-body">
-              <p>
-                Are you sure you want to delete{' '}
-                <strong>
-                  {deleteModalDoc.title || DOC_TYPE_LABELS[deleteModalDoc.document_type] || 'this document'}
-                </strong>
-                ?
-              </p>
-              <p style={{ color: 'var(--color-danger, #B91C1C)', marginTop: '0.5rem', fontSize: '0.85rem' }}>
-                This file will be permanently removed from private verification storage. This action cannot be undone.
-              </p>
-            </div>
-            <div className="manager-settings__modal-footer">
-              <button
-                type="button"
-                disabled={Boolean(deletingDocId)}
-                onClick={closeDeleteModal}
-                className="manager-settings__btn-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={Boolean(deletingDocId)}
-                onClick={handleConfirmDeleteDocument}
-                className="manager-settings__btn-primary"
-                style={{ backgroundColor: 'var(--color-danger, #DC2626)' }}
-              >
-                {deletingDocId ? 'Deleting...' : 'Delete Document'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* ====================================================================
-          CONFIRMATION MODAL: Submit Verification
-          ==================================================================== */}
-      {submitModalOpen && (
-        <div
-          className="manager-settings__modal-backdrop"
-          onClick={closeSubmitModal}
-          role="presentation"
-        >
-          <div
-            ref={submitDialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="submit-dialog-title"
-            className="manager-settings__modal-dialog"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="manager-settings__modal-header">
-              <h3 id="submit-dialog-title" className="manager-settings__modal-title">
-                Submit for Official Verification
-              </h3>
-              <button
-                type="button"
-                className="manager-settings__modal-close"
-                onClick={closeSubmitModal}
-                disabled={submittingVerification}
-                aria-label="Close dialog"
-              >
-                &times;
-              </button>
-            </div>
             <div className="manager-settings__modal-body">
-              <p>
-                You are about to submit <strong>{formData.name}</strong> and{' '}
-                <strong>{documents.length} uploaded document(s)</strong> for administrative compliance review.
-              </p>
-              <div
-                style={{
-                  background: 'var(--color-bg-subtle, #FAF8F3)',
-                  border: '1px solid var(--color-border, #E6E1D9)',
-                  borderRadius: '8px',
-                  padding: '0.85rem 1rem',
-                  fontSize: '0.85rem',
-                  marginTop: '0.75rem',
-                  lineHeight: 1.45,
-                }}
-              >
-                🔒 <strong>Notice:</strong> Once submitted, your documents and verification parameters will be locked
-                from further edits or deletions while the QueueTurn platform administration reviews your application.
-              </div>
+              {confirmModal.type === 'delete_doc' ? (
+                <>
+                  <p>
+                    Are you sure you want to delete{' '}
+                    <strong>
+                      {confirmModal.doc.title || DOC_TYPE_LABELS[confirmModal.doc.document_type] || 'this document'}
+                    </strong>
+                    ?
+                  </p>
+                  <p style={{ color: 'var(--color-danger, #B91C1C)', marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                    This file will be permanently removed from private verification storage. This action cannot be undone.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p>
+                    You are about to submit <strong>{formData.name}</strong> and{' '}
+                    <strong>{displayDocuments.length} uploaded document(s)</strong> for administrative compliance review.
+                  </p>
+                  <div
+                    style={{
+                      background: 'var(--color-bg-subtle, #FAF8F3)',
+                      border: '1px solid var(--color-border, #E6E1D9)',
+                      borderRadius: '8px',
+                      padding: '0.85rem 1rem',
+                      fontSize: '0.85rem',
+                      marginTop: '0.75rem',
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    🔒 <strong>Notice:</strong> Once submitted, your documents and verification parameters will be locked
+                    from further edits or deletions while the QueueTurn platform administration reviews your application.
+                  </div>
+                </>
+              )}
             </div>
+
             <div className="manager-settings__modal-footer">
               <button
+                ref={modalCancelBtnRef}
                 type="button"
-                disabled={submittingVerification}
-                onClick={closeSubmitModal}
+                disabled={Boolean(deletingDocId) || submittingVerification}
+                onClick={closeModal}
                 className="manager-settings__btn-secondary"
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                disabled={submittingVerification}
-                onClick={handleConfirmSubmitVerification}
-                className="manager-settings__btn-primary"
-              >
-                {submittingVerification ? 'Submitting Application...' : 'Confirm & Submit'}
-              </button>
+              {confirmModal.type === 'delete_doc' ? (
+                <button
+                  type="button"
+                  disabled={Boolean(deletingDocId)}
+                  onClick={handleConfirmDeleteDocument}
+                  className="manager-settings__btn-primary"
+                  style={{ backgroundColor: 'var(--color-danger, #DC2626)' }}
+                >
+                  {deletingDocId ? 'Deleting...' : 'Delete Document'}
+                </button>
+              ) : confirmModal.type === 'submit_verification' ? (
+                <button
+                  type="button"
+                  disabled={submittingVerification}
+                  onClick={handleConfirmSubmitVerification}
+                  className="manager-settings__btn-primary"
+                >
+                  {submittingVerification ? 'Submitting Application...' : 'Confirm & Submit'}
+                </button>
+              ) : null}
             </div>
           </div>
         </div>

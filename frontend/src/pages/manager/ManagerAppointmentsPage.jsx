@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
 import appointmentService from '../../services/appointmentService';
 import organizationService from '../../services/organizationService';
@@ -8,7 +8,12 @@ import { EmptyState } from '../../components/EmptyState';
 import { SearchFilterBar } from '../../components/common/SearchFilterBar';
 import { ResponsiveTable } from '../../components/common/ResponsiveTable';
 import { Pagination } from '../../components/common/Pagination';
-import { normalizePaginatedResponse, DEFAULT_PAGE_SIZE } from '../../utils/paginationUtils';
+import {
+  normalizePaginatedResponse,
+  DEFAULT_PAGE_SIZE,
+  INITIAL_PAGINATION,
+  isStaleResponse,
+} from '../../utils/paginationUtils';
 import '../../styles/OperationalPrimitives.css';
 import '../../styles/ManagerAppointments.css';
 
@@ -104,36 +109,27 @@ function formatDhakaTime(isoStr) {
 export function ManagerAppointmentsPage() {
   const { currentOrg } = useTenant();
 
+  // Data State with tenant ownership tags for render-time isolation
+  const [appointmentsData, setAppointmentsData] = useState({
+    orgId: null,
+    items: [],
+  });
+  const [providersData, setProvidersData] = useState({
+    orgId: null,
+    items: [],
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   // Search & Filter State
   const [searchInput, setSearchInput] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [providerFilter, setProviderFilter] = useState('');
 
-  // Organization Providers with tenant ownership tag
-  const [providersData, setProvidersData] = useState({
-    orgId: null,
-    items: [],
-  });
-
   // Pagination State
   const [page, setPage] = useState(1);
-  const [paginationInfo, setPaginationInfo] = useState({
-    totalCount: 0,
-    totalPages: 1,
-    currentPage: 1,
-    hasNext: false,
-    hasPrevious: false,
-    itemRange: { start: 0, end: 0, total: 0 },
-  });
-
-  // Appointments Data with tenant ownership tag
-  const [appointmentsData, setAppointmentsData] = useState({
-    orgId: null,
-    items: [],
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [paginationInfo, setPaginationInfo] = useState(INITIAL_PAGINATION);
 
   // Read-Only Detail Modal State
   const [selectedAppt, setSelectedAppt] = useState(null);
@@ -151,52 +147,27 @@ export function ManagerAppointmentsPage() {
 
   const activeAppointments = isCurrentOrgAppointments ? appointmentsData.items : [];
   const activeProviders = isCurrentOrgProviders ? providersData.items : [];
-  const activePagination = isCurrentOrgAppointments
-    ? paginationInfo
-    : {
-        totalCount: 0,
-        totalPages: 1,
-        currentPage: 1,
-        hasNext: false,
-        hasPrevious: false,
-        itemRange: { start: 0, end: 0, total: 0 },
-      };
-
-  // Map providers by ID for fast name resolution
-  const providersMap = useMemo(() => {
-    const map = new Map();
-    activeProviders.forEach((p) => {
-      map.set(String(p.id), p);
-    });
-    return map;
-  }, [activeProviders]);
+  const activePagination = isCurrentOrgAppointments ? paginationInfo : INITIAL_PAGINATION;
+  const isDataLoading = loading || !isCurrentOrgAppointments;
 
   /**
    * Resolves provider display name from provider_id using organization provider list.
    * Uses real names, titles, and neutral fallbacks; never uses email or synthetic IDs.
    */
-  const resolveProviderName = useCallback(
-    (providerId) => {
-      if (!providerId) return 'Unassigned';
-      const p = providersMap.get(String(providerId));
-      if (p) {
-        return getProviderDisplayName(p);
-      }
-      return 'Service Provider';
-    },
-    [providersMap]
-  );
+  const resolveProviderName = (providerId) => {
+    if (!providerId) return 'Unassigned';
+    const p = activeProviders.find((prov) => String(prov.id) === String(providerId));
+    return p ? getProviderDisplayName(p) : 'Service Provider';
+  };
 
   // Provider Filter Dropdown Options using consistent display resolution
-  const providerOptions = useMemo(() => {
-    return [
-      { value: '', label: 'All Providers' },
-      ...activeProviders.map((p) => ({
-        value: String(p.id),
-        label: getProviderDisplayName(p),
-      })),
-    ];
-  }, [activeProviders]);
+  const providerOptions = [
+    { value: '', label: 'All Providers' },
+    ...activeProviders.map((p) => ({
+      value: String(p.id),
+      label: getProviderDisplayName(p),
+    })),
+  ];
 
   /**
    * Primary asynchronous fetch function with request-ticket isolation and exact 404 recovery.
@@ -223,7 +194,7 @@ export function ManagerAppointmentsPage() {
         const data = await appointmentService.getAppointments(orgIdAtRequest, params);
 
         // Discard response if organization switched or newer query started
-        if (requestId !== activeRequestIdRef.current || orgIdAtRequest !== currentOrg?.id) {
+        if (isStaleResponse(requestId, activeRequestIdRef.current, orgIdAtRequest, currentOrg?.id)) {
           return;
         }
 
@@ -234,7 +205,7 @@ export function ManagerAppointmentsPage() {
         });
         setPaginationInfo(normalized);
       } catch (err) {
-        if (requestId !== activeRequestIdRef.current || orgIdAtRequest !== currentOrg?.id) {
+        if (isStaleResponse(requestId, activeRequestIdRef.current, orgIdAtRequest, currentOrg?.id)) {
           return;
         }
 
@@ -251,7 +222,7 @@ export function ManagerAppointmentsPage() {
 
         setError(err.response?.data?.detail || 'Failed to load organization appointments.');
       } finally {
-        if (requestId === activeRequestIdRef.current && orgIdAtRequest === currentOrg?.id) {
+        if (!isStaleResponse(requestId, activeRequestIdRef.current, orgIdAtRequest, currentOrg?.id)) {
           setLoading(false);
         }
       }
@@ -300,6 +271,7 @@ export function ManagerAppointmentsPage() {
         orgId: currentOrg?.id || null,
         items: [],
       });
+      setPaginationInfo(INITIAL_PAGINATION);
       setPage(1);
       setSearchInput('');
       setAppliedSearch('');
@@ -314,6 +286,18 @@ export function ManagerAppointmentsPage() {
   useEffect(() => {
     fetchAppointments(page, appliedSearch, statusFilter, providerFilter);
   }, [fetchAppointments, page, appliedSearch, statusFilter, providerFilter]);
+
+  const openDetailsModal = (appt, btnElement) => {
+    lastFocusedBtnRef.current = btnElement;
+    setSelectedAppt(appt);
+  };
+
+  const closeDetailsModal = () => {
+    setSelectedAppt(null);
+    if (lastFocusedBtnRef.current) {
+      lastFocusedBtnRef.current.focus();
+    }
+  };
 
   // Manage modal focus and prevent body background scrolling while open
   useEffect(() => {
@@ -384,18 +368,6 @@ export function ManagerAppointmentsPage() {
   const handlePageChange = (newPage) => {
     if (!loading && newPage !== page) {
       setPage(newPage);
-    }
-  };
-
-  const openDetailsModal = (appt, btnElement) => {
-    lastFocusedBtnRef.current = btnElement;
-    setSelectedAppt(appt);
-  };
-
-  const closeDetailsModal = () => {
-    setSelectedAppt(null);
-    if (lastFocusedBtnRef.current) {
-      lastFocusedBtnRef.current.focus();
     }
   };
 
@@ -487,7 +459,7 @@ export function ManagerAppointmentsPage() {
       {/* --------------------------------------------------------------------
          Data Presentation / Empty / Loading States
          -------------------------------------------------------------------- */}
-      {loading ? (
+      {isDataLoading ? (
         <LoadingState message="Loading appointment records..." />
       ) : activeAppointments.length === 0 ? (
         isFiltered ? (
@@ -506,6 +478,7 @@ export function ManagerAppointmentsPage() {
       ) : (
         <>
           <ResponsiveTable
+            id="manager-appointments-table"
             caption={`Appointments Roster for ${currentOrg.name}`}
             columns={TABLE_COLUMNS}
           >
@@ -592,7 +565,7 @@ export function ManagerAppointmentsPage() {
             totalCount={activePagination.totalCount}
             itemRange={activePagination.itemRange}
             onPageChange={handlePageChange}
-            disabled={loading}
+            disabled={isDataLoading}
             ariaLabel="Appointments table pagination"
           />
         </>

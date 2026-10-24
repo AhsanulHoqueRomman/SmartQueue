@@ -1,12 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DEFAULT_PAGE_SIZE,
   calculateTotalPages,
   clampPage,
   getPageItemRange,
   normalizePaginatedResponse,
+  INITIAL_PAGINATION,
+  isStaleResponse,
 } from './paginationUtils.js';
+
+test('INITIAL_PAGINATION exports standard initial pagination state', () => {
+  assert.deepEqual(INITIAL_PAGINATION, {
+    totalCount: 0,
+    totalPages: 1,
+    currentPage: 1,
+    hasNext: false,
+    hasPrevious: false,
+    itemRange: { start: 0, end: 0, total: 0 },
+  });
+});
 
 test('calculateTotalPages calculates correct page counts', () => {
   assert.equal(calculateTotalPages(0, 20), 1);
@@ -121,4 +133,23 @@ test('normalizePaginatedResponse handles null and empty envelope safely', () => 
   const resEmptyObj = normalizePaginatedResponse({}, 1, 20);
   assert.deepEqual(resEmptyObj.items, []);
   assert.equal(resEmptyObj.totalCount, 0);
+});
+
+test('isStaleResponse rejects out-of-order, superseded, and cross-tenant responses', () => {
+  // Valid match: same ticket, same tenant
+  assert.equal(isStaleResponse(1, 1, 'org-1', 'org-1'), false);
+  assert.equal(isStaleResponse(5, 5, 10, 10), false);
+
+  // Stale ticket: superseded by newer query (out-of-order search/page change)
+  assert.equal(isStaleResponse(1, 2, 'org-1', 'org-1'), true);
+
+  // Cross-tenant: tenant switched while request in flight
+  assert.equal(isStaleResponse(1, 1, 'org-1', 'org-2'), true);
+
+  // Rapid tenant switch (A -> B -> A) where older ticket finishes during return to A
+  assert.equal(isStaleResponse(1, 3, 'org-1', 'org-1'), true);
+
+  // Missing or cleared active tenant
+  assert.equal(isStaleResponse(1, 1, 'org-1', null), true);
+  assert.equal(isStaleResponse(1, 1, null, 'org-1'), true);
 });

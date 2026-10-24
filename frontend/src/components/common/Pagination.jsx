@@ -8,7 +8,6 @@ import React from 'react';
 export function Pagination({
   currentPage = 1,
   totalPages = 1,
-  totalCount,
   itemRange,
   onPageChange,
   disabled = false,

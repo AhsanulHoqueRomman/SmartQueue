@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
 import { useToast } from '../../contexts/ToastContext';
 import managerService from '../../services/managerService';
@@ -94,6 +94,20 @@ function AssignedChargeEditor({ assignment, basePrice, onSave, onUnassign, disab
   );
 }
 
+// Supported roster tabs
+const TAB_KEYS = ['active', 'pending', 'rejected', 'invitations'];
+
+function getProviderDisplayName(prov, fallback = 'Professional') {
+  return `${prov.user_first_name || ''} ${prov.user_last_name || ''}`.trim() || prov.title || fallback;
+}
+
+function getInvitationBadge(inv) {
+  if (inv.used_at) return { status: 'COMPLETED', label: 'Accepted' };
+  if (inv.cancelled_at) return { status: 'CANCELLED', label: 'Cancelled' };
+  if (inv.is_valid) return { status: 'WAITING', label: 'Active Token' };
+  return { status: 'NO_SHOW', label: 'Expired' };
+}
+
 export function ManagerProvidersPage() {
   const { currentOrg } = useTenant();
   const { showSuccess, showError } = useToast();
@@ -120,15 +134,13 @@ export function ManagerProvidersPage() {
   const [cancellingInvite, setCancellingInvite] = useState(null);
   const [cancellingBusy, setCancellingBusy] = useState(false);
 
-  // Review Application Modal State
-  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  // Review Application Modal State (selectedProfile non-null indicates open)
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [initialReviewSchedule, setInitialReviewSchedule] = useState(null);
   const [reviewReason, setReviewReason] = useState('');
   const [reviewing, setReviewing] = useState(false);
 
-  // Services & Charges Modal State
-  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  // Services & Charges Modal State (selectedProvider non-null indicates open)
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [averageMinutes, setAverageMinutes] = useState('');
   const [savingAverage, setSavingAverage] = useState(false);
@@ -155,7 +167,6 @@ export function ManagerProvidersPage() {
   const reviewTriggerRef = useRef(null);
   const servicesTriggerRef = useRef(null);
   const governanceTriggerRef = useRef(null);
-  const unassignTriggerRef = useRef(null);
   const cancelInviteTriggerRef = useRef(null);
 
   // Dialog Container Refs for initial focus
@@ -209,12 +220,11 @@ export function ManagerProvidersPage() {
 
   // Load applicant initial proposed schedule when review modal opens
   useEffect(() => {
-    if (!reviewModalOpen || !selectedProfile || !currentOrg?.id) return;
+    if (!selectedProfile || !currentOrg?.id) return;
     let active = true;
     const targetOrgId = currentOrg.id;
     const targetProfileId = selectedProfile.id;
 
-    setInitialReviewSchedule(null);
     providerManagementService
       .getSchedules(targetOrgId, targetProfileId)
       .then((days) => {
@@ -231,45 +241,40 @@ export function ManagerProvidersPage() {
     return () => {
       active = false;
     };
-  }, [reviewModalOpen, selectedProfile, currentOrg?.id]);
+  }, [selectedProfile, currentOrg?.id]);
 
-  // Load provider service assignments when assign modal opens
-  useEffect(() => {
-    if (!assignModalOpen || !selectedProvider || !currentOrg?.id) return;
-    let active = true;
-    const targetOrgId = currentOrg.id;
-    const targetProviderId = selectedProvider.id;
-
-    setLoadingCharges(true);
-    setAssignedCharges([]);
-
-    providerManagementService
-      .getProviderServices(targetOrgId, targetProviderId)
-      .then((data) => {
-        if (active && currentOrg?.id === targetOrgId) {
+  // Reusable helper to refresh provider service assignments
+  const refreshAssignedServices = useCallback(
+    async (targetOrgId, targetProviderId) => {
+      setLoadingCharges(true);
+      try {
+        const data = await providerManagementService.getProviderServices(targetOrgId, targetProviderId);
+        if (currentOrg?.id === targetOrgId) {
           setAssignedCharges(Array.isArray(data) ? data : data?.results || []);
         }
-      })
-      .catch((err) => {
-        if (active && currentOrg?.id === targetOrgId) {
+      } catch (err) {
+        if (currentOrg?.id === targetOrgId) {
           showError(bookingError(err, 'Failed to load assigned services.'));
         }
-      })
-      .finally(() => {
-        if (active && currentOrg?.id === targetOrgId) {
+      } finally {
+        if (currentOrg?.id === targetOrgId) {
           setLoadingCharges(false);
         }
-      });
+      }
+    },
+    [currentOrg?.id, showError]
+  );
 
-    return () => {
-      active = false;
-    };
-  }, [assignModalOpen, selectedProvider, currentOrg?.id, showError]);
+  // Load provider service assignments when Services & Charges modal opens
+  useEffect(() => {
+    if (!selectedProvider || !currentOrg?.id) return;
+    refreshAssignedServices(currentOrg.id, selectedProvider.id);
+  }, [selectedProvider, currentOrg?.id, refreshAssignedServices]);
 
   // --------------------------------------------------------------------------
   // Tab Navigation & Accessible Keyboard Handling
   // --------------------------------------------------------------------------
-  const tabKeys = ['active', 'pending', 'rejected', 'invitations'];
+
 
   const handleTabChange = (newTab) => {
     setActiveTab(newTab);
@@ -277,25 +282,25 @@ export function ManagerProvidersPage() {
   };
 
   const handleTabKeyDown = (e, currentTabKey) => {
-    const currentIndex = tabKeys.indexOf(currentTabKey);
+    const currentIndex = TAB_KEYS.indexOf(currentTabKey);
     let nextIndex = null;
 
     if (e.key === 'ArrowRight') {
       e.preventDefault();
-      nextIndex = (currentIndex + 1) % tabKeys.length;
+      nextIndex = (currentIndex + 1) % TAB_KEYS.length;
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      nextIndex = (currentIndex - 1 + tabKeys.length) % tabKeys.length;
+      nextIndex = (currentIndex - 1 + TAB_KEYS.length) % TAB_KEYS.length;
     } else if (e.key === 'Home') {
       e.preventDefault();
       nextIndex = 0;
     } else if (e.key === 'End') {
       e.preventDefault();
-      nextIndex = tabKeys.length - 1;
+      nextIndex = TAB_KEYS.length - 1;
     }
 
     if (nextIndex !== null) {
-      const nextTab = tabKeys[nextIndex];
+      const nextTab = TAB_KEYS[nextIndex];
       handleTabChange(nextTab);
       const nextBtn = document.getElementById(`tab-${nextTab}`);
       if (nextBtn) nextBtn.focus();
@@ -388,15 +393,14 @@ export function ManagerProvidersPage() {
   // Application Review Handlers
   // --------------------------------------------------------------------------
   const handleOpenReviewModal = (profile, e) => {
-    reviewTriggerRef.current = e.currentTarget;
+    reviewTriggerRef.current = e?.currentTarget;
     setSelectedProfile(profile);
+    setInitialReviewSchedule(null);
     setReviewReason('');
-    setReviewModalOpen(true);
   };
 
   const handleCloseReviewModal = () => {
     if (reviewing) return;
-    setReviewModalOpen(false);
     setSelectedProfile(null);
     if (reviewTriggerRef.current) reviewTriggerRef.current.focus();
   };
@@ -414,7 +418,6 @@ export function ManagerProvidersPage() {
       });
       if (currentOrg?.id === targetOrgId) {
         showSuccess('Provider application approved successfully.');
-        setReviewModalOpen(false);
         setSelectedProfile(null);
         fetchData();
       }
@@ -447,7 +450,6 @@ export function ManagerProvidersPage() {
       });
       if (currentOrg?.id === targetOrgId) {
         showSuccess('Provider application rejected.');
-        setReviewModalOpen(false);
         setSelectedProfile(null);
         setReviewReason('');
         fetchData();
@@ -466,16 +468,15 @@ export function ManagerProvidersPage() {
   // Services & Charges Handlers
   // --------------------------------------------------------------------------
   const handleOpenAssignModal = (prov, e) => {
-    servicesTriggerRef.current = e.currentTarget;
+    servicesTriggerRef.current = e?.currentTarget;
     setSelectedProvider(prov);
     setAverageMinutes(prov.average_service_minutes ?? '');
     setAssignForm({ service_id: '', custom_price: '' });
-    setAssignModalOpen(true);
+    setAssignedCharges([]);
   };
 
   const handleCloseAssignModal = () => {
     if (savingAverage || assigningService || unassigning) return;
-    setAssignModalOpen(false);
     setSelectedProvider(null);
     if (servicesTriggerRef.current) servicesTriggerRef.current.focus();
   };
@@ -558,9 +559,7 @@ export function ManagerProvidersPage() {
       if (currentOrg?.id === targetOrgId) {
         showSuccess('Service assigned to provider successfully!');
         setAssignForm({ service_id: '', custom_price: '' });
-        // Refresh authoritative assigned charges
-        const fresh = await providerManagementService.getProviderServices(targetOrgId, targetProviderId);
-        setAssignedCharges(Array.isArray(fresh) ? fresh : fresh?.results || []);
+        await refreshAssignedServices(targetOrgId, targetProviderId);
         fetchData();
       }
     } catch (err) {
@@ -599,9 +598,7 @@ export function ManagerProvidersPage() {
       if (currentOrg?.id === targetOrgId) {
         showSuccess(`Service "${unassignConfirmTarget.service_name}" unassigned from provider.`);
         setUnassignConfirmTarget(null);
-        // Refresh authoritative assigned services
-        const fresh = await providerManagementService.getProviderServices(targetOrgId, targetProviderId);
-        setAssignedCharges(Array.isArray(fresh) ? fresh : fresh?.results || []);
+        await refreshAssignedServices(targetOrgId, targetProviderId);
         fetchData();
       }
     } catch (err) {
@@ -633,28 +630,29 @@ export function ManagerProvidersPage() {
   // --------------------------------------------------------------------------
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        if (unassignConfirmTarget && !unassigning) {
-          e.preventDefault();
-          handleCloseUnassignModal();
-        } else if (cancellingInvite && !cancellingBusy) {
-          e.preventDefault();
-          handleCloseCancelInviteModal();
-        } else if (inviteModalOpen && !inviting) {
-          e.preventDefault();
-          handleCloseInviteModal();
-        } else if (reviewModalOpen && !reviewing) {
-          e.preventDefault();
-          handleCloseReviewModal();
-        } else if (governanceProvider) {
-          e.preventDefault();
-          handleCloseGovernanceModal();
-        } else if (assignModalOpen && !savingAverage && !assigningService && !unassigning) {
-          e.preventDefault();
-          handleCloseAssignModal();
-        }
+      if (e.key !== 'Escape') return;
+
+      if (unassignConfirmTarget && !unassigning) {
+        e.preventDefault();
+        handleCloseUnassignModal();
+      } else if (cancellingInvite && !cancellingBusy) {
+        e.preventDefault();
+        handleCloseCancelInviteModal();
+      } else if (inviteModalOpen && !inviting) {
+        e.preventDefault();
+        handleCloseInviteModal();
+      } else if (selectedProfile && !reviewing) {
+        e.preventDefault();
+        handleCloseReviewModal();
+      } else if (governanceProvider) {
+        e.preventDefault();
+        handleCloseGovernanceModal();
+      } else if (selectedProvider && !savingAverage && !assigningService && !unassigning) {
+        e.preventDefault();
+        handleCloseAssignModal();
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
@@ -664,93 +662,64 @@ export function ManagerProvidersPage() {
     cancellingBusy,
     inviteModalOpen,
     inviting,
-    reviewModalOpen,
+    selectedProfile,
     reviewing,
     governanceProvider,
-    assignModalOpen,
+    selectedProvider,
     savingAverage,
     assigningService,
   ]);
 
-  // Initial focus management
+  // Initial focus management across modals
   useEffect(() => {
-    if (inviteModalOpen && inviteDialogRef.current) {
-      const emailInput = inviteDialogRef.current.querySelector('input[type="email"]');
-      if (emailInput) emailInput.focus();
-    }
-  }, [inviteModalOpen]);
+    const dialog =
+      unassignDialogRef.current ||
+      cancelInviteDialogRef.current ||
+      inviteDialogRef.current ||
+      reviewDialogRef.current ||
+      servicesDialogRef.current ||
+      governanceDialogRef.current;
 
-  useEffect(() => {
-    if (reviewModalOpen && reviewDialogRef.current) {
-      const cancelBtn = reviewDialogRef.current.querySelector('button.manager-providers__btn-secondary');
-      if (cancelBtn) cancelBtn.focus();
-    }
-  }, [reviewModalOpen]);
+    if (!dialog) return;
 
-  useEffect(() => {
-    if (assignModalOpen && servicesDialogRef.current) {
-      const closeBtn = servicesDialogRef.current.querySelector('button.manager-providers__modal-close');
-      if (closeBtn) closeBtn.focus();
-    }
-  }, [assignModalOpen]);
-
-  useEffect(() => {
-    if (unassignConfirmTarget && unassignDialogRef.current) {
-      const cancelBtn = unassignDialogRef.current.querySelector('button.manager-providers__btn-secondary');
-      if (cancelBtn) cancelBtn.focus();
-    }
-  }, [unassignConfirmTarget]);
-
-  useEffect(() => {
-    if (cancellingInvite && cancelInviteDialogRef.current) {
-      const cancelBtn = cancelInviteDialogRef.current.querySelector('button.manager-providers__btn-secondary');
-      if (cancelBtn) cancelBtn.focus();
-    }
-  }, [cancellingInvite]);
-
-  useEffect(() => {
-    if (governanceProvider && governanceDialogRef.current) {
-      const closeBtn = governanceDialogRef.current.querySelector('button.manager-providers__modal-close');
-      if (closeBtn) closeBtn.focus();
-    }
-  }, [governanceProvider]);
+    const target =
+      dialog.querySelector('input[type="email"]') ||
+      dialog.querySelector('button.manager-providers__btn-secondary') ||
+      dialog.querySelector('button.manager-providers__modal-close');
+    if (target) target.focus();
+  }, [
+    unassignConfirmTarget,
+    cancellingInvite,
+    inviteModalOpen,
+    selectedProfile,
+    selectedProvider,
+    governanceProvider,
+  ]);
 
   // --------------------------------------------------------------------------
   // Filtered Lists
   // --------------------------------------------------------------------------
-  const activeProviders = useMemo(
-    () => providers.filter((p) => p.application_status === 'APPROVED' && p.membership_is_active !== false),
-    [providers]
+  const activeProviders = providers.filter(
+    (p) => p.application_status === 'APPROVED' && p.membership_is_active !== false
   );
-  const pendingApplications = useMemo(
-    () =>
-      providers.filter(
-        (p) =>
-          p.application_status === 'PENDING_REVIEW' ||
-          (p.application_status === 'INCOMPLETE' && !p.membership_is_active)
-      ),
-    [providers]
+  const pendingApplications = providers.filter(
+    (p) =>
+      p.application_status === 'PENDING_REVIEW' ||
+      (p.application_status === 'INCOMPLETE' && !p.membership_is_active)
   );
-  const rejectedApplications = useMemo(
-    () => providers.filter((p) => p.application_status === 'REJECTED'),
-    [providers]
-  );
-  const activeInvitations = useMemo(
-    () => invitations.filter((i) => i.is_valid),
-    [invitations]
-  );
+  const rejectedApplications = providers.filter((p) => p.application_status === 'REJECTED');
+  const activeInvitations = invitations.filter((i) => i.is_valid);
 
   // Apply search query across active providers
-  const filteredActiveProviders = useMemo(() => {
-    if (!searchQuery.trim()) return activeProviders;
-    const q = searchQuery.toLowerCase();
-    return activeProviders.filter(
-      (p) =>
-        `${p.user_first_name || ''} ${p.user_last_name || ''}`.toLowerCase().includes(q) ||
-        (p.title || '').toLowerCase().includes(q) ||
-        (p.user_email || '').toLowerCase().includes(q)
-    );
-  }, [activeProviders, searchQuery]);
+  const query = searchQuery.trim().toLowerCase();
+  const filteredActiveProviders = query
+    ? activeProviders.filter(
+        (p) =>
+          `${p.user_first_name || ''} ${p.user_last_name || ''}`.toLowerCase().includes(query) ||
+          (p.title || '').toLowerCase().includes(query) ||
+          (p.user_email || '').toLowerCase().includes(query)
+      )
+    : activeProviders;
 
   if (!currentOrg) {
     return (
@@ -800,65 +769,28 @@ export function ManagerProvidersPage() {
         aria-label="Provider roster navigation tabs"
         className="manager-providers__tablist"
       >
-        <button
-          type="button"
-          role="tab"
-          id="tab-active"
-          aria-selected={activeTab === 'active'}
-          aria-controls="panel-active"
-          tabIndex={activeTab === 'active' ? 0 : -1}
-          className={`manager-providers__tab ${activeTab === 'active' ? 'manager-providers__tab--active' : ''}`}
-          onClick={() => handleTabChange('active')}
-          onKeyDown={(e) => handleTabKeyDown(e, 'active')}
-        >
-          <span>Active Providers</span>
-          <span className="manager-providers__tab-badge">{activeProviders.length}</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          id="tab-pending"
-          aria-selected={activeTab === 'pending'}
-          aria-controls="panel-pending"
-          tabIndex={activeTab === 'pending' ? 0 : -1}
-          className={`manager-providers__tab ${activeTab === 'pending' ? 'manager-providers__tab--active' : ''}`}
-          onClick={() => handleTabChange('pending')}
-          onKeyDown={(e) => handleTabKeyDown(e, 'pending')}
-        >
-          <span>Pending Review</span>
-          <span className="manager-providers__tab-badge">{pendingApplications.length}</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          id="tab-rejected"
-          aria-selected={activeTab === 'rejected'}
-          aria-controls="panel-rejected"
-          tabIndex={activeTab === 'rejected' ? 0 : -1}
-          className={`manager-providers__tab ${activeTab === 'rejected' ? 'manager-providers__tab--active' : ''}`}
-          onClick={() => handleTabChange('rejected')}
-          onKeyDown={(e) => handleTabKeyDown(e, 'rejected')}
-        >
-          <span>Rejected Applications</span>
-          <span className="manager-providers__tab-badge">{rejectedApplications.length}</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          id="tab-invitations"
-          aria-selected={activeTab === 'invitations'}
-          aria-controls="panel-invitations"
-          tabIndex={activeTab === 'invitations' ? 0 : -1}
-          className={`manager-providers__tab ${activeTab === 'invitations' ? 'manager-providers__tab--active' : ''}`}
-          onClick={() => handleTabChange('invitations')}
-          onKeyDown={(e) => handleTabKeyDown(e, 'invitations')}
-        >
-          <span>Active Invitations</span>
-          <span className="manager-providers__tab-badge">{activeInvitations.length}</span>
-        </button>
+        {[
+          { key: 'active', label: 'Active Providers', count: activeProviders.length },
+          { key: 'pending', label: 'Pending Review', count: pendingApplications.length },
+          { key: 'rejected', label: 'Rejected Applications', count: rejectedApplications.length },
+          { key: 'invitations', label: 'Active Invitations', count: activeInvitations.length },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            id={`tab-${tab.key}`}
+            aria-selected={activeTab === tab.key}
+            aria-controls={`panel-${tab.key}`}
+            tabIndex={activeTab === tab.key ? 0 : -1}
+            className={`manager-providers__tab ${activeTab === tab.key ? 'manager-providers__tab--active' : ''}`}
+            onClick={() => handleTabChange(tab.key)}
+            onKeyDown={(e) => handleTabKeyDown(e, tab.key)}
+          >
+            <span>{tab.label}</span>
+            <span className="manager-providers__tab-badge">{tab.count}</span>
+          </button>
+        ))}
       </div>
 
       {loading ? (
@@ -920,10 +852,7 @@ export function ManagerProvidersPage() {
                     </thead>
                     <tbody>
                       {filteredActiveProviders.map((prov) => {
-                        const fullName =
-                          `${prov.user_first_name || ''} ${prov.user_last_name || ''}`.trim() ||
-                          prov.title ||
-                          'Professional';
+                        const fullName = getProviderDisplayName(prov, 'Professional');
                         return (
                           <tr key={prov.id}>
                             <td>
@@ -1001,9 +930,7 @@ export function ManagerProvidersPage() {
                     </thead>
                     <tbody>
                       {pendingApplications.map((prov) => {
-                        const fullName =
-                          `${prov.user_first_name || ''} ${prov.user_last_name || ''}`.trim() ||
-                          'Applicant';
+                        const fullName = getProviderDisplayName(prov, 'Applicant');
                         return (
                           <tr key={prov.id}>
                             <td>
@@ -1070,9 +997,7 @@ export function ManagerProvidersPage() {
                     </thead>
                     <tbody>
                       {rejectedApplications.map((prov) => {
-                        const fullName =
-                          `${prov.user_first_name || ''} ${prov.user_last_name || ''}`.trim() ||
-                          'Applicant';
+                        const fullName = getProviderDisplayName(prov, 'Applicant');
                         return (
                           <tr key={prov.id}>
                             <td>
@@ -1146,26 +1071,10 @@ export function ManagerProvidersPage() {
                             {inv.expires_at ? new Date(inv.expires_at).toLocaleString() : '—'}
                           </td>
                           <td>
-                            <StatusBadge
-                              status={
-                                inv.used_at
-                                  ? 'COMPLETED'
-                                  : inv.cancelled_at
-                                  ? 'CANCELLED'
-                                  : inv.is_valid
-                                  ? 'WAITING'
-                                  : 'NO_SHOW'
-                              }
-                              customLabel={
-                                inv.used_at
-                                  ? 'Accepted'
-                                  : inv.cancelled_at
-                                  ? 'Cancelled'
-                                  : inv.is_valid
-                                  ? 'Active Token'
-                                  : 'Expired'
-                              }
-                            />
+                            {(() => {
+                              const badge = getInvitationBadge(inv);
+                              return <StatusBadge status={badge.status} customLabel={badge.label} />;
+                            })()}
                           </td>
                           <td>
                             <div className="manager-providers__table-actions">
@@ -1334,7 +1243,7 @@ export function ManagerProvidersPage() {
       {/* ====================================================================
           MODAL: Review Application
           ==================================================================== */}
-      {reviewModalOpen && selectedProfile && (
+      {selectedProfile && (
         <div
           className="manager-providers__modal-backdrop"
           onClick={handleCloseReviewModal}
@@ -1483,7 +1392,7 @@ export function ManagerProvidersPage() {
       {/* ====================================================================
           MODAL: Services & Charges Workspace (Decision D4)
           ==================================================================== */}
-      {assignModalOpen && selectedProvider && (
+      {selectedProvider && (
         <div
           className="manager-providers__modal-backdrop"
           onClick={handleCloseAssignModal}

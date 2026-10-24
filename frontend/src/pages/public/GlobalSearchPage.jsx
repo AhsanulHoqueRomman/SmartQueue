@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
 import organizationService from '../../services/organizationService';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
@@ -72,7 +71,6 @@ const POPULAR_SERVICES = [
 export function GlobalSearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const queryParam = searchParams.get('q') || '';
 
   const [query, setQuery] = useState(queryParam);
