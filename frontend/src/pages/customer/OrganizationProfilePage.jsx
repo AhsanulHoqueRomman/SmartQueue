@@ -9,95 +9,126 @@ import PublicNavbar from '../../components/PublicNavbar';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import { deriveProfessionalDisplay } from '../../utils/providerDisplay';
-import { startingPrice, providerCharge, bookingError as getBookingError } from '../../utils/bookingDisplay';
+import { formatCurrency, startingPrice, providerCharge, bookingError as getBookingError } from '../../utils/bookingDisplay';
 import BookingReviewModal from '../../components/BookingReviewModal';
 import { BookingContactFields, BookingSummary } from '../../components/BookingContact';
 import { useBookingContact } from '../../hooks/useBookingContact';
 import '../../styles/LandingPage.css';
 import '../../styles/OrganizationProfile.css';
 
-// ─── Format Currency Helper ────────────────────────────────────────────────
-export const formatCurrency = (amount) => {
-  if (amount === null || amount === undefined || amount === '') return '';
-  const num = Number(amount);
-  if (isNaN(num)) return `৳${amount}`;
-  return `৳${num.toLocaleString('en-US')}`;
+// ─── Operating Hours Time Formatter ──────────────────────────────────────────
+const formatOperatingTime = (t) => {
+  if (!t) return '';
+  const [hh, mm] = t.split(':');
+  const hour = parseInt(hh, 10);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const formattedHour = hour % 12 || 12;
+  return `${formattedHour}:${mm} ${ampm}`;
 };
 
-// ─── Domain-aware Service Image Helper (Strict Isolation) ───────────────────
-export const getServiceImage = (service, org) => {
+// ─── Domain-Aware Cover Banner Fallback ──────────────────────────────────────
+const getDomainCoverFallback = (org) => {
+  const ind = (org?.industry_type || org?.category || '').toLowerCase();
+  if (ind.includes('health') || ind.includes('medical') || ind.includes('clinic')) {
+    return 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=80';
+  }
+  if (ind.includes('legal') || ind.includes('law')) {
+    return 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80';
+  }
+  if (ind.includes('beauty') || ind.includes('salon') || ind.includes('spa')) {
+    return 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=80';
+  }
+  return 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80';
+};
+
+// ─── Domain-Aware Service Image Fallbacks ────────────────────────────────────
+const SERVICE_IMAGE_KEYWORDS = [
+  {
+    match: /LEGAL|LAW/i,
+    rules: [
+      [/rjsc|company|incorporation|corporate|business/i, 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80'],
+      [/contract|vetting|agreement|nda|document/i, 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80'],
+      [/property|land|estate|real estate|title/i, 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80'],
+      [/tax|audit|finance/i, 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80'],
+      [/litigation|court|dispute|advocate|settlement/i, 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80'],
+      [null, 'https://images.unsplash.com/photo-1505664194779-8beaceb93744?auto=format&fit=crop&w=800&q=80'],
+    ],
+  },
+  {
+    match: /HEALTH|MEDIC|CLINIC/i,
+    rules: [
+      [/dental|teeth|scaling|ortho/i, 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=800&q=80'],
+      [/skin|derma|laser/i, 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80'],
+      [/lab|blood|test|mri|scan|patholog|diagnos/i, 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=800&q=80'],
+      [/cardio|heart|ecg/i, 'https://images.unsplash.com/photo-1628348068343-c6a848d2b6dd?auto=format&fit=crop&w=800&q=80'],
+      [/eye|vision|opht/i, 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=800&q=80'],
+      [null, 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=800&q=80'],
+    ],
+  },
+  {
+    match: /BEAUTY|SALON|SPA|WELLNESS/i,
+    rules: [
+      [/hair|cut|style|trim/i, 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80'],
+      [/facial|skin|massage|spa/i, 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80'],
+      [null, 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80'],
+    ],
+  },
+  {
+    match: /REPAIR|TECH/i,
+    rules: [[null, 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80']],
+  },
+  {
+    match: /CONSULT/i,
+    rules: [[null, 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80']],
+  },
+];
+
+const getServiceImage = (service, org) => {
   if (service?.image) return service.image;
-
-  const orgInd = (org?.industry_type || org?.category || '').toUpperCase();
-  const name = (service?.name || '').toLowerCase();
-  const desc = (service?.description || '').toLowerCase();
-  const combined = `${name} ${desc}`;
-
-  // Domain 1: LEGAL & LAW FIRM
-  if (orgInd.includes('LEGAL') || orgInd.includes('LAW')) {
-    if (combined.includes('rjsc') || combined.includes('company') || combined.includes('incorporation') || combined.includes('corporate') || combined.includes('business')) {
-      return 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80'; // modern corporate architectural office
+  const orgInd = org?.industry_type || org?.category || '';
+  const text = `${service?.name || ''} ${service?.description || ''}`;
+  for (const group of SERVICE_IMAGE_KEYWORDS) {
+    if (group.match.test(orgInd)) {
+      for (const [pattern, url] of group.rules) {
+        if (!pattern || pattern.test(text)) return url;
+      }
     }
-    if (combined.includes('contract') || combined.includes('vetting') || combined.includes('agreement') || combined.includes('nda') || combined.includes('document')) {
-      return 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80'; // fountain pen on signed contract document
-    }
-    if (combined.includes('property') || combined.includes('land') || combined.includes('estate') || combined.includes('real estate') || combined.includes('title')) {
-      return 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80'; // deed / property legal
-    }
-    if (combined.includes('tax') || combined.includes('audit') || combined.includes('finance')) {
-      return 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80'; // finance legal desk
-    }
-    if (combined.includes('litigation') || combined.includes('court') || combined.includes('dispute') || combined.includes('advocate') || combined.includes('settlement')) {
-      return 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80'; // law library / books
-    }
-    // Generic legal fallback - professional law library / counsel desk
-    return 'https://images.unsplash.com/photo-1505664194779-8beaceb93744?auto=format&fit=crop&w=800&q=80';
   }
-
-  // Domain 2: HEALTHCARE & MEDICAL
-  if (orgInd.includes('HEALTH') || orgInd.includes('MEDIC') || orgInd.includes('CLINIC')) {
-    if (combined.includes('dental') || combined.includes('teeth') || combined.includes('scaling') || combined.includes('ortho')) {
-      return 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=800&q=80'; // dental clinic
-    }
-    if (combined.includes('skin') || combined.includes('derma') || combined.includes('laser')) {
-      return 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80'; // dermatology clinical
-    }
-    if (combined.includes('lab') || combined.includes('blood') || combined.includes('test') || combined.includes('mri') || combined.includes('scan') || combined.includes('patholog') || combined.includes('diagnos')) {
-      return 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=800&q=80'; // medical lab
-    }
-    if (combined.includes('cardio') || combined.includes('heart') || combined.includes('ecg')) {
-      return 'https://images.unsplash.com/photo-1628348068343-c6a848d2b6dd?auto=format&fit=crop&w=800&q=80'; // cardiology monitor
-    }
-    if (combined.includes('eye') || combined.includes('vision') || combined.includes('opht')) {
-      return 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=800&q=80'; // ophthalmology
-    }
-    // Generic healthcare fallback - clinical stethoscope & consultation desk
-    return 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=800&q=80';
-  }
-
-  // Domain 3: BEAUTY, SALON & WELLNESS
-  if (orgInd.includes('BEAUTY') || orgInd.includes('SALON') || orgInd.includes('SPA') || orgInd.includes('WELLNESS')) {
-    if (combined.includes('hair') || combined.includes('cut') || combined.includes('style') || combined.includes('trim')) {
-      return 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80'; // hair styling
-    }
-    if (combined.includes('facial') || combined.includes('skin') || combined.includes('massage') || combined.includes('spa')) {
-      return 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80'; // spa treatment
-    }
-    return 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80';
-  }
-
-  // Domain 4: TECHNICAL REPAIR & SERVICE
-  if (orgInd.includes('REPAIR') || orgInd.includes('TECH')) {
-    return 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80'; // precision electronics repair desk
-  }
-
-  // Domain 5: CONSULTING & PROFESSIONAL SERVICES
-  if (orgInd.includes('CONSULT')) {
-    return 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80'; // consulting desk
-  }
-
-  // Neutral generic professional fallback
   return 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
+};
+
+// ─── Modal Wrapper Component ─────────────────────────────────────────────────
+function ModalWrapper({ onClose, maxWidth, className = '', children }) {
+  return (
+    <div className="org-modal-overlay" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        className={`org-modal-card${className ? ` ${className}` : ''}`}
+        style={maxWidth ? { maxWidth } : undefined}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="org-modal-close-btn"
+          aria-label="Close modal"
+        >
+          ✕
+        </button>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── Organization Identity Matcher (UUID / Slug / Case Insensitive) ─────────
+const isMatchingOrgIdentity = (orgObj, targetId) => {
+  if (!orgObj || !targetId) return false;
+  const target = String(targetId).trim().toLowerCase();
+  const orgIdStr = String(orgObj.id || '').trim().toLowerCase();
+  const orgSlugStr = String(orgObj.slug || '').trim().toLowerCase();
+  return (Boolean(orgIdStr) && orgIdStr === target) || (Boolean(orgSlugStr) && orgSlugStr === target);
 };
 
 export function OrganizationProfilePage() {
@@ -107,6 +138,7 @@ export function OrganizationProfilePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const bookingSectionRef = useRef(null);
+  const [dataOrgId, setDataOrgId] = useState(null);
 
   // Core Data States
   const [org, setOrg] = useState(null);
@@ -117,13 +149,14 @@ export function OrganizationProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Modal States
+  // Modal States: 'reviews' | 'credentials' | 'hours' | null
+  const [activeModal, setActiveModal] = useState(null);
   const [activeDetailService, setActiveDetailService] = useState(null);
-  const [showReviewsModal, setShowReviewsModal] = useState(false);
-  const [showCredentialsModal, setShowCredentialsModal] = useState(false);
-  const [showHoursModal, setShowHoursModal] = useState(false);
   const [showBookingReview, setShowBookingReview] = useState(false);
   const submissionPending = useRef(false);
+  const activeSubmissionRef = useRef(null);
+  const submissionCountRef = useRef(0);
+  const currentOrgIdRef = useRef(orgId);
 
   // Booking Selection States
   const [selectedServiceId, setSelectedServiceId] = useState('');
@@ -141,19 +174,12 @@ export function OrganizationProfilePage() {
   const [bookingError, setBookingError] = useState(null);
   const [bookedAppointment, setBookedAppointment] = useState(null);
 
-  // Section reveal observer refs
-  const aboutRef = useRef(null);
-  const servicesRef = useRef(null);
-  const profRef = useRef(null);
-
-  // Keyboard escape listener for all modals
+  // Keyboard escape listener for all dialogs
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         setActiveDetailService(null);
-        setShowReviewsModal(false);
-        setShowCredentialsModal(false);
-        setShowHoursModal(false);
+        setActiveModal(null);
         if (!submissionPending.current) setShowBookingReview(false);
       }
     };
@@ -165,8 +191,25 @@ export function OrganizationProfilePage() {
   useEffect(() => {
     if (!orgId) return;
     let isMounted = true;
+    const currentFetchOrgId = orgId;
+    currentOrgIdRef.current = orgId;
     setLoading(true);
     setError(null);
+
+    // Reset selection and modal states on organization route change
+    setSelectedServiceId('');
+    setSelectedProviderId('');
+    setSelectedDate(todayStr);
+    setAvailability(null);
+    setNotes('');
+    setBookingError(null);
+    setBookedAppointment(null);
+    setActiveModal(null);
+    setActiveDetailService(null);
+    setShowBookingReview(false);
+    if (!activeSubmissionRef.current) {
+      submissionPending.current = false;
+    }
 
     Promise.all([
       organizationService.getOrganizationDetail(orgId),
@@ -176,8 +219,9 @@ export function OrganizationProfilePage() {
       organizationService.getReviews(orgId).catch(() => ({ results: [] })),
     ])
       .then(([orgData, servicesData, providersData, credsData, reviewsData]) => {
-        if (!isMounted) return;
+        if (!isMounted || !isMatchingOrgIdentity(orgData, currentFetchOrgId)) return;
         setOrg(orgData);
+        setDataOrgId(currentFetchOrgId);
         addRecentlyViewedOrg(orgData);
 
         const svcList = Array.isArray(servicesData) ? servicesData : servicesData?.results || [];
@@ -212,6 +256,8 @@ export function OrganizationProfilePage() {
       })
       .catch((err) => {
         if (!isMounted) return;
+        setOrg(null);
+        setDataOrgId(currentFetchOrgId);
         setError(err.response?.data?.detail || 'Failed to load organization profile.');
       })
       .finally(() => {
@@ -219,7 +265,7 @@ export function OrganizationProfilePage() {
       });
 
     return () => { isMounted = false; };
-  }, [orgId, serviceId, searchParams]);
+  }, [orgId, serviceId, searchParams, todayStr]);
 
   // 2. Fetch Availability Telemetry when Provider, Service, and Date are selected
   useEffect(() => {
@@ -228,7 +274,7 @@ export function OrganizationProfilePage() {
     const refreshStatus = () => {
       if (document.visibilityState !== 'visible') return;
       organizationService.getOrganizationDetail(orgId).then(data => {
-        if (active) setOrg(previous => previous ? { ...previous, current_status: data.current_status, today_hours: data.today_hours } : previous);
+        if (active) setOrg(previous => previous && isMatchingOrgIdentity(previous, orgId) ? { ...previous, current_status: data.current_status, today_hours: data.today_hours } : previous);
       }).catch(() => { /* Retain the last response until the next refresh. */ });
     };
     const interval = setInterval(refreshStatus, 60000);
@@ -351,44 +397,67 @@ export function OrganizationProfilePage() {
   // The review action never books; only modal confirmation reaches this request.
   const handleBookSubmit = async () => {
     if (!showBookingReview || submissionPending.current || !validateBookingReview()) return;
+    const submitOrgId = orgId;
+    const submissionId = ++submissionCountRef.current;
     submissionPending.current = true;
+    activeSubmissionRef.current = { id: submissionId, orgId: submitOrgId };
 
     setSubmitting(true);
     setBookingError(null);
 
     try {
-      const result = await appointmentService.bookAppointment(orgId, {
+      const result = await appointmentService.bookAppointment(submitOrgId, {
         provider_id: selectedProviderId,
         service_id: selectedServiceId,
         appointment_date: selectedDate,
         notes,
         ...contact.payload,
       });
-      setBookedAppointment(result);
-      setShowBookingReview(false);
+      if (
+        activeSubmissionRef.current?.id === submissionId &&
+        isMatchingOrgIdentity({ id: currentOrgIdRef.current, slug: currentOrgIdRef.current }, submitOrgId)
+      ) {
+        setBookedAppointment(result);
+        setShowBookingReview(false);
+      }
     } catch (err) {
-      const msg = getBookingError(err, 'Failed to book appointment.');
-      setBookingError(typeof msg === 'object' ? JSON.stringify(msg) : msg);
+      if (
+        activeSubmissionRef.current?.id === submissionId &&
+        isMatchingOrgIdentity({ id: currentOrgIdRef.current, slug: currentOrgIdRef.current }, submitOrgId)
+      ) {
+        const msg = getBookingError(err, 'Failed to book appointment.');
+        setBookingError(typeof msg === 'object' ? JSON.stringify(msg) : msg);
+      }
     } finally {
+      if (activeSubmissionRef.current?.id === submissionId) {
+        activeSubmissionRef.current = null;
+        submissionPending.current = false;
+      }
       setSubmitting(false);
-      submissionPending.current = false;
     }
   };
 
-  // Domain cover fallback
-  const getDomainCoverFallback = () => {
-    const ind = (org?.industry_type || org?.category || '').toLowerCase();
-    if (ind.includes('health') || ind.includes('medical') || ind.includes('clinic')) {
-      return 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=80';
-    } else if (ind.includes('legal') || ind.includes('law')) {
-      return 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80';
-    } else if (ind.includes('beauty') || ind.includes('salon') || ind.includes('spa')) {
-      return 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=80';
-    }
-    return 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80';
-  };
+  const isOrgCurrent = Boolean(
+    org &&
+    isMatchingOrgIdentity(org, orgId) &&
+    dataOrgId &&
+    isMatchingOrgIdentity({ id: dataOrgId, slug: dataOrgId }, orgId)
+  );
+  const isErrorForCurrentOrg = Boolean(error && dataOrgId && isMatchingOrgIdentity({ id: dataOrgId, slug: dataOrgId }, orgId));
 
-  if (loading) {
+  if (loading || !isOrgCurrent) {
+    if (isErrorForCurrentOrg && !loading) {
+      return (
+        <div className="lp-root organization-profile-page">
+          <PublicNavbar activePage="organizations" />
+          <main className="organization-profile-main">
+            <div className="org-profile-container">
+              <EmptyState title="Organization Not Found" description={error || "The requested organization is not available."} />
+            </div>
+          </main>
+        </div>
+      );
+    }
     return (
       <div className="lp-root organization-profile-page">
         <PublicNavbar activePage="organizations" />
@@ -412,7 +481,7 @@ export function OrganizationProfilePage() {
     );
   }
 
-  const coverSrc = org.cover_image || getDomainCoverFallback();
+  const coverSrc = org.cover_image || getDomainCoverFallback(org);
   const rawRating = org.rating ? Number(org.rating) : 0;
   const ratingValue = rawRating > 0 ? rawRating.toFixed(1) : (reviews.length > 0 ? (reviews.reduce((a, b) => a + b.rating, 0) / reviews.length).toFixed(1) : null);
   const reviewsCount = org.reviews_count || reviews.length;
@@ -434,7 +503,7 @@ export function OrganizationProfilePage() {
                 src={coverSrc}
                 alt={org.name}
                 className="org-banner-img"
-                onError={(e) => { e.target.src = getDomainCoverFallback(); }}
+                onError={(e) => { e.target.src = getDomainCoverFallback(org); }}
               />
               <div className="org-banner-scrim" />
               {org.tagline && (
@@ -498,7 +567,7 @@ export function OrganizationProfilePage() {
           </section>
 
           {/* 3. ABOUT + TRUST & CREDENTIALS / CONTACT & HOURS (BALANCED 2-COLUMN) */}
-          <section ref={aboutRef} className="org-about-contact-section org-reveal-section">
+          <section className="org-about-contact-section org-reveal-section">
             {/* Full-width About, followed by two naturally stretched cards. */}
             <div className="org-about-col">
               <h3 className="org-subheading">About {org.name}</h3>
@@ -517,7 +586,7 @@ export function OrganizationProfilePage() {
                   {credentials.length > 0 && (
                     <button
                       type="button"
-                      onClick={() => setShowCredentialsModal(true)}
+                      onClick={() => setActiveModal('credentials')}
                       className="org-text-link"
                     >
                       View Credentials <span className="org-arrow">→</span>
@@ -597,7 +666,7 @@ export function OrganizationProfilePage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowReviewsModal(true)}
+                  onClick={() => setActiveModal('reviews')}
                   className="org-see-reviews-btn"
                 >
                   See Reviews <span className="org-arrow">→</span>
@@ -616,7 +685,7 @@ export function OrganizationProfilePage() {
                 {(
                   <button
                     type="button"
-                    onClick={() => setShowHoursModal(true)}
+                    onClick={() => setActiveModal('hours')}
                     className="org-hours-link-btn"
                   >
                     View Hours <span className="org-arrow">→</span>
@@ -629,7 +698,7 @@ export function OrganizationProfilePage() {
           <hr className="org-thin-divider" />
 
           {/* 4. OUR SERVICES (DISCOVERY ONLY — NO SELECT BUTTON) */}
-          <section ref={servicesRef} className="org-services-section org-reveal-section">
+          <section className="org-services-section org-reveal-section">
             <div className="org-services-header">
               <h3 className="org-section-title">Our Services</h3>
               <p className="org-section-subtitle">
@@ -654,7 +723,7 @@ export function OrganizationProfilePage() {
                           alt={svc.name}
                           className="org-service-card-img"
                           onError={(e) => {
-                            e.target.src = getDomainCoverFallback();
+                            e.target.src = getDomainCoverFallback(org);
                           }}
                         />
                       </div>
@@ -695,7 +764,7 @@ export function OrganizationProfilePage() {
           <hr className="org-thin-divider" />
 
           {/* 5. OUR RENOWNED PROFESSIONALS (HORIZONTAL CAROUSEL) */}
-          <section ref={profRef} className="org-professionals-section org-reveal-section">
+          <section className="org-professionals-section org-reveal-section">
             <ProfessionalCarousel
               providers={providers}
               orgId={orgId}
@@ -901,16 +970,7 @@ export function OrganizationProfilePage() {
 
       {/* ── ENRICHED SERVICE DETAILS MODAL (PHASE A.9.4) ─────────────── */}
       {activeDetailService && (
-        <div className="org-modal-overlay" onClick={handleCloseServiceDetails}>
-          <div className="org-modal-card org-service-modal-card" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              onClick={handleCloseServiceDetails}
-              className="org-modal-close-btn"
-              aria-label="Close modal"
-            >
-              ✕
-            </button>
+        <ModalWrapper onClose={handleCloseServiceDetails} className="org-service-modal-card">
 
             <div className="org-modal-img-wrap org-service-modal-img-wrap">
               <img
@@ -1058,246 +1118,202 @@ export function OrganizationProfilePage() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+        </ModalWrapper>
       )}
 
       {/* ── CREDENTIALS MODAL (PHASE A.9.4) ─────────────────────────── */}
-      {showCredentialsModal && (
-        <div className="org-modal-overlay" onClick={() => setShowCredentialsModal(false)}>
-          <div className="org-modal-card" style={{ maxWidth: '640px' }} onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              onClick={() => setShowCredentialsModal(false)}
-              className="org-modal-close-btn"
-              aria-label="Close modal"
-            >
-              ✕
-            </button>
+      {activeModal === 'credentials' && (
+        <ModalWrapper onClose={() => setActiveModal(null)} maxWidth="640px">
+          <div className="org-modal-body" style={{ paddingTop: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
+              <span style={{ fontSize: '1.5rem' }}>🛡️</span>
+              <h3 className="org-modal-title" style={{ fontSize: '1.4rem', margin: 0 }}>
+                Verified Organization Credentials
+              </h3>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-sec)', margin: '0 0 1.25rem 0' }}>
+              Official regulatory registrations and professional accreditations verified for {org.name}.
+            </p>
 
-            <div className="org-modal-body" style={{ paddingTop: '2rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
-                <span style={{ fontSize: '1.5rem' }}>🛡️</span>
-                <h3 className="org-modal-title" style={{ fontSize: '1.4rem', margin: 0 }}>
-                  Verified Organization Credentials
-                </h3>
+            <div className="org-creds-modal-list">
+              {/* QueueTurn Platform Verification */}
+              <div className="org-cred-card">
+                <div className="org-cred-card-header">
+                  <span className="org-cred-type-tag">Platform Standing</span>
+                  <span className="org-cred-verified-pill">✓ Verified by QueueTurn</span>
+                </div>
+                <h4 className="org-cred-card-title">QueueTurn Identity & Storefront Verification</h4>
+                <p className="org-cred-card-meta">
+                  Authority: QueueTurn Platform Trust & Safety Review<br />
+                  Scope: Physical address, business presence, and queue operational standing verified.
+                </p>
               </div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-sec)', margin: '0 0 1.25rem 0' }}>
-                Official regulatory registrations and professional accreditations verified for {org.name}.
-              </p>
 
-              <div className="org-creds-modal-list">
-                {/* QueueTurn Platform Verification */}
-                <div className="org-cred-card">
+              {/* External Regulatory Credentials */}
+              {credentials.map((cred) => (
+                <div key={cred.id} className="org-cred-card">
                   <div className="org-cred-card-header">
-                    <span className="org-cred-type-tag">Platform Standing</span>
+                    <span className="org-cred-type-tag">{cred.credential_type_label || 'Official Credential'}</span>
                     <span className="org-cred-verified-pill">✓ Verified by QueueTurn</span>
                   </div>
-                  <h4 className="org-cred-card-title">QueueTurn Identity & Storefront Verification</h4>
-                  <p className="org-cred-card-meta">
-                    Authority: QueueTurn Platform Trust & Safety Review<br />
-                    Scope: Physical address, business presence, and queue operational standing verified.
-                  </p>
-                </div>
-
-                {/* External Regulatory Credentials */}
-                {credentials.map((cred) => (
-                  <div key={cred.id} className="org-cred-card">
-                    <div className="org-cred-card-header">
-                      <span className="org-cred-type-tag">{cred.credential_type_label || 'Official Credential'}</span>
-                      <span className="org-cred-verified-pill">✓ Verified by QueueTurn</span>
+                  <h4 className="org-cred-card-title">{cred.credential_name}</h4>
+                  <div className="org-cred-card-meta">
+                    {cred.issuing_authority && (
+                      <div><strong>Issuing Authority:</strong> {cred.issuing_authority}</div>
+                    )}
+                    {cred.masked_number && (
+                      <div><strong>Credential ID:</strong> {cred.masked_number}</div>
+                    )}
+                    <div>
+                      <strong>Validity:</strong> {cred.issued_date || 'Documented'} {cred.expiry_date ? `through ${cred.expiry_date}` : '• Permanent'}
                     </div>
-                    <h4 className="org-cred-card-title">{cred.credential_name}</h4>
-                    <div className="org-cred-card-meta">
-                      {cred.issuing_authority && (
-                        <div><strong>Issuing Authority:</strong> {cred.issuing_authority}</div>
-                      )}
-                      {cred.masked_number && (
-                        <div><strong>Credential ID:</strong> {cred.masked_number}</div>
-                      )}
-                      <div>
-                        <strong>Validity:</strong> {cred.issued_date || 'Documented'} {cred.expiry_date ? `through ${cred.expiry_date}` : '• Permanent'}
-                      </div>
-                      {cred.verified_at && (
-                        <div><strong>Verified Date:</strong> {new Date(cred.verified_at).toLocaleDateString()}</div>
-                      )}
-                    </div>
+                    {cred.verified_at && (
+                      <div><strong>Verified Date:</strong> {new Date(cred.verified_at).toLocaleDateString()}</div>
+                    )}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
+            </div>
 
-              <div className="org-cred-privacy-notice">
-                🔒 Official licenses and registrations are verified securely by QueueTurn Compliance. Sensitive personal documents and taxpayer identifiers are never exposed publicly.
-              </div>
+            <div className="org-cred-privacy-notice">
+              🔒 Official licenses and registrations are verified securely by QueueTurn Compliance. Sensitive personal documents and taxpayer identifiers are never exposed publicly.
+            </div>
 
-              <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowCredentialsModal(false)}
-                  className="lp-btn-secondary"
-                  style={{ width: '100%' }}
-                >
-                  Close Credentials
-                </button>
-              </div>
+            <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="lp-btn-secondary"
+                style={{ width: '100%' }}
+              >
+                Close Credentials
+              </button>
             </div>
           </div>
-        </div>
+        </ModalWrapper>
       )}
 
       {/* ── OPERATING HOURS MODAL (PHASE A.9.4) ───────────────────────── */}
-      {showHoursModal && (
-        <div className="org-modal-overlay" onClick={() => setShowHoursModal(false)}>
-          <div className="org-modal-card" style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              onClick={() => setShowHoursModal(false)}
-              className="org-modal-close-btn"
-              aria-label="Close modal"
-            >
-              ✕
-            </button>
+      {activeModal === 'hours' && (
+        <ModalWrapper onClose={() => setActiveModal(null)} maxWidth="480px">
+          <div className="org-modal-body" style={{ paddingTop: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
+              <span style={{ fontSize: '1.5rem' }}>🕒</span>
+              <h3 className="org-modal-title" style={{ fontSize: '1.35rem', margin: 0 }}>
+                Organization Operating Hours
+              </h3>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-sec)', margin: '0 0 1.25rem 0' }}>
+              General office and facility opening schedule for {org.name}.
+            </p>
 
-            <div className="org-modal-body" style={{ paddingTop: '2rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
-                <span style={{ fontSize: '1.5rem' }}>🕒</span>
-                <h3 className="org-modal-title" style={{ fontSize: '1.35rem', margin: 0 }}>
-                  Organization Operating Hours
-                </h3>
-              </div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-sec)', margin: '0 0 1.25rem 0' }}>
-                General office and facility opening schedule for {org.name}.
-              </p>
+            <div className="org-hours-table">
+              {org.operating_hours && org.operating_hours.length > 0 ? (
+                org.operating_hours.map((h) => (
+                  <div key={h.id || h.day_of_week} className="org-hours-row">
+                    <span className="org-hours-day">{h.day_name}</span>
+                    <span className="org-hours-time">
+                      {h.is_closed ? (
+                        <span className="org-hours-closed-badge">Closed</span>
+                      ) : (
+                        `${formatOperatingTime(h.open_time)} – ${formatOperatingTime(h.close_time)}`
+                      )}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p style={{ fontSize: '0.85rem', color: 'var(--lp-muted)' }}>
+                  Operating hours are unavailable. Contact the organization for details.
+                </p>
+              )}
+            </div>
 
-              <div className="org-hours-table">
-                {org.operating_hours && org.operating_hours.length > 0 ? (
-                  org.operating_hours.map((h) => {
-                    const formatTime = (t) => {
-                      if (!t) return '';
-                      const [hh, mm] = t.split(':');
-                      const hour = parseInt(hh, 10);
-                      const ampm = hour >= 12 ? 'PM' : 'AM';
-                      const formattedHour = hour % 12 || 12;
-                      return `${formattedHour}:${mm} ${ampm}`;
-                    };
-                    return (
-                      <div key={h.id || h.day_of_week} className="org-hours-row">
-                        <span className="org-hours-day">{h.day_name}</span>
-                        <span className="org-hours-time">
-                          {h.is_closed ? (
-                            <span className="org-hours-closed-badge">Closed</span>
-                          ) : (
-                            `${formatTime(h.open_time)} – ${formatTime(h.close_time)}`
-                          )}
-                        </span>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p style={{ fontSize: '0.85rem', color: 'var(--lp-muted)' }}>
-                    Operating hours are unavailable. Contact the organization for details.
-                  </p>
-                )}
-              </div>
+            <div className="org-cred-privacy-notice" style={{ marginTop: '1.25rem' }}>
+              ℹ️ Organization operating hours represent general facility open times. Provider consultation availability is scheduled independently in the booking section.
+            </div>
 
-              <div className="org-cred-privacy-notice" style={{ marginTop: '1.25rem' }}>
-                ℹ️ Organization operating hours represent general facility open times. Provider consultation availability is scheduled independently in the booking section.
-              </div>
-
-              <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowHoursModal(false)}
-                  className="lp-btn-secondary"
-                  style={{ width: '100%' }}
-                >
-                  Close Schedule
-                </button>
-              </div>
+            <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="lp-btn-secondary"
+                style={{ width: '100%' }}
+              >
+                Close Schedule
+              </button>
             </div>
           </div>
-        </div>
+        </ModalWrapper>
       )}
 
       {/* ── GENUINE REVIEWS MODAL (PHASE A.9.4 NO FAKE TESTIMONIALS) ──── */}
-      {showReviewsModal && (
-        <div className="org-modal-overlay" onClick={() => setShowReviewsModal(false)}>
-          <div className="org-modal-card" style={{ maxWidth: '560px' }} onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              onClick={() => setShowReviewsModal(false)}
-              className="org-modal-close-btn"
-              aria-label="Close modal"
-            >
-              ✕
-            </button>
+      {activeModal === 'reviews' && (
+        <ModalWrapper onClose={() => setActiveModal(null)} maxWidth="560px">
+          <div className="org-modal-body" style={{ paddingTop: '2rem' }}>
+            <h3 className="org-modal-title" style={{ fontSize: '1.4rem' }}>
+              Verified Customer Reviews
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-sec)', margin: '0 0 1rem 0' }}>
+              Authentic feedback from verified completed serial queue appointments.
+            </p>
 
-            <div className="org-modal-body" style={{ paddingTop: '2rem' }}>
-              <h3 className="org-modal-title" style={{ fontSize: '1.4rem' }}>
-                Verified Customer Reviews
-              </h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-sec)', margin: '0 0 1rem 0' }}>
-                Authentic feedback from verified completed serial queue appointments.
-              </p>
-
-              {reviews.length > 0 ? (
-                <>
-                  <div className="org-reviews-modal-score-box">
-                    <div className="org-reviews-big-star">★ {ratingValue || '5.0'}</div>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-sec)', margin: '0.25rem 0 0 0' }}>
-                      Based on {reviews.length} authentic customer reviews
-                    </p>
-                  </div>
-
-                  <div className="org-reviews-list">
-                    {reviews.map((rev) => (
-                      <div key={rev.id} className="org-review-item">
-                        <div className="org-review-item-header">
-                          <strong>{rev.customer_name || 'Verified Client'}</strong>
-                          <span className="org-review-item-stars">
-                            {'★'.repeat(rev.rating)}{'☆'.repeat(Math.max(0, 5 - rev.rating))}
-                          </span>
-                        </div>
-                        {rev.comment ? (
-                          <p className="org-review-item-text">{rev.comment}</p>
-                        ) : (
-                          <p className="org-review-item-text" style={{ fontStyle: 'italic', color: 'var(--lp-muted)' }}>
-                            Rating submitted without written comment.
-                          </p>
-                        )}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--lp-muted)' }}>
-                          <span>{rev.service_name ? `Service: ${rev.service_name}` : 'Verified Appointment'}</span>
-                          <span>{new Date(rev.created_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="org-reviews-empty-state">
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💬</div>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.35rem 0' }}>
-                    No Reviews Submitted Yet
-                  </h4>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-sec)', margin: 0, lineHeight: 1.5 }}>
-                    QueueTurn enforces strict review authenticity. Only verified customers with completed appointments can submit ratings and reviews.
+            {reviews.length > 0 ? (
+              <>
+                <div className="org-reviews-modal-score-box">
+                  <div className="org-reviews-big-star">★ {ratingValue || '5.0'}</div>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-sec)', margin: '0.25rem 0 0 0' }}>
+                    Based on {reviews.length} authentic customer reviews
                   </p>
                 </div>
-              )}
 
-              <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowReviewsModal(false)}
-                  className="lp-btn-secondary"
-                  style={{ width: '100%' }}
-                >
-                  Close Reviews
-                </button>
+                <div className="org-reviews-list">
+                  {reviews.map((rev) => (
+                    <div key={rev.id} className="org-review-item">
+                      <div className="org-review-item-header">
+                        <strong>{rev.customer_name || 'Verified Client'}</strong>
+                        <span className="org-review-item-stars">
+                          {'★'.repeat(rev.rating)}{'☆'.repeat(Math.max(0, 5 - rev.rating))}
+                        </span>
+                      </div>
+                      {rev.comment ? (
+                        <p className="org-review-item-text">{rev.comment}</p>
+                      ) : (
+                        <p className="org-review-item-text" style={{ fontStyle: 'italic', color: 'var(--lp-muted)' }}>
+                          Rating submitted without written comment.
+                        </p>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--lp-muted)' }}>
+                        <span>{rev.service_name ? `Service: ${rev.service_name}` : 'Verified Appointment'}</span>
+                        <span>{new Date(rev.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="org-reviews-empty-state">
+                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💬</div>
+                <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.35rem 0' }}>
+                  No Reviews Submitted Yet
+                </h4>
+                <p style={{ fontSize: '0.85rem', color: 'var(--lp-text-sec)', margin: 0, lineHeight: 1.5 }}>
+                  QueueTurn enforces strict review authenticity. Only verified customers with completed appointments can submit ratings and reviews.
+                </p>
               </div>
+            )}
+
+            <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="lp-btn-secondary"
+                style={{ width: '100%' }}
+              >
+                Close Reviews
+              </button>
             </div>
           </div>
-        </div>
+        </ModalWrapper>
       )}
 
       {/* 7. SITE FOOTER */}
