@@ -11,6 +11,23 @@ import { useRequestScope } from '../../hooks/useRequestScope';
 import { currentBusinessDate } from '../../utils/bookingDisplay';
 import '../../styles/ManagerQueue.css';
 
+// ─── Queue Display & Context Helpers ─────────────────────────────────────────
+
+const getEntryCustomerName = (entry) =>
+  entry?.customer_name || entry?.customer_phone || entry?.customer_email || 'Patient';
+
+const getEntrySerial = (entry) =>
+  entry?.serial_number || entry?.token_number || '';
+
+const isQueueContextValid = (qState, orgId, queueDate) =>
+  Boolean(
+    qState &&
+    qState.loaded &&
+    qState.orgId === orgId &&
+    qState.queueDate === queueDate &&
+    Array.isArray(qState.entries)
+  );
+
 export function ManagerQueuePage() {
   const { currentOrg } = useTenant();
 
@@ -515,12 +532,7 @@ export function ManagerQueuePage() {
 
   activeProviders.forEach((prov) => {
     const qState = providerQueues[prov.id];
-    const isContextValid =
-      qState &&
-      qState.loaded &&
-      qState.orgId === currentOrg.id &&
-      qState.queueDate === queueDate &&
-      Array.isArray(qState.entries);
+    const isContextValid = isQueueContextValid(qState, currentOrg.id, queueDate);
 
     if (isContextValid) {
       availableProvidersCount += 1;
@@ -794,12 +806,7 @@ export function ManagerQueuePage() {
         <main className="manager-queue__grid">
           {activeProviders.map((prov) => {
             const qState = providerQueues[prov.id];
-            const isContextValid =
-              qState &&
-              qState.loaded &&
-              qState.orgId === currentOrg.id &&
-              qState.queueDate === queueDate &&
-              Array.isArray(qState.entries);
+            const isContextValid = isQueueContextValid(qState, currentOrg.id, queueDate);
 
             const entries = isContextValid ? qState.entries : [];
             const currentlyCalled = entries.find((q) => q.status === 'CALLED');
@@ -911,19 +918,13 @@ export function ManagerQueuePage() {
                       {currentlyCalled ? (
                         <>
                           <div className="manager-queue__slot-serial">
-                            Serial #{currentlyCalled.serial_number || currentlyCalled.token_number}
+                            Serial #{getEntrySerial(currentlyCalled)}
                           </div>
                           <div className="manager-queue__slot-service">
                             {currentlyCalled.service_name || 'General Consultation'}
                           </div>
                           <div className="manager-queue__slot-customer">
-                            Patient:{' '}
-                            <strong>
-                              {currentlyCalled.customer_name ||
-                                currentlyCalled.customer_phone ||
-                                currentlyCalled.customer_email ||
-                                'Patient'}
-                            </strong>
+                            Patient: <strong>{getEntryCustomerName(currentlyCalled)}</strong>
                           </div>
                         </>
                       ) : (
@@ -958,12 +959,8 @@ export function ManagerQueuePage() {
                                 providerId: prov.id,
                                 orgId: currentOrg.id,
                                 queueDate: queueDate,
-                                serialNumber: currentlyCalled.serial_number || currentlyCalled.token_number,
-                                customerName:
-                                  currentlyCalled.customer_name ||
-                                  currentlyCalled.customer_phone ||
-                                  currentlyCalled.customer_email ||
-                                  'Patient',
+                                serialNumber: getEntrySerial(currentlyCalled),
+                                customerName: getEntryCustomerName(currentlyCalled),
                               },
                               e.currentTarget
                             )
@@ -987,19 +984,13 @@ export function ManagerQueuePage() {
                       {inProgress ? (
                         <>
                           <div className="manager-queue__slot-serial manager-queue__slot-serial--inprogress">
-                            Serial #{inProgress.serial_number || inProgress.token_number}
+                            Serial #{getEntrySerial(inProgress)}
                           </div>
                           <div className="manager-queue__slot-service">
                             {inProgress.service_name || 'Active Session'}
                           </div>
                           <div className="manager-queue__slot-customer">
-                            Patient:{' '}
-                            <strong>
-                              {inProgress.customer_name ||
-                                inProgress.customer_phone ||
-                                inProgress.customer_email ||
-                                'Patient'}
-                            </strong>
+                            Patient: <strong>{getEntryCustomerName(inProgress)}</strong>
                           </div>
                         </>
                       ) : (
@@ -1053,13 +1044,13 @@ export function ManagerQueuePage() {
                             <div className="manager-queue__roster-item-top">
                               <div>
                                 <div className="manager-queue__entry-serial">
-                                  Serial #{entry.serial_number || entry.token_number}
+                                  Serial #{getEntrySerial(entry)}
                                 </div>
                                 <div className="manager-queue__entry-service">
                                   {entry.service_name || 'Consultation'}
                                 </div>
                                 <div className="manager-queue__entry-customer">
-                                  {entry.customer_name || entry.customer_phone || 'Patient'}
+                                  {getEntryCustomerName(entry)}
                                 </div>
                               </div>
                               <StatusBadge status={entry.status} />
@@ -1127,10 +1118,10 @@ export function ManagerQueuePage() {
                         <div key={entry.id} className="manager-queue__skipped-item">
                           <div className="manager-queue__skipped-info">
                             <span className="manager-queue__skipped-serial">
-                              Serial #{entry.serial_number || entry.token_number}
+                              Serial #{getEntrySerial(entry)}
                             </span>
                             <span className="manager-queue__skipped-name">
-                              {entry.customer_name || entry.customer_phone || 'Patient'}
+                              {getEntryCustomerName(entry)}
                             </span>
                           </div>
 
