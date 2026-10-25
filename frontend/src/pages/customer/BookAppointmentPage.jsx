@@ -615,7 +615,7 @@ export function BookAppointmentPage() {
               {loading.providers ? (
                 <LoadingState message="Loading professionals..." />
               ) : !providers.length ? (
-                <EmptyState title="No Eligible Professionals" description="No professionals are currently assigned to this service." />
+                <EmptyState title="No Eligible Professionals" description="No professionals are currently assigned to this service at this organization. Please select another service or contact the organization." />
               ) : (
                 <div className="direct-choice-list" role="group" aria-label="Select Professional">
                   {providers.map(provider => {
@@ -753,7 +753,9 @@ export function BookAppointmentPage() {
                         </>
                       ) : (
                         <p className="direct-avail-reason">
-                          {availability.reason || 'Professional is not available on this date. Please select another date.'}
+                          {availability.reason
+                            ? `${availability.reason.replace(/\.*$/, '')}. Please select another date.`
+                            : 'Professional is not available on this date. Please select another date.'}
                         </p>
                       )}
                     </div>
