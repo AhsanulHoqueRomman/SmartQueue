@@ -167,3 +167,9 @@ def test_single_utf8_dependency_source_and_required_runtime_imports():
     from apps.contact.email_service import EmailSendResult
     assert callable(resend.Emails.send) and callable(Image.open)
     assert EmailSendResult(success=False).success is False
+
+
+def test_health_check_endpoint(client):
+    response = client.get('/api/health/')
+    assert response.status_code == 200
+    assert response.json() == {'status': 'ok', 'app': 'QueueTurn'}

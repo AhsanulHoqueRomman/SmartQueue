@@ -1,0 +1,67 @@
+services:
+  # QueueTurn Backend Web Service (Render Managed Web Service)
+  - type: web
+    name: queueturn-backend-staging
+    runtime: python
+    rootDir: backend
+    buildCommand: "bash ./build.sh"
+    startCommand: "gunicorn config.wsgi:application --env DJANGO_SETTINGS_MODULE=config.settings.production"
+    healthCheckPath: /api/health/
+    plan: starter  # Starter plan ($7/mo) required to attach persistent disk
+    disk:
+      name: private-documents
+      mountPath: /var/data/private_documents
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        sync: false  # User supplies: e.g. queueturn-backend-staging.onrender.com
+      - key: FRONTEND_URL
+        sync: false  # User supplies: e.g. https://queueturn-staging.pages.dev
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false  # User supplies: e.g. https://queueturn-staging.pages.dev
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false  # User supplies: e.g. https://queueturn-staging.pages.dev
+      - key: SECURE_SSL_REDIRECT
+        value: "true"
+      - key: TRUST_X_FORWARDED_PROTO
+        value: "true"
+      - key: PRIVATE_DOCUMENT_ROOT
+        value: /var/data/private_documents
+      - key: PRIVATE_DOCUMENT_STORAGE_PERSISTENT
+        value: "true"
+      - key: DATABASE_ENGINE
+        value: django.db.backends.postgresql
+      - key: DATABASE_NAME
+        fromDatabase:
+          name: queueturn-postgres-staging
+          property: database
+      - key: DATABASE_USER
+        fromDatabase:
+          name: queueturn-postgres-staging
+          property: user
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: queueturn-postgres-staging
+          property: password
+      - key: DATABASE_HOST
+        fromDatabase:
+          name: queueturn-postgres-staging
+          property: host
+      - key: DATABASE_PORT
+        fromDatabase:
+          name: queueturn-postgres-staging
+          property: port
+
+databases:
+  # QueueTurn Staging Managed PostgreSQL Database
+  # Note: Use 'plan: free' for 30/90-day disposable staging, or 'plan: starter' ($7/mo) for persistent production.
+  - name: queueturn-postgres-staging
+    databaseName: queueturn_staging
+    user: queueturn_app
+    plan: free
