@@ -9,7 +9,7 @@ Verifies:
 5. Cross-organization and cross-provider access enforces tenant isolation.
 6. Demo seed definitions deterministically supply positive average_service_minutes for all demo providers.
 """
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 import pytest
 from django.urls import reverse
@@ -19,6 +19,7 @@ from rest_framework.test import APIClient
 
 from apps.accounts.management.commands.seed_demo_data import Command as SeedCommand
 from apps.accounts.models import User
+from apps.appointments.models import Appointment
 from apps.appointments.services import AppointmentAvailabilityService
 from apps.organizations.models import Organization, OrganizationMembership
 from apps.providers.duration import average_service_minutes
@@ -343,4 +344,74 @@ def test_seed_safeguard_preserves_existing_manager_configured_average(availabili
 
     profile.refresh_from_db()
     assert profile.average_service_minutes == 22, "Manager-configured average was erroneously overwritten by seed rerun!"
+
+
+@pytest.mark.django_db
+def test_non_working_day_unavailability_returns_not_working_reason(availability_env):
+    """
+    Querying availability on a date that is a non-working day for the provider returns
+    is_available=False, reason='Not working on this date', slots=[], and remaining_capacity=0.
+    """
+    env = availability_env
+    env["provider"].average_service_minutes = 30
+    env["provider"].save()
+
+    client = APIClient()
+    client.force_authenticate(env["customer"])
+
+    # Wednesday (TEST_DATE + 1 day) has no working schedule
+    non_working_date = TEST_DATE + timedelta(days=1)
+    res = client.get(
+        _avail_url(env["org"].id, env["provider"].id),
+        {"service_id": str(env["svc_short"].id), "date": non_working_date.isoformat()},
+    )
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data["is_available"] is False
+    assert res.data["reason"] == "Not working on this date"
+    assert res.data["slots"] == []
+    assert res.data["remaining_capacity_minutes"] == 0
+
+
+@pytest.mark.django_db
+def test_capacity_exhaustion_unavailability_returns_fully_booked_reason(availability_env):
+    """
+    When all capacity allocations for a date are exhausted by existing appointments,
+    availability returns is_available=False, reason='Fully booked for this date', and slots=[].
+    """
+    env = availability_env
+    env["provider"].average_service_minutes = 30
+    env["provider"].save()
+
+    # Working hours: 09:00 to 13:00 = 240 minutes. At average 30m, capacity = 8 appointments.
+    # Create 8 confirmed appointments on TEST_DATE to exhaust date capacity.
+    for i in range(8):
+        hour = 9 + (i * 30) // 60
+        minute = (i * 30) % 60
+        start_dt = datetime.combine(TEST_DATE, time(hour, minute), tzinfo=DHAKA_TZ)
+        end_dt = start_dt + timedelta(minutes=30)
+        Appointment.objects.create(
+            organization=env["org"],
+            customer=env["customer"],
+            provider=env["provider"],
+            service=env["svc_short"],
+            appointment_date=TEST_DATE,
+            serial_number=i + 1,
+            start_datetime=start_dt,
+            end_datetime=end_dt,
+            status=Appointment.Status.CONFIRMED,
+        )
+
+    client = APIClient()
+    client.force_authenticate(env["customer"])
+
+    res = client.get(
+        _avail_url(env["org"].id, env["provider"].id),
+        {"service_id": str(env["svc_short"].id), "date": TEST_DATE.isoformat()},
+    )
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data["is_available"] is False
+    assert res.data["reason"] == "Fully booked for this date"
+    assert res.data["slots"] == []
+    assert res.data["remaining_capacity_minutes"] == 0
+
 
