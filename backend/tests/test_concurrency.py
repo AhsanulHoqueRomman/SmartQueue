@@ -6,9 +6,11 @@ Tests real row-locking exclusion, lock ordering, transaction isolation, and life
 import pytest
 import threading
 import time
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, time as dt_time
 from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
+from django.conf import settings
 from django.db import connections, transaction
 from django.utils import timezone
 
@@ -21,6 +23,7 @@ from apps.services.models import Service
 from apps.appointments.models import Appointment
 from apps.appointments.services import AppointmentService
 from apps.audit.models import AuditLog
+from apps.queue.models import QueueEntry
 from config.exceptions import ApplicationError
 
 
@@ -469,3 +472,145 @@ def test_concurrency_onboarding_conflict_and_clean_retry(pg_concurrency_setup):
         entity_id=str(profile.id),
         action='PROVIDER_DEACTIVATED'
     ).count() == 0
+
+
+# ==============================================================================
+# 5. SIMULTANEOUS CUSTOMER BOOKINGS & MONOTONIC SERIAL INTEGRITY
+# ==============================================================================
+
+@pytest.mark.django_db(transaction=True)
+def test_concurrency_simultaneous_customer_bookings_monotonic_serials(pg_concurrency_setup):
+    """
+    Scenario 5: Multiple simultaneous customer booking transactions for the same
+    provider on the same date.
+    PostgreSQL ProviderProfile row locking guarantees:
+    - Every successful booking receives an exact, unique serial number.
+    - Serial numbers are strictly ordered and monotonic (1..N).
+    - Appointment and QueueEntry remain atomically linked with matching serials.
+    - Failed/cancelled transactions do not cause duplicate serial allocation.
+    - Cancelled serial numbers are never reused by subsequent bookings.
+    """
+    setup = pg_concurrency_setup
+    org = setup['org']
+
+    prov_user = User.objects.create_user(email="prov_serials@safety.com")
+    prov_mem = OrganizationMembership.objects.create(
+        organization=org,
+        user=prov_user,
+        role=OrganizationMembership.Role.PROVIDER,
+        is_active=True,
+    )
+    provider = ProviderProfile.objects.create(
+        membership=prov_mem,
+        application_status=ProviderProfile.ApplicationStatus.APPROVED,
+        is_active=True,
+        average_service_minutes=30,
+    )
+    tz = ZoneInfo(settings.TIME_ZONE)
+    today = timezone.localtime(timezone.now(), tz).date()
+    target_date = today + timedelta(days=1)
+    WeeklySchedule.objects.create(
+        provider=provider,
+        day_of_week=target_date.weekday(),
+        start_time="08:00:00",
+        end_time="18:00:00",
+        is_working_day=True,
+    )
+    service = Service.objects.create(
+        organization=org,
+        name="Serial Consultation",
+        duration_minutes=30,
+        price=100.0,
+        is_active=True,
+    )
+    ProviderService.objects.create(
+        provider=provider,
+        service=service,
+        custom_price=100.0,
+    )
+
+    num_threads = 4
+    customers = [
+        User.objects.create_user(email=f"cust_serial_{i}@safety.com")
+        for i in range(num_threads)
+    ]
+
+    barrier = threading.Barrier(num_threads)
+    results = [{} for _ in range(num_threads)]
+
+    def book_task(idx):
+        _set_thread_lock_timeout()
+        try:
+            barrier.wait(timeout=5.0)
+            start_dt = timezone.make_aware(
+                datetime.combine(target_date, dt_time(8, 0)), timezone=tz
+            ) + timedelta(minutes=30 * idx)
+            appt = AppointmentService.book_appointment(
+                organization_id=org.id,
+                customer=customers[idx],
+                provider_id=provider.id,
+                service_id=service.id,
+                start_datetime=start_dt,
+                appointment_date=target_date,
+                booking_channel=Appointment.BookingChannel.ONLINE,
+            )
+            results[idx]['appointment_id'] = appt.id
+            results[idx]['serial_number'] = appt.serial_number
+            results[idx]['queue_entry_id'] = appt.queue_entry.id
+            results[idx]['queue_serial'] = appt.queue_entry.serial_number
+        except Exception as e:
+            results[idx]['error'] = e
+        finally:
+            connections.close_all()
+
+    threads = [
+        threading.Thread(target=book_task, args=(i,))
+        for i in range(num_threads)
+    ]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=10.0)
+
+    # All bookings must succeed
+    for i, r in enumerate(results):
+        assert 'error' not in r, f"Thread {i} booking failed: {r.get('error')}"
+
+    serials = [r['serial_number'] for r in results]
+    queue_serials = [r['queue_serial'] for r in results]
+
+    # Invariant 1 & 2: Unique, monotonic serials (1, 2, 3, 4)
+    assert len(set(serials)) == num_threads, f"Serials not unique: {serials}"
+    assert sorted(serials) == list(range(1, num_threads + 1)), f"Serials not monotonic 1..{num_threads}: {serials}"
+
+    # Invariant 3: Appointment and QueueEntry consistently linked with matching serials
+    assert serials == queue_serials
+    for r in results:
+        qe = QueueEntry.objects.get(id=r['queue_entry_id'])
+        appt = Appointment.objects.get(id=r['appointment_id'])
+        assert qe.appointment_id == appt.id
+        assert qe.serial_number == appt.serial_number
+
+    # Invariant 4 & 5: Cancelled serial numbers are never reused by subsequent bookings
+    appt_to_cancel = Appointment.objects.get(id=results[0]['appointment_id'])
+    cancelled_serial = appt_to_cancel.serial_number
+    AppointmentService.cancel_appointment(appointment=appt_to_cancel, reason="Cancelled test", actor=setup['manager'])
+    appt_to_cancel.refresh_from_db()
+    assert appt_to_cancel.status == Appointment.Status.CANCELLED
+
+    # Subsequent booking receives serial > max (never reuses cancelled_serial)
+    cust_next = User.objects.create_user(email="cust_serial_subsequent@safety.com")
+    start_dt_subsequent = timezone.make_aware(
+        datetime.combine(target_date, dt_time(8, 0)), timezone=tz
+    ) + timedelta(minutes=30 * num_threads)
+    appt_next = AppointmentService.book_appointment(
+        organization_id=org.id,
+        customer=cust_next,
+        provider_id=provider.id,
+        service_id=service.id,
+        start_datetime=start_dt_subsequent,
+        appointment_date=target_date,
+        booking_channel=Appointment.BookingChannel.ONLINE,
+    )
+    assert appt_next.serial_number == num_threads + 1
+    assert appt_next.serial_number != cancelled_serial
