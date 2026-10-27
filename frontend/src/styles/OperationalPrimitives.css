@@ -386,7 +386,40 @@
 /* --------------------------------------------------------------------------
    Responsive Table Container (.qt-table-container)
    Accessible scrollable table frame with tabular numbers & sticky action support
-   -------------------------------------------------------------------------- */
+.qt-table-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.qt-table-scroll-hint {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .qt-table-scroll-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    margin-bottom: 8px;
+    font-size: 0.725rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    background-color: var(--color-bg-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm, 6px);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .qt-table-scroll-hint__icon {
+    flex-shrink: 0;
+    color: var(--color-primary);
+    opacity: 0.85;
+  }
+}
+
 .qt-table-container {
   position: relative;
   overflow-x: auto;
@@ -395,11 +428,40 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+  scroll-behavior: smooth;
+}
+
+.qt-table-container::-webkit-scrollbar {
+  height: 5px;
+}
+
+.qt-table-container::-webkit-scrollbar-track {
+  background: var(--color-bg-subtle);
+  border-radius: 3px;
+}
+
+.qt-table-container::-webkit-scrollbar-thumb {
+  background: var(--color-border-hover, var(--color-border));
+  border-radius: 3px;
 }
 
 .qt-table-container:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 1px;
+}
+
+@media (max-width: 767px) {
+  .qt-table-container {
+    background:
+      linear-gradient(to right, var(--color-surface) 30%, transparent),
+      linear-gradient(to left, var(--color-surface) 30%, transparent) 100% 0,
+      radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.1), transparent),
+      radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.1), transparent) 100% 0;
+    background-repeat: no-repeat;
+    background-color: var(--color-surface);
+    background-size: 24px 100%, 24px 100%, 10px 100%, 10px 100%;
+    background-attachment: local, local, scroll, scroll;
+  }
 }
 
 .qt-responsive-table {
@@ -442,7 +504,14 @@
 
 /* Optional Sticky Actions column on narrow screens */
 @media (max-width: 768px) {
-  .qt-table-sticky-actions th:last-child,
+  .qt-table-sticky-actions th:last-child {
+    position: sticky;
+    right: 0;
+    background-color: var(--color-bg-subtle);
+    box-shadow: -3px 0 6px -2px rgba(0, 0, 0, 0.08);
+    z-index: 2;
+  }
+
   .qt-table-sticky-actions td:last-child {
     position: sticky;
     right: 0;

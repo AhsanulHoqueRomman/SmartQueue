@@ -548,7 +548,42 @@ export function ProviderQueuePage() {
             message="No patients are currently in the waiting list for today."
           />
         ) : (
-          <div className="provider-queue__table-wrap">
+          <>
+            <div className="qt-table-scroll-hint" aria-hidden="true">
+              <svg
+                className="qt-table-scroll-hint__icon"
+                viewBox="0 0 24 24"
+                width="13"
+                height="13"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+              <span>Scroll table horizontally for full details and presence</span>
+              <svg
+                className="qt-table-scroll-hint__icon"
+                viewBox="0 0 24 24"
+                width="13"
+                height="13"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+            <div
+              className="provider-queue__table-wrap"
+              role="region"
+              aria-label="Daily waiting queue roster"
+              tabIndex={0}
+            >
             <table className="provider-queue__table">
               <thead>
                 <tr>
@@ -597,6 +632,7 @@ export function ProviderQueuePage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

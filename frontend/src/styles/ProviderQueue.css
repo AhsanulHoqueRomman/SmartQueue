@@ -427,8 +427,43 @@
 .provider-queue__table-wrap {
   width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border-radius: var(--radius-lg, 12px);
   border: 1px solid var(--color-border);
+  scroll-behavior: smooth;
+}
+
+.provider-queue__table-wrap:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.provider-queue__table-wrap::-webkit-scrollbar {
+  height: 5px;
+}
+
+.provider-queue__table-wrap::-webkit-scrollbar-track {
+  background: var(--color-bg-subtle);
+  border-radius: 3px;
+}
+
+.provider-queue__table-wrap::-webkit-scrollbar-thumb {
+  background: var(--color-border-hover, var(--color-border));
+  border-radius: 3px;
+}
+
+@media (max-width: 767px) {
+  .provider-queue__table-wrap {
+    background:
+      linear-gradient(to right, var(--color-surface) 30%, transparent),
+      linear-gradient(to left, var(--color-surface) 30%, transparent) 100% 0,
+      radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.1), transparent),
+      radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.1), transparent) 100% 0;
+    background-repeat: no-repeat;
+    background-color: var(--color-surface);
+    background-size: 24px 100%, 24px 100%, 10px 100%, 10px 100%;
+    background-attachment: local, local, scroll, scroll;
+  }
 }
 
 .provider-queue__table {

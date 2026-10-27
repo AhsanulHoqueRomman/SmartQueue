@@ -51,7 +51,7 @@ export const AppShell = ({ children }) => {
   // Returning to a previous scope must not resurrect its open state.
   if (menuState.scope !== navigationScope) setMenuState({ scope: navigationScope, open: false });
   const mobileMenuOpen = menuState.scope === navigationScope && menuState.open;
-  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 1023px)').matches);
   const trigger = useRef(null);
   const drawer = useRef(null);
   const shell = useRef(null);
@@ -69,7 +69,7 @@ export const AppShell = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    const media = window.matchMedia('(max-width: 767px)');
+    const media = window.matchMedia('(max-width: 1023px)');
     const update = () => { setIsMobile(media.matches); setMenuState(previous => ({ ...previous, open: false })); };
     media.addEventListener('change', update);
     return () => media.removeEventListener('change', update);
@@ -94,7 +94,7 @@ export const AppShell = ({ children }) => {
       body.style.overflow = previous.bodyOverflow;
       root.style.overflow = previous.rootOverflow;
       body.style.paddingRight = previous.padding;
-      if (returnTarget?.isConnected && window.matchMedia('(max-width: 767px)').matches) returnTarget.focus({ preventScroll: true });
+      if (returnTarget?.isConnected && window.matchMedia('(max-width: 1023px)').matches) returnTarget.focus({ preventScroll: true });
     };
   }, [isMobile, mobileMenuOpen]);
 

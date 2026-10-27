@@ -671,7 +671,42 @@ export function StaffQueuePage() {
                 message="There are no patients waiting in line for this provider."
               />
             ) : (
-              <div className="staff-queue__table-wrap">
+              <>
+                <div className="qt-table-scroll-hint" aria-hidden="true">
+                  <svg
+                    className="qt-table-scroll-hint__icon"
+                    viewBox="0 0 24 24"
+                    width="13"
+                    height="13"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                  <span>Scroll table horizontally for patient details and staff actions</span>
+                  <svg
+                    className="qt-table-scroll-hint__icon"
+                    viewBox="0 0 24 24"
+                    width="13"
+                    height="13"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
+                <div
+                  className="staff-queue__table-wrap"
+                  role="region"
+                  aria-label="Waiting patients roster"
+                  tabIndex={0}
+                >
                 <table className="staff-queue__table">
                   <thead>
                     <tr>
@@ -740,6 +775,7 @@ export function StaffQueuePage() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </div>
         </>
