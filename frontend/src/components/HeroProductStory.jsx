@@ -58,8 +58,10 @@ export default function HeroProductStory({ entered, visible }) {
         </div>
         <div className="hero-phone-home" aria-hidden="true" />
       </div>
-      <div className="hero-support-card hero-support-serial"><div className="hero-support-heading"><span className="hero-support-icon" aria-hidden="true">✓</span><small>SERIAL ASSIGNED</small></div><div className="hero-assigned-number"><strong>#24</strong><span>You're in the queue</span></div><div className="hero-support-context"><span>18 October · Dhaka Care Clinic</span><strong>11:30 AM – 12:00 PM</strong><small>Estimated service window</small></div></div>
-      <div className="hero-support-card hero-support-live"><div className="hero-support-heading"><span className="hero-support-icon" aria-hidden="true">≋</span><small>LIVE QUEUE</small><span className="hero-queue-ready">Get Ready</span></div><div className="hero-support-serials"><div><small>Now Serving</small><strong>21</strong></div><div><small>Your Serial</small><strong>24</strong></div></div><p className="hero-support-ahead"><strong>2</strong> people ahead <span>Live estimate updates</span></p></div>
+      <div className="hero-support-cards-cluster">
+        <div className="hero-support-card hero-support-serial"><div className="hero-support-heading"><span className="hero-support-icon" aria-hidden="true">✓</span><small>SERIAL ASSIGNED</small></div><div className="hero-assigned-number"><strong>#24</strong><span>You're in the queue</span></div><div className="hero-support-context"><span>18 October · Dhaka Care Clinic</span><strong>11:30 AM – 12:00 PM</strong><small>Estimated service window</small></div></div>
+        <div className="hero-support-card hero-support-live"><div className="hero-support-heading"><span className="hero-support-icon" aria-hidden="true">≋</span><small>LIVE QUEUE</small><span className="hero-queue-ready">Get Ready</span></div><div className="hero-support-serials"><div><small>Now Serving</small><strong>21</strong></div><div><small>Your Serial</small><strong>24</strong></div></div><p className="hero-support-ahead"><strong>2</strong> people ahead <span>Live estimate updates</span></p></div>
+      </div>
     </div>
   </div>;
 }

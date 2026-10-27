@@ -209,3 +209,7 @@ SPECTACULAR_SETTINGS = {
 CORS_ALLOWED_ORIGINS = [
     origin.strip() for origin in os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',') if origin.strip()
 ]
+# CSRF Settings
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip() for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()
+]

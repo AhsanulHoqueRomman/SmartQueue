@@ -55,6 +55,22 @@ export const PublicNavbar = ({ activePage = '' }) => {
         <Link to="/" className="lp-nav-link" onClick={event => anchorClick(event, '#why-smartqueue')}>Why QueueTurn</Link>
         <Link to="/" className="lp-nav-link" onClick={event => anchorClick(event, '#for-organizations')}>For Organizations</Link>
         <Link to="/contact" className="lp-nav-link" aria-current={activePage === 'contact' ? 'page' : undefined} onClick={() => setMenuOpen(false)}>Contact Us</Link>
+        <div className="lp-nav-drawer-footer">
+          {user ? (
+            <Link to="/customer" className="lp-btn-primary lp-nav-drawer-cta" onClick={() => setMenuOpen(false)}>
+              My Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link to="/register" className="lp-btn-primary lp-nav-drawer-cta" onClick={() => setMenuOpen(false)}>
+                Get Started
+              </Link>
+              <Link to="/login" className="lp-btn-outline lp-nav-drawer-secondary" onClick={() => setMenuOpen(false)}>
+                Sign in
+              </Link>
+            </>
+          )}
+        </div>
       </nav>
       <div className="lp-nav-cta"><ThemeToggle />{user ? <UserAccountMenu /> : <><Link to="/login" className="lp-btn-ghost lp-nav-sign-in">Sign in</Link><Link to="/register" className="lp-btn-primary lp-nav-get-started">Get Started</Link></>}
         <button ref={menuButton} type="button" className="lp-public-menu-button" aria-label={menuOpen ? 'Close navigation' : 'Open navigation'} aria-controls="public-discovery-navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(old => !old)}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">{menuOpen ? <path d="m6 6 12 12M6 18 18 6" /> : <path d="M4 6h16M4 12h16M4 18h16" />}</svg></button>

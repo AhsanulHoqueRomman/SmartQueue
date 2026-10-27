@@ -124,7 +124,7 @@
 @media (max-width: 1000px) { .professionals-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .professional-filters { grid-template-columns: 1fr 1fr; } .professional-filters label:first-child { grid-column: 1 / -1; } }
 @media (max-width: 600px) {
   .phase-two-section { margin: 32px auto; }
-  .phase-two-section.category-discovery { margin-top: 8px; }
+  .phase-two-section.category-discovery { margin-top: 4px; }
   .discovery-rail { padding-top: 38px; }
   .discovery-arrow { width: 28px; height: 32px; }
   .discovery-arrow:first-child { right: 40px; }
