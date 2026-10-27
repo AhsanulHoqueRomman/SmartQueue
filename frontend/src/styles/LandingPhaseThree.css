@@ -94,18 +94,221 @@
 .sq-operations-preview figcaption { padding: 12px 20px; border-top: 1px solid var(--lp-border); color: var(--lp-muted); font-size: .72rem; line-height: 1.6; }
 @media (max-width: 1000px) {
   .sq-phase3 { padding-block: 64px; }
-  .sq-journey-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sq-journey-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
   .sq-journey-path { display: none; }
   .sq-organizations-split { grid-template-columns: 1fr; gap: 40px; }
   .sq-operations-preview { margin-inline: 0; }
 }
 @media (max-width: 600px) {
-  .sq-phase3 { padding: 52px 20px; }
-  .sq-journey-grid, .sq-benefits-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
-  .sq-journey-card { min-height: auto; padding: 24px; }
-  .sq-benefit-card { padding: 24px; }
-  .sq-operations-header, .sq-operations-body { padding: 16px; }
-  .sq-current-queue li { grid-template-columns: 30px minmax(0, 1fr) auto; gap: 8px; }
+  .sq-phase3 { padding: 44px 16px; }
+  .sq-section-heading { margin-bottom: 24px; }
+  .sq-phase3 h2 { font-size: clamp(1.6rem, 5.5vw, 2.1rem); margin: 8px 0 10px; }
+  .sq-phase3 p { font-size: 0.88rem; line-height: 1.6; }
+
+  /* How QueueTurn Works: Compact 2-column grid */
+  .sq-journey-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .sq-journey-card {
+    min-height: auto;
+    padding: 14px 12px;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+  }
+  .sq-journey-card-top {
+    margin-bottom: 10px;
+  }
+  .sq-journey-card .sq-icon-tile {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+  .sq-journey-card .sq-icon-tile svg {
+    width: 20px;
+    height: 20px;
+  }
+  .sq-journey-card .sq-step-number {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+  .sq-journey-card h3 {
+    font-size: 0.88rem;
+    line-height: 1.3;
+    margin: 0 0 6px;
+    font-weight: 700;
+  }
+  .sq-journey-card p {
+    font-size: 0.76rem;
+    line-height: 1.45;
+    margin: 0;
+    color: var(--lp-text-sec);
+  }
+
+  /* Why QueueTurn (Benefits): Compact readable layout */
+  .sq-benefits-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  .sq-benefit-card {
+    min-height: auto;
+    padding: 16px 18px;
+    border-radius: 16px;
+  }
+  .sq-benefit-card .sq-icon-tile {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+  .sq-benefit-card .sq-icon-tile svg {
+    width: 24px;
+    height: 24px;
+  }
+  .sq-benefit-card h3 {
+    margin-top: 12px;
+    margin-bottom: 6px;
+    font-size: 1.08rem;
+    line-height: 1.3;
+  }
+  .sq-benefit-card p {
+    font-size: 0.84rem;
+    line-height: 1.55;
+  }
+  .sq-benefit-detail {
+    margin-top: 12px;
+    padding-top: 10px;
+    font-size: 0.74rem;
+  }
+  .sq-benefit-detail > div {
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .sq-benefit-detail > div > span {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+    border-radius: 5px;
+  }
+
+  /* For Organizations: Compact integrated preview */
+  .sq-organizations-split {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .sq-organization-copy h2 {
+    font-size: clamp(1.6rem, 5.5vw, 2.1rem);
+    line-height: 1.2;
+    margin: 8px 0 10px;
+  }
+  .sq-organization-copy p {
+    font-size: 0.88rem;
+    line-height: 1.6;
+  }
+  .sq-capabilities {
+    gap: 12px;
+    margin: 20px 0 24px;
+  }
+  .sq-capabilities li {
+    gap: 10px;
+    font-size: 0.85rem;
+  }
+  .sq-capabilities svg {
+    width: 20px;
+    height: 20px;
+  }
+  .sq-business-actions {
+    margin-top: 4px;
+  }
+  .sq-business-actions .lp-btn-primary {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+  .sq-operations-preview {
+    max-width: 100%;
+    border-radius: 16px;
+  }
+  .sq-operations-header {
+    padding: 10px 14px;
+    font-size: 0.72rem;
+  }
+  .sq-operations-body {
+    padding: 14px;
+  }
+  .sq-operations-body h3 {
+    font-size: 1.05rem;
+    margin: 4px 0 10px;
+  }
+  .sq-operation-stats {
+    padding: 8px 0;
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+  .sq-operation-stats dt {
+    font-size: 0.68rem;
+  }
+  .sq-operation-stats dd {
+    font-size: 1.3rem;
+    margin-top: 4px;
+  }
+  .sq-activity-heading h4 {
+    font-size: 0.78rem;
+  }
+  .sq-activity-chart {
+    height: 65px;
+    margin-top: 6px;
+  }
+  .sq-chart-axis {
+    font-size: 0.65rem;
+  }
+  .sq-current-queue {
+    margin-top: 10px;
+  }
+  .sq-current-queue h4 {
+    font-size: 0.78rem;
+    margin-bottom: 6px;
+  }
+  .sq-current-queue li {
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 5px 0;
+    font-size: 0.72rem;
+  }
+  .sq-provider-activity {
+    margin-top: 10px;
+    font-size: 0.72rem;
+    gap: 10px;
+  }
+  .sq-provider-activity svg {
+    width: 26px;
+    height: 26px;
+  }
+  .sq-operations-preview figcaption {
+    padding: 10px 14px;
+    font-size: 0.68rem;
+  }
+}
+@media (max-width: 359px) {
+  .sq-phase3 { padding: 36px 12px; }
+  .sq-journey-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .sq-journey-card {
+    padding: 14px 14px;
+  }
+  .sq-journey-card h3 {
+    font-size: 0.95rem;
+  }
+  .sq-journey-card p {
+    font-size: 0.8rem;
+  }
+  .sq-benefit-card {
+    padding: 14px;
+  }
+  .sq-benefit-detail > div > span {
+    font-size: 0.68rem;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .sq-phase3 .sq-entry { opacity: 1 !important; transform: none !important; animation: none !important; }

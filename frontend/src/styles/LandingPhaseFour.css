@@ -99,7 +99,74 @@
 @media (max-width: 600px) {
  .phase-four-reviews { padding: 52px 20px; } .phase-four-reviews .discovery-rail-group { gap: 20px; } .testimonial-entry { flex-basis: 100%; } .community-review { flex-basis: 100%; padding: 24px; min-height: 300px; }
  .phase-four-closing { padding: 12px 20px 28px; } .closing-panel { grid-template-columns: auto minmax(0,1fr); gap: 16px; padding: 22px 20px; align-items: start; } .closing-mark { width: 36px; height: 36px; } .closing-actions { grid-column: 1 / -1; } .closing-actions a { justify-content: center; width: 100%; white-space: normal; }
- .phase-four-footer { padding: 32px 20px 24px; } .production-footer-grid { grid-template-columns: minmax(0,1fr); gap: 26px; } .production-footer-grid p { max-width: none; } .production-footer-grid nav { gap: 10px; }
+  .phase-four-footer {
+    padding: 32px 16px 20px;
+  }
+  .production-footer-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px 16px;
+    padding-bottom: 24px;
+  }
+  .production-footer-brand {
+    grid-column: 1 / -1;
+  }
+  .production-footer-brand p {
+    max-width: none;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    margin: 10px 0 14px;
+  }
+  .footer-socials {
+    gap: 8px;
+  }
+  .footer-socials > * {
+    width: 34px;
+    height: 34px;
+  }
+  .production-footer-grid nav {
+    gap: 8px;
+  }
+  .production-footer-grid h2 {
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    margin: 0 0 8px;
+  }
+  .production-footer-grid nav a,
+  .production-footer-contact a,
+  .footer-contact-row {
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+  .production-footer-contact {
+    grid-column: 1 / -1;
+    gap: 8px;
+    margin-top: 4px;
+    padding-top: 16px;
+    border-top: 1px solid var(--lp-border);
+  }
+  .production-footer-contact p {
+    font-size: 0.76rem;
+    line-height: 1.5;
+    margin-top: 6px;
+  }
+  .production-footer-bottom {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    padding-top: 16px;
+    font-size: 0.75rem;
+  }
+}
+@media (max-width: 359px) {
+  .production-footer-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .production-footer-contact {
+    padding-top: 14px;
+  }
 }
 @media (prefers-reduced-motion: reduce) { .phase-four-reviews :is(.phase-four-heading > *, .testimonial-stage, .testimonial-entry, .testimonial-page, .community-review) { opacity: 1 !important; transform: none !important; animation: none !important; } .phase-four-reviews .discovery-arrow { opacity: var(--control-opacity, 1) !important; animation: none !important; } }
 @media (prefers-reduced-motion: reduce) { .phase-four-footer a, .phase-four-footer a::before, .footer-socials > * { transition: none !important; } .footer-socials > :is(:hover,:focus-visible,:active) { transform: none !important; } }
