@@ -1001,7 +1001,23 @@
   border-radius: var(--radius-lg);
 }
 
-/* ── Mobile Breakpoints (< 480px, 390px, 375px) ─────────────────────── */
+/* ── Responsive Breakpoints (640px, 480px, 360px/320px) ───────────────── */
+@media (max-width: 640px) {
+  .direct-booking-success .booking-contact-summary {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.875rem;
+  }
+
+  .direct-success-actions {
+    flex-direction: column;
+  }
+
+  .direct-success-actions > button {
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
 @media (max-width: 480px) {
   .direct-booking-page {
     padding: 1rem 0.75rem 2.5rem;
@@ -1038,9 +1054,16 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .direct-date-custom-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+  }
+
   .direct-date-input {
     max-width: 100%;
     width: 100%;
+    box-sizing: border-box;
   }
 
   .direct-booking-success {
@@ -1048,16 +1071,70 @@
     margin: 1rem auto;
   }
 
-  .direct-booking-success .booking-contact-summary {
-    grid-template-columns: minmax(0, 1fr);
+  .direct-review-button {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 360px) {
+  .direct-booking-page {
+    padding: 0.75rem 0.5rem 2rem;
   }
 
-  .direct-success-actions {
-    flex-direction: column;
+  .booking-step-section {
+    padding: 0.875rem 0.625rem;
+    border-radius: var(--radius-md);
   }
 
-  .direct-success-actions > button {
-    width: 100%;
+  .booking-step-header {
+    margin-bottom: 0.875rem;
+    padding-bottom: 0.625rem;
+  }
+
+  .booking-step-title {
+    font-size: 0.9375rem;
+    gap: 0.5rem;
+  }
+
+  .direct-choice-card {
+    padding: 0.75rem 0.625rem;
+  }
+
+  .direct-choice-details {
+    margin-left: 1.25rem;
+  }
+
+  .direct-weekly-hours > div {
+    gap: 0.35rem;
+    flex-wrap: wrap;
+  }
+
+  .direct-weekly-hours > div > span:first-child {
+    min-width: 3.5rem;
+  }
+
+  .direct-date-presets {
+    gap: 0.5rem;
+  }
+
+  .direct-date-pill {
+    padding: 0.5rem 0.35rem;
+  }
+
+  .direct-date-pill-label {
+    font-size: 0.75rem;
+  }
+
+  .direct-date-pill-value {
+    font-size: 0.6875rem;
+  }
+
+  .direct-mobile-summary {
+    padding: 0.625rem 0.75rem;
+  }
+
+  .direct-availability-card {
+    padding: 0.75rem 0.875rem;
   }
 }
 

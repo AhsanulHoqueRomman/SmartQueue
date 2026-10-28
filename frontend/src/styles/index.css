@@ -371,6 +371,12 @@ p {
   margin-bottom: 0.4rem;
 }
 
+.booking-contact-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .form-control, input[type="text"], input[type="email"], input[type="password"], input[type="date"], input[type="time"], input[type="tel"], input[type="url"], input[type="number"], input[type="search"], select, textarea {
   width: 100%;
   padding: 0.625rem 0.875rem;
@@ -1225,6 +1231,21 @@ p {
   padding: 1.5rem 2rem;
   margin-bottom: 2.25rem;
   box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 639px) {
+  .stepper-container {
+    padding: 0.875rem 1rem;
+    margin-bottom: 1.25rem;
+    border-radius: var(--radius-lg);
+  }
+}
+
+@media (max-width: 360px) {
+  .stepper-container {
+    padding: 0.75rem 0.625rem;
+    margin-bottom: 1rem;
+  }
 }
 
 .stepper-desktop {

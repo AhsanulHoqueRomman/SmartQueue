@@ -916,6 +916,16 @@
   }
 }
 
+@media (max-width: 360px) {
+  .organization-profile-page .org-booking-form-card {
+    padding: 0.875rem 0.75rem;
+    border-radius: var(--radius-lg, 14px);
+  }
+  .organization-profile-page .org-availability-box {
+    padding: 0.875rem 0.75rem;
+  }
+}
+
 .organization-profile-page .org-booking-error-banner {
   background: #FEF2F2;
   border: 1px solid #FCA5A5;
@@ -1050,6 +1060,11 @@
   padding: 0.35rem 0.75rem;
   border-radius: 999px;
   width: fit-content;
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.4;
+  word-break: break-word;
+  box-sizing: border-box;
 }
 
 .organization-profile-page .org-avail-available {
@@ -1207,6 +1222,16 @@
   justify-content: center;
   gap: 1rem;
   flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .organization-profile-page .org-booking-success-actions {
+    flex-direction: column;
+  }
+  .organization-profile-page .org-booking-success-actions button {
+    width: 100%;
+    min-height: 44px;
+  }
 }
 
 /* ─── 7. Unified Modal Design System ──────────────────────────────────────── */

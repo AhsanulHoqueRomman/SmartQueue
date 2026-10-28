@@ -255,16 +255,7 @@ export function ProviderPublicProfilePage() {
         </div>
 
         {/* Profile Header Card */}
-        <div
-          style={{
-            padding: '2rem',
-            marginBottom: '2rem',
-            backgroundColor: 'var(--lp-surface)',
-            border: '1px solid var(--lp-border)',
-            borderRadius: '20px',
-            boxShadow: '0 4px 20px var(--shadow-sm)'
-          }}
-        >
+        <div className="provider-profile-card">
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '1.5rem' }}>
             {/* Photo Avatar with Fallback */}
             {profile.profile_photo && !imgError ? (
@@ -415,13 +406,7 @@ export function ProviderPublicProfilePage() {
         {/* Serial Booking Form for this Provider */}
         <div
           id="provider-booking-section"
-          style={{
-            padding: '2rem',
-            backgroundColor: 'var(--lp-surface)',
-            border: '2px solid var(--lp-accent)',
-            borderRadius: '20px',
-            boxShadow: 'var(--card-shadow)'
-          }}
+          className="provider-booking-card"
         >
           <div style={{ marginBottom: '1.25rem', borderBottom: '1px solid var(--lp-border)', paddingBottom: '0.85rem' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -438,7 +423,7 @@ export function ProviderPublicProfilePage() {
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+          <div className="provider-booking-grid">
             {/* Service & Date Pickers */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
@@ -489,17 +474,17 @@ export function ProviderPublicProfilePage() {
               ) : (
                 <div>
                   <div style={{ backgroundColor: 'var(--lp-bg-subtle)', border: '1px solid var(--lp-border)', borderRadius: '14px', padding: '1.25rem', marginBottom: '1.25rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.25rem', marginBottom: '0.5rem' }}>
                       <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Selected Date:</span>
                       <strong style={{ color: 'var(--lp-text)' }}>{selectedDate}</strong>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.25rem', marginBottom: '0.5rem' }}>
                       <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Provider Availability:</span>
                       <strong style={{ color: availability?.is_available ? 'var(--color-success)' : 'var(--color-error)' }}>
                         {availability?.is_available ? `Available (${availability.working_hours_display})` : (availability?.reason || 'Not Available')}
                       </strong>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.25rem', marginBottom: '0.75rem' }}>
                       <span style={{ color: 'var(--lp-text-subtle)', fontSize: '0.9rem' }}>Estimated Consultation Duration:</span>
                       <strong style={{ color: 'var(--lp-text)' }}>{availability?.duration_minutes || selectedService?.duration_minutes || 30} min</strong>
                     </div>
