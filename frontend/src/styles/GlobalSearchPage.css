@@ -1,0 +1,218 @@
+/* QueueTurn - Global Search Page Styles */
+
+.search-page-container {
+  padding: 5.5rem 1.5rem 3rem 1.5rem;
+  max-width: 1150px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .search-page-container {
+    padding: 4.75rem 1rem 2.5rem 1rem;
+  }
+}
+
+.search-hero-header {
+  text-align: center;
+  margin-bottom: 2.25rem;
+}
+
+.search-hero-eyebrow {
+  color: var(--lp-accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+}
+
+.search-hero-title {
+  font-size: 2.2rem;
+  font-family: 'Cinzel', serif;
+  color: var(--lp-text);
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 640px) {
+  .search-hero-title {
+    font-size: 1.65rem;
+  }
+  .search-hero-header {
+    margin-bottom: 1.5rem;
+  }
+}
+
+.search-hero-desc {
+  color: var(--lp-text-subtle);
+  font-size: 0.975rem;
+  max-width: 640px;
+  margin: 0 auto;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .search-hero-desc {
+    font-size: 0.875rem;
+  }
+}
+
+/* Search Form */
+.search-form-pill {
+  display: flex;
+  max-width: 680px;
+  margin: 1.75rem auto 1rem auto;
+  background: var(--lp-surface);
+  border-radius: 9999px;
+  padding: 0.35rem 0.35rem 0.35rem 1.15rem;
+  box-shadow: 0 10px 28px var(--shadow-sm);
+  border: 1px solid var(--lp-border);
+  align-items: center;
+  gap: 0.5rem;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-form-pill:focus-within {
+  border-color: var(--lp-accent);
+  box-shadow: 0 0 0 2px var(--lp-border-focus);
+}
+
+.search-form-icon {
+  color: var(--lp-text-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+/* Override input styling to prevent overlap */
+.search-form-pill input.search-form-input[type="text"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0.65rem 0.5rem;
+  font-size: 0.925rem;
+  color: var(--lp-text);
+  font-family: inherit;
+  margin: 0;
+}
+
+.search-form-pill input.search-form-input[type="text"]::placeholder {
+  color: var(--lp-text-subtle);
+  opacity: 0.85;
+}
+
+.search-form-submit-btn {
+  background: var(--lp-btn-primary-bg);
+  color: var(--lp-btn-primary-text);
+  border: none;
+  border-radius: 9999px;
+  padding: 0.65rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: inherit;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.search-form-submit-btn:hover {
+  opacity: 0.92;
+}
+
+@media (max-width: 480px) {
+  .search-form-pill {
+    padding: 0.25rem 0.25rem 0.25rem 0.85rem;
+    margin: 1.25rem auto 0.85rem auto;
+  }
+  .search-form-pill input.search-form-input[type="text"] {
+    font-size: 0.85rem;
+    padding: 0.55rem 0.35rem;
+  }
+  .search-form-submit-btn {
+    padding: 0.55rem 1rem;
+    font-size: 0.825rem;
+  }
+}
+
+/* Popular Suggestions */
+.search-popular-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+  max-width: 750px;
+  margin: 0 auto;
+}
+
+.search-tag-chip {
+  border: 1px solid var(--lp-border);
+  border-radius: 9999px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.775rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+/* Section Header */
+.search-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.search-section-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--lp-text);
+  margin: 0;
+  font-family: 'Cinzel', serif;
+}
+
+@media (max-width: 640px) {
+  .search-section-title {
+    font-size: 1.2rem;
+  }
+}
+
+/* Cards Grid */
+.search-orgs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 1.25rem;
+}
+
+@media (max-width: 480px) {
+  .search-orgs-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+.search-services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+@media (max-width: 480px) {
+  .search-services-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}

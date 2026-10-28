@@ -5,10 +5,11 @@ import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import PublicNavbar from '../../components/PublicNavbar';
 import '../../styles/LandingPage.css';
+import '../../styles/GlobalSearchPage.css';
 
 /* ─── Tiny SVG Icon Components ─────────────────────────────────────────── */
 const IconSearch = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }} aria-hidden="true">
     <circle cx="11" cy="11" r="8"/>
     <line x1="21" y1="21" x2="16.65" y2="16.65"/>
   </svg>
@@ -28,40 +29,40 @@ const POPULAR_SEARCH_TAGS = [
 const POPULAR_SERVICES = [
   {
     name: 'General Medical Consultation',
-    category: 'Healthcare',
     icon: '🩺',
+    category: 'Healthcare',
     duration: '20 min',
-    query: 'Care',
+    query: 'Consultation',
     desc: 'Comprehensive medical assessment and specialist consultation.'
   },
   {
     name: 'Teeth Scaling & Oral Checkup',
-    category: 'Dental Care',
     icon: '🦷',
+    category: 'Dental Care',
     duration: '30 min',
     query: 'Dental',
     desc: 'Professional plaque removal, teeth whitening, and hygiene inspection.'
   },
   {
     name: 'Full Pathology & MRI Scan',
-    category: 'Diagnostic',
     icon: '🔬',
+    category: 'Diagnostic',
     duration: '45 min',
     query: 'Diagnostic',
     desc: 'Advanced lab testing, blood work panels, and diagnostic imaging.'
   },
   {
     name: 'Executive Haircut & Beauty Spa',
+    icon: '💇',
     category: 'Salon & Beauty',
-    icon: '💇‍♀️',
     duration: '40 min',
-    query: 'Salon',
+    query: 'Beauty',
     desc: 'Luxury hair styling, facial care, and grooming treatments.'
   },
   {
     name: 'Tax Audit & Legal Vetting',
-    category: 'Consulting',
     icon: '👔',
+    category: 'Consulting',
     duration: '60 min',
     query: 'Legal',
     desc: 'Business agreement vetting, tax planning, and corporate legal advice.'
@@ -148,62 +149,43 @@ export function GlobalSearchPage() {
       <PublicNavbar activePage="search" />
 
       {/* Main Page Container */}
-      <div className="container animate-page-entrance" style={{ padding: '6rem 1.5rem 3rem 1.5rem', maxWidth: '1150px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <span style={{ color: 'var(--lp-accent)', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <div className="search-page-container animate-page-entrance">
+        <div className="search-hero-header">
+          <span className="search-hero-eyebrow">
             Instant Network Search
           </span>
-          <h1 style={{ fontSize: '2.2rem', fontFamily: 'Cinzel, serif', color: 'var(--lp-text)', marginTop: '0.25rem', marginBottom: '0.5rem' }}>
+          <h1 className="search-hero-title">
             Global QueueTurn Search
           </h1>
-          <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.975rem', maxWidth: '640px', margin: '0 auto' }}>
+          <p className="search-hero-desc">
             Find verified clinics, specialized services, doctors, and diagnostic centers across the QueueTurn network.
           </p>
 
           {/* Search Form */}
           <form
             onSubmit={handleSubmit}
-            style={{
-              display: 'flex',
-              maxWidth: '680px',
-              margin: '1.75rem auto 1rem auto',
-              background: 'var(--lp-surface)',
-              borderRadius: '9999px',
-              padding: '0.4rem 0.4rem 0.4rem 1.25rem',
-              boxShadow: '0 12px 32px var(--shadow-sm)',
-              border: '1px solid var(--lp-border)',
-              alignItems: 'center',
-            }}
+            className="search-form-pill"
           >
-            <span style={{ color: 'var(--lp-text-subtle)', display: 'flex', alignItems: 'center' }}><IconSearch /></span>
+            <span className="search-form-icon"><IconSearch /></span>
             <input
               type="text"
-              placeholder="Search by clinic name, service (e.g. Dental, Consultation), or category..."
+              placeholder="Search clinics, doctors, services..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="lp-hero-search-input"
+              className="search-form-input"
+              aria-label="Search clinics, doctors and services"
             />
             <button
               type="submit"
-              style={{
-                background: 'var(--lp-btn-primary-bg)',
-                color: 'var(--lp-btn-primary-text)',
-                border: 'none',
-                borderRadius: '9999px',
-                padding: '0.75rem 1.75rem',
-                fontWeight: 600,
-                fontSize: '0.95rem',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px var(--shadow-sm)'
-              }}
+              className="search-form-submit-btn"
             >
               Search
             </button>
           </form>
 
           {/* Popular Search Suggestion Chips */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center', maxWidth: '750px', margin: '0 auto' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--lp-text-subtle)', alignSelf: 'center', marginRight: '0.25rem' }}>
+          <div className="search-popular-tags">
+            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--lp-text-subtle)', alignSelf: 'center', marginRight: '0.2rem' }}>
               Popular:
             </span>
             {POPULAR_SEARCH_TAGS.map((tag) => (
@@ -211,16 +193,10 @@ export function GlobalSearchPage() {
                 key={tag}
                 type="button"
                 onClick={() => handleTagClick(tag)}
+                className="search-tag-chip"
                 style={{
                   background: query.toLowerCase() === tag.toLowerCase() ? 'var(--lp-btn-primary-bg)' : 'var(--lp-surface)',
                   color: query.toLowerCase() === tag.toLowerCase() ? 'var(--lp-btn-primary-text)' : 'var(--lp-text)',
-                  border: '1px solid var(--lp-border)',
-                  borderRadius: '9999px',
-                  padding: '0.25rem 0.75rem',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
                 }}
               >
                 {tag}
@@ -241,42 +217,44 @@ export function GlobalSearchPage() {
           />
         ) : searched && organizations.length > 0 ? (
           <div style={{ marginBottom: '2.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.25rem' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--lp-accent)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Search Results ({organizations.length} Clinic{organizations.length > 1 ? 's' : ''} Found)
               </div>
               <button
+                type="button"
                 onClick={() => {
                   setQuery('');
                   setSearchParams({});
                   setSearched(false);
                   setOrganizations([]);
                 }}
-                style={{ background: 'none', border: 'none', color: 'var(--color-error)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: 'var(--color-error)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', padding: '0.2rem 0.4rem' }}
               >
                 Clear Search ✕
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+            <div className="search-orgs-grid">
               {organizations.map((org) => {
                 const rating = org.rating ? parseFloat(org.rating).toFixed(1) : '4.9';
                 const reviewsCount = org.reviews_count || 12;
                 const servicesCount = org.services_count || 4;
 
                 return (
-                  <div
+                  <article
                     key={org.id}
                     style={{
                       background: 'var(--lp-surface)',
                       borderRadius: '16px',
                       border: '1px solid var(--lp-border)',
-                      padding: '1.5rem',
+                      padding: '1.25rem',
                       boxShadow: '0 4px 16px var(--shadow-sm)',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
-                      transition: 'transform 0.2s ease, boxShadow 0.2s ease'
+                      transition: 'transform 0.2s ease, boxShadow 0.2s ease',
+                      boxSizing: 'border-box'
                     }}
                   >
                     <div>
@@ -289,35 +267,36 @@ export function GlobalSearchPage() {
                         </span>
                       </div>
 
-                      <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem', fontFamily: 'Outfit, sans-serif' }}>
+                      <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.35rem 0', fontFamily: 'Outfit, sans-serif' }}>
                         {org.name}
-                      </h3>
+                      </h2>
 
-                      <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.85rem', lineHeight: 1.4, margin: '0 0 1rem 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.825rem', lineHeight: 1.4, margin: '0 0 1rem 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                         📍 {org.address || 'Verified partner facility with online booking.'}
                       </p>
                     </div>
 
-                    <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--lp-sage)', fontWeight: 600 }}>
+                    <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--lp-sage)', fontWeight: 600 }}>
                         ⚡ {servicesCount} Services
                       </span>
                       <Link
                         to={`/organizations/${org.id}`}
                         style={{
-                          padding: '0.45rem 0.9rem',
+                          padding: '0.45rem 0.85rem',
                           background: 'var(--lp-btn-primary-bg)',
                           color: 'var(--lp-btn-primary-text)',
-                          borderRadius: '6px',
+                          borderRadius: '8px',
                           fontWeight: 600,
-                          fontSize: '0.85rem',
+                          fontSize: '0.8rem',
                           textDecoration: 'none',
+                          whiteSpace: 'nowrap'
                         }}
                       >
                         View Profile →
                       </Link>
                     </div>
-                  </div>
+                  </article>
                 );
               })}
             </div>
@@ -326,39 +305,40 @@ export function GlobalSearchPage() {
           /* Default Pre-Populated View when no search active */
           <div className="animate-page-entrance">
             {/* Section 1: Popular Searched Clinics */}
-            <div style={{ marginBottom: '3rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <div style={{ marginBottom: '2.5rem' }}>
+              <div className="search-section-header">
                 <div>
                   <span style={{ color: 'var(--lp-accent)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>
                     Top Destinations
                   </span>
-                  <h2 style={{ fontSize: '1.45rem', fontWeight: 700, color: 'var(--lp-text)', margin: 0, fontFamily: 'Cinzel, serif' }}>
+                  <h2 className="search-section-title">
                     🏥 Popular Care Providers & Clinics
                   </h2>
                 </div>
-                <Link to="/organizations" style={{ color: 'var(--lp-accent)', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>
+                <Link to="/organizations" style={{ color: 'var(--lp-accent)', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none', whiteSpace: 'nowrap' }}>
                   Browse All 28 Clinics →
                 </Link>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+              <div className="search-orgs-grid">
                 {popularOrgs.map((org) => {
                   const rating = org.rating ? parseFloat(org.rating).toFixed(1) : '4.9';
                   const reviewsCount = org.reviews_count || 12;
 
                   return (
-                    <div
+                    <article
                       key={org.id}
                       style={{
                         background: 'var(--lp-surface)',
                         borderRadius: '16px',
                         border: '1px solid var(--lp-border)',
-                        padding: '1.5rem',
+                        padding: '1.25rem',
                         boxShadow: '0 4px 16px var(--shadow-sm)',
                         display: 'flex',
                         flexDirection: 'column',
-                        justify: 'space-between',
-                        transition: 'transform 0.2s ease, boxShadow 0.2s ease'
+                        justifyContent: 'space-between',
+                        transition: 'transform 0.2s ease, boxShadow 0.2s ease',
+                        boxSizing: 'border-box'
                       }}
                     >
                       <div>
@@ -371,35 +351,36 @@ export function GlobalSearchPage() {
                           </span>
                         </div>
 
-                        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem', fontFamily: 'Outfit, sans-serif' }}>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.35rem 0', fontFamily: 'Outfit, sans-serif' }}>
                           {org.name}
                         </h3>
 
-                        <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.85rem', lineHeight: 1.4, margin: '0 0 1rem 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.825rem', lineHeight: 1.4, margin: '0 0 1rem 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                           📍 {org.address || 'Verified medical & care facility.'}
                         </p>
                       </div>
 
-                      <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--lp-sage)', fontWeight: 600 }}>
+                      <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.78rem', color: 'var(--lp-sage)', fontWeight: 600 }}>
                           ⚡ {org.services_count || 4} Services
                         </span>
                         <Link
                           to={`/organizations/${org.id}`}
                           style={{
-                            padding: '0.45rem 0.9rem',
+                            padding: '0.45rem 0.85rem',
                             background: 'var(--lp-btn-primary-bg)',
                             color: 'var(--lp-btn-primary-text)',
-                            borderRadius: '6px',
+                            borderRadius: '8px',
                             fontWeight: 600,
-                            fontSize: '0.85rem',
+                            fontSize: '0.8rem',
                             textDecoration: 'none',
+                            whiteSpace: 'nowrap'
                           }}
                         >
                           View Profile →
                         </Link>
                       </div>
-                    </div>
+                    </article>
                   );
                 })}
               </div>
@@ -411,55 +392,56 @@ export function GlobalSearchPage() {
                 <span style={{ color: 'var(--lp-accent)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>
                   Frequently Requested
                 </span>
-                <h2 style={{ fontSize: '1.45rem', fontWeight: 700, color: 'var(--lp-text)', margin: 0, fontFamily: 'Cinzel, serif' }}>
+                <h2 className="search-section-title">
                   ⚡ Popular Services & Procedures
                 </h2>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
+              <div className="search-services-grid">
                 {POPULAR_SERVICES.map((svc) => (
-                  <div
+                  <article
                     key={svc.name}
                     onClick={() => handleTagClick(svc.query)}
                     style={{
                       background: 'var(--lp-surface)',
                       borderRadius: '16px',
                       border: '1px solid var(--lp-border)',
-                      padding: '1.5rem',
+                      padding: '1.25rem',
                       boxShadow: '0 4px 16px var(--shadow-sm)',
                       cursor: 'pointer',
                       display: 'flex',
                       flexDirection: 'column',
-                      justify: 'space-between',
-                      transition: 'transform 0.2s ease, boxShadow 0.2s ease, border-color 0.2s ease'
+                      justifyContent: 'space-between',
+                      transition: 'transform 0.2s ease, boxShadow 0.2s ease, border-color 0.2s ease',
+                      boxSizing: 'border-box'
                     }}
                   >
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                        <span style={{ fontSize: '1.8rem' }}>{svc.icon}</span>
+                        <span style={{ fontSize: '1.75rem' }}>{svc.icon}</span>
                         <span style={{ background: 'var(--lp-bg-subtle)', color: 'var(--lp-accent)', border: '1px solid var(--lp-border)', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.55rem', borderRadius: '6px' }}>
                           {svc.category}
                         </span>
                       </div>
 
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--lp-text)', marginBottom: '0.35rem', fontFamily: 'Outfit, sans-serif' }}>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--lp-text)', margin: '0 0 0.35rem 0', fontFamily: 'Outfit, sans-serif' }}>
                         {svc.name}
                       </h3>
 
-                      <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.85rem', lineHeight: 1.4, margin: '0 0 1rem 0' }}>
+                      <p style={{ color: 'var(--lp-text-subtle)', fontSize: '0.825rem', lineHeight: 1.4, margin: '0 0 1rem 0' }}>
                         {svc.desc}
                       </p>
                     </div>
 
                     <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--lp-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--lp-text-subtle)', fontWeight: 600 }}>
-                        ⏱️ Est. {svc.duration}
+                      <span style={{ fontSize: '0.75rem', color: 'var(--lp-text-subtle)', fontWeight: 600 }}>
+                        ⏱ {svc.duration}
                       </span>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--lp-accent)', fontWeight: 700 }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--lp-accent)', fontWeight: 600 }}>
                         Search Clinics →
                       </span>
                     </div>
-                  </div>
+                  </article>
                 ))}
               </div>
             </div>
@@ -471,4 +453,3 @@ export function GlobalSearchPage() {
 }
 
 export default GlobalSearchPage;
-

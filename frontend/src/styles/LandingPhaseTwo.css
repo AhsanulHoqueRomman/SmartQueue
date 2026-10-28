@@ -133,8 +133,21 @@
   .discovery-org-body { padding: 20px; }
   .discovery-org-body h3 { font-size: 1.1rem; }
   .discovery-org-body .lp-btn-outline { font-size: .72rem; padding-inline: 8px; }
-  .customer-home-grid, .professionals-grid, .professional-filters { grid-template-columns: minmax(0, 1fr); }
-  .customer-home-card, .professional-discovery-card { padding: 22px; }
-  .professionals-content { padding: 104px 20px 48px; }
+  .customer-home-grid, .professionals-grid { grid-template-columns: minmax(0, 1fr); }
+  .customer-home-card { padding: 22px; }
+  .professionals-content { padding: 80px 16px 40px; }
+  .professionals-content h1 { font-size: 1.85rem; margin: 10px 0 12px; }
+  .professionals-content .discovery-intro { font-size: 0.875rem; margin-bottom: 16px; line-height: 1.45; }
+  .professional-filters { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+  .professional-filters label:first-child { grid-column: 1 / -1; }
+  .professional-filters input, .professional-filters select { padding: 9px 12px; font-size: 0.85rem; }
+  .professional-result-count { margin-bottom: 14px; font-size: 0.8rem; }
+  .professional-discovery-card { padding: 18px; border-radius: 16px; }
+  .professional-discovery-header { gap: 12px; margin-bottom: 12px; }
+  .professional-discovery-header img, .professional-discovery-avatar { width: 50px; height: 50px; font-size: 1rem; }
+  .professional-discovery-header h2 { font-size: 1.05rem; margin-bottom: 4px; }
+  .professional-charges { padding: 10px 0; margin: 8px 0 0; }
+  .professional-charges li { margin-bottom: 6px; font-size: 0.75rem; }
+  .professional-schedule { margin: 8px 0 14px; font-size: 0.72rem; }
 }
 @media (prefers-reduced-motion: reduce) { .phase-two-section *, .professionals-content * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
