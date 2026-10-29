@@ -90,6 +90,7 @@
   align-items: center;
   gap: 0.5rem;
   height: 2.375rem;
+  min-height: 44px;
   padding: 0 1.125rem;
   font-size: 0.875rem;
   font-weight: 600;
@@ -124,6 +125,7 @@
   align-items: center;
   gap: 0.45rem;
   height: 2.375rem;
+  min-height: 44px;
   padding: 0 1rem;
   font-size: 0.875rem;
   font-weight: 600;
@@ -660,6 +662,102 @@
   }
 }
 
+@media (max-width: 640px) {
+  .manager-staff__table-card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .manager-staff__table-card .qt-table-wrapper {
+    overflow-x: visible;
+  }
+
+  .manager-staff__table-card .qt-table-container {
+    overflow-x: visible;
+    border: none;
+  }
+
+  .manager-staff__table-card table {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .manager-staff__table-card thead {
+    display: none;
+  }
+
+  .manager-staff__table-card tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    width: 100%;
+  }
+
+  .manager-staff__table-card tbody tr {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.125rem;
+    gap: 0.625rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .manager-staff__table-card td {
+    padding: 0;
+    border: none;
+    width: 100%;
+  }
+
+  /* Identity row */
+  .manager-staff__table-card td:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* Email & contact with dashed separator */
+  .manager-staff__table-card td:nth-child(2) {
+    padding-top: 0.45rem;
+    border-top: 1px dashed var(--color-border);
+  }
+
+  /* Role and status badges */
+  .manager-staff__table-card td:nth-child(3),
+  .manager-staff__table-card td:nth-child(4) {
+    padding-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Actions with solid top border */
+  .manager-staff__table-card td:last-child {
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .manager-staff__actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .manager-staff__action-btn {
+    width: 100%;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+  }
+}
+
 @media (max-width: 480px) {
   .manager-staff {
     padding: 0;
@@ -667,6 +765,17 @@
 
   .manager-staff__title {
     font-size: 1.5rem;
+  }
+
+  .manager-staff__tablist {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .manager-staff__tab {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
   }
 
   .manager-staff__modal-actions,
@@ -677,6 +786,21 @@
   .manager-staff__modal-actions button,
   .manager-staff__dialog-actions button {
     width: 100%;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 360px) {
+  .manager-staff__title {
+    font-size: 1.25rem;
+  }
+
+  .manager-staff__header {
+    gap: 0.75rem;
+  }
+
+  .manager-staff__table-card tbody tr {
+    padding: 0.75rem;
   }
 }
 
