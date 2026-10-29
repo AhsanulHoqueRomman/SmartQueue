@@ -786,6 +786,28 @@
   }
 }
 
+@media (max-width: 360px) {
+  .customer-reviews {
+    padding: 0.875rem 0.5rem 2rem;
+  }
+
+  .customer-reviews__header {
+    padding: 1rem 0.75rem;
+  }
+
+  .customer-reviews__title {
+    font-size: 1.25rem;
+  }
+
+  .customer-reviews__card {
+    padding: 0.875rem 0.75rem;
+  }
+
+  .customer-reviews__toolbar {
+    padding: 0.75rem;
+  }
+}
+
 /* --------------------------------------------------------------------------
    9. Reduced-Motion
    -------------------------------------------------------------------------- */

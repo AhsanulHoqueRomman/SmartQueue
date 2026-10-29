@@ -386,6 +386,40 @@
   }
 }
 
+@media (max-width: 480px) {
+  .notifications__header-actions {
+    width: 100%;
+  }
+
+  .notifications__btn-mark-all {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 360px) {
+  .notifications {
+    padding: 0.875rem 0.5rem 2rem;
+  }
+
+  .notifications__header {
+    padding: 1rem 0.75rem;
+  }
+
+  .notifications__title {
+    font-size: 1.25rem;
+  }
+
+  .notifications__card {
+    padding: 0.875rem 0.75rem;
+  }
+
+  .notifications__tab {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.8rem;
+  }
+}
+
 /* --------------------------------------------------------------------------
    6. Reduced Motion
    -------------------------------------------------------------------------- */

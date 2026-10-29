@@ -661,6 +661,29 @@
   }
 }
 
+@media (max-width: 360px) {
+  .customer-live-queue {
+    padding: 0.875rem 0.5rem 2rem;
+    gap: 1rem;
+  }
+
+  .customer-live-queue__hero-card {
+    padding: 1.35rem 0.875rem;
+  }
+
+  .customer-live-queue__serial-number {
+    font-size: 2.75rem;
+  }
+
+  .customer-live-queue__meta-title {
+    font-size: 1.25rem;
+  }
+
+  .customer-live-queue__inactive-card {
+    padding: 1.5rem 0.875rem;
+  }
+}
+
 /* --------------------------------------------------------------------------
    10. Reduced Motion
    -------------------------------------------------------------------------- */

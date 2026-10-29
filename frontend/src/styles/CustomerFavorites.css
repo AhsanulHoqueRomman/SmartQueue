@@ -423,6 +423,45 @@
   }
 }
 
+@media (max-width: 480px) {
+  .customer-favorites__header-actions {
+    width: 100%;
+  }
+
+  .customer-favorites__btn-explore {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .customer-favorites__card-bottom {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .customer-favorites__btn-book {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 360px) {
+  .customer-favorites {
+    padding: 0.875rem 0.5rem 2rem;
+  }
+
+  .customer-favorites__header {
+    padding: 1rem 0.75rem;
+  }
+
+  .customer-favorites__title {
+    font-size: 1.25rem;
+  }
+
+  .customer-favorites__card {
+    padding: 0.875rem 0.75rem;
+  }
+}
+
 /* --------------------------------------------------------------------------
    6. Reduced Motion Preferences
    -------------------------------------------------------------------------- */

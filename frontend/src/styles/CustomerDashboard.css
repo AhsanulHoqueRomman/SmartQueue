@@ -635,6 +635,10 @@
     padding: 1rem 0.75rem 2.5rem;
   }
 
+  .qt-customer-dashboard__header {
+    padding: 1.15rem 1rem;
+  }
+
   .qt-customer-dashboard__title {
     font-size: 1.5rem;
   }
@@ -652,6 +656,10 @@
     grid-template-columns: 1fr;
   }
 
+  .qt-customer-dashboard__section {
+    padding: 1.15rem 1rem;
+  }
+
   .qt-customer-dashboard__followup-banner {
     flex-direction: column;
     align-items: flex-start;
@@ -661,6 +669,38 @@
     width: 100%;
     justify-content: center;
     margin-left: 0;
+  }
+}
+
+@media (max-width: 360px) {
+  .qt-customer-dashboard {
+    padding: 0.875rem 0.5rem 2rem;
+    gap: 1.15rem;
+  }
+
+  .qt-customer-dashboard__header {
+    padding: 1rem 0.75rem;
+    gap: 1rem;
+  }
+
+  .qt-customer-dashboard__title {
+    font-size: 1.35rem;
+  }
+
+  .qt-customer-dashboard__subtitle {
+    font-size: 0.85rem;
+  }
+
+  .qt-customer-dashboard__metric-card {
+    padding: 0.875rem 0.75rem;
+  }
+
+  .qt-customer-dashboard__metric-value {
+    font-size: 1.75rem;
+  }
+
+  .qt-customer-dashboard__section {
+    padding: 1rem 0.75rem;
   }
 }
 

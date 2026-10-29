@@ -599,6 +599,39 @@
   }
 }
 
+@media (max-width: 380px) {
+  .customer-appointment-detail {
+    padding: 0.875rem 0.5rem 2rem;
+    gap: 1rem;
+  }
+
+  .customer-appointment-detail__header-card,
+  .customer-appointment-detail__live-queue-card,
+  .customer-appointment-detail__details-card,
+  .customer-appointment-detail__reconciliation-card,
+  .customer-appointment-detail__notes-card {
+    padding: 1rem 0.75rem;
+  }
+
+  .customer-appointment-detail__title {
+    font-size: 1.25rem;
+  }
+
+  .customer-appointment-detail__queue-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .customer-appointment-detail__modal-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .customer-appointment-detail__modal-actions > button {
+    width: 100%;
+  }
+}
+
 /* --------------------------------------------------------------------------
    10. Reduced Motion
    -------------------------------------------------------------------------- */

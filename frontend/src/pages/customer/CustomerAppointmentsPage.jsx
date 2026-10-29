@@ -14,6 +14,7 @@ import { EmergencyNotice } from '../../components/EmergencyNotice';
 import { formatBookingDate } from '../../utils/homeBookingDisplay.js';
 import { getNormalizedCustomerQueueState } from '../../utils/queueDisplay';
 import { confirmCustomerArrival } from '../../utils/customerArrival.js';
+import '../../styles/CustomerAppointments.css';
 
 const TABS = [
   { id: 'active', label: 'Active Today' },
@@ -235,93 +236,41 @@ export function CustomerAppointmentsPage() {
   };
 
   return (
-    <div
-      className="animate-page-entrance"
-      style={{
-        maxWidth: '1080px',
-        margin: '0 auto',
-        padding: '1.75rem 1rem 3.5rem 1rem',
-        boxSizing: 'border-box',
-        width: '100%',
-      }}
-    >
+    <div className="customer-appointments animate-page-entrance">
       {/* Header Banner */}
-      <header
-        style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-lg, 14px)',
-          padding: '1.75rem 2rem',
-          boxShadow: 'var(--shadow-sm)',
-          marginBottom: '1.75rem',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '1.25rem',
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                color: 'var(--color-secondary-accent)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                marginBottom: '0.35rem',
-              }}
-            >
-              Customer Care &bull; Appointment Roster
-            </div>
-            <h1
-              style={{
-                fontSize: '1.75rem',
-                fontWeight: 700,
-                margin: '0 0 0.35rem 0',
-                color: 'var(--color-text-main)',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              My Appointments &amp; Consultations
-            </h1>
-            <p
-              style={{
-                color: 'var(--color-text-secondary)',
-                margin: 0,
-                fontSize: '0.925rem',
-                lineHeight: 1.5,
-              }}
-            >
-              Track active appointments, monitor live queue status, confirm arrival, and manage consultation history.
-            </p>
+      <header className="customer-appointments__header">
+        <div className="customer-appointments__header-info">
+          <div className="customer-appointments__eyebrow">
+            Customer Care &bull; Appointment Roster
           </div>
+          <h1 className="customer-appointments__title">
+            My Appointments &amp; Consultations
+          </h1>
+          <p className="customer-appointments__subtitle">
+            Track active appointments, monitor live queue status, confirm arrival, and manage consultation history.
+          </p>
+        </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <button
-              type="button"
-              className="btn btn-outline"
-              onClick={() => fetchAppointments(true)}
-              disabled={refreshing}
-              title="Refresh schedule"
-              style={{ fontSize: '0.85rem' }}
-            >
-              {refreshing ? 'Syncing...' : 'Sync'}
-            </button>
+        <div className="customer-appointments__header-actions">
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => fetchAppointments(true)}
+            disabled={refreshing}
+            title="Refresh schedule"
+            style={{ fontSize: '0.85rem' }}
+          >
+            {refreshing ? 'Syncing...' : 'Sync'}
+          </button>
 
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => navigate('/customer/book')}
-              style={{ fontSize: '0.875rem' }}
-            >
-              Book Appointment
-            </button>
-          </div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate('/customer/book')}
+            style={{ fontSize: '0.875rem' }}
+          >
+            Book Appointment
+          </button>
         </div>
       </header>
 
@@ -352,16 +301,7 @@ export function CustomerAppointmentsPage() {
       <nav
         role="tablist"
         aria-label="Appointment Lifecycle Categories"
-        style={{
-          display: 'flex',
-          gap: '0.5rem',
-          borderBottom: '1px solid var(--color-border)',
-          marginBottom: '1.75rem',
-          overflowX: 'auto',
-          paddingBottom: '0.5rem',
-          scrollbarWidth: 'none',
-          WebkitOverflowScrolling: 'touch',
-        }}
+        className="customer-appointments__tabs"
       >
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -374,40 +314,10 @@ export function CustomerAppointmentsPage() {
               aria-selected={isActive}
               tabIndex={0}
               onClick={() => handleSelectTab(tab.id)}
-              style={{
-                padding: '0.65rem 0.95rem',
-                background: isActive ? 'var(--color-surface)' : 'transparent',
-                border: `1px solid ${isActive ? 'var(--color-border)' : 'transparent'}`,
-                borderBottom: isActive ? '2px solid var(--color-primary)' : '2px solid transparent',
-                borderRadius: 'var(--radius-md, 10px) var(--radius-md, 10px) 0 0',
-                color: isActive ? 'var(--color-text-main)' : 'var(--color-text-secondary)',
-                fontWeight: isActive ? 700 : 500,
-                fontSize: '0.875rem',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all var(--duration-fast, 0.15s) ease',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-              }}
+              className={`customer-appointments__tab ${isActive ? 'customer-appointments__tab--active' : ''}`}
             >
               <span>{tab.label}</span>
-              <span
-                style={{
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  minWidth: '20px',
-                  height: '20px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '0 6px',
-                  borderRadius: 'var(--radius-full, 9999px)',
-                  background: isActive ? 'var(--color-primary)' : 'var(--color-bg-subtle)',
-                  color: isActive ? 'var(--color-primary-text)' : 'var(--color-text-muted)',
-                  border: `1px solid ${isActive ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                }}
-              >
+              <span className="customer-appointments__tab-badge">
                 {count}
               </span>
             </button>
@@ -426,7 +336,7 @@ export function CustomerAppointmentsPage() {
           onAction={() => navigate('/customer/book')}
         />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div className="customer-appointments__list">
           {filteredAppointments.map((appt) => {
             const qEntry = appt.queue_entry;
             const normState = getNormalizedCustomerQueueState(appt, qEntry);
@@ -470,55 +380,18 @@ export function CustomerAppointmentsPage() {
             return (
               <article
                 key={appt.id}
-                style={{
-                  background: 'var(--color-surface)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 'var(--radius-lg, 14px)',
-                  padding: '1.5rem',
-                  boxShadow: 'var(--shadow-sm)',
-                  boxSizing: 'border-box',
-                  width: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '1.25rem',
-                  transition: 'border-color var(--duration-fast, 0.15s) ease, box-shadow var(--duration-fast, 0.15s) ease',
-                }}
+                className="customer-appointments__card"
               >
                 {/* Top Row: Identity & Status Badges */}
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    flexWrap: 'wrap',
-                    gap: '1rem',
-                  }}
-                >
-                  <div style={{ flex: '1 1 300px', minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        color: 'var(--color-secondary-accent)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        marginBottom: '0.25rem',
-                      }}
-                    >
+                <div className="customer-appointments__card-top">
+                  <div className="customer-appointments__card-info">
+                    <div className="customer-appointments__org-eyebrow">
                       {appt.organization_category || 'CLINIC'} &bull; {appt.organization_name || 'Organization'}
                     </div>
-                    <h2
-                      style={{
-                        margin: '0 0 0.35rem 0',
-                        fontSize: '1.25rem',
-                        fontWeight: 700,
-                        color: 'var(--color-text-main)',
-                        lineHeight: 1.35,
-                      }}
-                    >
+                    <h2 className="customer-appointments__card-title">
                       {appt.service_name || 'Service Consultation'}
                     </h2>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+                    <div className="customer-appointments__provider">
                       Specialist:{' '}
                       <strong style={{ color: 'var(--color-text-main)' }}>
                         {appt.provider_name || appt.provider_title || 'Assigned Specialist'}
@@ -526,37 +399,16 @@ export function CustomerAppointmentsPage() {
                     </div>
                   </div>
 
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-end',
-                      gap: '0.5rem',
-                      flexShrink: 0,
-                    }}
-                  >
+                  <div className="customer-appointments__card-badge-col">
                     <StatusBadge
                       status={normState.rawStatus}
                       customLabel={category === 'needs_followup' ? 'Service outcome not recorded' : normState.displayStatus}
                     />
 
                     {normState.serialNumber && normState.serialNumber !== '—' && (
-                      <div
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.35rem',
-                          padding: '0.25rem 0.65rem',
-                          background: 'var(--color-bg-subtle)',
-                          border: '1px solid var(--color-border)',
-                          borderRadius: 'var(--radius-sm, 6px)',
-                          fontSize: '0.825rem',
-                          fontWeight: 700,
-                          color: 'var(--color-text-main)',
-                        }}
-                      >
-                        <span style={{ color: 'var(--color-text-muted)' }}>Serial</span>
-                        <span style={{ color: 'var(--color-primary)' }}>#{normState.serialNumber}</span>
+                      <div className="customer-appointments__serial-badge">
+                        <span>Serial</span>
+                        <span>#{normState.serialNumber}</span>
                       </div>
                     )}
                   </div>
@@ -566,33 +418,20 @@ export function CustomerAppointmentsPage() {
                 <EmergencyNotice appointment={appt} />
 
                 {/* Ticket Details Summary Bar */}
-                <div
-                  style={{
-                    background: 'var(--color-bg-subtle)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-md, 10px)',
-                    padding: '0.85rem 1.15rem',
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                    gap: '1rem 1.75rem',
-                    fontSize: '0.85rem',
-                    color: 'var(--color-text-main)',
-                  }}
-                >
-                  <div>
-                    <span style={{ color: 'var(--color-text-muted)', marginRight: '0.35rem' }}>Date:</span>
+                <div className="customer-appointments__summary-bar">
+                  <div className="customer-appointments__summary-item">
+                    <span className="customer-appointments__summary-label">Date:</span>
                     <strong>{formattedDate}</strong>
                   </div>
 
-                  <div>
-                    <span style={{ color: 'var(--color-text-muted)', marginRight: '0.35rem' }}>{timingLabel}</span>
+                  <div className="customer-appointments__summary-item">
+                    <span className="customer-appointments__summary-label">{timingLabel}</span>
                     <strong>{timingValue}</strong>
                   </div>
 
                   {appt.booked_service_charge != null && (
-                    <div>
-                      <span style={{ color: 'var(--color-text-muted)', marginRight: '0.35rem' }}>Booked Fee:</span>
+                    <div className="customer-appointments__summary-item">
+                      <span className="customer-appointments__summary-label">Booked Fee:</span>
                       <strong>
                         ৳{Number(appt.booked_service_charge).toLocaleString('en-US', { maximumFractionDigits: 2 })}
                       </strong>
@@ -600,8 +439,8 @@ export function CustomerAppointmentsPage() {
                   )}
 
                   {(appt.contact_name || appt.contact_phone) && (
-                    <div>
-                      <span style={{ color: 'var(--color-text-muted)', marginRight: '0.35rem' }}>Contact:</span>
+                    <div className="customer-appointments__summary-item">
+                      <span className="customer-appointments__summary-label">Contact:</span>
                       <span>
                         {appt.contact_name || 'Customer'}
                         {appt.contact_phone ? ` (${appt.contact_phone})` : ''}
@@ -612,33 +451,12 @@ export function CustomerAppointmentsPage() {
 
                 {/* Queue & Readiness Guidance Box */}
                 {normState.can_open_telemetry && (
-                  <div
-                    style={{
-                      background: 'var(--color-surface)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: 'var(--radius-md, 10px)',
-                      padding: '0.85rem 1.15rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.65rem',
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                        fontSize: '0.825rem',
-                      }}
-                    >
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div className="customer-appointments__telemetry-box">
+                    <div className="customer-appointments__telemetry-header">
+                      <div className="customer-appointments__telemetry-status">
                         <span
+                          className="customer-appointments__status-dot"
                           style={{
-                            width: '8px',
-                            height: '8px',
-                            borderRadius: '50%',
                             background:
                               normState.rawStatus === 'CALLED'
                                 ? 'var(--color-warning)'
@@ -658,7 +476,7 @@ export function CustomerAppointmentsPage() {
                         </strong>
                       </div>
 
-                      <div style={{ color: 'var(--color-text-secondary)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                      <div className="customer-appointments__telemetry-meta">
                         {normState.nowServing && (
                           <span>
                             Now Serving: <strong style={{ color: 'var(--color-text-main)' }}>#{normState.nowServing}</strong>
@@ -682,7 +500,7 @@ export function CustomerAppointmentsPage() {
                     </div>
 
                     {recArrival && !normState.isCheckedIn && (
-                      <div style={{ fontSize: '0.8rem', color: 'var(--color-secondary-accent)', fontWeight: 600 }}>
+                      <div className="customer-appointments__arrival-guidance">
                         Recommended arrival window: by {recArrival}
                       </div>
                     )}
@@ -692,11 +510,7 @@ export function CustomerAppointmentsPage() {
                 {/* Contextual Guidance Text */}
                 {normState.guidance && (
                   <div
-                    style={{
-                      fontSize: '0.85rem',
-                      color: normState.statusTone === 'warning' ? 'var(--color-warning)' : 'var(--color-text-secondary)',
-                      lineHeight: 1.45,
-                    }}
+                    className={`customer-appointments__context-guidance ${normState.statusTone === 'warning' ? 'customer-appointments__context-guidance--warning' : 'customer-appointments__context-guidance--normal'}`}
                   >
                     {normState.guidance}
                   </div>
@@ -704,29 +518,13 @@ export function CustomerAppointmentsPage() {
 
                 {/* Reschedule Ineligibility Notice (when active/upcoming but self-reschedule is disallowed) */}
                 {appt.self_reschedule && !appt.self_reschedule.allowed && (category === 'active' || category === 'upcoming') && appt.self_reschedule.message && (
-                  <div
-                    style={{
-                      fontSize: '0.8rem',
-                      color: 'var(--color-text-muted)',
-                      lineHeight: 1.4,
-                    }}
-                  >
+                  <div className="customer-appointments__reschedule-notice">
                     Self-rescheduling: {appt.self_reschedule.message}
                   </div>
                 )}
 
                 {/* Action Buttons Bar */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                    justifyContent: 'flex-end',
-                    gap: '0.65rem',
-                    paddingTop: '0.5rem',
-                    borderTop: '1px solid var(--color-border)',
-                  }}
-                >
+                <div className="customer-appointments__actions-bar">
                   {canCheckIn && (
                     <button
                       type="button"
