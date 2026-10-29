@@ -104,6 +104,7 @@
 .manager-queue__input,
 .manager-queue__select {
   padding: 0.55rem 0.85rem;
+  min-height: 44px;
   border-radius: 8px;
   border: 1px solid var(--color-border, #E6E1D9);
   background: var(--color-surface, #FFFFFF);
@@ -126,6 +127,7 @@
   justify-content: center;
   gap: 0.4rem;
   padding: 0.55rem 1rem;
+  min-height: 44px;
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 600;
@@ -773,6 +775,20 @@
 
   .manager-queue__overview-strip {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 360px) {
+  .manager-queue {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .manager-queue__title {
+    font-size: 1.35rem;
+  }
+
+  .manager-queue__overview-strip {
+    grid-template-columns: 1fr;
   }
 }
 

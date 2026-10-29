@@ -252,6 +252,7 @@
   font-weight: 500;
   outline: none;
   min-width: 220px;
+  min-height: 44px;
 }
 
 .admin-users__select:focus {
@@ -268,9 +269,13 @@
 }
 
 .admin-users__tab {
-  padding: 0.4rem 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.1rem;
+  min-height: 44px;
   border-radius: var(--radius-full, 9999px);
-  font-size: 0.8rem;
+  font-size: 0.825rem;
   font-weight: 600;
   cursor: pointer;
   background-color: var(--color-surface, #FFFFFF);
@@ -323,7 +328,8 @@
 
 .admin-users__search-input {
   width: 100%;
-  padding: 0.6rem 0.85rem 0.6rem 2.4rem;
+  padding: 0.65rem 0.85rem 0.65rem 2.6rem !important;
+  min-height: 44px;
   font-size: 0.875rem;
   border: 1px solid var(--color-border, #E6E1D9);
   border-radius: var(--radius-md, 10px);
@@ -661,6 +667,88 @@
 
   .admin-users__modal-card {
     padding: 1.25rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-users__search-wrap {
+    max-width: 100%;
+  }
+
+  .admin-users__table thead {
+    display: none;
+  }
+
+  .admin-users__table,
+  .admin-users__table tbody,
+  .admin-users__table tr,
+  .admin-users__table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .admin-users__tr {
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid var(--color-border, #E6E1D9);
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .admin-users__td {
+    padding: 0;
+    border: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .admin-users__td--right {
+    text-align: left;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--color-border-subtle, #ECE8E1);
+  }
+
+  .admin-users__btn-inspect {
+    width: 100%;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .admin-users__pagination {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .admin-users__pagination-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .admin-users__pagination-btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  .admin-users {
+    padding: 0.75rem 0.5rem 2.5rem;
+  }
+
+  .admin-users__title {
+    font-size: 1.45rem;
   }
 }
 
