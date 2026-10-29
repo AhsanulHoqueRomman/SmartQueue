@@ -159,13 +159,14 @@ def test_single_utf8_dependency_source_and_required_runtime_imports():
                     if line and not line.startswith('#')]
     pins = {requirement.name.lower(): requirement for requirement in declarations}
     for name in ['Django', 'djangorestframework', 'django-cors-headers', 'django-filter', 'python-dotenv',
-                 'drf-spectacular', 'djangorestframework_simplejwt', 'psycopg2-binary', 'Pillow', 'resend', 'gunicorn']:
+                 'drf-spectacular', 'djangorestframework_simplejwt', 'psycopg2-binary', 'Pillow', 'resend', 'gunicorn', 'whitenoise']:
         assert name.lower() in pins
         assert version(name) in pins[name.lower()].specifier
     import resend
     from PIL import Image
+    from whitenoise.middleware import WhiteNoiseMiddleware
     from apps.contact.email_service import EmailSendResult
-    assert callable(resend.Emails.send) and callable(Image.open)
+    assert callable(resend.Emails.send) and callable(Image.open) and callable(WhiteNoiseMiddleware)
     assert EmailSendResult(success=False).success is False
 
 
@@ -173,3 +174,55 @@ def test_health_check_endpoint(client):
     response = client.get('/api/health/')
     assert response.status_code == 200
     assert response.json() == {'status': 'ok', 'app': 'QueueTurn'}
+
+
+def test_production_whitenoise_and_static_configuration(production_environment):
+    script = """
+import psycopg2, dotenv, json
+psycopg2.connect = lambda *a, **k: (_ for _ in ()).throw(AssertionError('No DB'))
+import config.wsgi
+from django.conf import settings
+mw = list(settings.MIDDLEWARE)
+sec_idx = mw.index('django.middleware.security.SecurityMiddleware')
+wn_idx = mw.index('whitenoise.middleware.WhiteNoiseMiddleware')
+print(json.dumps({
+    'middleware_order': wn_idx == sec_idx + 1,
+    'staticfiles_storage': settings.STORAGES['staticfiles']['BACKEND'],
+    'default_storage': settings.STORAGES['default']['BACKEND'],
+    'private_storage': settings.STORAGES['private_documents']['BACKEND'],
+    'media_static_separate': str(settings.MEDIA_ROOT) != str(settings.STATIC_ROOT),
+}))
+"""
+    result = subprocess.run([sys.executable, '-c', script], cwd=BACKEND,
+                            env=production_environment, capture_output=True, text=True, timeout=20)
+    assert result.returncode == 0, result.stderr
+    data = json.loads(result.stdout)
+    assert data['middleware_order'] is True
+    assert data['staticfiles_storage'] == 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    assert data['default_storage'] == 'django.core.files.storage.FileSystemStorage'
+    assert data['private_storage'] == 'config.private_documents.PrivateDocumentStorage'
+    assert data['media_static_separate'] is True
+
+
+def test_collectstatic_compressed_manifest_in_temporary_directory(tmp_path):
+    from django.core.management import call_command
+    from django.conf import settings
+    orig_root = settings.STATIC_ROOT
+    orig_storage = settings.STORAGES.copy()
+    try:
+        settings.STATIC_ROOT = str(tmp_path / 'collected_static')
+        settings.STORAGES['staticfiles'] = {
+            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+        }
+        call_command('collectstatic', interactive=False, verbosity=0)
+        target = tmp_path / 'collected_static'
+        assert (target / 'staticfiles.json').exists()
+        assert (target / 'admin').is_dir()
+        assert (target / 'rest_framework').is_dir()
+        assert any(p.suffix == '.gz' for p in target.rglob('*'))
+        assert not (target / 'provider_docs').exists()
+        assert not (target / 'organization_docs').exists()
+        assert not (target / 'org_credentials').exists()
+    finally:
+        settings.STATIC_ROOT = orig_root
+        settings.STORAGES = orig_storage

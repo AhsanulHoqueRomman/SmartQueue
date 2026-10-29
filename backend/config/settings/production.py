@@ -123,6 +123,14 @@ elif os.getenv('FRONTEND_URL'):
 if os.path.realpath(MEDIA_ROOT) == os.path.realpath(STATIC_ROOT):
     raise ImproperlyConfigured('Public MEDIA_ROOT and STATIC_ROOT must remain separate.')
 
+# Production static files via WhiteNoise compressed manifest storage
+STORAGES = {
+    **STORAGES,
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
+
 # Preserve F-024's explicit, persistent, private storage startup gate.
 PRIVATE_DOCUMENT_PRODUCTION = True
 from config.private_documents import validate_private_storage_configuration
