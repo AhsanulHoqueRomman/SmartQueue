@@ -854,8 +854,10 @@
     width: 100%;
   }
 
-  .staff-queue__stage-actions > button {
+  .staff-queue__stage-actions > button,
+  .staff-queue__stage-actions > .staff-queue__btn {
     width: 100%;
+    min-height: 44px;
   }
 
   .staff-queue__recovery-item {
@@ -865,6 +867,242 @@
 
   .staff-queue__modal-dialog {
     padding: 1.5rem 1.25rem;
+  }
+}
+
+/* Responsive Waiting Patients Roster: Card layout on mobile screens */
+@media (max-width: 640px) {
+  .qt-table-scroll-hint {
+    display: none !important;
+  }
+
+  .staff-queue__table-wrap {
+    border: none;
+    background: transparent !important;
+    overflow-x: visible;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .staff-queue__table {
+    display: block;
+    width: 100%;
+    border: none;
+  }
+
+  .staff-queue__table thead {
+    display: none;
+  }
+
+  .staff-queue__table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .staff-queue__table tbody tr {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    grid-template-rows: auto auto auto;
+    row-gap: 0.5rem;
+    column-gap: 0.5rem;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg, 14px);
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
+    transition: border-color var(--duration-fast, 150ms) ease;
+  }
+
+  .staff-queue__table tbody tr:hover {
+    background-color: var(--color-surface);
+    border-color: var(--color-border-hover, var(--color-primary));
+  }
+
+  .staff-queue__table td {
+    padding: 0;
+    border: none;
+  }
+
+  /* td 1: Serial badge */
+  .staff-queue__table td:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  /* td 3: Arrival badge */
+  .staff-queue__table td:nth-child(3) {
+    grid-column: 3;
+    grid-row: 1;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* td 4: Presence badge */
+  .staff-queue__table td:nth-child(4) {
+    grid-column: 4;
+    grid-row: 1;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* td 2: Patient details */
+  .staff-queue__table td:nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding-top: 0.45rem;
+    border-top: 1px dashed var(--color-border-subtle, var(--color-border));
+  }
+
+  /* td 5: Staff Action (Check-in button or Ready status) */
+  .staff-queue__table td:nth-child(5) {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: flex;
+    align-items: center;
+    padding-top: 0.35rem;
+  }
+
+  .staff-queue__table td:nth-child(5) button {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .staff-queue__header-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.625rem;
+  }
+
+  .staff-queue__header-actions > button,
+  .staff-queue__header-actions > .staff-queue__btn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .staff-queue__auto-refresh-label {
+    width: 100%;
+    justify-content: center;
+    min-height: 40px;
+    box-sizing: border-box;
+  }
+
+  .staff-queue__stage-card {
+    padding: 1.15rem 1rem;
+  }
+
+  .staff-queue__stage-serial {
+    font-size: 2.15rem;
+  }
+
+  .staff-queue__select,
+  .staff-queue__date-input {
+    min-height: 44px;
+  }
+
+  .staff-queue__recovery-item {
+    gap: 0.75rem;
+  }
+
+  .staff-queue__recovery-item button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .staff-queue__booking-wrapper summary {
+    padding: 1rem 1.25rem !important;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .staff-queue__booking-wrapper form {
+    padding: 1rem 1.25rem 1.5rem !important;
+  }
+
+  .staff-queue__booking-wrapper form button {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .staff-queue__modal-actions {
+    flex-direction: column-reverse;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .staff-queue__modal-actions > button {
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 360px) {
+  .staff-queue {
+    padding: 0.75rem 0.5rem 2.5rem;
+    gap: 1rem;
+  }
+
+  .staff-queue__title {
+    font-size: 1.35rem;
+  }
+
+  .staff-queue__stage-serial {
+    font-size: 1.85rem;
+  }
+
+  .staff-queue__console,
+  .staff-queue__roster-card,
+  .staff-queue__recovery-card {
+    padding: 1rem 0.75rem;
+  }
+
+  .staff-queue__table tbody tr {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto auto auto;
+    padding: 0.75rem 0.85rem;
+  }
+
+  .staff-queue__table td:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .staff-queue__table td:nth-child(3) {
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-end;
+  }
+
+  .staff-queue__table td:nth-child(4) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: flex-start;
+    padding-top: 0.25rem;
+  }
+
+  .staff-queue__table td:nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    padding-top: 0.4rem;
+  }
+
+  .staff-queue__table td:nth-child(5) {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    padding-top: 0.35rem;
   }
 }
 
