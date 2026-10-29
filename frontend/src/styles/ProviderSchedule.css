@@ -840,6 +840,55 @@
   .provider-schedule__times-row {
     grid-template-columns: 1fr;
   }
+
+  .provider-schedule__header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .provider-schedule__btn-primary,
+  .provider-schedule__btn-refresh {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .provider-schedule__modal-footer {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .provider-schedule__modal-footer button {
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 360px) {
+  .provider-schedule {
+    padding: 0 0.25rem;
+  }
+
+  .provider-schedule__title {
+    font-size: 1.25rem;
+  }
+
+  .provider-schedule__day-card {
+    padding: 1rem 0.85rem;
+  }
+
+  .provider-schedule__stat-chip {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.775rem;
+  }
+
+  .provider-schedule__modal-container {
+    border-radius: var(--radius-md);
+  }
+
+  .provider-schedule__modal-body {
+    padding: 1rem 0.85rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -468,11 +468,14 @@
   .qt-provider-dashboard__header-actions {
     flex-direction: column;
     width: 100%;
+    gap: 0.5rem;
   }
 
   .qt-provider-dashboard__nav-btn {
     width: 100%;
     justify-content: center;
+    min-height: 44px;
+    box-sizing: border-box;
   }
 
   .qt-provider-dashboard__title {
@@ -481,15 +484,45 @@
 
   .qt-provider-dashboard__panel-actions {
     flex-direction: column;
+    gap: 0.5rem;
   }
 
   .qt-provider-dashboard__action-btn {
     width: 100%;
     justify-content: center;
+    min-height: 44px;
   }
 
   .qt-provider-dashboard__token-number {
     font-size: 1.875rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .qt-provider-dashboard {
+    padding: 0.75rem 0.5rem 2rem;
+    gap: 1rem;
+  }
+
+  .qt-provider-dashboard__header {
+    padding: 1rem 0.75rem;
+  }
+
+  .qt-provider-dashboard__title {
+    font-size: 1.15rem;
+  }
+
+  .qt-provider-dashboard__token-number {
+    font-size: 1.65rem;
+  }
+
+  .qt-provider-dashboard__panel {
+    padding: 1rem 0.75rem;
+  }
+
+  .qt-provider-dashboard__control-card,
+  .qt-provider-dashboard__schedule-card {
+    padding: 1rem 0.75rem;
   }
 }
 

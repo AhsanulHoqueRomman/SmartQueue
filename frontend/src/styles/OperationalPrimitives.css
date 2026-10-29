@@ -602,25 +602,43 @@
   .qt-search-filter-form {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.75rem;
   }
 
   .qt-search-filter-inputs {
     flex-direction: column;
+    flex: 1 1 auto;
+    width: 100%;
+    align-items: stretch;
+    gap: 0.625rem;
+    flex-wrap: nowrap;
   }
 
   .qt-search-field,
   .qt-filter-field {
     width: 100%;
-    flex: 1 1 100%;
+    flex: 0 0 auto;
+  }
+
+  .qt-input-with-icon {
+    width: 100%;
+  }
+
+  .qt-search-control,
+  .qt-filter-select {
+    width: 100%;
   }
 
   .qt-search-filter-actions {
     width: 100%;
+    margin-top: 0.25rem;
   }
 
   .qt-search-btn,
   .qt-clear-btn {
-    flex: 1;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 40px;
   }
 
   .qt-pagination {

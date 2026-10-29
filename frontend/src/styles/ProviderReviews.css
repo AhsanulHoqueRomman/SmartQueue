@@ -688,6 +688,59 @@
   }
 }
 
+@media (max-width: 480px) {
+  .provider-reviews__title {
+    font-size: 1.25rem;
+  }
+
+  .provider-reviews__header-actions {
+    width: 100%;
+  }
+
+  .provider-reviews__btn-refresh {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .provider-reviews__filter-pills {
+    overflow-x: auto;
+    width: 100%;
+    padding-bottom: 0.35rem;
+  }
+
+  .provider-reviews__search-form {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .provider-reviews__search-input,
+  .provider-reviews__search-btn {
+    width: 100%;
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 360px) {
+  .provider-reviews {
+    padding: 0.75rem 0.5rem 2rem;
+    gap: 1rem;
+  }
+
+  .provider-reviews__header {
+    padding: 1rem 0.85rem;
+  }
+
+  .provider-reviews__card {
+    padding: 1rem 0.85rem;
+  }
+
+  .provider-reviews__summary {
+    padding: 1rem 0.85rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .provider-reviews,
   .provider-reviews__header,
