@@ -731,31 +731,53 @@
     padding: 1.25rem;
     flex-direction: column;
     align-items: stretch;
+    gap: 1rem;
+  }
+
+  .customer-reviews__header-info {
+    flex: 0 1 auto;
+    width: 100%;
+    gap: 0.25rem;
   }
 
   .customer-reviews__header-actions {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
   }
 
   .customer-reviews__btn-nav {
+    flex: 1 1 auto;
     justify-content: center;
   }
 
   .customer-reviews__btn-refresh {
+    flex: 0 0 auto;
     justify-content: center;
   }
 
   .customer-reviews__toolbar {
     padding: 1rem;
+    gap: 0.75rem;
   }
 
   .customer-reviews__toolbar-top {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .customer-reviews__rating-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    width: 100%;
   }
 
   .customer-reviews__search-form {
+    flex: 0 1 auto;
+    width: 100%;
     max-width: 100%;
   }
 
@@ -783,6 +805,25 @@
 
   .customer-reviews__pagination-controls {
     justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .customer-reviews__header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .customer-reviews__btn-nav,
+  .customer-reviews__btn-refresh {
+    width: 100%;
+  }
+
+  .customer-reviews__toolbar-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
   }
 }
 

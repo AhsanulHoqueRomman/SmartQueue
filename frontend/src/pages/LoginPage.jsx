@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { PublicNavbar } from '../components/PublicNavbar';
+import AuthFooter from '../components/AuthFooter';
 import '../styles/AuthPages.css';
 
 export const LoginPage = () => {
@@ -170,6 +171,7 @@ export const LoginPage = () => {
           </div>
         </div>
       </main>
+      <AuthFooter />
     </div>
   );
 };

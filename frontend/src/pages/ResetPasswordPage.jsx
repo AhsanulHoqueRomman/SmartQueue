@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import PublicNavbar from '../components/PublicNavbar';
+import AuthFooter from '../components/AuthFooter';
 import '../styles/AuthPages.css';
 
 export const ResetPasswordPage = () => {
@@ -210,6 +211,7 @@ export const ResetPasswordPage = () => {
           </div>
         </div>
       </main>
+      <AuthFooter />
     </div>
   );
 };

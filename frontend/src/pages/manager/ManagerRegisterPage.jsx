@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { RegistrationProgress } from '../../components/registration/RegistrationProgress';
 import { PublicNavbar } from '../../components/PublicNavbar';
+import AuthFooter from '../../components/AuthFooter';
 import '../../styles/AuthPages.css';
 
 export const ManagerRegisterPage = () => {
@@ -466,6 +467,7 @@ export const ManagerRegisterPage = () => {
           </div>
         </div>
       </main>
+      <AuthFooter />
     </div>
   );
 };

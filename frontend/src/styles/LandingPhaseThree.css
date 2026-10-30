@@ -8,13 +8,14 @@
 .sq-phase3 p { color: var(--lp-text-sec); font-size: .96rem; line-height: 1.75; margin: 0; }
 .sq-journey-wrap { position: relative; }
 .sq-journey-grid { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px 24px; list-style: none; padding: 0; margin: 0; }
-.sq-journey-card { padding: 28px; min-width: 0; min-height: 242px; border: 1px solid var(--lp-border-med); border-radius: 18px; background: var(--lp-bg); }
+.sq-journey-card { padding: 28px; min-width: 0; min-height: 242px; border: 1px solid var(--lp-border-med); border-radius: 18px; background: var(--lp-bg); position: relative; z-index: 1; }
 .sq-journey-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
 .sq-icon-tile { display: grid; place-items: center; width: 56px; height: 56px; background: var(--lp-sage-bg); color: var(--lp-sage); border: 1px solid var(--lp-sage-border); border-radius: 14px; }
 .sq-icon-tile svg { width: 30px; height: 30px; }
 .sq-step-number { font-size: 1.8rem; font-weight: 700; color: var(--lp-sage); font-variant-numeric: tabular-nums; opacity: .65; }
 .sq-phase3 h3 { font-size: 1.17rem; line-height: 1.4; margin: 0 0 12px; }
-.sq-journey-path { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; fill: none; stroke: var(--lp-sage); stroke-width: 1.5; opacity: .5; }
+.sq-journey-path { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; fill: none; stroke: var(--lp-sage); stroke-width: 1.5; opacity: .5; pointer-events: none; }
+.sq-journey-path-mobile { display: none; }
 .sq-phase3.is-observed:not(.is-revealed) .sq-entry { opacity: 0; transform: translateY(18px); }
 .sq-phase3.is-revealed .sq-entry { animation: sq-entry .65s ease-out var(--entry-delay, 0s) both; }
 .sq-phase3.is-observed:not(.is-revealed) .sq-journey-path path { stroke-dasharray: 1; stroke-dashoffset: 1; }
@@ -95,7 +96,8 @@
 @media (max-width: 1000px) {
   .sq-phase3 { padding-block: 64px; }
   .sq-journey-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
-  .sq-journey-path { display: none; }
+  .sq-journey-path-desktop { display: none; }
+  .sq-journey-path-mobile { display: block; }
   .sq-organizations-split { grid-template-columns: 1fr; gap: 40px; }
   .sq-operations-preview { margin-inline: 0; }
 }
@@ -294,6 +296,7 @@
     grid-template-columns: 1fr;
     gap: 10px;
   }
+  .sq-journey-path-mobile { display: none; }
   .sq-journey-card {
     padding: 14px 14px;
   }

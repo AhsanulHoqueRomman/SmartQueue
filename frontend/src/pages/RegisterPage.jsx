@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PublicNavbar } from '../components/PublicNavbar';
+import AuthFooter from '../components/AuthFooter';
 import '../styles/AuthPages.css';
 
 export const RegisterPage = () => {
@@ -132,6 +133,7 @@ export const RegisterPage = () => {
           </div>
         </div>
       </main>
+      <AuthFooter />
     </div>
   );
 };

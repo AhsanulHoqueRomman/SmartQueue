@@ -57,15 +57,15 @@
 .discovery-category h3 { font-size: 1rem; margin: 0 0 8px; line-height: 1.4; }
 .discovery-category > span:last-child { color: var(--lp-muted); font-size: .78rem; margin-top: auto; }
 .discovery-category:hover, .discovery-org-card:hover { border-color: var(--lp-sage); }
-.discovery-org-card { flex: 0 0 340px; width: 340px; border: 1px solid var(--lp-border); border-radius: 20px; overflow: hidden; background: var(--lp-surface); }
-.discovery-org-art { width: 100%; height: 174px; display: block; object-fit: cover; object-position: center; }
-.discovery-org-body { padding: 24px; display: flex; flex-direction: column; min-height: 280px; }
+.discovery-org-card { display: flex; flex-direction: column; flex: 0 0 340px; width: 340px; border: 1px solid var(--lp-border); border-radius: 20px; overflow: hidden; background: var(--lp-surface); }
+.discovery-org-art { width: 100%; height: 174px; display: block; object-fit: cover; object-position: center; flex-shrink: 0; }
+.discovery-org-body { padding: 24px; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 280px; }
 .discovery-org-body h3 { font-size: 1.25rem; line-height: 1.35; margin: 12px 0; }
 .discovery-rating { color: var(--lp-sage); font-weight: 700; font-size: .85rem; margin: 0 0 10px; }
 .discovery-rating span { color: var(--lp-muted); font-weight: 400; }
 .discovery-location { color: var(--lp-text-sec); font-size: .85rem; line-height: 1.6; margin: 0 0 16px; }
-.discovery-counts { display: flex; flex-wrap: wrap; gap: 14px; color: var(--lp-muted); font-size: .78rem; border-top: 1px solid var(--lp-border); padding-top: 14px; margin: auto 0 20px; }
-.discovery-org-body .lp-btn-outline { justify-content: center; font-size: .8rem; }
+.discovery-counts { display: flex; flex-wrap: wrap; gap: 14px; color: var(--lp-muted); font-size: .78rem; border-top: 1px solid var(--lp-border); padding-top: 14px; margin: auto 0 16px; }
+.discovery-org-body .lp-btn-outline { justify-content: center; font-size: .8rem; margin-top: auto; }
 .discovery-all { margin-top: 24px; }
 .popular-discovery.is-observed:not(.is-revealed) > :is(.discovery-eyebrow, h2, .discovery-intro, .discovery-rail, .discovery-all) { opacity: 0; transform: translateY(30px); }
 .popular-discovery.is-revealed > :is(.discovery-eyebrow, h2, .discovery-intro, .discovery-rail, .discovery-all) { animation: discovery-section-enter .6s cubic-bezier(.16, 1, .3, 1) both; }

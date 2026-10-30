@@ -205,12 +205,8 @@ export const NotificationBell = ({ onNewNotification }) => {
 
       {isOpen && (
         <div
+          className="qt-notification-popover"
           style={{
-            position: 'absolute',
-            top: 'calc(100% + 8px)',
-            right: '0',
-            width: '350px',
-            maxWidth: '90vw',
             backgroundColor: 'var(--color-surface)',
             border: '1px solid var(--color-border)',
             borderRadius: '16px',

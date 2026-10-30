@@ -928,6 +928,75 @@
   border-color: var(--lp-border, #2A394B);
 }
 
+/* ── Minimal Auth Footer ────────────────────────────────────────── */
+.auth-minimal-footer {
+  width: 100%;
+  margin-top: auto;
+  padding: 1.25rem 1rem 1.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--lp-muted, #8D857E);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+:root[data-theme="dark"] .auth-minimal-footer {
+  color: var(--lp-muted, #91A09D);
+}
+
+.auth-minimal-footer__inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.65rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.auth-minimal-footer__copy {
+  color: inherit;
+}
+
+.auth-minimal-footer__sep {
+  color: var(--lp-border-med, #D6CFB9);
+  user-select: none;
+}
+
+:root[data-theme="dark"] .auth-minimal-footer__sep {
+  color: var(--lp-border-med, #35485E);
+}
+
+.auth-minimal-footer__link {
+  color: var(--lp-text-sec, #57534E);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--motion-fast, 160ms) ease;
+  border-radius: 4px;
+}
+
+:root[data-theme="dark"] .auth-minimal-footer__link {
+  color: var(--lp-text-sec, #B5C4C1);
+}
+
+.auth-minimal-footer__link:hover {
+  color: var(--lp-sage, #5F7A70);
+  text-decoration: underline;
+}
+
+:root[data-theme="dark"] .auth-minimal-footer__link:hover {
+  color: var(--lp-accent, #2A9D8F);
+}
+
+.auth-minimal-footer__link:focus-visible {
+  outline: 2px solid var(--lp-sage, #5F7A70);
+  outline-offset: 3px;
+}
+
+:root[data-theme="dark"] .auth-minimal-footer__link:focus-visible {
+  outline-color: var(--lp-accent, #2A9D8F);
+}
+
 /* ── Motion & Reduced Motion ─────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .auth-page,
@@ -937,7 +1006,8 @@
   .auth-page__secondary-btn,
   .auth-page__brand,
   .auth-page__brand-mark,
-  .auth-page__toggle-btn {
+  .auth-page__toggle-btn,
+  .auth-minimal-footer__link {
     transition: none !important;
     animation: none !important;
     transform: none !important;

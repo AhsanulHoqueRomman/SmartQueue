@@ -412,6 +412,13 @@
 
   .customer-favorites__header {
     padding: 1.25rem 1.25rem;
+    gap: 1rem;
+  }
+
+  .customer-favorites__header-main {
+    flex: 0 1 auto;
+    width: 100%;
+    gap: 0.25rem;
   }
 
   .customer-favorites__title {

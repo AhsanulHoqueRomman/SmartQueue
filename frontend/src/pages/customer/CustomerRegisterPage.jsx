@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { PublicNavbar } from '../../components/PublicNavbar';
+import AuthFooter from '../../components/AuthFooter';
 import '../../styles/AuthPages.css';
 
 export const CustomerRegisterPage = () => {
@@ -282,6 +283,7 @@ export const CustomerRegisterPage = () => {
           </div>
         </div>
       </main>
+      <AuthFooter />
     </div>
   );
 };

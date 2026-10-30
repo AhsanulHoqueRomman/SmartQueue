@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PublicNavbar } from '../components/PublicNavbar';
+import PublicFooter from '../components/PublicFooter';
 import '../styles/NotFoundPage.css';
 
 export const NotFoundPage = () => {
@@ -41,6 +42,7 @@ export const NotFoundPage = () => {
           </div>
         </div>
       </main>
+      <PublicFooter />
     </div>
   );
 };

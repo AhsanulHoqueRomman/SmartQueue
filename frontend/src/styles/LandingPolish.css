@@ -52,9 +52,9 @@
 .customer-recent-history a > span { font-size: .75rem; color: var(--lp-muted); }
 .customer-recent-history .recent-rating { color: var(--sq-gold); }
 .customer-recent-history .recent-profile { color: var(--lp-sage); margin-top: auto; padding-top: 8px; font-weight: 600; }
-.availability-filter-disclosure { display: contents; }
+.availability-filter-disclosure { grid-column: span 2; margin: 0; padding: 0; border: none; background: transparent; }
 .availability-filter-summary { display: none; }
-.availability-filter-body { display: contents; }
+.availability-filter-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
 @media (max-width: 1000px) {
   .availability-fields { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
   .availability-filter-disclosure {

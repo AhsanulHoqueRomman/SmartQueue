@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 import PublicNavbar from '../components/PublicNavbar';
+import AuthFooter from '../components/AuthFooter';
 import '../styles/AuthPages.css';
 
 export const ForgotPasswordPage = () => {
@@ -116,6 +117,7 @@ export const ForgotPasswordPage = () => {
           </div>
         </div>
       </main>
+      <AuthFooter />
     </div>
   );
 };

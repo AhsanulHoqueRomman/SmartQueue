@@ -117,10 +117,40 @@ html { scroll-padding-top: var(--qt-shell-header-height, 72px); }
   }
 }
 
+/* Notification Popover */
+.qt-notification-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  width: 360px;
+  max-width: 90vw;
+  max-height: 480px;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 600px) {
+  .qt-notification-popover {
+    position: fixed !important;
+    top: calc(var(--qt-shell-header-height, 56px) + 8px) !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: calc(100dvh - 72px) !important;
+  }
+}
+
 @media (max-width: 767px) {
   .qt-shell .qt-shell__topbar {
     padding: 8px 12px;
     gap: 6px 8px;
+    flex-wrap: wrap;
+  }
+  .qt-shell .qt-shell__identity {
+    gap: 8px;
+    flex: 0 1 auto;
+    min-width: 0;
   }
   .qt-shell .qt-shell__menu-button {
     width: 36px;
@@ -128,7 +158,8 @@ html { scroll-padding-top: var(--qt-shell-header-height, 72px); }
   }
   .qt-shell .qt-shell__brand {
     font-size: 0.95rem;
-    gap: 8px;
+    gap: 6px;
+    min-width: 0;
   }
   .qt-shell .qt-shell__brand-mark {
     width: 30px;
@@ -139,15 +170,45 @@ html { scroll-padding-top: var(--qt-shell-header-height, 72px); }
   }
   .qt-shell .qt-shell__account-controls {
     gap: 6px;
+    flex: 0 0 auto;
+    margin-left: auto;
   }
-  .qt-shell .qt-shell__account-controls button[aria-label="User Account Menu"] > span:first-of-type {
-    max-width: 65px;
+  .qt-shell .qt-shell__account-controls button[aria-label="User Account Menu"] {
+    padding: 2px !important;
+    gap: 0 !important;
+    border-radius: 9999px !important;
+    min-width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .qt-shell .qt-shell__account-controls button[aria-label="User Account Menu"] > span {
+    display: none !important;
   }
 }
 
 @media (max-width: 359px) {
-  .qt-shell .qt-shell__account-controls button[aria-label="User Account Menu"] > span:first-of-type {
-    display: none;
+  .qt-shell .qt-shell__topbar {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+  .qt-shell .qt-shell__identity {
+    gap: 6px;
+  }
+  .qt-shell .qt-shell__menu-button {
+    width: 32px;
+    height: 32px;
+  }
+  .qt-shell .qt-shell__brand-mark {
+    width: 26px;
+    height: 28px;
+  }
+  .qt-shell .qt-shell__brand {
+    font-size: 0.85rem;
+  }
+  .qt-shell .qt-shell__account-controls {
+    gap: 4px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

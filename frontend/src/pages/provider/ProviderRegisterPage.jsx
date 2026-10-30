@@ -6,6 +6,7 @@ import { RegistrationProgress } from '../../components/registration/Registration
 import { ScheduleEditor } from '../../components/ScheduleEditor';
 import { initialSchedule } from '../../utils/scheduleDraft';
 import { PublicNavbar } from '../../components/PublicNavbar';
+import AuthFooter from '../../components/AuthFooter';
 import '../../styles/AuthPages.css';
 
 export const ProviderRegisterPage = () => {
@@ -603,6 +604,7 @@ export const ProviderRegisterPage = () => {
           </div>
         </div>
       </main>
+      <AuthFooter />
     </div>
   );
 };

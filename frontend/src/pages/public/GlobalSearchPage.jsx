@@ -4,6 +4,7 @@ import organizationService from '../../services/organizationService';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import PublicNavbar from '../../components/PublicNavbar';
+import PublicFooter from '../../components/PublicFooter';
 import '../../styles/LandingPage.css';
 import '../../styles/GlobalSearchPage.css';
 
@@ -448,6 +449,8 @@ export function GlobalSearchPage() {
           </div>
         )}
       </div>
+
+      <PublicFooter />
     </div>
   );
 }

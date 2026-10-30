@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PublicNavbar from '../components/PublicNavbar';
+import PublicFooter from '../components/PublicFooter';
 import { useAuth } from '../contexts/AuthContext';
 import { publicOrganizations, publicProfessionals } from '../services/discoveryService';
 import providerManagementService from '../services/providerManagementService';
@@ -78,5 +79,6 @@ export default function ProfessionalsPage() {
         {pages > 1 && <nav className="professional-pagination" aria-label="Professional results pages"><button disabled={page === 1} onClick={() => setPage(value => value - 1)}>Previous</button><span>{page} / {pages}</span><button disabled={page === pages} onClick={() => setPage(value => value + 1)}>Next</button></nav>}
       </>}
     </main>
+    <PublicFooter />
   </div>;
 }

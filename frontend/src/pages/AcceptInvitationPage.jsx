@@ -4,6 +4,7 @@ import organizationService from '../services/organizationService';
 import { ScheduleEditor } from '../components/ScheduleEditor';
 import { initialSchedule } from '../utils/scheduleDraft';
 import { PublicNavbar } from '../components/PublicNavbar';
+import AuthFooter from '../components/AuthFooter';
 import '../styles/AuthPages.css';
 
 export const AcceptInvitationPage = () => {
@@ -109,6 +110,7 @@ export const AcceptInvitationPage = () => {
             </div>
           </div>
         </main>
+        <AuthFooter />
       </div>
     );
   }
@@ -139,6 +141,7 @@ export const AcceptInvitationPage = () => {
             </div>
           </div>
         </main>
+        <AuthFooter />
       </div>
     );
   }
@@ -173,6 +176,7 @@ export const AcceptInvitationPage = () => {
             </div>
           </div>
         </main>
+        <AuthFooter />
       </div>
     );
   }
@@ -354,6 +358,7 @@ export const AcceptInvitationPage = () => {
           </div>
         </div>
       </main>
+      <AuthFooter />
     </div>
   );
 };

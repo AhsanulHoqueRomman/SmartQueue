@@ -6,6 +6,7 @@ import { addRecentlyViewedOrg } from '../../utils/recentAndFavorites';
 import appointmentService from '../../services/appointmentService';
 import ProfessionalCarousel from '../../components/ProfessionalCarousel';
 import PublicNavbar from '../../components/PublicNavbar';
+import PublicFooter from '../../components/PublicFooter';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import { deriveProfessionalDisplay } from '../../utils/providerDisplay';
@@ -455,6 +456,7 @@ export function OrganizationProfilePage() {
               <EmptyState title="Organization Not Found" description={error || "The requested organization is not available."} />
             </div>
           </main>
+          <PublicFooter />
         </div>
       );
     }
@@ -464,6 +466,7 @@ export function OrganizationProfilePage() {
         <main className="organization-profile-main organization-profile-main--center">
           <LoadingState message="Loading organization profile..." />
         </main>
+        <PublicFooter />
       </div>
     );
   }
@@ -477,6 +480,7 @@ export function OrganizationProfilePage() {
             <EmptyState title="Organization Not Found" description={error || "The requested organization is not available."} />
           </div>
         </main>
+        <PublicFooter />
       </div>
     );
   }
@@ -1317,18 +1321,7 @@ export function OrganizationProfilePage() {
       )}
 
       {/* 7. SITE FOOTER */}
-      <footer className="lp-footer" style={{ marginTop: 'auto' }}>
-        <div className="lp-footer-bottom" style={{ maxWidth: '1150px', margin: '0 auto', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderTop: '1px solid var(--lp-border)' }}>
-          <div style={{ fontSize: '0.85rem', color: 'var(--lp-muted)' }}>
-            © 2026 QueueTurn Platform. All rights reserved.
-          </div>
-          <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', color: 'var(--lp-text-sec)' }}>
-            <Link to="/organizations" className="lp-footer-link">Organizations</Link>
-            <Link to="/search" className="lp-footer-link">Search</Link>
-            <Link to="/contact" className="lp-footer-link">Contact Us</Link>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

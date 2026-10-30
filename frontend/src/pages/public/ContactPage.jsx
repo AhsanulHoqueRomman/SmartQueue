@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { contactService } from '../../services/contactService';
 import { PublicNavbar } from '../../components/PublicNavbar';
+import PublicFooter from '../../components/PublicFooter';
 import '../../styles/ContactPage.css';
 
 /* ─── Tiny SVG Icon Components ─────────────────────────────────────────── */
@@ -668,48 +669,7 @@ export function ContactPage() {
       </main>
 
       {/* ── Footer ─────────────────────────────────────────────────────── */}
-      <footer className="lp-footer">
-        <div className="lp-footer-inner">
-          <div className="lp-footer-brand">
-            <a href="/" className="lp-brand">
-              <span className="lp-brand-mark lp-brand-mark--sm">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '13px', height: '13px' }}>
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                </svg>
-              </span>
-              <span className="lp-brand-name">QueueTurn</span>
-            </a>
-            <p className="lp-footer-tagline">
-              Multi-tenant appointment & queue management SaaS platform.
-            </p>
-          </div>
-          <div
-            className="lp-footer-links"
-            style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}
-          >
-            <a
-              href="/contact"
-              className="lp-footer-link"
-              style={{ fontWeight: 700, color: SK.sage }}
-            >
-              Contact Us
-            </a>
-            <a
-              href={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/docs/`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="lp-footer-link"
-              style={{ fontWeight: 600 }}
-            >
-              API Docs
-            </a>
-          </div>
-        </div>
-
-        <div className="lp-footer-bottom">
-          <span className="lp-footer-copy">© {new Date().getFullYear()} QueueTurn. All rights reserved.</span>
-        </div>
-      </footer>
+      <PublicFooter />
 
       {/* Page entrance animation (respects reduced motion) */}
       <style>{`

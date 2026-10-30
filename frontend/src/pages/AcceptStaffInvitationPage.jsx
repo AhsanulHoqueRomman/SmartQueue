@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import organizationService from '../services/organizationService';
 import { PublicNavbar } from '../components/PublicNavbar';
+import AuthFooter from '../components/AuthFooter';
 import '../styles/AuthPages.css';
 
 export const AcceptStaffInvitationPage = () => {
@@ -103,6 +104,7 @@ export const AcceptStaffInvitationPage = () => {
             </div>
           </div>
         </main>
+        <AuthFooter />
       </div>
     );
   }
@@ -133,6 +135,7 @@ export const AcceptStaffInvitationPage = () => {
             </div>
           </div>
         </main>
+        <AuthFooter />
       </div>
     );
   }
@@ -166,6 +169,7 @@ export const AcceptStaffInvitationPage = () => {
             </div>
           </div>
         </main>
+        <AuthFooter />
       </div>
     );
   }
@@ -332,6 +336,7 @@ export const AcceptStaffInvitationPage = () => {
           </div>
         </div>
       </main>
+      <AuthFooter />
     </div>
   );
 };

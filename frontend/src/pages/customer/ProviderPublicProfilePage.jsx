@@ -9,6 +9,7 @@ import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import StatusBadge from '../../components/StatusBadge';
 import PublicNavbar from '../../components/PublicNavbar';
+import PublicFooter from '../../components/PublicFooter';
 import '../../styles/LandingPage.css';
 
 const PENDING_BOOKING_KEY = 'sq_pending_booking';
@@ -143,17 +144,31 @@ export function ProviderPublicProfilePage() {
   };
 
   if (loading) {
-    return <LoadingState message="Loading provider public profile..." />;
+    return (
+      <div className="lp-root" style={{ background: 'var(--lp-bg)', minHeight: '100vh', width: '100%', overflowX: 'hidden', color: 'var(--lp-text)', display: 'flex', flexDirection: 'column' }}>
+        <PublicNavbar />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6rem 1rem' }}>
+          <LoadingState message="Loading provider public profile..." />
+        </div>
+        <PublicFooter />
+      </div>
+    );
   }
 
   if (error || !profile) {
     return (
-      <EmptyState
-        title="Provider Profile Unavailable"
-        message={error || 'This provider profile is currently unavailable.'}
-        actionText="Back to Organization"
-        onAction={() => navigate(`/organizations/${organizationId}`)}
-      />
+      <div className="lp-root" style={{ background: 'var(--lp-bg)', minHeight: '100vh', width: '100%', overflowX: 'hidden', color: 'var(--lp-text)', display: 'flex', flexDirection: 'column' }}>
+        <PublicNavbar />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6rem 1rem' }}>
+          <EmptyState
+            title="Provider Profile Unavailable"
+            message={error || 'This provider profile is currently unavailable.'}
+            actionText="Back to Organization"
+            onAction={() => navigate(`/organizations/${organizationId}`)}
+          />
+        </div>
+        <PublicFooter />
+      </div>
     );
   }
 
@@ -235,6 +250,7 @@ export function ProviderPublicProfilePage() {
             </button>
           </div>
         </div>
+        <PublicFooter />
       </div>
     );
   }
@@ -538,6 +554,7 @@ export function ProviderPublicProfilePage() {
           </div>
         </div>
       </div>
+      <PublicFooter />
     </div>
   );
 }

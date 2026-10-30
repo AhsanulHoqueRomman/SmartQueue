@@ -22,6 +22,17 @@ export default function InstantAvailabilityFinder({ organizations }) {
   const { first, last } = useBookingWindow();
   const [ref, entered, , observed] = useScrollPresence(.1);
   const [selection, setSelection] = useState(() => ({ category: 'ALL', organization: '', service: '', provider: 'ANY', window: 'ANY', date: currentBusinessDate() }));
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => (typeof window !== 'undefined' ? window.innerWidth > 1000 : true));
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mql = window.matchMedia('(min-width: 1001px)');
+    const onChange = e => setIsDesktop(e.matches);
+    setIsDesktop(mql.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
   const [serviceData, setServiceData] = useState({ key: '', rows: [], error: false });
   const [providerData, setProviderData] = useState({ key: '', rows: [], error: false });
   const [result, setResult] = useState(null);
@@ -88,7 +99,7 @@ export default function InstantAvailabilityFinder({ organizations }) {
       <div><label htmlFor="finder-organization">Organization</label><select id="finder-organization" value={orgId} disabled={!orgs.length} onChange={event => change('organization', event.target.value)}>{!orgs.length && <option value="">No organizations available</option>}{orgs.map(org => <option key={org.id} value={org.id}>{org.name}</option>)}</select></div>
       <div><label htmlFor="finder-service">Service</label><select id="finder-service" value={serviceId} disabled={!services.length} onChange={event => change('service', event.target.value)}>{!services.length && <option value="">{serviceData.key === orgId ? 'No services available' : 'Loading services…'}</option>}{services.map(service => <option key={service.id} value={service.id}>{service.name} · {service.duration_minutes} min</option>)}</select></div>
       <div><label htmlFor="finder-date">Appointment date</label><input id="finder-date" type="date" value={selection.date} min={first} max={last} required onChange={event => change('date', event.target.value)} /></div>
-      <details className="availability-filter-disclosure" open={providerId !== 'ANY' || selection.window !== 'ANY'}>
+      <details className="availability-filter-disclosure" open={isDesktop || mobileOpen || providerId !== 'ANY' || selection.window !== 'ANY'} onToggle={event => { if (!isDesktop) setMobileOpen(event.currentTarget.open); }}>
         <summary className="availability-filter-summary">
           <span className="availability-filter-summary-title">Preferences (Professional &amp; Time Window)</span>
           {(providerId !== 'ANY' || selection.window !== 'ANY') && <span className="availability-filter-badge">Active</span>}

@@ -586,21 +586,43 @@
   }
 
   .profile-header {
-    padding: 1.5rem;
+    padding: 1.5rem 1.25rem;
     flex-direction: column;
     align-items: flex-start;
-    gap: 1.25rem;
+    gap: 1.15rem;
+  }
+
+  .profile-header-info {
+    flex: 0 1 auto;
+    width: 100%;
+    gap: 0.35rem;
+  }
+
+  .profile-name-row {
+    gap: 0.5rem;
+  }
+
+  .profile-name {
+    font-size: 1.5rem;
   }
 
   .profile-header-actions {
     width: 100%;
-    justify-content: flex-start;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.65rem;
   }
 
   .profile-btn-edit,
   .profile-btn-password {
     flex: 1 1 auto;
     justify-content: center;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.85rem;
+    min-height: 42px;
+    box-sizing: border-box;
+    white-space: nowrap;
   }
 
   .profile-grid {
@@ -609,6 +631,75 @@
 
   .profile-form-card {
     padding: 1.25rem;
+  }
+}
+
+@media (max-width: 540px) {
+  .profile-detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .profile-detail-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-muted, #78716C);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .profile-detail-val {
+    text-align: left;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    font-size: 0.925rem;
+    width: 100%;
+  }
+
+  .profile-membership-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-header {
+    padding: 1.25rem 1rem;
+    gap: 1rem;
+  }
+
+  .profile-avatar-img,
+  .profile-avatar-initials {
+    width: 72px;
+    height: 72px;
+  }
+
+  .profile-avatar-initials {
+    font-size: 1.65rem;
+  }
+
+  .profile-name {
+    font-size: 1.35rem;
+  }
+
+  .profile-card {
+    padding: 1.25rem 1rem;
+  }
+}
+
+@media (max-width: 350px) {
+  .profile-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .profile-btn-edit,
+  .profile-btn-password {
+    width: 100%;
   }
 }
 

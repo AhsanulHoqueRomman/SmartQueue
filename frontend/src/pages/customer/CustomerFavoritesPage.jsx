@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getFavoriteOrgs, toggleFavoriteOrg, getAuthenticatedAccountId } from '../../utils/recentAndFavorites';
 import EmptyState from '../../components/EmptyState';
 import PublicNavbar from '../../components/PublicNavbar';
+import PublicFooter from '../../components/PublicFooter';
 import '../../styles/CustomerFavorites.css';
 
 /* ─── SVG Bookmark Icon ─────────────────────────────────────────────────── */
@@ -61,7 +62,9 @@ const PinIcon = ({ size = 14 }) => (
 
 export function CustomerFavoritesPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated } = useAuth();
+  const isCustomerPortal = location.pathname.startsWith('/customer/');
 
   // Resolve stable account ID immediately from user state or token
   const effectiveAccountId = useMemo(() => {
@@ -93,49 +96,34 @@ export function CustomerFavoritesPage() {
     });
   }, [favorites, searchQuery]);
 
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <PublicNavbar />
+  if (location.pathname === '/favorites' && isAuthenticated) {
+    return <Navigate to="/customer/saved-clinics" replace />;
+  }
 
-      <main className="customer-favorites" role="main">
-        {/* Editorial Header */}
-        <header className="customer-favorites__header">
-          <div className="customer-favorites__header-main">
-            <span className="customer-favorites__eyebrow">
-              <BookmarkIcon size={14} /> Saved Healthcare Providers
-            </span>
-            <h1 className="customer-favorites__title">Saved Clinics & Facilities</h1>
-            <p className="customer-favorites__subtitle">
-              Quick access to your preferred clinics and facilities saved in this browser.
-            </p>
-          </div>
+  const pageContent = (
+    <main className="customer-favorites" role="main">
+      {/* Editorial Header */}
+      <header className="customer-favorites__header">
+        <div className="customer-favorites__header-main">
+          <span className="customer-favorites__eyebrow">
+            <BookmarkIcon size={14} /> Saved Organizations
+          </span>
+          <h1 className="customer-favorites__title">Saved Clinics &amp; Organizations</h1>
+          <p className="customer-favorites__subtitle">
+            Quick access to your preferred organizations saved on this device.
+          </p>
+        </div>
 
-          <div className="customer-favorites__header-actions">
-            {isAuthenticated || effectiveAccountId ? (
-              <span
-                className="customer-favorites__account-chip"
-                title="Favorites isolated to this account in this browser"
-              >
-                👤 Account: {user?.email || 'Authenticated'} (Browser Storage)
-              </span>
-            ) : (
-              <span
-                className="customer-favorites__account-chip customer-favorites__account-chip--anon"
-                title="Stored locally in this browser"
-              >
-                💻 Device Storage (Guest)
-              </span>
-            )}
-
-            <button
-              type="button"
-              className="customer-favorites__btn-explore"
-              onClick={() => navigate('/organizations')}
-            >
-              Explore Clinics →
-            </button>
-          </div>
-        </header>
+        <div className="customer-favorites__header-actions">
+          <button
+            type="button"
+            className="customer-favorites__btn-explore"
+            onClick={() => navigate('/organizations')}
+          >
+            Explore Organizations →
+          </button>
+        </div>
+      </header>
 
         {/* Anonymous Helper Notice */}
         {!isAuthenticated && !effectiveAccountId && (
@@ -275,7 +263,20 @@ export function CustomerFavoritesPage() {
             })}
           </div>
         )}
-      </main>
+    </main>
+  );
+
+  if (isCustomerPortal) {
+    return pageContent;
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <PublicNavbar />
+      <div style={{ flex: 1 }}>
+        {pageContent}
+      </div>
+      <PublicFooter />
     </div>
   );
 }

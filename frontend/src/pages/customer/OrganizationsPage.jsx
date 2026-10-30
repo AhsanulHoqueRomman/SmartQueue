@@ -5,6 +5,7 @@ import { toggleFavoriteOrg, isFavoriteOrg, addRecentlyViewedOrg } from '../../ut
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import PublicNavbar from '../../components/PublicNavbar';
+import PublicFooter from '../../components/PublicFooter';
 import '../../styles/LandingPage.css';
 import '../../styles/OrganizationsPage.css';
 
@@ -530,6 +531,8 @@ export function OrganizationsPage() {
           </main>
         </div>
       </div>
+
+      <PublicFooter />
 
       {/* Mobile Collapsible Filter Drawer / Bottom Sheet */}
       {mobileFiltersOpen && (
