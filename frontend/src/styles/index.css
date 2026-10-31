@@ -2206,5 +2206,25 @@ p {
   color: var(--color-text-main);
 }
 
+/* ── Schedule Day Card Heading Alignment ──────────────────────────────── */
+.schedule-day-card {
+  display: flow-root;
+}
 
+.schedule-day-card > legend {
+  float: left;
+  width: 100%;
+  margin: 0 0 0.75rem 0;
+  padding: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  border: none;
+}
+
+.schedule-day-card > label:first-of-type {
+  clear: both;
+  display: block;
+  margin-bottom: 1rem;
+}
 

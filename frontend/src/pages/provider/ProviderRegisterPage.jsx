@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import organizationService from '../../services/organizationService';
@@ -40,6 +40,7 @@ export const ProviderRegisterPage = () => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submittedPending, setSubmittedPending] = useState(false);
+  const stepEnteredAtRef = useRef(Date.now());
 
   const { registerProvider } = useAuth();
   const navigate = useNavigate();
@@ -56,6 +57,16 @@ export const ProviderRegisterPage = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    }
+    if (error) {
+      setError(null);
+    }
   };
 
   const validateStep1 = () => {
@@ -71,6 +82,17 @@ export const ProviderRegisterPage = () => {
       errs.password_confirm = ['Passwords do not match.'];
     }
 
+    if (formData.phone_number && formData.phone_number.trim()) {
+      const phone = formData.phone_number.trim();
+      if (phone.includes('@')) {
+        errs.phone_number = ['Please enter a valid phone number, not an email address.'];
+      } else if (phone.length > 20) {
+        errs.phone_number = ['Phone number cannot exceed 20 characters.'];
+      } else if (!/^[\d\s+\-().]{6,20}$/.test(phone)) {
+        errs.phone_number = ['Please enter a valid phone number (digits, spaces, +, -, parentheses).'];
+      }
+    }
+
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
       return false;
@@ -81,6 +103,7 @@ export const ProviderRegisterPage = () => {
   const handleNext = () => {
     if (step === 1 && validateStep1()) {
       setStep(2);
+      stepEnteredAtRef.current = Date.now();
     } else if (step === 2) {
       const average = Number(formData.average_service_minutes);
       if (formData.average_service_minutes !== '' && (!Number.isInteger(average) || average < 1)) {
@@ -89,19 +112,38 @@ export const ProviderRegisterPage = () => {
       }
       setFieldErrors({});
       setStep(3);
+      stepEnteredAtRef.current = Date.now();
     } else if (step === 3) {
       setStep(4);
+      stepEnteredAtRef.current = Date.now();
     }
   };
 
   const handleBack = () => {
-    if (step > 1) setStep(step - 1);
+    if (step > 1) {
+      setStep(step - 1);
+      stepEnteredAtRef.current = Date.now();
+    }
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
+    if (submitting) return;
+    if (step !== 4) return;
+    // Guard against accidental double-click or rapid pointer event carryover from Step 3 transition
+    if (Date.now() - stepEnteredAtRef.current < 400) return;
+
     setError(null);
     setFieldErrors({});
+
+    if (!validateStep1()) {
+      setStep(1);
+      setError('Please resolve the validation errors below.');
+      return;
+    }
+
     const average = Number(formData.average_service_minutes);
     if (formData.organization_id && (!Number.isInteger(average) || average < 1)) {
       setFieldErrors({ average_service_minutes: ['Enter a positive whole number of minutes for your organization provider profile.'] });
@@ -126,16 +168,32 @@ export const ProviderRegisterPage = () => {
     } catch (err) {
       const data = err.response?.data;
       if (data) {
+        let errorMap = {};
+        let globalMsg = 'Please resolve the validation errors below.';
+
         if (data.error) {
-          setError(data.error.message || 'Registration failed.');
+          globalMsg = data.error.message || 'Registration failed.';
           if (data.error.details && typeof data.error.details === 'object') {
-            setFieldErrors(data.error.details);
+            errorMap = data.error.details;
           }
         } else if (typeof data === 'object') {
-          setFieldErrors(data);
-          setError('Please resolve the validation errors below.');
+          errorMap = data;
         } else {
-          setError('Registration failed. Please check your details.');
+          globalMsg = 'Registration failed. Please check your details.';
+        }
+
+        setFieldErrors(errorMap);
+        setError(globalMsg);
+
+        // Guide user directly to the step containing the first validation error
+        if (errorMap.first_name || errorMap.last_name || errorMap.email || errorMap.phone_number || errorMap.password || errorMap.password_confirm) {
+          setStep(1);
+        } else if (errorMap.title || errorMap.bio || errorMap.average_service_minutes) {
+          setStep(2);
+        } else if (errorMap.organization_id) {
+          setStep(3);
+        } else if (errorMap.initial_schedule) {
+          setStep(4);
         }
       } else {
         setError('Network error. Is the backend server running?');
@@ -166,23 +224,24 @@ export const ProviderRegisterPage = () => {
                 <h1 className="auth-page__status-title">Application Submitted</h1>
                 <p className="auth-page__status-desc">
                   Your provider profile has been created.<br />
-                  Your organization membership for <strong>{selectedOrgObj?.name || 'the selected organization'}</strong> is waiting for approval.
+                  Your organization membership for <strong>{selectedOrgObj?.name || 'the selected organization'}</strong> is waiting for facility manager approval.
                 </p>
                 <div className="auth-page__banner auth-page__banner--info" style={{ textAlign: 'left', marginBottom: '1.75rem' }}>
                   <span aria-hidden="true">ℹ️</span>
-                  <span>You will be able to access organization provider tools once your membership is approved by the facility manager.</span>
+                  <span>Once approved by the manager, operational provider tools and queue controls will activate automatically on your account.</span>
                 </div>
                 <button
                   type="button"
-                  onClick={() => navigate('/provider/dashboard')}
+                  onClick={() => navigate('/login')}
                   className="auth-page__submit-btn auth-page__submit-btn--provider"
                 >
-                  Go to Provider Portal →
+                  Return to Sign In →
                 </button>
               </div>
             </div>
           </div>
         </main>
+        <AuthFooter />
       </div>
     );
   }
@@ -222,7 +281,18 @@ export const ProviderRegisterPage = () => {
               </div>
             )}
 
-            <form onSubmit={step === 4 ? handleSubmit : (e) => { e.preventDefault(); handleNext(); }} className="auth-page__form" noValidate>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'TEXTAREA') {
+                  e.preventDefault();
+                }
+              }}
+              className="auth-page__form"
+              noValidate
+            >
               {/* STEP 1 — Account Details */}
               {step === 1 && (
                 <div>
@@ -305,12 +375,19 @@ export const ProviderRegisterPage = () => {
                       id="prov-phone"
                       name="phone_number"
                       type="tel"
-                      className="auth-page__input"
+                      className={`auth-page__input ${fieldErrors.phone_number ? 'auth-page__input--error' : ''}`}
                       placeholder="+1 555-0188"
                       value={formData.phone_number}
                       onChange={handleChange}
                       autoComplete="tel"
+                      aria-invalid={Boolean(fieldErrors.phone_number)}
+                      aria-describedby={fieldErrors.phone_number ? 'prov-phone-error' : undefined}
                     />
+                    {fieldErrors.phone_number && (
+                      <div id="prov-phone-error" className="auth-page__field-error" role="alert">
+                        {Array.isArray(fieldErrors.phone_number) ? fieldErrors.phone_number.join(' ') : fieldErrors.phone_number}
+                      </div>
+                    )}
                   </div>
 
                   <div className="auth-page__field-group">
@@ -495,6 +572,11 @@ export const ProviderRegisterPage = () => {
                       );
                     })}
                   </div>
+                  {fieldErrors.organization_id && (
+                    <div className="auth-page__field-error" role="alert" style={{ marginTop: '0.5rem' }}>
+                      {Array.isArray(fieldErrors.organization_id) ? fieldErrors.organization_id.join(' ') : fieldErrors.organization_id}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -511,6 +593,11 @@ export const ProviderRegisterPage = () => {
                     days={formData.initial_schedule}
                     onChange={(days) => setFormData((prev) => ({ ...prev, initial_schedule: days }))}
                   />
+                  {fieldErrors.initial_schedule && (
+                    <div className="auth-page__field-error" role="alert" style={{ marginTop: '0.75rem' }}>
+                      {Array.isArray(fieldErrors.initial_schedule) ? fieldErrors.initial_schedule.join(' ') : fieldErrors.initial_schedule}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -571,6 +658,7 @@ export const ProviderRegisterPage = () => {
 
                 {step < 4 ? (
                   <button
+                    key="prov-continue-btn"
                     type="button"
                     onClick={handleNext}
                     className="auth-page__submit-btn auth-page__submit-btn--provider"
@@ -580,7 +668,9 @@ export const ProviderRegisterPage = () => {
                   </button>
                 ) : (
                   <button
-                    type="submit"
+                    key="prov-submit-btn"
+                    type="button"
+                    onClick={handleSubmit}
                     className="auth-page__submit-btn auth-page__submit-btn--provider"
                     disabled={submitting}
                   >

@@ -33,7 +33,9 @@ export const authService = {
   async registerProvider(providerData) {
     const response = await apiClient.post('/auth/register/provider/', providerData);
     const { access, refresh, user, is_pending_approval } = response.data;
-    tokenService.setTokens(access, refresh);
+    if (!is_pending_approval) {
+      tokenService.setTokens(access, refresh);
+    }
     return { user, is_pending_approval, access, refresh };
   },
 

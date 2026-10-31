@@ -63,7 +63,9 @@ export const AuthProvider = ({ children }) => {
 
   const registerProvider = async (providerDataInput) => {
     const res = await authService.registerProvider(providerDataInput);
-    setUser(res.user);
+    if (!res.is_pending_approval) {
+      setUser(res.user);
+    }
     return res;
   };
 
