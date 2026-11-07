@@ -226,3 +226,246 @@ def test_collectstatic_compressed_manifest_in_temporary_directory(tmp_path):
     finally:
         settings.STATIC_ROOT = orig_root
         settings.STORAGES = orig_storage
+
+
+DB_SNAPSHOT = """
+import hashlib, json, os
+from django.conf import settings
+db = settings.DATABASES['default']
+pwd = db.get('PASSWORD')
+print(json.dumps({
+    'engine': db.get('ENGINE'),
+    'name': db.get('NAME'),
+    'user': db.get('USER'),
+    'password_hash': hashlib.sha256(pwd.encode('utf-8')).hexdigest() if pwd is not None else None,
+    'host': db.get('HOST'),
+    'port': db.get('PORT'),
+    'options': db.get('OPTIONS', {}),
+}))
+"""
+
+
+def startup_db(env):
+    script = """
+import psycopg2, dotenv
+def no_database(*args, **kwargs):
+    raise AssertionError('Configuration verification must not connect to PostgreSQL')
+psycopg2.connect = no_database
+dotenv.load_dotenv = lambda *a, **k: (_ for _ in ()).throw(AssertionError('Production must not load .env'))
+import config.wsgi
+""" + DB_SNAPSHOT
+    return subprocess.run([sys.executable, '-c', script], cwd=BACKEND,
+                          env=env, capture_output=True, text=True, timeout=20)
+
+
+@pytest.mark.parametrize('scheme', ['postgres://', 'postgresql://'])
+def test_database_url_parsing_both_schemes(production_environment, scheme):
+    import hashlib
+    url = f"{scheme}test_user:test_secret_pass_123@db.example.org:5432/queueturn_prod"
+    env = {k: v for k, v in production_environment.items() if not k.startswith('DATABASE_')}
+    env['DATABASE_URL'] = url
+    result = startup_db(env)
+    assert result.returncode == 0, result.stderr
+    data = json.loads(result.stdout)
+    assert data['engine'] == 'django.db.backends.postgresql'
+    assert data['user'] == 'test_user'
+    assert data['password_hash'] == hashlib.sha256('test_secret_pass_123'.encode('utf-8')).hexdigest()
+    assert data['host'] == 'db.example.org'
+    assert data['port'] == '5432'
+    assert data['name'] == 'queueturn_prod'
+    assert data['options'] == {'sslmode': 'require'}
+
+
+def test_database_url_percent_encoded_credentials_and_name(production_environment):
+    import hashlib
+    url = "postgresql://user%40example.com:p%23ss%20w%21rd%2599@db.example.org:5433/queue%2Fdb%231"
+    env = {k: v for k, v in production_environment.items() if not k.startswith('DATABASE_')}
+    env['DATABASE_URL'] = url
+    result = startup_db(env)
+    assert result.returncode == 0, result.stderr
+    data = json.loads(result.stdout)
+    assert data['user'] == 'user@example.com'
+    assert data['password_hash'] == hashlib.sha256('p#ss w!rd%99'.encode('utf-8')).hexdigest()
+    assert data['name'] == 'queue/db#1'
+    assert data['port'] == '5433'
+
+
+def test_database_url_port_default_and_parsing(production_environment):
+    url_no_port = "postgresql://usr:secr_pass_abc@db.example.org/my_prod_db"
+    env = {k: v for k, v in production_environment.items() if not k.startswith('DATABASE_')}
+    env['DATABASE_URL'] = url_no_port
+    result = startup_db(env)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)['port'] == '5432'
+
+    env['DATABASE_URL'] = "postgresql://usr:secr_pass_abc@db.example.org:6543/my_prod_db"
+    result = startup_db(env)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)['port'] == '6543'
+
+
+@pytest.mark.parametrize('valid_host', [
+    'localhost',
+    'db.example.org',
+    'ec2-54-1-2-3.compute-1.amazonaws.com',
+    'my_postgres_service',
+    '127.0.0.1',
+    '[::1]',
+    '[2001:db8::1]',
+])
+def test_database_url_valid_hosts(production_environment, valid_host):
+    url = f"postgresql://usr:secr_pass_abc@{valid_host}:5432/my_prod_db"
+    env = {k: v for k, v in production_environment.items() if not k.startswith('DATABASE_')}
+    env['DATABASE_URL'] = url
+    result = startup_db(env)
+    assert result.returncode == 0, result.stderr
+    expected_host = valid_host.strip('[]')
+    assert json.loads(result.stdout)['host'] == expected_host
+
+
+def test_database_url_sslmode_default_and_overrides(production_environment):
+    base_url = "postgresql://usr:secr_pass_abc@db.example.org:5432/my_prod_db"
+    clean_env = {k: v for k, v in production_environment.items() if not k.startswith('DATABASE_')}
+
+    # Default for Heroku: sslmode=require
+    env = {**clean_env, 'DATABASE_URL': base_url}
+    result = startup_db(env)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)['options'] == {'sslmode': 'require'}
+
+    # Query param in URL: ?sslmode=disable
+    env = {**clean_env, 'DATABASE_URL': f"{base_url}?sslmode=disable"}
+    result = startup_db(env)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)['options'] == {'sslmode': 'disable'}
+
+    # Query param in URL: ?sslmode=verify-full
+    env = {**clean_env, 'DATABASE_URL': f"{base_url}?sslmode=verify-full"}
+    result = startup_db(env)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)['options'] == {'sslmode': 'verify-full'}
+
+    # Explicit DATABASE_SSLMODE env var overrides URL query parameter
+    env = {**clean_env, 'DATABASE_URL': f"{base_url}?sslmode=disable", 'DATABASE_SSLMODE': 'verify-ca'}
+    result = startup_db(env)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)['options'] == {'sslmode': 'verify-ca'}
+
+
+def test_legacy_individual_variable_fallback_and_sslmode(production_environment):
+    import hashlib
+    env = production_environment.copy()
+    env.pop('DATABASE_URL', None)
+    env.pop('DATABASE_SSLMODE', None)
+    result = startup_db(env)
+    assert result.returncode == 0, result.stderr
+    data = json.loads(result.stdout)
+    assert data['name'] == 'configuration_only_never_connect'
+    assert data['user'] == 'configuration_only'
+    assert data['password_hash'] == hashlib.sha256('configuration-only-nondefault-password'.encode('utf-8')).hexdigest()
+    assert data['host'] == '127.0.0.1'
+    assert data['port'] == '1'
+    assert 'sslmode' not in data['options']
+
+    env['DATABASE_SSLMODE'] = 'require'
+    result = startup_db(env)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)['options'] == {'sslmode': 'require'}
+
+
+@pytest.mark.parametrize('bad_url,expected_err', [
+    ('mysql://user:pass123@host:5432/db', 'postgres:// or postgresql://'),
+    ('sqlite:///path/to/db.sqlite3', 'postgres:// or postgresql://'),
+    ('postgresql://:pass123@host:5432/db', 'username'),
+    ('postgresql://user:@host:5432/db', 'password'),
+    ('postgresql://user@host:5432/db', 'password'),
+    ('postgresql://user:pass123@/db', 'valid host'),
+    ('postgresql://user:pass123@host name/db', 'valid host'),
+    ('postgresql://user:pass123@host\tname/db', 'valid host'),
+    ('postgresql://user:pass123@.example.com/db', 'valid host'),
+    ('postgresql://user:pass123@example..com/db', 'valid host'),
+    ('postgresql://user:pass123@-badlabel.com/db', 'valid host'),
+    ('postgresql://user:pass123@badlabel-.com/db', 'valid host'),
+    ('postgresql://user:pass123@db*host/db', 'valid host'),
+    ('postgresql://user:pass123@999.999.999.999:5432/db', 'valid host'),
+    ('postgresql://user:pass123@127.0.0.999:5432/db', 'valid host'),
+    ('postgresql://user:pass123@256.0.0.1:5432/db', 'valid host'),
+    ('postgresql://user:pass123@1.2.3.4.5:5432/db', 'valid host'),
+    ('postgresql://user:pass123@[localhost]:5432/db', 'valid host'),
+    ('postgresql://user:pass123@[127.0.0.1]:5432/db', 'valid host'),
+    ('postgresql://user:pass123@[bad::ipv6:::1]:5432/db', 'valid host'),
+    ('postgresql://user:pass123@host[1]:5432/db', 'valid host'),
+    ('postgresql://user:pass123@[::1]trailing:5432/db', 'valid host'),
+    ('postgresql://user:pass123@host:5432', 'database name'),
+    ('postgresql://user:pass123@host:5432/', 'database name'),
+    ('postgresql://user:pass123@host:70000/db', 'DATABASE_URL port'),
+    ('postgresql://user:pass123@host:0/db', 'DATABASE_URL port'),
+    ('postgresql://user:pass123@host:invalid_port/db', 'DATABASE_URL port'),
+    ('postgresql://user:password@host:5432/db', 'DATABASE_PASSWORD'),
+    ('postgresql://user:placeholder@host:5432/db', 'DATABASE_PASSWORD'),
+    ('postgresql://user:pass123@host:5432/db?sslmode=', 'sslmode parameter must not be empty'),
+    ('postgresql://user:pass123@host:5432/db?sslmode=require&sslmode=disable', 'duplicate sslmode query parameters'),
+    ('postgresql://user:pass123@host:5432/db?sslmode=bogus', 'DATABASE_URL sslmode must be a valid PostgreSQL SSL mode'),
+    ('postgresql://user:pass123@host:5432/db?sslmode=invalid', 'DATABASE_URL sslmode must be a valid PostgreSQL SSL mode'),
+])
+def test_malformed_database_url_rejected_safely(production_environment, bad_url, expected_err):
+    env = {k: v for k, v in production_environment.items() if not k.startswith('DATABASE_')}
+    env['DATABASE_URL'] = bad_url
+    result = startup_db(env)
+    assert result.returncode != 0
+    assert expected_err in result.stderr
+    assert 'django.db.utils.OperationalError' not in result.stderr
+
+
+def test_invalid_database_sslmode_env_rejected(production_environment):
+    base_url = "postgresql://usr:secr_pass_abc@db.example.org:5432/my_prod_db"
+    clean_env = {k: v for k, v in production_environment.items() if not k.startswith('DATABASE_')}
+    env = {**clean_env, 'DATABASE_URL': base_url, 'DATABASE_SSLMODE': 'bogus_ssl'}
+    result = startup_db(env)
+    assert result.returncode != 0
+    assert 'DATABASE_SSLMODE must be a valid PostgreSQL SSL mode' in result.stderr
+
+    # Test legacy individual variables with invalid DATABASE_SSLMODE
+    legacy_env = production_environment.copy()
+    legacy_env.pop('DATABASE_URL', None)
+    legacy_env['DATABASE_SSLMODE'] = 'invalid_legacy_ssl'
+    result = startup_db(legacy_env)
+    assert result.returncode != 0
+    assert 'DATABASE_SSLMODE must be a valid PostgreSQL SSL mode' in result.stderr
+
+
+def test_database_url_sslmode_empty_and_duplicate_rejected(production_environment):
+    base_url = "postgresql://usr:secr_pass_abc@db.example.org:5432/my_prod_db"
+    clean_env = {k: v for k, v in production_environment.items() if not k.startswith('DATABASE_')}
+
+    # Empty sslmode in query parameter
+    env_empty = {**clean_env, 'DATABASE_URL': f"{base_url}?sslmode="}
+    res = startup_db(env_empty)
+    assert res.returncode != 0
+    assert 'DATABASE_URL sslmode parameter must not be empty' in res.stderr
+
+    # Duplicate sslmode query parameters
+    env_dup = {**clean_env, 'DATABASE_URL': f"{base_url}?sslmode=require&sslmode=disable"}
+    res = startup_db(env_dup)
+    assert res.returncode != 0
+    assert 'DATABASE_URL must not contain duplicate sslmode query parameters' in res.stderr
+
+
+def test_database_credentials_not_disclosed_in_errors(production_environment):
+    secret_pass = 'super_secret_unique_pwd_xyz987'
+    secret_user = 'secret_unique_usr_abc123'
+    env = {k: v for k, v in production_environment.items() if not k.startswith('DATABASE_')}
+    env['DATABASE_URL'] = f"postgresql://{secret_user}:{secret_pass}@host.example.org:99999/testdb"
+    result = startup_db(env)
+    assert result.returncode != 0
+    assert 'DATABASE_URL port' in result.stderr
+    assert secret_pass not in result.stderr
+    assert secret_user not in result.stderr
+    assert secret_pass not in result.stdout
+    assert secret_user not in result.stdout
+
+    env['DATABASE_URL'] = f"postgresql://{secret_user}:{secret_pass}@/testdb"
+    result = startup_db(env)
+    assert result.returncode != 0
+    assert secret_pass not in result.stderr
+    assert secret_user not in result.stderr
