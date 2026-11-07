@@ -7,7 +7,7 @@ def _boolean(name, default):
     return os.getenv(name, str(default)).strip().lower() in {'true', '1'}
 
 
-DEBUG = False
+DEBUG = True
 
 SECRET_KEY = os.getenv('SECRET_KEY', SECRET_KEY)
 SIMPLE_JWT = {**SIMPLE_JWT, 'SIGNING_KEY': SECRET_KEY}
